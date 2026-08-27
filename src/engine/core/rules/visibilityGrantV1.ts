@@ -35,6 +35,11 @@ export type CoreVisibilityGrantV1 = Readonly<{
   readonly mode: CoreVisibilityModeV1;
   readonly sourceObjectId: CoreObjectId | null;
   readonly duration: CoreRuleDurationV1;
+  /** Server-derived snapshots used solely for deterministic invalidation. */
+  readonly openingSequence?: number;
+  readonly openingObjectIds?: readonly CoreObjectId[];
+  readonly topLibraryPrefixDigest?: string;
+  readonly networkBound?: boolean;
 }>;
 export type ModeNeutralCoreVisibilitySliceV1 = Readonly<{
   readonly kind: 'mode-neutral-core-visibility-slice-v1';
@@ -163,8 +168,9 @@ function subject(
 function grant(value: unknown, path: string): CoreRuleValidationResultV1<CoreVisibilityGrantV1> {
   const read = readCoreRuleExactRecordV1(
     value,
-    ['subject', 'audience', 'mode', 'sourceObjectId', 'duration'],
+    ['subject', 'audience', 'mode', 'sourceObjectId', 'duration', 'openingSequence', 'openingObjectIds', 'topLibraryPrefixDigest', 'networkBound'],
     path,
+    ['subject', 'audience', 'mode', 'sourceObjectId', 'duration'],
   );
   const issues = [...read.issues];
   if (!read.record) return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
@@ -189,9 +195,28 @@ function grant(value: unknown, path: string): CoreRuleValidationResultV1<CoreVis
       makeCoreRuleIssueV1(
         'INVALID_LITERAL',
         `${path}/audience/kind`,
-        'Reveal requires all players',
+      'Reveal requires all players',
       ),
     );
+  if (read.record.openingSequence !== undefined &&
+      (typeof read.record.openingSequence !== 'number' || !Number.isSafeInteger(read.record.openingSequence) || read.record.openingSequence < 0))
+    issues.push(makeCoreRuleIssueV1('INVALID_INTEGER', `${path}/openingSequence`, 'Invalid opening sequence'));
+  if (read.record.topLibraryPrefixDigest !== undefined &&
+      (typeof read.record.topLibraryPrefixDigest !== 'string' || !/^[0-9a-f]{64}$/.test(read.record.topLibraryPrefixDigest)))
+    issues.push(makeCoreRuleIssueV1('INVALID_STRING', `${path}/topLibraryPrefixDigest`, 'Invalid top-library prefix digest'));
+  if (read.record.networkBound !== undefined && typeof read.record.networkBound !== 'boolean') issues.push(makeCoreRuleIssueV1('INVALID_LITERAL', `${path}/networkBound`, 'Invalid network bound marker'));
+  let openingObjectIds: CoreObjectId[] | undefined;
+  if (read.record.openingObjectIds !== undefined) {
+    if (!Array.isArray(read.record.openingObjectIds)) issues.push(makeCoreRuleIssueV1('INVALID_ARRAY', `${path}/openingObjectIds`, 'Opening object IDs must be an array'));
+    else {
+      openingObjectIds = [];
+      for (const [index, value] of (read.record.openingObjectIds as readonly unknown[]).entries()) {
+        if (!isCanonicalCoreObjectIdV2(value)) issues.push(makeCoreRuleIssueV1('INVALID_ID', `${path}/openingObjectIds/${index}`, 'Invalid opening object ID'));
+        else if (openingObjectIds.includes(value)) issues.push(makeCoreRuleIssueV1('DUPLICATE_VALUE', `${path}/openingObjectIds/${index}`, 'Duplicate opening object ID'));
+        else openingObjectIds.push(value);
+      }
+    }
+  }
   if (issues.length || !checkedSubject.ok || !checkedAudience.ok || !checkedDuration.ok)
     return { ok: false, issues: sortCoreRuleIssuesV1(issues) };
   return {
@@ -202,6 +227,10 @@ function grant(value: unknown, path: string): CoreRuleValidationResultV1<CoreVis
       mode: read.record.mode as CoreVisibilityModeV1,
       sourceObjectId: read.record.sourceObjectId as CoreObjectId | null,
       duration: checkedDuration.value,
+      ...(read.record.openingSequence === undefined ? {} : { openingSequence: read.record.openingSequence as number }),
+      ...(openingObjectIds === undefined ? {} : { openingObjectIds: Object.freeze(openingObjectIds) }),
+      ...(read.record.topLibraryPrefixDigest === undefined ? {} : { topLibraryPrefixDigest: read.record.topLibraryPrefixDigest as string }),
+      ...(read.record.networkBound === undefined ? {} : { networkBound: read.record.networkBound as boolean }),
     }),
   };
 }

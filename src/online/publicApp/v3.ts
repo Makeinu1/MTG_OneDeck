@@ -20,8 +20,9 @@ import {
   type PublicOnlineSnapshotV3,
 } from './types';
 import { PUBLIC_ONLINE_ENDPOINT_V1 } from './index';
-import type { OnlineBrowserStateV1 } from '../browser/index';
+import type { OnlineBrowserStateV1, OnlineBrowserSubmitErrorCodeV1 } from '../browser/index';
 import { validateOnlineTabletopIntentEnvelopeV1, type OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
+import { validateOnlineVisibilityIntentV1, type OnlineVisibilityIntentEnvelopeV1 } from '../visibilityDecisions/index';
 import {
   validateOnlinePregameProjectionV1,
   type OnlinePregameCommandResponseV1,
@@ -45,6 +46,37 @@ function clientIssue(error: unknown, action: string): PublicOnlineErrorIssueV2 {
   const code = error instanceof ClientFailure ? error.code : error instanceof TypeError ? 'CLIENT_OFFLINE' : 'CLIENT_INVALID_RESPONSE';
   const messages: Readonly<Record<string, string>> = { CLIENT_OFFLINE: 'ネットワークに接続できません。', CLIENT_TIMEOUT: '接続がタイムアウトしました。', CLIENT_INVALID_RESPONSE: 'サーバーから予期しない応答が返りました。ページを更新して再試行してください。', CLIENT_UPGRADE_REQUIRED: 'ページを更新して最新版を読み込んでください。' };
   return Object.freeze({ code, retryable: code === 'CLIENT_OFFLINE' || code === 'CLIENT_TIMEOUT', message: messages[code] ?? messages.CLIENT_INVALID_RESPONSE, correlationId: generatedId('correlation'), action });
+}
+function visibilitySubmitIssue(code: OnlineBrowserSubmitErrorCodeV1): PublicOnlineErrorIssueV2 {
+  const messages: Readonly<Record<OnlineBrowserSubmitErrorCodeV1, string>> = {
+    OUTBOX_FULL: '送信待ちの操作がいっぱいです。接続が落ち着くまで待ってから盤面を確認してください。',
+    COMMAND_ID_REUSE: '同じ操作IDを再利用したため送信を中止しました。盤面を確認して別の操作を行ってください。',
+    INVALID_COMMAND: '操作内容を確認できないため送信を中止しました。盤面を確認してもう一度お試しください。',
+  };
+  return Object.freeze({
+    code: `CLIENT_${code}`,
+    retryable: false,
+    message: messages[code],
+    correlationId: generatedId('correlation'),
+    action: '盤面を確認',
+  });
+}
+/** Convert a browser transport rejection into bounded Japanese recovery
+ * guidance.  The browser exposes only a safe issue code; protocol paths and
+ * raw server messages never cross into the player surface. */
+function browserStateIssue(state: OnlineBrowserStateV1, action: string): PublicOnlineErrorIssueV2 | null {
+  const code = state.issueCode;
+  if (code === null) return null;
+  const retryable = code === 'STALE_REVISION' || code === 'SOCKET_ERROR' || code === 'SOCKET_CLOSED'
+    || code === 'SEND_FAILED' || code === 'RECONNECT_EXHAUSTED';
+  const message = code === 'STALE_REVISION'
+    ? '盤面が更新されました。表示を確認してからもう一度お試しください。'
+    : code === 'CORE_COMMAND_REJECTED' || code === 'COMMAND_SEQUENCE_MISMATCH'
+      ? '現在の盤面ではその操作を受け付けられません。表示を確認して再試行してください。'
+      : code === 'AUTHORIZATION_REJECTED' || code === 'PARTICIPANT_NOT_CONNECTED' || code === 'ROLE_NOT_ALLOWED'
+        ? 'この操作を行う権限を確認できません。盤面を更新して再接続してください。'
+        : '接続または操作の結果を確認できませんでした。盤面を確認して再試行してください。';
+  return Object.freeze({ code: `CLIENT_${code}`, retryable, message, correlationId: generatedId('correlation'), action });
 }
 const DECK_ISSUE_CODES = new Set([
   'EMPTY_LIST', 'INVALID_SECTION', 'INVALID_QUANTITY', 'INVALID_CARD_ID',
@@ -240,6 +272,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   const listeners = new Set<(value: PublicOnlineSnapshotV3) => void>();
   let retryOperation: (() => Promise<void>) | null = null;
+  let playerTransportIssueVisible = false;
   const publish = (patch: Partial<PublicOnlineSnapshotV3> = {}): void => {
     snapshot = Object.freeze({ ...snapshot, ...patch, recoveryAvailable: loadRecovery() !== null || loadLegacyRecovery() !== null });
     listeners.forEach((listener) => listener(snapshot));
@@ -284,7 +317,19 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
     playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null;
     playerClient?.disconnect(); tableClient?.disconnect();
     playerClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.participantId as never, participantCapability: secrets.seatCapability as never });
-    playerUnsubscribe = playerClient.subscribe((state) => publish({ player: state, connection: state.phase === 'open' ? 'online' : state.phase === 'recovering' ? 'reconnecting' : state.phase === 'failed' ? 'failed' : 'connecting' }));
+    playerUnsubscribe = playerClient.subscribe((state) => {
+      const connection = state.phase === 'open' ? 'online' : state.phase === 'recovering' ? 'reconnecting' : state.phase === 'failed' ? 'failed' : 'connecting';
+      const issue = browserStateIssue(state, '盤面を確認');
+      if (issue !== null) {
+        playerTransportIssueVisible = true;
+        publish({ player: state, connection, error: issue.message, errorIssue: issue });
+      } else if (playerTransportIssueVisible) {
+        playerTransportIssueVisible = false;
+        publish({ player: state, connection, error: null, errorIssue: null });
+      } else {
+        publish({ player: state, connection });
+      }
+    });
     playerClient.connect();
     if (secrets.tableParticipantId && secrets.tableCapability) {
       tableClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.tableParticipantId as never, participantCapability: secrets.tableCapability as never });
@@ -570,8 +615,29 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       publish({ busy: null });
     }
   };
+  const submitVisibilityIntent = async (input: OnlineVisibilityIntentEnvelopeV1): Promise<void> => {
+    const activeSecrets = secrets;
+    const client = playerClient;
+    if (activeSecrets === null || client === null || snapshot.roomId === null || snapshot.busy !== null || snapshot.lifecycle !== 'started') return;
+    const checked = validateOnlineVisibilityIntentV1(input);
+    if (!checked.ok) { publish({ error: '操作内容を確認して再試行してください。' }); return; }
+    retryOperation = null;
+    publish({ busy: 'visibility', error: null, errorIssue: null });
+    try {
+      await Promise.resolve();
+      const result = client.submitVisibility(checked.value);
+      if (!result.ok) {
+        const issue = visibilitySubmitIssue(result.code);
+        publish({ error: issue.message, errorIssue: issue });
+      }
+    } catch (error: unknown) {
+      const issue = clientIssue(error, '操作を再試行');
+      if (issue.retryable) retryOperation = () => submitVisibilityIntent(checked.value);
+      publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
+    } finally { publish({ busy: null }); }
+  };
   const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null, pregame: null }); };
-  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, submitTabletopIntent, displayDeckName: (name: string, index: number) => {
+  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, submitTabletopIntent, submitVisibilityIntent, displayDeckName: (name: string, index: number) => {
     const fallback = `保存済みデッキ ${index + 1}`;
     try {
       if (!Number.isSafeInteger(index) || index < 0 || typeof name !== 'string' ||

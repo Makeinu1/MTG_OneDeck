@@ -71,6 +71,8 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
       '../genesis/index',
       '../pregame/index',
       '../tabletopManual/index',
+      '../visibilityDecisions/index',
+      '../visibilityDecisions/types',
       '../../engine/core/index',
     ]);
     for (const path of productionFiles(resolve(repositoryRoot, 'src/online/cloudflare'))) {

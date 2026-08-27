@@ -22,6 +22,8 @@ import type {
   OnlineBrowserWebSocketClientConfigV1,
   OnlineBrowserWebSocketClientV1,
 } from './types';
+import { validateOnlineVisibilityIntentV1 } from '../visibilityDecisions/index';
+import type { OnlineBrowserVisibilityIntentV1 } from './types';
 import {
   ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1,
   ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1,
@@ -77,6 +79,13 @@ type PendingEntryV1 =
     readonly kind: 'tabletop';
     readonly tabletop: OnlineBrowserTabletopIntentV1;
     readonly fingerprint: string;
+  }>
+  | Readonly<{
+    readonly commandId: string;
+    readonly baseRevision: number;
+    readonly kind: 'visibility';
+    readonly visibility: OnlineBrowserVisibilityIntentV1;
+    readonly fingerprint: string;
   }>;
 
 type SocketEpochV1 = Readonly<{
@@ -105,6 +114,27 @@ function closedRecord(value: unknown, expectedKeys: readonly string[]): value is
     const names = Object.getOwnPropertyNames(value).sort();
     const expected = [...expectedKeys].sort();
     if (names.length !== expected.length || names.some((name, index) => name !== expected[index])) return false;
+    return names.every((name) => {
+      const descriptor = descriptors[name];
+      return descriptor !== undefined && descriptor.enumerable === true && 'value' in descriptor
+        && descriptor.get === undefined && descriptor.set === undefined;
+    });
+  } catch {
+    return false;
+  }
+}
+
+function closedVisibilityIntent(value: unknown): value is ParsedRecordV1 {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+    const prototype: object | null = Reflect.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return false;
+    if (Object.getOwnPropertySymbols(value).length !== 0) return false;
+    const allowed = new Set(['baseRevision', 'commandId', 'kind', 'schemaVersion', 'look', 'reveal', 'choose']);
+    const required = new Set(['baseRevision', 'commandId', 'kind', 'schemaVersion']);
+    const names = Object.getOwnPropertyNames(value);
+    if (names.some((name) => !allowed.has(name)) || [...required].some((name) => !names.includes(name))) return false;
+    const descriptors = Object.getOwnPropertyDescriptors(value);
     return names.every((name) => {
       const descriptor = descriptors[name];
       return descriptor !== undefined && descriptor.enumerable === true && 'value' in descriptor
@@ -447,6 +477,14 @@ export function createOnlineBrowserWebSocketClientV1(
           participantId: config.participantId,
           ['participantCapability']: config.participantCapability,
         })
+        : entry.kind === 'visibility'
+        ? Object.freeze({
+          ...entry.visibility,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+        })
         : Object.freeze({
           kind: 'online-command-envelope-v1' as const,
           protocolVersion: config.protocolVersion,
@@ -459,6 +497,8 @@ export function createOnlineBrowserWebSocketClientV1(
         });
       const validation = entry.kind === 'tabletop'
         ? validateOnlineTabletopIntentEnvelopeV1(entry.tabletop)
+        : entry.kind === 'visibility'
+        ? validateOnlineVisibilityIntentV1(entry.visibility)
         : validateOnlineCommandEnvelopeV1(envelope);
       if (!validation.ok || !sendFrame(socket, envelope)) {
         issueCode = validation.ok ? 'SEND_FAILED' : 'INVALID_COMMAND';
@@ -877,6 +917,31 @@ export function createOnlineBrowserWebSocketClientV1(
     }
   };
 
+  const submitVisibility = (intent: OnlineBrowserVisibilityIntentV1): OnlineBrowserSubmitResultV1 => {
+    try {
+      if (!closedVisibilityIntent(intent)
+        || capabilityFragmentPresent(intent, config.participantCapability)) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+      const checked = validateOnlineVisibilityIntentV1(intent);
+      if (!checked.ok) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+      const normalized = checked.value;
+      const commandId = normalized.commandId;
+      const baseRevision = normalized.baseRevision;
+      const fingerprint = JSON.stringify({ kind: 'visibility', intent: normalized });
+      const existing = pending.find((entry) => entry.commandId === commandId);
+      if (existing !== undefined) return existing.fingerprint === fingerprint ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      const settledFingerprint = settled.get(commandId);
+      if (settledFingerprint !== undefined) return settledFingerprint === fingerprint ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      if (pending.length >= ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1) return frozenSubmitResult({ ok: false, code: 'OUTBOX_FULL' });
+      pending.push(Object.freeze({ kind: 'visibility' as const, commandId, baseRevision, visibility: normalized, fingerprint }));
+      publish();
+      if (currentSocket !== null && phase === 'open') {
+        const frame = Object.freeze({ ...normalized, protocolVersion: config.protocolVersion, roomId: config.roomId, participantId: config.participantId, ['participantCapability']: config.participantCapability });
+        if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+      }
+      return frozenSubmitResult({ ok: true });
+    } catch { return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' }); }
+  };
+
   const subscribe = (listener: OnlineBrowserSubscriptionV1): OnlineBrowserUnsubscribeV1 => {
     if (typeof listener !== 'function') return () => undefined;
     listeners.add(listener);
@@ -888,6 +953,7 @@ export function createOnlineBrowserWebSocketClientV1(
     disconnect,
     submit,
     submitTabletop,
+    submitVisibility,
     getSnapshot: () => snapshot,
     subscribe,
   });

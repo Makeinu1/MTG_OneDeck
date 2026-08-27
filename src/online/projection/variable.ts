@@ -4,6 +4,7 @@ import type { OnlineProjectionRequestV1 } from './types';
 import type { OnlineProtocolStateV1 } from '../protocol/index';
 import type { OnlineRoomParticipantV1 } from '../room/index';
 import { validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/index';
+import { onlineProjectedSearchSessionHandleV1 } from '../visibilityDecisions/sessionHandle';
 
 export const ONLINE_PROJECTION_SCHEMA_VERSION_V2 = 2 as const;
 export type OnlineVariableParticipantProjectionV2 = Readonly<{
@@ -83,6 +84,7 @@ export type OnlineVariableParticipantProjectionV3Game = Readonly<{
   readonly zones: Readonly<Record<string, unknown>>;
   readonly visibilityGrants: readonly Readonly<Record<string, unknown>>[];
   readonly searchSessions: readonly Readonly<Record<string, unknown>>[];
+  readonly searchResults?: readonly Readonly<Record<string, unknown>>[];
   readonly playPermissions: readonly Readonly<Record<string, unknown>>[];
 }>;
 
@@ -136,6 +138,21 @@ function participantFor(state: V2State, participantId: string): OnlineRoomPartic
   fail('Participant not found');
 }
 
+function searchResults(state: V2State): readonly Readonly<Record<string, unknown>>[] {
+  const results: Readonly<Record<string, unknown>>[] = [];
+  for (const receipt of state.receipts) {
+    const completion = receipt.completion;
+    if (completion === undefined) continue;
+    results.push(Object.freeze({
+      sessionId: onlineProjectedSearchSessionHandleV1(completion.sessionKey, receipt.acceptedRevision),
+      selectedCount: completion.selectedCount,
+      revealFound: completion.revealFound,
+      ...(completion.revealFound ? { selectedObjectIds: Object.freeze(completion.selectedObjectIds.slice()) } : {}),
+    }));
+  }
+  return Object.freeze(results);
+}
+
 /** Construct the full variable projection while preserving the v1 game facts. */
 export function projectOnlineVariableProtocolV3(stateInput: unknown, participantId: string): OnlineVariableParticipantProjectionV3 {
   const checked = validateOnlineVariableProtocolStateV2(stateInput);
@@ -155,6 +172,16 @@ export function projectOnlineVariableProtocolV3(stateInput: unknown, participant
     decisionContext: null,
   };
   const base = constructParticipantProjectionV1(stateAsV1(state), request, participant);
+  // The v1 constructor retains authoritative Core keys for its legacy
+  // protocol.  The production variable projection is the E authority
+  // boundary, so replace every search-session/result identifier with the
+  // deterministic opaque handle before it can reach a client.
+  const projectedSearchSessions = Object.freeze(base.game.searchSessions.map((entry) => {
+    const sessionId = entry.sessionId;
+    return typeof sessionId !== 'string'
+      ? entry
+      : Object.freeze({ ...entry, sessionId: onlineProjectedSearchSessionHandleV1(sessionId, state.revision) });
+  }));
   return Object.freeze({
     kind: 'online-participant-projection-v3',
     schemaVersion: ONLINE_PROJECTION_SCHEMA_VERSION_V3,
@@ -186,7 +213,7 @@ export function projectOnlineVariableProtocolV3(stateInput: unknown, participant
         outcome: seat.outcome,
       }))),
     }),
-    game: base.game,
+    game: Object.freeze({ ...base.game, searchSessions: projectedSearchSessions, searchResults: searchResults(state) }),
   });
 }
 

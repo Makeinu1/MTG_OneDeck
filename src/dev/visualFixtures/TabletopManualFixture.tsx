@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { GameScreen } from '../../components/game/GameScreen';
 import { OnlineTabletopManual } from '../../components/online/OnlineTabletopManual';
+import { OnlineVisibilityDecisions } from '../../components/online/OnlineVisibilityDecisions';
 import { DEFAULT_KEYBINDINGS } from '../../data/keybindings';
 import type {
   CoreCardDefinitionSnapshotV1,
@@ -19,6 +20,7 @@ import type {
   OnlineRoomParticipantIdV1,
 } from '../../online/room';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../../online/tabletopManual';
+import type { OnlineVisibilityIntentEnvelopeV1 } from '../../online/visibilityDecisions';
 import './tabletopManualFixture.css';
 
 const player = (value: string): CorePlayerId => value as CorePlayerId;
@@ -137,6 +139,7 @@ const OWN_TREASURE = visible(tokenObject('manual-treasure'), 'P1', 'P1', '宝物
 const OPPONENT_TREASURE = visible(tokenObject('opponent-treasure'), 'P2', 'P2', '相手の宝物', 'Token Artifact', 'token', runtime(), tokenDefinition('相手の宝物'));
 const OWN_STACK = visible(spellCopyObject('manual-stack-source'), 'P1', 'P1', '公開スタックの宣言', 'Instant', 'spell-copy');
 const OPPONENT_STACK = visible(spellCopyObject('opponent-stack-source'), 'P2', 'P2', '相手のスタック宣言', 'Instant', 'spell-copy');
+const OWN_SEARCH_CANDIDATE = visible('P1-library-candidate:0', 'P1', 'P1', 'ライブラリー候補', 'Creature — Scout');
 
 /**
  * A deterministic, redacted two-player projection for the local visual lane.
@@ -210,7 +213,19 @@ const TABLETOP_MANUAL_FIXTURE_PROJECTION: OnlineParticipantProjectionV1 = Object
       command: zone([visible('P1-commander:0', 'P1', 'P1', '卓上の統率者', 'Legendary Creature — Wizard', 'card', runtime(), definition('卓上の統率者', 'Legendary Creature — Wizard'))]),
     }),
     visibilityGrants: Object.freeze([]),
-    searchSessions: Object.freeze([]),
+    searchSessions: Object.freeze([
+      Object.freeze({
+        sessionId: 'fixture-choice',
+        rulesActorPlayerId: player('P1'),
+        selectorPlayerId: player('P1'),
+        zone: Object.freeze({ kind: 'player-zone' as const, playerId: player('P1'), zone: 'library' as const }),
+        portion: Object.freeze({ kind: 'all' as const }),
+        criteria: Object.freeze({ kind: 'quantity' as const, minimum: 1, maximum: 1 }),
+        revealFound: false,
+        shuffleAfter: false,
+        candidates: Object.freeze([OWN_SEARCH_CANDIDATE]),
+      }),
+    ]),
     playPermissions: Object.freeze([]),
     notes: Object.freeze([
       Object.freeze({ id: 'note-setup', authorPlayerId: player('P1'), text: '次の優先権で公開メモを確認', creationRevision: 10 }),
@@ -234,6 +249,13 @@ export function TabletopManualFixture() {
     document.documentElement.dataset.tabletopManualLastMode = envelope.mode;
   };
 
+  const submitVisibility = (intent: OnlineVisibilityIntentEnvelopeV1): void => {
+    // Only the operation kind is retained as a bounded, non-secret fixture
+    // marker; IDs, payloads, and transport errors never reach the DOM/log.
+    const operation = intent.look !== undefined ? 'look' : intent.reveal !== undefined ? 'reveal' : 'choose';
+    document.documentElement.dataset.tabletopManualLastVisibilityOperation = operation;
+  };
+
   return (
     <GameScreen
       keybindings={DEFAULT_KEYBINDINGS}
@@ -247,6 +269,11 @@ export function TabletopManualFixture() {
             projection={projection}
             interactionState="ready"
             onSubmit={submit}
+          />
+          <OnlineVisibilityDecisions
+            projection={projection}
+            interactionState="ready"
+            onSubmit={submitVisibility}
           />
         </div>
       )}

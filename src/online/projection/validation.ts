@@ -234,7 +234,7 @@ function duration(input: unknown, path: string, issues: OnlineProjectionIssueV1[
   if (record.kind === 'until-end-of-turn') integer(record.turnNumber, `${path}/turnNumber`, issues);
   else if (
     typeof record.kind === 'string' &&
-    ['indefinite', 'source-bound', 'single-use', 'manual'].includes(record.kind)
+    ['indefinite', 'source-bound', 'single-use', 'manual', 'next-command', 'end-of-turn', 'choice-bound'].includes(record.kind)
   ) {
     if (Object.keys(record).length !== 1) invalid(issues, 'UNKNOWN_FIELD', path, 'Duration has fields for another kind');
   } else invalid(issues, 'INVALID_LITERAL', `${path}/kind`, 'Invalid duration kind');
@@ -557,7 +557,7 @@ export function validateOnlineParticipantProjectionV1(
         if (typeof seatIndex !== 'number' || seatPlayers[seatIndex] !== root.corePlayerId) invalid(issues, 'INVALID_RELATION', '/corePlayerId', 'Audience Core player must match its seat');
       }
     }
-    const game = readExactRecord(root.game, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions', 'notes', 'manualStack'], '/game', issues, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions']);
+    const game = readExactRecord(root.game, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'searchResults', 'playPermissions', 'notes', 'manualStack'], '/game', issues, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions']);
     const handles = new Set<string>();
     const attachmentTargets = new Set<string>();
     const entriesByHandle = new Map<string, OnlineProjectedZoneEntryV1>();
@@ -643,7 +643,7 @@ export function validateOnlineParticipantProjectionV1(
         const grantSubject = readExactRecord(grant.subject, ['kind', 'objectId', 'zone', 'playerId', 'count'], `/game/visibilityGrants/${index}/subject`, [], ['kind']);
         if (grantSubject?.kind === 'object' && typeof grantSubject.objectId === 'string' && !handles.has(grantSubject.objectId)) invalid(issues, 'INVALID_RELATION', `/game/visibilityGrants/${index}/subject/objectId`, 'Visibility object subject must have a projected handle');
         duration(grant.duration, `/game/visibilityGrants/${index}/duration`, issues);
-        if (root.role !== 'player' && (effective.length !== 0 || grant.mode !== 'reveal')) invalid(issues, 'INVALID_RELATION', `/game/visibilityGrants/${index}`, 'Observer grants must be public reveal entries');
+        if (root.role !== 'player') invalid(issues, 'INVALID_RELATION', `/game/visibilityGrants/${index}`, 'Observer projections must not contain visibility grant entries');
       });
       const sessions = arrayValues(game.searchSessions, '/game/searchSessions', issues);
       if (root.role !== 'player' && sessions.length !== 0) invalid(issues, 'INVALID_RELATION', '/game/searchSessions', 'Observer search sessions must be empty');
@@ -672,6 +672,29 @@ export function validateOnlineParticipantProjectionV1(
             if (!descriptorSafeStructuralEqual(entriesByHandle.get(parsed.objectId), parsed)) invalid(issues, 'INVALID_RELATION', `/game/searchSessions/${index}/candidates/${n}`, 'Search candidate must match its projected zone object');
           }
         });
+      });
+      const searchResults = game.searchResults === undefined ? [] : arrayValues(game.searchResults, '/game/searchResults', issues);
+      const resultSessionIds = new Set<string>();
+      searchResults.forEach((value, index) => {
+        const result = readExactRecord(value, ['sessionId', 'selectedCount', 'revealFound', 'selectedObjectIds'], `/game/searchResults/${index}`, issues, ['sessionId', 'selectedCount', 'revealFound']);
+        if (result === null) return;
+        if (!isApplicationId(result.sessionId)) invalid(issues, 'INVALID_ID', `/game/searchResults/${index}/sessionId`, 'Invalid search result session ID');
+        else if (resultSessionIds.has(result.sessionId)) invalid(issues, 'DUPLICATE_VALUE', `/game/searchResults/${index}/sessionId`, 'Duplicate search result session ID');
+        else resultSessionIds.add(result.sessionId);
+        if (typeof result.selectedCount !== 'number' || !Number.isSafeInteger(result.selectedCount) || result.selectedCount < 0) invalid(issues, 'INVALID_INTEGER', `/game/searchResults/${index}/selectedCount`, 'Selected count must be a non-negative safe integer');
+        if (typeof result.revealFound !== 'boolean') invalid(issues, 'INVALID_TYPE', `/game/searchResults/${index}/revealFound`, 'Expected a boolean');
+        if (result.revealFound !== true) {
+          if (Object.prototype.hasOwnProperty.call(result, 'selectedObjectIds')) invalid(issues, 'UNKNOWN_FIELD', `/game/searchResults/${index}/selectedObjectIds`, 'Hidden search result cannot expose selected identities');
+        } else {
+          const ids = arrayValues(result.selectedObjectIds, `/game/searchResults/${index}/selectedObjectIds`, issues);
+          if (typeof result.selectedCount === 'number' && result.selectedCount !== ids.length) invalid(issues, 'INVALID_RELATION', `/game/searchResults/${index}/selectedCount`, 'Selected count must match selected identities');
+          const seen = new Set<string>();
+          ids.forEach((id, n) => {
+            if (!objectId(id, `/game/searchResults/${index}/selectedObjectIds/${n}`, issues)) return;
+            if (seen.has(id)) invalid(issues, 'DUPLICATE_VALUE', `/game/searchResults/${index}/selectedObjectIds/${n}`, 'Duplicate selected identity');
+            seen.add(id);
+          });
+        }
       });
       const permissions = arrayValues(game.playPermissions, '/game/playPermissions', issues);
       if (root.role !== 'player' && permissions.length !== 0) invalid(issues, 'INVALID_RELATION', '/game/playPermissions', 'Observer permissions must be empty');
@@ -844,7 +867,7 @@ export function validateOnlineParticipantProjectionV3(
     else {
       const g = game as Record<string, unknown>;
       const required = ['playPermissions', 'players', 'searchSessions', 'turn', 'turnOrder', 'visibilityGrants', 'zones'];
-      const optional = ['manualStack', 'notes'];
+      const optional = ['manualStack', 'notes', 'searchResults'];
       const keys = Object.keys(g);
       if (keys.some((key) => !required.includes(key) && !optional.includes(key)) || required.some((key) => !keys.includes(key))) invalid('/game', 'Game has unknown or missing fields');
       if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || new Set(g.turnOrder).size !== playerCount || g.turnOrder.some((id) => typeof id !== 'string' || !/^P[1-4]$/u.test(id)) || Array.from({ length: playerCount }, (_, i) => `P${i + 1}`).some((id) => !(g.turnOrder as readonly unknown[]).includes(id))) invalid('/game/turnOrder', 'Turn order must be an exact seated-player permutation');

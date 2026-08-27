@@ -66,8 +66,7 @@ function rootWithRuleAuthority(
 
 const TABLE_CAPABILITY = 'observer_capability_TTTTTTTTTTTTT';
 const SPECTATOR_CAPABILITY = 'observer_capability_SSSSSSSSSSSSS';
-function observerState() {
-  const coreRoot = makeCoreRoot();
+function observerState(coreRoot: Core.ModeNeutralCoreRootV1 = makeCoreRoot()) {
   let room = readyAllPlayers();
   room = joinOnlineRoomV1(room, { participantId: 'table-display', role: 'table' });
   room = joinOnlineRoomV1(room, { participantId: 'spectator-a', role: 'spectator' });
@@ -204,6 +203,61 @@ describe('O4P-02D audience projection', () => {
     );
     expect(table.response.projection.game.searchSessions).toEqual([]);
     expect(table.response.projection.game.playPermissions).toEqual([]);
+  });
+
+  it('widens observer identity for public Reveal while withholding grant metadata', () => {
+    const root = makeCoreRoot();
+    const visibility = Core.createModeNeutralCoreVisibilitySliceV1({
+      grantOrder: ['public-reveal'] as never,
+      byGrant: {
+        'public-reveal': {
+          subject: { kind: 'top-of-library', playerId: 'P1', count: 1 },
+          audience: { kind: 'all-players' },
+          mode: 'reveal',
+          sourceObjectId: null,
+          duration: { kind: 'indefinite' },
+        },
+      } as never,
+    });
+    const revealedRoot = rootWithRuleAuthority(root, { visibility });
+    const initial = observerState(revealedRoot);
+    const project = (participantId: string, networkValue: string) =>
+      handleOnlineProjectedSnapshotRequestV1(initial, {
+        ...(request(networkValue) as Record<string, unknown>),
+        participantId,
+      });
+    const observer = project('table-display', TABLE_CAPABILITY);
+    const player = project(PARTICIPANTS[0], CAPABILITIES[0]);
+    expect(observer.response.status).toBe('accepted');
+    expect(player.response.status).toBe('accepted');
+    if (observer.response.status !== 'accepted' || player.response.status !== 'accepted') throw new Error('Expected Reveal projections');
+    expect(observer.response.projection.game.zones.byPlayer[0]?.zones.library.entries[0]?.kind).toBe('visible-object');
+    expect(observer.response.projection.game.visibilityGrants).toEqual([]);
+    expect(player.response.projection.game.visibilityGrants).toHaveLength(1);
+    expect(player.response.projection.game.visibilityGrants[0]).toMatchObject({ mode: 'reveal', subject: { kind: 'top-of-library', playerId: 'P1', count: 1 } });
+  });
+
+  it('rejects any observer visibility-grant entry, including an empty Reveal audience', () => {
+    const transition = handleOnlineProjectedSnapshotRequestV1(observerState(), {
+      ...(request(TABLE_CAPABILITY) as Record<string, unknown>),
+      participantId: 'table-display',
+    });
+    if (transition.response.status !== 'accepted') throw new Error('Expected observer projection');
+    const tampered = structuredClone(transition.response.projection) as unknown as {
+      game: { visibilityGrants: unknown[] };
+    };
+    tampered.game.visibilityGrants.push({
+      effectiveForPlayerIds: [],
+      mode: 'reveal',
+      subject: { kind: 'top-of-library', playerId: 'P1', count: 1 },
+      duration: { kind: 'indefinite' },
+    });
+    const checked = validateOnlineParticipantProjectionV1(tampered);
+    expect(checked.ok).toBe(false);
+    if (checked.ok) throw new Error('Expected observer grant rejection');
+    expect(checked.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: '/game/visibilityGrants/0', code: 'INVALID_RELATION' }),
+    ]));
   });
 
   it('rejects relation drift and returns a fresh frozen canonical wire value', () => {

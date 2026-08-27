@@ -11,6 +11,8 @@ import type { CoreControlEffectV1 } from '../rules/controlEffectV1';
 import type { CoreRuleKeyV1 } from '../rules/ruleKeyV1';
 import { validateCoreRuleKeyV1 } from '../rules/ruleKeyV1';
 import type { CoreRuleZoneRefV1 } from '../rules/ruleZoneRefV1';
+import type { CoreVisibilityAudienceV1, CoreVisibilityModeV1, CoreVisibilitySubjectV1 } from '../rules/visibilityGrantV1';
+import type { CoreRuleDurationV1 } from '../rules/ruleDurationV1';
 import { validateCoreRuleZoneRefV1 } from '../rules/ruleZoneRefV1';
 import { validateCoreCardZoneDestinationV1 } from '../transition/zoneDestination';
 import type { CoreTabletopCommandPayloadV1, CoreTabletopTurnPayloadV1 } from '../tabletop/commandV1';
@@ -21,6 +23,8 @@ export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-re
 export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;
 export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;
 export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;
+export type CoreVisibilityOpenPayloadV1 = Readonly<{ readonly kind: 'visibility-open'; readonly grantKey: CoreRuleKeyV1; readonly grant: Readonly<{ readonly subject: CoreVisibilitySubjectV1; readonly audience: CoreVisibilityAudienceV1; readonly mode: CoreVisibilityModeV1; readonly sourceObjectId: CoreObjectId | null; readonly duration: CoreRuleDurationV1; readonly openingSequence?: number; readonly openingObjectIds?: readonly CoreObjectId[]; readonly topLibraryPrefixDigest?: string; readonly networkBound?: boolean }> }>;
+export type CoreVisibilityClosePayloadV1 = Readonly<{ readonly kind: 'visibility-close'; readonly grantKey: CoreRuleKeyV1 }>;
 export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;
 export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;
 export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;
@@ -35,6 +39,7 @@ export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'cor
 export type CoreCommandPayloadV1 =
   | CoreStackCommitCardSpellPayloadV1 | CoreStackRemoveObjectPayloadV1 | CorePriorityPassPayloadV1
   | CoreSearchOpenPayloadV1 | CoreSearchCompletePayloadV1 | CoreControlEffectApplyPayloadV1
+  | CoreVisibilityOpenPayloadV1 | CoreVisibilityClosePayloadV1
   | CoreCommanderCastRecordPayloadV1 | CoreCommanderDamageRecordPayloadV1 | CoreCombatStepSetPayloadV1
   | CoreCombatAttackAddPayloadV1 | CoreCombatBlockAddPayloadV1 | CorePlayerExitPayloadV1
   | CoreRandomZoneOrderPayloadV1 | CoreCorrectPlayerLifePayloadV1 | CoreCorrectCommanderDamagePayloadV1
@@ -274,12 +279,30 @@ function normalizeControlEffect(value: unknown, path: string, issues: CoreComman
   return normalizeRecordValues(row, path, issues);
 }
 
+function normalizeVisibilityGrant(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
+  const row = exact(value, ['subject', 'audience', 'mode', 'sourceObjectId', 'duration', 'openingSequence', 'openingObjectIds', 'topLibraryPrefixDigest', 'networkBound'], path, issues, ['subject', 'audience', 'mode', 'sourceObjectId', 'duration']);
+  if (!row) return null;
+  if (row.sourceObjectId !== null) requireObjectId(row.sourceObjectId, `${path}/sourceObjectId`, issues);
+  const subject = normalizeValue(row.subject, `${path}/subject`, issues);
+  const audience = normalizeValue(row.audience, `${path}/audience`, issues);
+  const duration = normalizeValue(row.duration, `${path}/duration`, issues);
+  if (row.openingSequence !== undefined && (typeof row.openingSequence !== 'number' || !Number.isSafeInteger(row.openingSequence) || row.openingSequence < 0)) issues.push(issue('INVALID_INTEGER', `${path}/openingSequence`, 'Invalid opening sequence'));
+  if (row.openingObjectIds !== undefined) {
+    const ids = validArray(row.openingObjectIds, `${path}/openingObjectIds`, issues);
+    ids?.forEach((id, index) => requireObjectId(id, `${path}/openingObjectIds/${index}`, issues));
+  }
+  if (row.topLibraryPrefixDigest !== undefined && (typeof row.topLibraryPrefixDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.topLibraryPrefixDigest))) issues.push(issue('INVALID_DIGEST', `${path}/topLibraryPrefixDigest`, 'Invalid top-library prefix digest'));
+  if (row.networkBound !== undefined && typeof row.networkBound !== 'boolean') issues.push(issue('INVALID_TYPE', `${path}/networkBound`, 'Invalid network bound marker'));
+  return Object.freeze({ subject, audience, mode: row.mode, sourceObjectId: row.sourceObjectId, duration, ...(row.openingSequence === undefined ? {} : { openingSequence: row.openingSequence }), ...(row.openingObjectIds === undefined ? {} : { openingObjectIds: row.openingObjectIds }), ...(row.topLibraryPrefixDigest === undefined ? {} : { topLibraryPrefixDigest: row.topLibraryPrefixDigest }), ...(row.networkBound === undefined ? {} : { networkBound: row.networkBound }) });
+}
+
 function normalizePayloadNested(kind: string, row: Record<string, unknown>, issues: CoreCommandValidationIssueV1[]): Record<string, unknown> {
   const nested = { ...row };
   if (kind === 'stack-commit-card-spell') nested.input = normalizeStackCommitInput(row.input, '/payload/input', issues);
   else if (kind === 'stack-remove-object') nested.input = normalizeRemovalInput(row.input, '/payload/input', issues);
   else if (kind === 'search-open') nested.input = normalizeSearchInput(row.input, '/payload/input', issues);
   else if (kind === 'control-effect-apply') nested.effect = normalizeControlEffect(row.effect, '/payload/effect', issues);
+  else if (kind === 'visibility-open') nested.grant = normalizeVisibilityGrant(row.grant, '/payload/grant', issues);
   else if (kind === 'combat-attack-add') nested.attack = normalizedRecord(row.attack, ['attackerObjectId', 'attackerControllerPlayerId', 'defendingPlayerId'], '/payload/attack', issues);
   else if (kind === 'combat-block-add') nested.block = normalizedRecord(row.block, ['blockerObjectId', 'blockerControllerPlayerId', 'attackedObjectId', 'defendingPlayerId'], '/payload/block', issues);
   else if (kind === 'random-zone-order') nested.zone = normalizeZone(row.zone, '/payload/zone', issues);
@@ -406,6 +429,10 @@ export function validateCoreCommandV1(input: unknown): CoreCommandValidationResu
       const row = requireRecord(['kind', 'sessionKey', 'input']); if (row) { requireRuleKey(row.sessionKey, '/payload/sessionKey', issues); const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, sessionKey: row.sessionKey as CoreRuleKeyV1, input: nested.input as CoreSearchSessionInputV1 }); }
     } else if (kind === 'search-complete') {
       const row = requireRecord(['kind', 'sessionKey', 'selectedObjectIds']); if (row) { requireRuleKey(row.sessionKey, '/payload/sessionKey', issues); const ids = validArray(row.selectedObjectIds, '/payload/selectedObjectIds', issues); ids?.forEach((id, index) => requireObjectId(id, `/payload/selectedObjectIds/${index}`, issues)); if (ids) payload = Object.freeze({ kind, sessionKey: row.sessionKey as CoreRuleKeyV1, selectedObjectIds: Object.freeze(ids as CoreObjectId[]) }); }
+    } else if (kind === 'visibility-open') {
+      const row = requireRecord(['kind', 'grantKey', 'grant']); if (row) { requireRuleKey(row.grantKey, '/payload/grantKey', issues); const nested = normalizePayloadNested(kind, row, issues); if (nested.grant !== null) payload = Object.freeze({ kind, grantKey: row.grantKey as CoreRuleKeyV1, grant: nested.grant as CoreVisibilityOpenPayloadV1['grant'] }); }
+    } else if (kind === 'visibility-close') {
+      const row = requireRecord(['kind', 'grantKey']); if (row) { requireRuleKey(row.grantKey, '/payload/grantKey', issues); payload = Object.freeze({ kind, grantKey: row.grantKey as CoreRuleKeyV1 }); }
     } else if (kind === 'control-effect-apply') {
       const row = requireRecord(['kind', 'effectKey', 'effect']); if (row) { requireRuleKey(row.effectKey, '/payload/effectKey', issues); const nested = normalizePayloadNested(kind, row, issues); payload = Object.freeze({ kind, effectKey: row.effectKey as CoreRuleKeyV1, effect: nested.effect as CoreControlEffectV1 }); }
     } else if (kind === 'commander-cast-record') {

@@ -195,6 +195,54 @@ describe('public variable-room client v3', () => {
     controller.disconnect();
   });
 
+  it('surfaces a bounded structured issue when the visibility outbox rejects immediately', async () => {
+    const roomId = 'room-v3-visibility-outbox';
+    const inviteCode = encodeOnlineSharedInviteCodeV3(roomId, `admission_${'a'.repeat(40)}`);
+    let hostId = '';
+    const baseLobby = projection(2, 20);
+    const baseSeats = baseLobby.seats as readonly Record<string, unknown>[];
+    vi.stubGlobal('WebSocket', class {
+      onopen: (() => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onclose: (() => void) | null = null;
+      send(): void {}
+      close(): void {}
+    });
+    vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      if (typeof init?.body !== 'string') throw new Error('missing request body');
+      const body = JSON.parse(init.body) as Record<string, unknown>;
+      if (body.kind === 'online-forming-lobby-create-v5') {
+        hostId = String(body.participantId);
+        const seats = [
+          { ...baseSeats[0], participantId: hostId, acceptedDeck: true, ready: true },
+          { ...baseSeats[1], participantId: 'participant-v3-visibility-guest', acceptedDeck: true, ready: true },
+        ];
+        return Promise.resolve(new Response(JSON.stringify({
+          kind: 'online-forming-lobby-created-v5', schemaVersion: 5, roomId, participantId: hostId,
+          playerCount: 2, startingLife: 20, ['seatCapability']: `seat_${'s'.repeat(40)}`, inviteCode,
+          tableParticipantId: 'table-v3-visibility', ['tableCapability']: `observer_${'t'.repeat(40)}`,
+          projection: { ...baseLobby, lifecycle: 'ready', roomId, hostParticipantId: hostId, configuration: { playerCount: 2, startingLife: 20 }, seats },
+        }), { status: 200 }));
+      }
+      if (body.kind === 'online-forming-lobby-start-v4') {
+        return Promise.resolve(new Response(JSON.stringify({ kind: 'online-cloudflare-room-status-v2', schemaVersion: 2, roomId, playerCount: 2, startingLife: 20, revision: 0, roomLifecycle: 'active' }), { status: 200 }));
+      }
+      throw new Error('unexpected request');
+    }));
+    const controller = createPublicOnlineControllerV3();
+    await controller.createShared({ playerCount: 2, startingLife: 20 });
+    await controller.start();
+    const intent = (commandId: string) => ({
+      kind: 'online-visibility-intent-v1' as const, schemaVersion: 1 as const, commandId, baseRevision: 0,
+      look: { subject: { kind: 'object' as const, handle: 'PC1:0' }, viewerPlayerIds: ['P1'], duration: { kind: 'next-command' as const } },
+    });
+    for (let index = 0; index < 65; index += 1) await controller.submitVisibilityIntent(intent(`visibility-${index}`));
+    expect(controller.getSnapshot().errorIssue).toMatchObject({ code: 'CLIENT_OUTBOX_FULL', retryable: false, action: '盤面を確認' });
+    expect(controller.getSnapshot().error).toContain('送信待ち');
+    controller.disconnect();
+  });
+
   it('fails closed when a started response omits Pregame before opening gameplay', async () => {
     const roomId = 'room-v3-start-without-pregame';
     const inviteCode = encodeOnlineSharedInviteCodeV3(roomId, `admission_${'a'.repeat(40)}`);

@@ -2,10 +2,26 @@ import type { CoreObjectId, CorePhysicalCardId, CorePlayerId } from '../ids';
 import type { CoreCommandV1 } from './commandV1';
 import type { CoreTabletopManualModeV1 } from '../tabletop/manualStateV1';
 
+/**
+ * The private, typed outcome of a completed search.  The event/journal keeps
+ * this value so protocol persistence can carry the result after the active
+ * search session has been retired; projections redact the IDs when
+ * `revealFound` is false.
+ */
+export type CoreSearchCompletionResultV1 = Readonly<{
+  readonly kind: 'core-search-completion-result-v1';
+  readonly sessionKey: string;
+  readonly selectedObjectIds: readonly CoreObjectId[];
+  readonly selectedCount: number;
+  readonly revealFound: boolean;
+}>;
+
 export type CoreDomainEventPayloadV1 =
   | Readonly<{ readonly kind: 'stack-changed'; readonly operation: 'commit' | 'remove'; readonly objectId: CoreObjectId }>
   | Readonly<{ readonly kind: 'priority-changed'; readonly holderPlayerId: CorePlayerId | null; readonly windowKind: string }>
-  | Readonly<{ readonly kind: 'search-session-changed'; readonly sessionKey: string; readonly operation: 'open' | 'complete'; readonly selectedCount: number }>
+  | Readonly<{ readonly kind: 'search-session-changed'; readonly sessionKey: string; readonly operation: 'open' | 'complete'; readonly selectedCount: number; readonly selectedObjectIds?: readonly CoreObjectId[]; readonly revealFound?: boolean; readonly completionResult?: CoreSearchCompletionResultV1 }>
+  | Readonly<{ readonly kind: 'visibility-opened'; readonly grantKey: string; readonly mode: 'look' | 'reveal'; readonly duration: string }>
+  | Readonly<{ readonly kind: 'visibility-closed'; readonly grantKey: string; readonly reason: string }>
   | Readonly<{ readonly kind: 'control-changed'; readonly effectKey: string; readonly targetObjectId: CoreObjectId }>
   | Readonly<{ readonly kind: 'commander-cast-recorded'; readonly physicalCardId: CorePhysicalCardId; readonly accepted: boolean; readonly castCount: number }>
   | Readonly<{ readonly kind: 'commander-damage-recorded'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>

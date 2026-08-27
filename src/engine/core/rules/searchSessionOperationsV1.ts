@@ -249,6 +249,25 @@ export function completeCoreSearchSessionV1(
       selectedObjectIdsInput.length < criteria.minimum)
   )
     fail('SEARCH_SELECTION_INVALID', '/selectedObjectIds', 'Selection violates quantity bounds');
+  // `criteriaKey` is intentionally opaque at this layer.  Until an
+  // executable evaluator is registered for a qualified criterion, accepting
+  // any non-empty snapshot member would falsely claim that the object
+  // qualified.  An empty result is also safe only when the server-owned
+  // may-fail flag explicitly permits it.
+  if (criteria.kind === 'qualified') {
+    if (selectedObjectIdsInput.length > 0)
+      fail(
+        'SEARCH_SELECTION_INVALID',
+        '/selectedObjectIds',
+        'Qualified search criteria cannot be evaluated by Core',
+      );
+    if (criteria.mayFailToFind !== true)
+      fail(
+        'SEARCH_SELECTION_INVALID',
+        '/selectedObjectIds',
+        'Qualified search criteria require mayFailToFind for an empty selection',
+      );
+  }
   const selectedObjectIds = session.candidateObjectIds.filter((id) => seen.has(id));
   const next = remove(slice, sessionKey);
   return {

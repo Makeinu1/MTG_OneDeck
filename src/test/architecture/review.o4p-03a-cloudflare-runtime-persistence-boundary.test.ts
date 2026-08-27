@@ -79,6 +79,8 @@ describe('O4P-03A architecture boundary', () => {
       '../genesis/index',
       '../pregame/index',
       '../tabletopManual/index',
+      '../visibilityDecisions/index',
+      '../visibilityDecisions/types',
       '../../engine/core/index',
     ]);
     const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
@@ -133,7 +135,17 @@ describe('O4P-03A architecture boundary', () => {
     ).join('\n');
     expect(sqlLiterals).toMatch(/CREATE TABLE/u);
     expect(sqlLiterals).not.toMatch(/\$\{/u);
-    expect(persistence).not.toMatch(/eval\s*\(|deleteAll|ALTER TABLE|DROP TABLE|PRAGMA/i);
+    expect(persistence).not.toMatch(/eval\s*\(|deleteAll/i);
+    expect(persistence.match(/DROP TABLE/giu)).toHaveLength(2);
+    expect(persistence).toContain("DROP TABLE IF EXISTS online_accepted_command_migration");
+    expect(persistence).toContain("this.storage.sql.exec('DROP TABLE online_accepted_command')");
+    expect(persistence.match(/ALTER TABLE/giu)).toHaveLength(1);
+    expect(persistence).toContain('ALTER TABLE online_accepted_command_migration RENAME TO online_accepted_command');
+    expect(persistence.match(/pragma_index_/giu)).toHaveLength(2);
+    expect(persistence).toContain("pragma_index_list('online_accepted_command')");
+    expect(persistence).toContain('pragma_index_info(il.name)');
+    expect(persistence).toContain('Journal migration verification failed');
+    expect(persistence).toContain('Journal migration final verification failed');
   });
 
   it('keeps the public surface closed and stores no capability-bearing envelope type', () => {

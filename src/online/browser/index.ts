@@ -10,6 +10,7 @@ export type {
   OnlineBrowserCommandIntent,
   OnlineBrowserCommandIntentV1,
   OnlineBrowserTabletopIntentV1,
+  OnlineBrowserVisibilityIntentV1,
   OnlineBrowserIssueCodeV1,
   OnlineBrowserPendingCommandV1,
   OnlineBrowserPhaseV1,

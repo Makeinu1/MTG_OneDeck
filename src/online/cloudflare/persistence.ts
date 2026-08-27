@@ -76,7 +76,13 @@ const CREATE_VARIABLE_ROOM = `CREATE TABLE IF NOT EXISTS online_variable_room_st
 const SELECT_VARIABLE_ROOM = `SELECT singleton, schema_version, room_id, revision, room_lifecycle, state_json FROM online_variable_room_state WHERE singleton = 1`;
 const CREATE_PREGAME = `CREATE TABLE IF NOT EXISTS online_pregame_state (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL, room_id TEXT NOT NULL, revision INTEGER NOT NULL, phase TEXT NOT NULL, initial_state_json TEXT NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const SELECT_PREGAME = `SELECT singleton, schema_version, room_id, revision, phase, initial_state_json, state_json FROM online_pregame_state WHERE singleton = 1`;
-const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL UNIQUE, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL) STRICT`;
+const CREATE_JOURNAL = `CREATE TABLE IF NOT EXISTS online_accepted_command (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL, UNIQUE (participant_id, command_id)) STRICT`;
+const CREATE_JOURNAL_MIGRATION = `CREATE TABLE online_accepted_command_migration (accepted_revision INTEGER NOT NULL PRIMARY KEY, command_id TEXT NOT NULL, participant_id TEXT NOT NULL, base_revision INTEGER NOT NULL, command_json TEXT NOT NULL, UNIQUE (participant_id, command_id)) STRICT`;
+const DROP_JOURNAL_MIGRATION = 'DROP TABLE IF EXISTS online_accepted_command_migration';
+const RENAME_JOURNAL_MIGRATION = 'ALTER TABLE online_accepted_command_migration RENAME TO online_accepted_command';
+const SELECT_JOURNAL_INDEXES = `SELECT il.seq AS index_seq, il.name AS index_name, il."unique" AS is_unique, ii.seqno AS column_seq, ii.name AS column_name FROM pragma_index_list('online_accepted_command') AS il LEFT JOIN pragma_index_info(il.name) AS ii ON true ORDER BY il.seq, ii.seqno`;
+const SELECT_JOURNAL_MIGRATION = `SELECT accepted_revision, command_id, participant_id, base_revision, command_json FROM online_accepted_command_migration ORDER BY accepted_revision`;
+const INSERT_JOURNAL_MIGRATION = 'INSERT INTO online_accepted_command_migration (accepted_revision, command_id, participant_id, base_revision, command_json) VALUES (?, ?, ?, ?, ?)';
 const CREATE_MIGRATION = `CREATE TABLE IF NOT EXISTS online_application_migration (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), schema_version INTEGER NOT NULL) STRICT`;
 const CREATE_CHECKPOINT = `CREATE TABLE IF NOT EXISTS online_recovery_checkpoint (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, checkpoint_revision INTEGER NOT NULL, state_json TEXT NOT NULL) STRICT`;
 const CREATE_RECOVERY_VERIFICATION = `CREATE TABLE IF NOT EXISTS online_recovery_verification (singleton INTEGER PRIMARY KEY CHECK (singleton = 1), room_id TEXT NOT NULL, version_identifier TEXT NOT NULL, verified_revision INTEGER NOT NULL, checkpoint_revision INTEGER NOT NULL, journal_count INTEGER NOT NULL, checkpoint_digest TEXT NOT NULL) STRICT`;
@@ -135,6 +141,7 @@ const UPDATE_DECK_READY = 'UPDATE online_deck_submission_ready_v2 SET ready = ? 
 
 type RoomRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; room_lifecycle: unknown; accepted_command_count: unknown; state_json: unknown };
 type JournalRow = { accepted_revision: unknown; command_id: unknown; participant_id: unknown; base_revision: unknown; command_json: unknown };
+type JournalIndexRow = { index_seq: unknown; index_name: unknown; is_unique: unknown; column_seq: unknown; column_name: unknown };
 type MigrationRow = { singleton: unknown; schema_version: unknown };
 type CheckpointRow = { singleton: unknown; room_id: unknown; checkpoint_revision: unknown; state_json: unknown };
 type RecoveryVerificationRow = { singleton: unknown; room_id: unknown; version_identifier: unknown; verified_revision: unknown; checkpoint_revision: unknown; journal_count: unknown; checkpoint_digest: unknown };
@@ -365,6 +372,66 @@ export class OnlineCloudflareRepository {
     });
   }
 
+  private journalRowsEqual(left: readonly JournalRow[], right: readonly JournalRow[]): boolean {
+    if (left.length !== right.length) return false;
+    for (let index = 0; index < left.length; index += 1) {
+      const source = left[index];
+      const copy = right[index];
+      if (source === undefined || copy === undefined ||
+        source.accepted_revision !== copy.accepted_revision ||
+        source.command_id !== copy.command_id ||
+        source.participant_id !== copy.participant_id ||
+        source.base_revision !== copy.base_revision ||
+        source.command_json !== copy.command_json) return false;
+    }
+    return true;
+  }
+
+  /** Rebuild the journal when upgrading the old global command-id constraint. */
+  private migrateJournalSchemaInTransaction(): boolean {
+    const indexes = this.storage.sql.exec<JournalIndexRow>(SELECT_JOURNAL_INDEXES).toArray();
+    const columnsByIndex = new Map<string, { readonly unique: boolean; readonly columns: Array<{ readonly sequence: number; readonly name: string }> }>();
+    for (const row of indexes) {
+      if (typeof row.index_name !== 'string' || (row.is_unique !== 0 && row.is_unique !== 1)) throw new Error('Invalid journal index metadata');
+      let index = columnsByIndex.get(row.index_name);
+      if (index === undefined) {
+        index = { unique: row.is_unique === 1, columns: [] };
+        columnsByIndex.set(row.index_name, index);
+      } else if (index.unique !== (row.is_unique === 1)) throw new Error('Invalid journal index metadata');
+      if (row.column_seq === null && row.column_name === null) continue;
+      const columnSequence = row.column_seq;
+      const columnName = row.column_name;
+      if (typeof columnSequence !== 'number' || !Number.isSafeInteger(columnSequence) || columnSequence < 0 || typeof columnName !== 'string') throw new Error('Invalid journal index metadata');
+      index.columns.push({ sequence: columnSequence, name: columnName });
+    }
+    const oldGlobalCommandId = [...columnsByIndex.values()].some((index) => {
+      const columns = index.columns.slice().sort((left, right) => left.sequence - right.sequence).map((column) => column.name);
+      return index.unique && columns.length === 1 && columns[0] === 'command_id';
+    });
+    if (!oldGlobalCommandId) return false;
+
+    const source = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray();
+    const pairs = new Set<string>();
+    for (const row of source) {
+      if (!Number.isSafeInteger(row.accepted_revision) || typeof row.command_id !== 'string' || typeof row.participant_id !== 'string' || !Number.isSafeInteger(row.base_revision) || typeof row.command_json !== 'string') throw new Error('Invalid journal row');
+      const pair = `${row.participant_id}\u0000${row.command_id}`;
+      if (pairs.has(pair)) throw new Error('Duplicate participant command identity');
+      pairs.add(pair);
+    }
+
+    this.storage.sql.exec(DROP_JOURNAL_MIGRATION);
+    this.storage.sql.exec(CREATE_JOURNAL_MIGRATION);
+    for (const row of source) this.storage.sql.exec(INSERT_JOURNAL_MIGRATION, row.accepted_revision, row.command_id, row.participant_id, row.base_revision, row.command_json);
+    const copied = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL_MIGRATION).toArray();
+    if (!this.journalRowsEqual(source, copied)) throw new Error('Journal migration verification failed');
+
+    this.storage.sql.exec('DROP TABLE online_accepted_command');
+    this.storage.sql.exec(RENAME_JOURNAL_MIGRATION);
+    const migrated = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray();
+    if (!this.journalRowsEqual(source, migrated)) throw new Error('Journal migration final verification failed');
+    return true;
+  }
+
   migrateApplicationSchema(): boolean {
     this.migrationRecovery = null;
     let pendingRecovery: MigrationRecoveryHandoff | null = null;
@@ -372,6 +439,7 @@ export class OnlineCloudflareRepository {
       this.storage.sql.exec(CREATE_ROOM);
       this.storage.sql.exec(CREATE_VARIABLE_ROOM);
       this.storage.sql.exec(CREATE_JOURNAL);
+      const journalChanged = this.migrateJournalSchemaInTransaction();
       this.storage.sql.exec(CREATE_MIGRATION);
       this.storage.sql.exec(CREATE_CHECKPOINT);
       this.storage.sql.exec(CREATE_RECOVERY_VERIFICATION);
@@ -416,7 +484,7 @@ export class OnlineCloudflareRepository {
         const upgraded = this.storage.sql.exec<{ singleton: unknown }>(UPDATE_MIGRATION, ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2, ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1).toArray();
         if (upgraded.length !== 1 || upgraded[0]?.singleton !== 1) throw new Error('Application schema migration failed');
       }
-      return before.length === 0 || before[0]?.schema_version === ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1;
+      return journalChanged || before.length === 0 || before[0]?.schema_version === ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V1;
     });
     this.migrationRecovery = pendingRecovery;
     return changed;

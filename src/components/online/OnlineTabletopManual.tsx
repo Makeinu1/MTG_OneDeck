@@ -434,7 +434,7 @@ export function OnlineTabletopManual({
 
       <section className="online-tabletop-manual__successor" aria-labelledby="online-tabletop-successor-title">
         <h3 id="online-tabletop-successor-title">次の情報操作</h3>
-        <p>秘密情報の契約が整うまで実行できません（O4P-09E）。</p>
+        <p>Look・Reveal・Choose は、隣接する（画面幅により下に表示される）「見る・公開する・選ぶ」パネルから実行してください。ここは互換表示のため無効です。</p>
         <div className="online-tabletop-manual__successor-actions">
           <button type="button" data-testid="online-tabletop-disabled-look" disabled>Look（見る）</button>
           <button type="button" data-testid="online-tabletop-disabled-reveal" disabled>Reveal（公開）</button>

@@ -47,6 +47,7 @@ import { isOnlineRoomApplicationIdV1, isOnlineRoomSeatCapabilityV1 } from '../ro
 import { OnlineDeckScryfallResolverV2 } from './scryfallResolver';
 import type { OnlineDeckResolverV2 } from '../deckSubmission/index';
 import { bindOnlineTabletopIntentOnServerV1 } from '../tabletopManual/index';
+import { bindOnlineVisibilityV1, validateOnlineVisibilityIntentV1 } from '../visibilityDecisions/index';
 import { validateOnlineTabletopIntentEnvelopeV1, type OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import { coreCanonicalDigestFromValueV1 } from '../../engine/core/index';
 import type { CoreCommandV1, CoreObjectId, CorePlayerId } from '../../engine/core/index';
@@ -117,6 +118,25 @@ function extractTabletopIntentV1(frame: OnlineCloudflareWebSocketFrameV1): Onlin
   return checked.value;
 }
 
+function extractVisibilityIntentV1(frame: OnlineCloudflareWebSocketFrameV1): import('../visibilityDecisions/types').OnlineVisibilityIntentEnvelopeV1 {
+  const intent: Record<string, unknown> = {
+    kind: ownDataValue(frame, 'kind'),
+    schemaVersion: ownDataValue(frame, 'schemaVersion'),
+    commandId: ownDataValue(frame, 'commandId'),
+    baseRevision: ownDataValue(frame, 'baseRevision'),
+  };
+  // Preserve the exact one-branch union.  Adding absent optional branches as
+  // `undefined` would turn an otherwise valid Look/Reveal/Choose envelope
+  // into an explicit unknown/invalid branch during strict validation.
+  for (const key of ['look', 'reveal', 'choose'] as const) {
+    if (Object.prototype.hasOwnProperty.call(frame, key)) intent[key] = ownDataValue(frame, key);
+  }
+  const frozenIntent = Object.freeze(intent);
+  const checked = validateOnlineVisibilityIntentV1(frozenIntent);
+  if (!checked.ok) throw new Error('Invalid visibility intent');
+  return checked.value;
+}
+
 function coreCommandRecord(value: unknown): Readonly<Record<string, unknown>> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Readonly<Record<string, unknown>>;
@@ -138,6 +158,15 @@ function coreCommandPayload(value: unknown): Readonly<Record<string, unknown>> |
 function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
   const payload = coreCommandPayload(command);
   if (payload === null || typeof payload.kind !== 'string') return false;
+  // Visibility mutations and delegated search completion are bound exclusively
+  // by the high-level visibility intent.  Accepting them on the legacy
+  // command envelope would let an authenticated client skip projection and
+  // server-side authority checks.
+  if (payload.kind === 'visibility-open' || payload.kind === 'visibility-close') return true;
+  if (payload.kind === 'search-complete') {
+    const commandRecord = coreCommandRecord(command);
+    return commandRecord !== null && commandRecord.actorPlayerId !== commandRecord.decisionMakerPlayerId;
+  }
   if (payload.kind === 'random-zone-order' || payload.kind === 'table-shuffle') return true;
   if (
     payload.kind === 'table-zone-move'
@@ -361,6 +390,24 @@ function isExactRecord(value: Record<string, unknown>, expected: readonly string
   }
 }
 
+function isVisibilityIntentRecord(value: Record<string, unknown>): boolean {
+  try {
+    if (Object.getPrototypeOf(value) !== Object.prototype || Object.getOwnPropertySymbols(value).length !== 0) return false;
+    const allowed = new Set(VISIBILITY_INTENT_FIELDS_V1);
+    const required = new Set(['kind', 'schemaVersion', 'protocolVersion', 'roomId', 'participantId', 'participantCapability', 'commandId', 'baseRevision']);
+    const names = Object.getOwnPropertyNames(value);
+    if (names.some((name) => !allowed.has(name)) || [...required].some((name) => !names.includes(name))) return false;
+    const descriptors = Object.getOwnPropertyDescriptors(value) as Record<string, PropertyDescriptor>;
+    return names.every((name) => {
+      const descriptor = descriptors[name];
+      return descriptor !== undefined && descriptor.enumerable === true && 'value' in descriptor
+        && descriptor.get === undefined && descriptor.set === undefined;
+    });
+  } catch {
+    return false;
+  }
+}
+
 const TABLETOP_INTENT_FIELDS_V1 = Object.freeze([
   'kind',
   'schemaVersion',
@@ -372,6 +419,19 @@ const TABLETOP_INTENT_FIELDS_V1 = Object.freeze([
   'baseRevision',
   'mode',
   'primitive',
+]);
+const VISIBILITY_INTENT_FIELDS_V1 = Object.freeze([
+  'kind',
+  'schemaVersion',
+  'protocolVersion',
+  'roomId',
+  'participantId',
+  'participantCapability',
+  'commandId',
+  'baseRevision',
+  'look',
+  'reveal',
+  'choose',
 ]);
 
 const LEGACY_UPGRADE_REQUIRED = Object.freeze({
@@ -829,9 +889,12 @@ export class OnlineRoomDurableObject {
           return genericError(401);
         }
         const tabletopIntent = ownDataString(body, 'kind') === 'online-tabletop-intent-envelope-v1';
+        const visibilityIntent = ownDataString(body, 'kind') === 'online-visibility-intent-v1';
         if (tabletopIntent && !isExactRecord(body, TABLETOP_INTENT_FIELDS_V1)) return genericError(400);
         if (tabletopIntent && ownDataValue(body, 'protocolVersion') !== state.protocolVersion) return genericError(400);
         if (tabletopIntent && roomId !== route.roomId) return genericError(400);
+        if (visibilityIntent && !isVisibilityIntentRecord(body)) return genericError(400);
+        if (visibilityIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
         let internalMessage: Record<string, unknown>;
         try {
           internalMessage = cloneWithProtocolCapability(body, admission.authorization.protocolCapability);
@@ -853,7 +916,15 @@ export class OnlineRoomDurableObject {
             return genericError(error instanceof ConflictError ? 409 : 400);
           }
         }
-        if (!tabletopIntent && rejectsClientTabletopAuthorityBypass(internalMessage.command)) return genericError(400);
+        if (visibilityIntent) {
+          if (state.kind !== 'online-protocol-state-v2') return genericError(426);
+          try {
+            const envelope = extractVisibilityIntentV1(body);
+            const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(route.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
+            internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
+          } catch { return genericError(400); }
+        }
+        if (!tabletopIntent && !visibilityIntent && rejectsClientTabletopAuthorityBypass(internalMessage.command)) return genericError(400);
         const validation = validateOnlineCommandEnvelopeV1(internalMessage);
         const transition = state.kind === 'online-protocol-state-v2'
           ? handleOnlineVariableCommandEnvelopeV2(state, internalMessage)
@@ -962,7 +1033,7 @@ export class OnlineRoomDurableObject {
     }
     const frame = parsed.value;
     const kind = frameKind(frame);
-    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1') {
+    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1' && kind !== 'online-visibility-intent-v1') {
       this.malformedMessage(socket, counted.attachment, now);
       return;
     }
@@ -995,11 +1066,19 @@ export class OnlineRoomDurableObject {
         return;
       }
       const tabletopIntent = kind === 'online-tabletop-intent-envelope-v1';
+      const visibilityIntent = kind === 'online-visibility-intent-v1';
       if (tabletopIntent && !isExactRecord(frame, TABLETOP_INTENT_FIELDS_V1)) {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }
       if (tabletopIntent && ownDataValue(frame, 'protocolVersion') !== state.protocolVersion) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (visibilityIntent && (!isVisibilityIntentRecord(frame)
+        || ownDataValue(frame, 'protocolVersion') !== state.protocolVersion
+        || frameStringField(frame, 'roomId') !== state.room.roomId
+        || frameStringField(frame, 'participantId') !== participantId)) {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }
@@ -1024,7 +1103,14 @@ export class OnlineRoomDurableObject {
           return;
         }
       }
-      if (kind === 'online-tabletop-intent-envelope-v1' && state.kind !== 'online-protocol-state-v2') {
+      if (state.kind === 'online-protocol-state-v2' && visibilityIntent) {
+        try {
+          const envelope = extractVisibilityIntentV1(frame);
+          const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(state.room.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
+          internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
+        } catch { this.sendError(socket, 'INVALID_MESSAGE'); return; }
+      }
+      if ((kind === 'online-tabletop-intent-envelope-v1' || kind === 'online-visibility-intent-v1') && state.kind !== 'online-protocol-state-v2') {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }

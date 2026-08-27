@@ -57,4 +57,35 @@ describe('O4P-01N command boundary', () => {
       expect.objectContaining({ code: 'INVALID_VALUE', path: '/payload/input/portion/count/self' }),
     ]));
   });
+
+  it('requires a canonical source object ID for card-spell stack commits', () => {
+    const result = validateCoreCommandV1({
+      kind: 'mode-neutral-core-command-v1',
+      schemaVersion: 1,
+      sequence: 1,
+      actorPlayerId: 'P1',
+      decisionMakerPlayerId: 'P1',
+      decisionContext: { kind: 'decision', decisionKey: 'main' },
+      payload: {
+        kind: 'stack-commit-card-spell',
+        input: {
+          sourceObjectId: null,
+          controllerPlayerId: 'P1',
+          announcement: {
+            kind: 'card-spell',
+            abilityTextSnapshot: null,
+            chosenModeKeys: [],
+            targetSelections: [],
+            announcedVariables: [],
+            distributions: [],
+            costChoices: { alternativeCost: null, additionalCosts: [] },
+          },
+        },
+      },
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      issues: [expect.objectContaining({ code: 'INVALID_ID', path: '/payload/input/sourceObjectId' })],
+    });
+  });
 });

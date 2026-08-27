@@ -144,6 +144,11 @@ describe('O4P-03D Judge production gate', () => {
     createLegacyProtocolSchema(target, initial);
     const repository = new OnlineCloudflareRepository(target);
     expect(repository.migrateApplicationSchema()).toBe(true);
+    const journalSchema = target.all<{ sql: string }>(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'online_accepted_command'",
+    )[0]?.sql ?? '';
+    expect(journalSchema).toMatch(/UNIQUE\s*\(\s*participant_id\s*,\s*command_id\s*\)/iu);
+    expect(journalSchema).not.toMatch(/command_id\s+TEXT\s+NOT\s+NULL\s+UNIQUE/iu);
     expect(target.all('SELECT * FROM online_application_migration')).toEqual([
       { singleton: 1, schema_version: ONLINE_CLOUDFLARE_APPLICATION_SCHEMA_VERSION_V2 },
     ]);

@@ -113,7 +113,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/applyCommandV1.ts`
 
-- line 290: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 324: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -137,29 +137,31 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/commandV1.ts`
 
-- line 19: `export type CoreStackCommitCardSpellPayloadV1 = Readonly<{ readonly kind: 'stack-commit-card-spell'; readonly input: CoreCardSpellCommitInputV1 }>;`
-- line 20: `export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-remove-object'; readonly input: CoreStackRemovalInputV1 }>;`
-- line 21: `export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;`
-- line 22: `export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;`
-- line 23: `export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;`
-- line 24: `export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;`
-- line 25: `export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;`
-- line 26: `export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;`
-- line 27: `export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-set'; readonly step: CoreCombatContextStepV1 }>;`
-- line 28: `export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;`
-- line 29: `export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;`
-- line 30: `export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;`
-- line 31: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[]; readonly manualMode?: unknown }>;`
-- line 32: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
-- line 33: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
-- line 35: `export type CoreCommandPayloadV1 =`
-- line 43: `export type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';`
-- line 45: `export type CoreCommandV1 = Readonly<{`
-- line 55: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
-- line 56: `export type CoreCommandValidationResultV1 =`
-- line 381: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
-- line 471: `export class CoreCommandCreationErrorV1 extends Error {`
-- line 475: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+- line 21: `export type CoreStackCommitCardSpellPayloadV1 = Readonly<{ readonly kind: 'stack-commit-card-spell'; readonly input: CoreCardSpellCommitInputV1 }>;`
+- line 22: `export type CoreStackRemoveObjectPayloadV1 = Readonly<{ readonly kind: 'stack-remove-object'; readonly input: CoreStackRemovalInputV1 }>;`
+- line 23: `export type CorePriorityPassPayloadV1 = Readonly<{ readonly kind: 'priority-pass'; readonly playerId: CorePlayerId }>;`
+- line 24: `export type CoreSearchOpenPayloadV1 = Readonly<{ readonly kind: 'search-open'; readonly sessionKey: CoreRuleKeyV1; readonly input: CoreSearchSessionInputV1 }>;`
+- line 25: `export type CoreSearchCompletePayloadV1 = Readonly<{ readonly kind: 'search-complete'; readonly sessionKey: CoreRuleKeyV1; readonly selectedObjectIds: readonly CoreObjectId[] }>;`
+- line 26: `export type CoreVisibilityOpenPayloadV1 = Readonly<{ readonly kind: 'visibility-open'; readonly grantKey: CoreRuleKeyV1; readonly grant: Readonly<{ readonly subject: CoreVisibilitySubjectV1; readonly audience: CoreVisibilityAudienceV1; readonly mode: CoreVisibilityModeV1; readonly sourceObjectId: CoreObjectId | null; readonly duration: CoreRuleDurationV1; readonly openingSequence?: number; readonly openingObjectIds?: readonly CoreObjectId[]; readonly topLibraryPrefixDigest?: string; readonly networkBound?: boolean }> }>;`
+- line 27: `export type CoreVisibilityClosePayloadV1 = Readonly<{ readonly kind: 'visibility-close'; readonly grantKey: CoreRuleKeyV1 }>;`
+- line 28: `export type CoreControlEffectApplyPayloadV1 = Readonly<{ readonly kind: 'control-effect-apply'; readonly effectKey: CoreRuleKeyV1; readonly effect: CoreControlEffectV1 }>;`
+- line 29: `export type CoreCommanderCastRecordPayloadV1 = Readonly<{ readonly kind: 'commander-cast-record'; readonly physicalCardId: CorePhysicalCardId; readonly origin: CoreCommanderCastOriginV1; readonly accepted: boolean }>;`
+- line 30: `export type CoreCommanderDamageRecordPayloadV1 = Readonly<{ readonly kind: 'commander-damage-record'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>;`
+- line 31: `export type CoreCombatStepSetPayloadV1 = Readonly<{ readonly kind: 'combat-step-set'; readonly step: CoreCombatContextStepV1 }>;`
+- line 32: `export type CoreCombatAttackAddPayloadV1 = Readonly<{ readonly kind: 'combat-attack-add'; readonly attack: CoreCombatContextAttackV1 }>;`
+- line 33: `export type CoreCombatBlockAddPayloadV1 = Readonly<{ readonly kind: 'combat-block-add'; readonly block: CoreCombatContextBlockV1 }>;`
+- line 34: `export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>;`
+- line 35: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[]; readonly manualMode?: unknown }>;`
+- line 36: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
+- line 37: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
+- line 39: `export type CoreCommandPayloadV1 =`
+- line 48: `export type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';`
+- line 50: `export type CoreCommandV1 = Readonly<{`
+- line 60: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 61: `export type CoreCommandValidationResultV1 =`
+- line 404: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 498: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 502: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
 
 ## `src/engine/core/closure/correctionV1.ts`
 
@@ -171,9 +173,10 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/domainEventV1.ts`
 
-- line 5: `export type CoreDomainEventPayloadV1 =`
-- line 35: `export type CoreDomainEventV1 = Readonly<{`
-- line 45: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
+- line 11: `export type CoreSearchCompletionResultV1 = Readonly<{`
+- line 19: `export type CoreDomainEventPayloadV1 =`
+- line 51: `export type CoreDomainEventV1 = Readonly<{`
+- line 61: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
 
 ## `src/engine/core/closure/headlessClosureV1.ts`
 
@@ -616,7 +619,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/rules/index.ts`
 
-- line 18: `export type {`
+- line 19: `export type {`
 
 ## `src/engine/core/rules/playPermissionV1.ts`
 
@@ -665,9 +668,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 ## `src/engine/core/rules/ruleDurationV1.ts`
 
 - line 10: `export type CoreRuleDurationV1 =`
-- line 16: `export function validateCoreRuleDurationV1(`
-- line 81: `export function createCoreRuleDurationV1(value: unknown): CoreRuleDurationV1 {`
-- line 87: `export class CoreRuleDurationCreationError extends Error {`
+- line 20: `export function validateCoreRuleDurationV1(`
+- line 99: `export function createCoreRuleDurationV1(value: unknown): CoreRuleDurationV1 {`
+- line 105: `export class CoreRuleDurationCreationError extends Error {`
 
 ## `src/engine/core/rules/ruleKeyV1.ts`
 
@@ -713,9 +716,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 195: `export function completeCoreSearchSessionV1(`
 - line 200: `export function completeCoreSearchSessionV1(`
 - line 205: `export function completeCoreSearchSessionV1(`
-- line 262: `export function cancelCoreSearchSessionV1(`
-- line 266: `export function cancelCoreSearchSessionV1(`
-- line 270: `export function cancelCoreSearchSessionV1(`
+- line 281: `export function cancelCoreSearchSessionV1(`
+- line 285: `export function cancelCoreSearchSessionV1(`
+- line 289: `export function cancelCoreSearchSessionV1(`
 
 ## `src/engine/core/rules/searchSessionV1.ts`
 
@@ -727,17 +730,31 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 348: `export class CoreSearchSessionCreationError extends Error {`
 - line 357: `export function createModeNeutralCoreSearchSessionSliceV1(`
 
+## `src/engine/core/rules/visibilityGrantOperationsV1.ts`
+
+- line 17: `export type CoreVisibilityGrantInputV1 = Readonly<{`
+- line 29: `export type CoreVisibilityReconciliationContextV1 = Readonly<{`
+- line 41: `export function coreVisibilityTopLibraryPrefixDigestV1(ids: readonly CoreObjectId[]): string {`
+- line 45: `export const prefixDigestV1 = coreVisibilityTopLibraryPrefixDigestV1;`
+- line 47: `export type CoreVisibilityGrantOperationResultV1 = Readonly<{`
+- line 66: `export function openCoreVisibilityGrantV1(`
+- line 97: `export function closeCoreVisibilityGrantV1(`
+- line 135: `export function reconcileCoreVisibilityGrantsV1(`
+- line 175: `export const addCoreVisibilityGrantV1 = openCoreVisibilityGrantV1;`
+- line 176: `export const removeCoreVisibilityGrantV1 = closeCoreVisibilityGrantV1;`
+- line 177: `export const pruneCoreVisibilityGrantsV1 = reconcileCoreVisibilityGrantsV1;`
+
 ## `src/engine/core/rules/visibilityGrantV1.ts`
 
 - line 19: `export type CoreVisibilitySubjectV1 =`
 - line 28: `export type CoreVisibilityAudienceV1 =`
 - line 31: `export type CoreVisibilityModeV1 = 'look' | 'reveal';`
 - line 32: `export type CoreVisibilityGrantV1 = Readonly<{`
-- line 39: `export type ModeNeutralCoreVisibilitySliceV1 = Readonly<{`
-- line 209: `export function validateModeNeutralCoreVisibilitySliceV1(`
-- line 272: `export class CoreVisibilitySliceCreationErrorV1 extends Error {`
-- line 283: `export function createModeNeutralCoreVisibilitySliceV1(`
-- line 300: `export const createCoreVisibilitySliceV1 = createModeNeutralCoreVisibilitySliceV1;`
+- line 44: `export type ModeNeutralCoreVisibilitySliceV1 = Readonly<{`
+- line 238: `export function validateModeNeutralCoreVisibilitySliceV1(`
+- line 301: `export class CoreVisibilitySliceCreationErrorV1 extends Error {`
+- line 312: `export function createModeNeutralCoreVisibilitySliceV1(`
+- line 329: `export const createCoreVisibilitySliceV1 = createModeNeutralCoreVisibilitySliceV1;`
 
 ## `src/engine/core/rules/visibilityQueryV1.ts`
 
@@ -1003,11 +1020,11 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/tabletop/operationsV1.ts`
 
-- line 106: `export type CoreTabletopOperationResultV1 = Readonly<{`
-- line 111: `export class CoreTabletopOperationErrorV1 extends Error {`
-- line 364: `export function drawCoreTabletopCardsV1(`
-- line 746: `export function untapCoreTabletopPermanentsV1(`
-- line 766: `export function applyCoreTabletopPayloadV1(`
+- line 107: `export type CoreTabletopOperationResultV1 = Readonly<{`
+- line 112: `export class CoreTabletopOperationErrorV1 extends Error {`
+- line 378: `export function drawCoreTabletopCardsV1(`
+- line 760: `export function untapCoreTabletopPermanentsV1(`
+- line 780: `export function applyCoreTabletopPayloadV1(`
 
 ## `src/engine/core/transition/cardReincarnation.ts`
 

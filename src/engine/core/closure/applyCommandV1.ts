@@ -16,8 +16,9 @@ import { createCoreTurnPriorityBundleV1 } from '../turn/turnPriorityBundleV1';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turn/turnLifecycleV1';
 import { reconcileCorePlayerExitV1, type CorePlayerExitReferenceBundleV1 } from '../player-lifecycle/playerExitReconciliationV1';
 import { applyCoreControlEffectV1, createModeNeutralCoreControlSliceV1 } from '../rules/controlEffectV1';
-import { coreDecisionMakerForV1, createModeNeutralCoreDecisionAuthoritySliceV1 } from '../rules/decisionAuthorityV1';
+import { coreDecisionMakerForV1, createModeNeutralCoreDecisionAuthoritySliceV1, removeCoreDecisionAuthorityV1 } from '../rules/decisionAuthorityV1';
 import { completeCoreSearchSessionV1, openCoreSearchSessionV1 } from '../rules/searchSessionOperationsV1';
+import { closeCoreVisibilityGrantV1, openCoreVisibilityGrantV1, pruneCoreVisibilityGrantsV1 } from '../rules/visibilityGrantOperationsV1';
 import { createModeNeutralCoreSearchSessionSliceV1 } from '../rules/searchSessionV1';
 import { createCoreRuleAuthorityBundleV1 } from '../rules/ruleAuthorityBundleV1';
 import { applyCoreRecordedZoneOrderV1, validateCoreRandomZoneOrderV1 } from './randomZoneOrderV1';
@@ -94,7 +95,18 @@ type CoreRuleZoneRefV1Like = Readonly<{ readonly kind: 'player-zone'; readonly p
 function stackBundle(root: ModeNeutralCoreRootV1): CoreStackTransactionBundleV1 { return root.ruleAuthority.turnPriorityBundle.stackBundle; }
 function replaceStackBundle(root: ModeNeutralCoreRootV1, nextStack: CoreStackTransactionBundleV1, nextLifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle): ModeNeutralCoreRootV1 {
   const nextTurn = createCoreTurnPriorityBundleV1({ stackBundle: nextStack, pendingTriggers: root.ruleAuthority.turnPriorityBundle.pendingTriggers, lifecycle: nextLifecycle });
-  const nextAuthority = createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle: nextTurn });
+  // Stack commits/removals can make a source-bound or object-subject grant
+  // stale.  Prune against the next stack before root validation so the
+  // accepted transition remains atomic and emits closure at the outer
+  // command boundary rather than failing on a dangling object reference.
+  const visibility = pruneCoreVisibilityGrantsV1(root.ruleAuthority.visibility, {
+    registry: nextStack.objectRegistry,
+    currentSequence: root.acceptedCommandCount + 1,
+    activePlayerIds: activePlayerIds(root),
+    searchSessionIds: root.ruleAuthority.searchSessions.sessionOrder,
+    currentTurnNumber: nextLifecycle.turnNumber,
+  }).value;
+  const nextAuthority = createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle: nextTurn, visibility });
   return createModeNeutralCoreRootV1({ ...root, ruleAuthority: nextAuthority });
 }
 function replaceAuthority(root: ModeNeutralCoreRootV1, patch: Partial<ModeNeutralCoreRootV1['ruleAuthority']>): ModeNeutralCoreRootV1 {
@@ -145,6 +157,14 @@ function allObjectIds(registry: ModeNeutralCoreObjectRegistryStateV2): readonly 
   for (const zone of ['battlefield', 'stack', 'exile', 'command'] as const) result.push(...registry.zones.shared[zone]);
   return result;
 }
+function objectLocation(registry: ModeNeutralCoreObjectRegistryStateV2, objectId: CoreObjectId): { kind: 'player-zone'; playerId: CorePlayerId; zone: string } | { kind: 'shared-zone'; zone: string } | null {
+  for (const playerId of registry.turnOrder) {
+    const zones = registry.zones.byPlayer[playerId];
+    for (const zone of ['library', 'hand', 'graveyard'] as const) if (zones[zone].includes(objectId)) return { kind: 'player-zone', playerId, zone };
+  }
+  for (const zone of ['battlefield', 'stack', 'exile', 'command'] as const) if (registry.zones.shared[zone].includes(objectId)) return { kind: 'shared-zone', zone };
+  return null;
+}
 function removeFromZones(registry: ModeNeutralCoreObjectRegistryStateV2, ids: ReadonlySet<string>): ModeNeutralCoreObjectRegistryStateV2['zones'] {
   const byPlayer: Raw = Object.create(null) as Raw;
   for (const playerId of registry.turnOrder) byPlayer[playerId] = Object.freeze({ library: Object.freeze(registry.zones.byPlayer[playerId].library.filter((id) => !ids.has(id))), hand: Object.freeze(registry.zones.byPlayer[playerId].hand.filter((id) => !ids.has(id))), graveyard: Object.freeze(registry.zones.byPlayer[playerId].graveyard.filter((id) => !ids.has(id))) });
@@ -182,20 +202,20 @@ function handleTabletopTurnProgress(
   let workingRoot = root;
   const payloads: CoreDomainEventPayloadV1[] = [];
   if (transition.transition.kind === 'checkpoint') {
-    if (lifecycle.window.kind !== 'turn-based-action-required') adapterFailure('TURN_GATE', '/payload/transition', 'No turn-based checkpoint is currently required');
-    if (lifecycle.window.action === 'draw-step-draw') {
+    if (lifecycle['window'].kind !== 'turn-based-action-required') adapterFailure('TURN_GATE', '/payload/transition', 'No turn-based checkpoint is currently required');
+    if (lifecycle['window'].action === 'draw-step-draw') {
       const drawn = drawCoreTabletopCardsV1(workingRoot, actorPlayerId, 1);
       workingRoot = drawn.root;
       payloads.push(...drawn.payloads);
     }
     let runtime = stackBundle(workingRoot).objectRuntime;
-    if (lifecycle.window.action === 'untap-step-actions') runtime = untapCoreTabletopPermanentsV1(workingRoot, stackBundle(workingRoot).objectRegistry, runtime, actorPlayerId);
+    if (lifecycle['window'].action === 'untap-step-actions') runtime = untapCoreTabletopPermanentsV1(workingRoot, stackBundle(workingRoot).objectRegistry, runtime, actorPlayerId);
     const currentStack = stackBundle(workingRoot);
     const nextBundle = completeCoreTurnBasedActionCheckpointV1({
       stackBundle: { ...currentStack, objectRuntime: runtime },
       pendingTriggers: workingRoot.ruleAuthority.turnPriorityBundle.pendingTriggers,
       lifecycle: workingRoot.ruleAuthority.turnPriorityBundle.lifecycle,
-    }, lifecycle.window.action);
+    }, lifecycle['window'].action);
     workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
   } else if (transition.transition.kind === 'position') {
     const turn = workingRoot.ruleAuthority.turnPriorityBundle;
@@ -217,7 +237,7 @@ function handleTabletopTurnProgress(
 function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreCommandPayloadV1, { readonly kind: 'player-exit' }>): HandlerResult {
   const registry = stackBundle(root).objectRegistry;
   if (registry.activePlayerId === payload.playerId) adapterFailure('ACTIVE_PLAYER_EXIT_REQUIRES_TURN_TRANSITION', '/payload/playerId', 'The current active player must exit through a turn transition');
-  const currentPriorityHolder = root.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'priority' ? root.ruleAuthority.turnPriorityBundle.lifecycle.window.holderPlayerId : null;
+  const currentPriorityHolder = root.ruleAuthority.turnPriorityBundle.lifecycle['window'].kind === 'priority' ? root.ruleAuthority.turnPriorityBundle.lifecycle['window'].holderPlayerId : null;
   if (currentPriorityHolder === payload.playerId) adapterFailure('PRIORITY_HOLDER_EXIT_REQUIRES_TURN_TRANSITION', '/payload/playerId', 'The current priority holder must exit through a turn transition');
   const activeIds = activePlayerIds(root).filter((id) => id !== payload.playerId);
   const owned = allObjectIds(registry).filter((id) => objectOwner(registry, id) === payload.playerId);
@@ -227,7 +247,7 @@ function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreComm
   const controlIds = root.ruleAuthority.control.effectOrder.filter((key) => { const effect = root.ruleAuthority.control.byEffect[key]; return effect.gainingControllerPlayerId === payload.playerId || effect.sourceObjectId !== null && objectOwner(registry, effect.sourceObjectId) === payload.playerId; });
   const decisionIds = root.ruleAuthority.decisionAuthorities.authorityOrder.filter((key) => { const authority = root.ruleAuthority.decisionAuthorities.byAuthority[key]; return authority.controlledPlayerId === payload.playerId || authority.decisionMakerPlayerId === payload.playerId; });
   const searchIds = root.ruleAuthority.searchSessions.sessionOrder.filter((key) => { const session = root.ruleAuthority.searchSessions.bySession[key]; return session.rulesActorPlayerId === payload.playerId || session.selectorPlayerId === payload.playerId || session.zone.kind === 'player-zone' && session.zone.playerId === payload.playerId; });
-  const references: CorePlayerExitReferenceBundleV1 = { turnOrder: registry.turnOrder, eligiblePlayerIds: activeIds, activePlayerId: registry.activePlayerId, priorityHolderPlayerId: root.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'priority' ? root.ruleAuthority.turnPriorityBundle.lifecycle.window.holderPlayerId : null, ownedObjectIds: owned, controlledObjectIds: controlled, nonCardStackObjectIds: nonCardStack, combatParticipantObjectIds: combatIds, controlEffectIds: controlIds as never, decisionAuthorityIds: decisionIds as never, searchSessionIds: searchIds as never };
+  const references: CorePlayerExitReferenceBundleV1 = { turnOrder: registry.turnOrder, eligiblePlayerIds: activeIds, activePlayerId: registry.activePlayerId, priorityHolderPlayerId: root.ruleAuthority.turnPriorityBundle.lifecycle['window'].kind === 'priority' ? root.ruleAuthority.turnPriorityBundle.lifecycle['window'].holderPlayerId : null, ownedObjectIds: owned, controlledObjectIds: controlled, nonCardStackObjectIds: nonCardStack, combatParticipantObjectIds: combatIds, controlEffectIds: controlIds as never, decisionAuthorityIds: decisionIds as never, searchSessionIds: searchIds as never };
   const reconciliation = reconcileCorePlayerExitV1(root.playerLifecycle, references, { playerId: payload.playerId, cause: payload.cause });
   if (currentPriorityHolder !== null && reconciliation.priorityHandoffPlayerId !== currentPriorityHolder) adapterFailure('PRIORITY_HOLDER_EXIT_REQUIRES_TURN_TRANSITION', '/payload/playerId', 'The priority handoff cannot be rebuilt by this adapter');
   const removeIds = new Set(reconciliation.ownedObjectsToLeaveGame.concat(reconciliation.nonCardStackObjectsToCease));
@@ -251,7 +271,10 @@ function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreComm
   const nextRuntimeRecord = Object.fromEntries(Object.entries(stackBundle(root).objectRuntime.byObject).filter(([id]) => !removeIds.has(id as CoreObjectId))) as Raw;
   for (const objectId of exileIds) if (registry.objects[objectId]?.kind === 'card') nextRuntimeRecord[objectId] = createDefaultCoreCardRuntimeAfterZoneChangeV1();
   const nextRuntimeByObject = nextRuntimeRecord as unknown as ModeNeutralCoreObjectRuntimeStateV2['byObject'];
-  const nextAnnouncementByObject: Raw = Object.create(null) as Raw; for (const [id, announcement] of Object.entries(stackBundle(root).stackAnnouncements.byObject)) if (!removeIds.has(id as CoreObjectId)) nextAnnouncementByObject[id] = announcement;
+  // Controlled stack objects that are exiled on exit leave the stack but may
+  // retain their card incarnation.  Drop announcements for both permanently
+  // removed and exiled objects so the next stack slice remains ordered.
+  const nextAnnouncementByObject: Raw = Object.create(null) as Raw; for (const [id, announcement] of Object.entries(stackBundle(root).stackAnnouncements.byObject)) if (!zoneRemovalIds.has(id as CoreObjectId)) nextAnnouncementByObject[id] = announcement;
   const nextRegistry = registryWith(registry, { players: nextPlayers, turnOrder: reconciliation.survivingTurnOrder, activePlayerId: reconciliation.activePlayerAfterExit as CorePlayerId, physicalCards: nextPhysicalCards, zones: nextZonesForSurvivors, objects: nextObjects });
   const nextRuntime = createModeNeutralCoreObjectRuntimeStateV2(nextRegistry, { byObject: nextRuntimeByObject });
   const nextAnnouncements = createModeNeutralCoreStackAnnouncementSliceV1(nextRegistry, { byObject: nextAnnouncementByObject });
@@ -262,12 +285,23 @@ function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreComm
   const nextDecision = createModeNeutralCoreDecisionAuthoritySliceV1({ authorityOrder: root.ruleAuthority.decisionAuthorities.authorityOrder.filter((key) => !clearedDecisionIds.includes(key)), byAuthority: Object.fromEntries(root.ruleAuthority.decisionAuthorities.authorityOrder.filter((key) => !clearedDecisionIds.includes(key)).map((key) => [key, root.ruleAuthority.decisionAuthorities.byAuthority[key]])) });
   const nextSearch = createModeNeutralCoreSearchSessionSliceV1({ sessionOrder: root.ruleAuthority.searchSessions.sessionOrder.filter((key) => !closedSearchIds.includes(key)), bySession: Object.fromEntries(root.ruleAuthority.searchSessions.sessionOrder.filter((key) => !closedSearchIds.includes(key)).map((key) => [key, root.ruleAuthority.searchSessions.bySession[key]])) });
   const currentLifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle;
-  const nextLifecycle = currentLifecycle.window.kind === 'priority'
-    ? createModeNeutralCoreTurnLifecycleSliceV1({ turnNumber: currentLifecycle.turnNumber, positionSequence: currentLifecycle.positionSequence, position: currentLifecycle.position, window: { kind: 'priority', cycleStartPlayerId: currentLifecycle.window.cycleStartPlayerId, holderPlayerId: reconciliation.priorityHandoffPlayerId as CorePlayerId, passedPlayerIds: currentLifecycle.window.passedPlayerIds.filter((playerId) => reconciliation.survivingTurnOrder.includes(playerId)) } })
+  const nextLifecycle = currentLifecycle['window'].kind === 'priority'
+    ? createModeNeutralCoreTurnLifecycleSliceV1({ turnNumber: currentLifecycle.turnNumber, positionSequence: currentLifecycle.positionSequence, position: currentLifecycle.position, window: { kind: 'priority', cycleStartPlayerId: currentLifecycle['window'].cycleStartPlayerId, holderPlayerId: reconciliation.priorityHandoffPlayerId as CorePlayerId, passedPlayerIds: currentLifecycle['window'].passedPlayerIds.filter((playerId) => reconciliation.survivingTurnOrder.includes(playerId)) } })
     : currentLifecycle;
   const nextStack = { objectRegistry: nextRegistry, objectRuntime: nextRuntime, stackAnnouncements: nextAnnouncements } as CoreStackTransactionBundleV1;
   const nextTurn = createCoreTurnPriorityBundleV1({ stackBundle: nextStack, pendingTriggers: root.ruleAuthority.turnPriorityBundle.pendingTriggers, lifecycle: nextLifecycle });
-  const nextAuthority = createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle: nextTurn, control: nextControl, decisionAuthorities: nextDecision, searchSessions: nextSearch });
+  // Player exit changes the active audience, object registry, and search
+  // session set together.  Reconcile visibility against those next values
+  // before constructing the root, so audience/subject/source/choice grants
+  // close atomically instead of leaving dangling references.
+  const visibility = pruneCoreVisibilityGrantsV1(root.ruleAuthority.visibility, {
+    registry: nextRegistry,
+    currentSequence: root.acceptedCommandCount + 1,
+    activePlayerIds: reconciliation.lifecycleState.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId),
+    searchSessionIds: nextSearch.sessionOrder,
+    currentTurnNumber: nextLifecycle.turnNumber,
+  }).value;
+  const nextAuthority = createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle: nextTurn, control: nextControl, decisionAuthorities: nextDecision, searchSessions: nextSearch, visibility });
   const lifecyclePlayerIds = root.playerLifecycle.players.map((entry) => entry.playerId);
   const nextCommanderDamage = createCoreCommanderDamageStateV1({ commanders: root.commanderDamage.commanders, defendingPlayerIds: lifecyclePlayerIds, entries: root.commanderDamage.entries });
   const nextProvenance = createCoreCommanderDamageProvenanceLedgerV1({ commanders: root.commanderDamageProvenance.commanders, defendingPlayerIds: lifecyclePlayerIds, records: root.commanderDamageProvenance.records });
@@ -290,13 +324,26 @@ function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreComm
 export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {
   const rootValidation = validateModeNeutralCoreRootV1(root);
   if (!rootValidation.ok) return reject(root, rootValidation.issues.map((value) => Object.freeze({ ...value })));
-  const current = rootValidation.value;
+  let current = rootValidation.value;
   const before = coreCanonicalDigestFromValueV1(current);
   const commandValidation = validateCoreCommandV1(command);
   if (!commandValidation.ok) return reject(root, commandValidation.issues, before);
   const checked = commandValidation.value;
   if (checked.sequence !== current.acceptedCommandCount + 1) return reject(root, [{ code: 'SEQUENCE_MISMATCH', path: '/sequence', message: 'Command sequence must immediately follow accepted command count' }], before);
   const activeIds = activePlayerIds(current);
+  // Visibility expiry is an atomic part of the next accepted transition. A
+  // rejected command must return the original root untouched.
+  const prePruned = pruneCoreVisibilityGrantsV1(current.ruleAuthority.visibility, {
+    registry: stackBundle(current).objectRegistry,
+    // Observe the revision about to be accepted: a next-command grant opened
+    // at sequence N survives N and closes before N+1.
+    currentSequence: checked.sequence,
+    activePlayerIds: activeIds,
+    searchSessionIds: current.ruleAuthority.searchSessions.sessionOrder,
+    currentTurnNumber: current.ruleAuthority.turnPriorityBundle.lifecycle.turnNumber,
+  });
+  if (prePruned.closedGrantKeys && prePruned.closedGrantKeys.length > 0)
+    current = replaceAuthority(current, { visibility: prePruned.value });
   if (!activeIds.includes(checked.actorPlayerId) || !activeIds.includes(checked.decisionMakerPlayerId)) return reject(root, [{ code: 'PLAYER_INACTIVE', path: '/actorPlayerId', message: 'Actor and decision maker must be active players' }], before);
   let expectedMaker: CorePlayerId;
   try { expectedMaker = coreDecisionMakerForV1(current.ruleAuthority.decisionAuthorities, checked.actorPlayerId, checked.decisionContext); } catch (error: unknown) { return reject(root, [safeIssue(error, '/decisionContext')], before); }
@@ -341,9 +388,62 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     const payload = checked.payload; let handled: HandlerResult;
     if (payload.kind === 'stack-commit-card-spell') { const result = commitCoreCardSpellToStackV1(stackBundle(current), payload.input); handled = { root: replaceStackBundle(current, result.bundle), payloads: [{ kind: 'stack-changed', operation: 'commit', objectId: result.committedObjectId }], warnings: [] }; }
     else if (payload.kind === 'stack-remove-object') { const result = removeCoreStackObjectV1(stackBundle(current), payload.input); handled = { root: replaceStackBundle(current, result.bundle), payloads: [{ kind: 'stack-changed', operation: 'remove', objectId: result.removedObjectId }], warnings: [] }; }
-    else if (payload.kind === 'priority-pass') { const result = passCorePriorityV1({ stackBundle: stackBundle(current), lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle }, payload.playerId); handled = { root: replaceStackBundle(current, result.stackBundle, result.lifecycle), payloads: [{ kind: 'priority-changed', holderPlayerId: result.lifecycle.window.kind === 'priority' ? result.lifecycle.window.holderPlayerId : null, windowKind: result.lifecycle.window.kind }], warnings: [] }; }
+    else if (payload.kind === 'priority-pass') { const result = passCorePriorityV1({ stackBundle: stackBundle(current), lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle }, payload.playerId); handled = { root: replaceStackBundle(current, result.stackBundle, result.lifecycle), payloads: [{ kind: 'priority-changed', holderPlayerId: result.lifecycle['window'].kind === 'priority' ? result.lifecycle['window'].holderPlayerId : null, windowKind: result.lifecycle['window'].kind }], warnings: [] }; }
     else if (payload.kind === 'search-open') { const result = preOpenedSearch === null ? openCoreSearchSessionV1(current.ruleAuthority, payload.sessionKey, payload.input) : { value: preOpenedSearch }; handled = { root: replaceAuthority(current, { searchSessions: (result.value as typeof current.ruleAuthority).searchSessions }), payloads: [{ kind: 'search-session-changed', sessionKey: payload.sessionKey, operation: 'open', selectedCount: 0 }], warnings: [] }; }
-    else if (payload.kind === 'search-complete') { const result = completeCoreSearchSessionV1(current.ruleAuthority, payload.sessionKey, payload.selectedObjectIds); handled = { root: replaceAuthority(current, { searchSessions: (result.value as typeof current.ruleAuthority).searchSessions }), payloads: [{ kind: 'search-session-changed', sessionKey: payload.sessionKey, operation: 'complete', selectedCount: result.selectedObjectIds?.length ?? 0 }], warnings: [] }; }
+    else if (payload.kind === 'search-complete') {
+      const result = completeCoreSearchSessionV1(current.ruleAuthority, payload.sessionKey, payload.selectedObjectIds);
+      // Search-session decision authority is scoped to the lifetime of that
+      // session.  Completing the session must retire its authority records in
+      // the same immutable transition, otherwise the cross-slice validator
+      // would retain a dangling scope and reject the otherwise valid result.
+      let decisionAuthorities = current.ruleAuthority.decisionAuthorities;
+      for (const authorityKey of decisionAuthorities.authorityOrder) {
+        const authority = decisionAuthorities.byAuthority[authorityKey];
+        if (authority.scope.kind === 'search-session' && authority.scope.searchSessionId === payload.sessionKey) {
+          decisionAuthorities = removeCoreDecisionAuthorityV1(decisionAuthorities, authorityKey).value;
+        }
+      }
+      const selectedObjectIds = Object.freeze(result.selectedObjectIds ?? []);
+      const completionResult = Object.freeze({
+        kind: 'core-search-completion-result-v1' as const,
+        sessionKey: payload.sessionKey,
+        selectedObjectIds,
+        selectedCount: selectedObjectIds.length,
+        revealFound: result.revealFound === true,
+      });
+      handled = {
+        root: replaceAuthority(current, {
+          searchSessions: (result.value as typeof current.ruleAuthority).searchSessions,
+          decisionAuthorities,
+        }),
+        payloads: [{ kind: 'search-session-changed', sessionKey: payload.sessionKey, operation: 'complete', selectedCount: selectedObjectIds.length, selectedObjectIds, revealFound: completionResult.revealFound, completionResult }],
+        warnings: [],
+      };
+    }
+    else if (payload.kind === 'visibility-open') {
+      const registry = stackBundle(current).objectRegistry;
+      const grant = payload.grant;
+      const subjectObject = grant.subject.kind === 'object' ? grant.subject.objectId : null;
+      if (grant.subject.kind === 'top-of-library' && grant.subject.playerId !== checked.actorPlayerId) adapterFailure('ACTOR_PAYLOAD_MISMATCH', '/payload/grant/subject/playerId', 'Library subject must belong to actor');
+      if (subjectObject !== null) {
+        const location = objectLocation(registry, subjectObject);
+        if (location === null) adapterFailure('OBJECT_NOT_FOUND', '/payload/grant/subject/objectId', 'Visibility subject object is not present');
+        const own = objectOwner(registry, subjectObject) === checked.actorPlayerId;
+        const controlled = objectController(current, subjectObject) === checked.actorPlayerId;
+        const supportedZone = location.kind === 'player-zone' ? (location.zone === 'hand' || location.zone === 'graveyard') && location.playerId === checked.actorPlayerId : ['battlefield', 'stack', 'exile', 'command'].includes(location.zone);
+        if (!supportedZone || (!own && !controlled)) adapterFailure('VISIBILITY_UNAUTHORIZED', '/payload/grant/subject', 'Visibility subject is not owned or controlled by actor');
+      }
+      if (grant.audience.kind === 'players' && grant.audience.playerIds.some((playerId) => !activeIds.includes(playerId))) adapterFailure('PLAYER_INACTIVE', '/payload/grant/audience/playerIds', 'Visibility audience must contain active players');
+      if (grant.duration.kind === 'until-next-command' && grant.duration.openingSequence !== checked.sequence) adapterFailure('DURATION_AUTHORITY_MISMATCH', '/payload/grant/duration/openingSequence', 'Opening sequence is server-bound');
+      if (grant.duration.kind === 'until-end-of-turn' && grant.duration.turnNumber !== current.ruleAuthority.turnPriorityBundle.lifecycle.turnNumber) adapterFailure('DURATION_AUTHORITY_MISMATCH', '/payload/grant/duration/turnNumber', 'Turn number is server-bound');
+      if (grant.duration.kind === 'until-search-completes' && !current.ruleAuthority.searchSessions.bySession[grant.duration.searchSessionId]) adapterFailure('DURATION_AUTHORITY_MISMATCH', '/payload/grant/duration/searchSessionId', 'Search session is not active');
+      if (grant.subject.kind === 'top-of-library') {
+        const ids = registry.zones.byPlayer[checked.actorPlayerId].library.slice(0, grant.subject.count);
+        if (grant.topLibraryPrefixDigest !== undefined && coreCanonicalDigestFromValueV1({ kind: 'top-library-prefix-v1', objectIds: ids }) !== grant.topLibraryPrefixDigest) adapterFailure('TOP_LIBRARY_SNAPSHOT_STALE', '/payload/grant/topLibraryPrefixDigest', 'Top library snapshot is stale');
+      }
+      const result = openCoreVisibilityGrantV1(current.ruleAuthority.visibility, payload.grantKey, grant); handled = { root: replaceAuthority(current, { visibility: result.value }), payloads: [{ kind: 'visibility-opened', grantKey: payload.grantKey, mode: grant.mode, duration: grant.duration.kind }], warnings: [] };
+    }
+    else if (payload.kind === 'visibility-close') { const result = closeCoreVisibilityGrantV1(current.ruleAuthority.visibility, payload.grantKey); handled = { root: replaceAuthority(current, { visibility: result.value }), payloads: [{ kind: 'visibility-closed', grantKey: payload.grantKey, reason: 'explicit' }], warnings: [] }; }
     else if (payload.kind === 'control-effect-apply') { const result = applyCoreControlEffectV1(current.ruleAuthority.control, payload.effectKey, payload.effect); handled = { root: replaceAuthority(current, { control: result.value }), payloads: [{ kind: 'control-changed', effectKey: payload.effectKey, targetObjectId: payload.effect.targetObjectId }], warnings: [] }; }
     else if (payload.kind === 'commander-cast-record') { const index = current.commanders.findIndex((commander) => commander.physicalCardId === payload.physicalCardId); if (index < 0) throw new Error('Commander not found'); const ledgers = current.commanderCastLedgers.slice(); if (payload.accepted) ledgers[index] = recordCoreCommanderCastV1(ledgers[index], { origin: payload.origin }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderCastLedgers: ledgers }), payloads: [{ kind: 'commander-cast-recorded', physicalCardId: payload.physicalCardId, accepted: payload.accepted, castCount: ledgers[index].castCount }], warnings: [] }; }
     else if (payload.kind === 'commander-damage-record') { const damage = recordCoreCommanderDamageV1(current.commanderDamage, { commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage }); const provenance = recordCoreCommanderDamageProvenanceV1(current.commanderDamageProvenance, { combatObjectId: payload.combatObjectId, commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderDamage: damage, commanderDamageProvenance: provenance }), payloads: [{ kind: 'commander-damage-recorded', physicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage, combatObjectId: payload.combatObjectId }], warnings: [] }; }
@@ -363,10 +463,47 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     // Manual note/stack operations validate their intermediate root against
     // the command's eventual revision. Preserve that revision here while
     // retaining the ordinary +1 boundary for every other Core operation.
-    const acceptedCommandCount = handled.root.acceptedCommandCount === current.acceptedCommandCount
+    const postPruned = pruneCoreVisibilityGrantsV1(handled.root.ruleAuthority.visibility, {
+      registry: stackBundle(handled.root).objectRegistry,
+      currentSequence: checked.sequence,
+      activePlayerIds: activePlayerIds(handled.root),
+      searchSessionIds: handled.root.ruleAuthority.searchSessions.sessionOrder,
+      currentTurnNumber: handled.root.ruleAuthority.turnPriorityBundle.lifecycle.turnNumber,
+      // A recorded library order operation is itself a visibility boundary.
+      // Do not rely only on the resulting prefix digest: a shuffle/reorder
+      // that happens to preserve the same IDs still ends the prior grant.
+      libraryOrderChangedPlayerIds: payload.kind === 'random-zone-order' && payload.zone.kind === 'player-zone' && payload.zone.zone === 'library'
+        ? [payload.zone.playerId]
+        : [],
+    });
+    // A handler may already have pruned grants while rebuilding an intermediate
+    // next registry (for example, a zone move removes a source incarnation).
+    // Track that delta separately so the command event contains one automatic
+    // closure regardless of whether pruning happened before or after the
+    // handler, and never duplicate an explicit visibility-close event.
+    const handlerGrantKeys = new Set(current.ruleAuthority.visibility.grantOrder);
+    const handledGrantKeys = new Set(handled.root.ruleAuthority.visibility.grantOrder);
+    const handlerPrunedGrantKeys = [...handlerGrantKeys].filter((grantKey) => !handledGrantKeys.has(grantKey));
+    const reconciledRoot = postPruned.closedGrantKeys && postPruned.closedGrantKeys.length > 0
+      ? replaceAuthority(handled.root, { visibility: postPruned.value })
+      : handled.root;
+    const acceptedCommandCount = reconciledRoot.acceptedCommandCount === current.acceptedCommandCount
       ? current.acceptedCommandCount + 1
-      : handled.root.acceptedCommandCount;
-    const acceptedRoot = createModeNeutralCoreRootV1({ ...handled.root, acceptedCommandCount });
-    return eventRoot(acceptedRoot, checked, handled.payloads, handled.warnings, before);
+      : reconciledRoot.acceptedCommandCount;
+    const explicitClosedGrantKeys = new Set(
+      handled.payloads
+        .filter((payload): payload is Extract<CoreDomainEventPayloadV1, { readonly kind: 'visibility-closed' }> => payload.kind === 'visibility-closed' && payload.reason !== 'automatic')
+        .map((payload) => payload.grantKey),
+    );
+    const closureKeys: string[] = [];
+    const seenClosureKeys = new Set<string>();
+    for (const grantKey of [...(prePruned.closedGrantKeys ?? []), ...handlerPrunedGrantKeys, ...(postPruned.closedGrantKeys ?? [])]) {
+      if (explicitClosedGrantKeys.has(grantKey) || seenClosureKeys.has(grantKey)) continue;
+      seenClosureKeys.add(grantKey);
+      closureKeys.push(grantKey);
+    }
+    const closurePayloads = closureKeys.map((grantKey) => ({ kind: 'visibility-closed' as const, grantKey, reason: 'automatic' as const }));
+    const acceptedRoot = createModeNeutralCoreRootV1({ ...reconciledRoot, acceptedCommandCount });
+    return eventRoot(acceptedRoot, checked, [...handled.payloads, ...closurePayloads], handled.warnings, before);
   } catch (error: unknown) { return reject(root, [safeIssue(error)], before); }
 }

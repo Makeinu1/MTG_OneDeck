@@ -1,6 +1,5 @@
 import type {
   CoreCardDefinitionSnapshotV1,
-  CoreDecisionContextV1,
   CoreManaPoolV1,
   CoreObjectId,
   CoreObjectIdKindV2,
@@ -12,7 +11,6 @@ import type {
   CoreSearchPortionV1,
 } from '../../engine/core/index';
 import type {
-  OnlineProtocolParticipantCapabilityV1,
   OnlineProtocolRevisionV1,
   OnlineResyncReasonV1,
   OnlineProtocolStateV1,
@@ -61,16 +59,8 @@ export type OnlineProjectionValidationResultV1<T> =
   | Readonly<{ readonly ok: true; readonly value: T }>
   | Readonly<{ readonly ok: false; readonly issues: readonly OnlineProjectionIssueV1[] }>;
 
-export type OnlineProjectionRequestV1 = Readonly<{
-  readonly kind: 'online-projection-request-v1';
-  readonly protocolVersion: number;
-  readonly roomId: OnlineRoomIdV1;
-  readonly participantId: OnlineRoomParticipantIdV1;
-  readonly participantCapability: OnlineProtocolParticipantCapabilityV1;
-  readonly knownRevision: OnlineProtocolRevisionV1;
-  readonly clientBuildId: BuildId;
-  readonly decisionContext: CoreDecisionContextV1 | null;
-}>;
+export type { OnlineProjectionRequestV1 } from './requestTypes';
+import type { OnlineProjectionRequestV1 } from './requestTypes';
 
 export type OnlineProjectionRequestValidationResultV1 =
   OnlineProjectionValidationResultV1<OnlineProjectionRequestV1>;
@@ -162,9 +152,12 @@ export type OnlineProjectedTurnV1 = Readonly<{
 }>;
 
 export type OnlineProjectedDurationV1 =
+  | Readonly<{ readonly kind: 'next-command' }>
+  | Readonly<{ readonly kind: 'end-of-turn' }>
   | Readonly<{ readonly kind: 'indefinite' }>
   | Readonly<{ readonly kind: 'until-end-of-turn'; readonly turnNumber: number }>
   | Readonly<{ readonly kind: 'source-bound' }>
+  | Readonly<{ readonly kind: 'choice-bound' }>
   | Readonly<{ readonly kind: 'single-use' }>
   | Readonly<{ readonly kind: 'manual' }>;
 
@@ -193,6 +186,14 @@ export type OnlineProjectedSearchSessionV1 = Readonly<{
   readonly revealFound: boolean;
   readonly shuffleAfter: boolean;
   readonly candidates: readonly OnlineProjectedVisibleObjectV1[];
+}>;
+
+/** Completed Choose result.  IDs are included only for revealFound results. */
+export type OnlineProjectedSearchResultV1 = Readonly<{
+  readonly sessionId: string;
+  readonly selectedCount: number;
+  readonly revealFound: boolean;
+  readonly selectedObjectIds?: readonly CoreObjectId[];
 }>;
 
 export type OnlineProjectedPlayPermissionSubjectV1 =
@@ -241,6 +242,7 @@ export type OnlineProjectedGameV1 = Readonly<{
   readonly zones: OnlineProjectedZonesV1;
   readonly visibilityGrants: readonly OnlineProjectedVisibilityGrantV1[];
   readonly searchSessions: readonly OnlineProjectedSearchSessionV1[];
+  readonly searchResults?: readonly OnlineProjectedSearchResultV1[];
   readonly playPermissions: readonly OnlineProjectedPlayPermissionV1[];
   readonly notes?: readonly Readonly<{ readonly id: string; readonly authorPlayerId: CorePlayerId; readonly text: string; readonly creationRevision: number }>[];
   readonly manualStack?: readonly Readonly<{ readonly id: string; readonly label: string; readonly provenance: 'structured' | 'freeform'; readonly sourceObjectId: CoreObjectId | null; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number }>[];

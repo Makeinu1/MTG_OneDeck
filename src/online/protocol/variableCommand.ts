@@ -1,6 +1,7 @@
 import {
   applyCoreCommandV1,
   coreCanonicalDigestFromValueV1,
+  type CoreDomainEventV1,
 } from '../../engine/core/index';
 import { CURRENT_CONTRACT_VERSIONS } from '../../versioning/index';
 import { validateOnlineVariableRoomV2 } from '../room/variable';
@@ -17,6 +18,7 @@ import type {
 import { validateOnlineCommandEnvelopeV1 } from './validation';
 import {
   validateOnlineVariableProtocolStateV2,
+  type OnlineVariableProtocolCompletionResultV2,
   type OnlineVariableProtocolStateV2,
 } from './variable';
 
@@ -64,6 +66,26 @@ function outcome(status: string, exitCause: string | null): 'pending' | 'concede
   return exitCause === 'concession' ? 'conceded' : 'defeated';
 }
 
+/** Extract the accepted Core completion from its typed event and the
+ * authoritative pre-completion session.  The latter supplies revealFound
+ * even for older event producers and ensures a forged client payload cannot
+ * widen the private result. */
+function completionForAcceptedSearch(
+  state: OnlineVariableProtocolStateV2,
+  command: OnlineCommandEnvelopeV1['command'],
+  events: readonly CoreDomainEventV1[],
+): OnlineVariableProtocolCompletionResultV2 | undefined {
+  if (command.payload.kind !== 'search-complete') return undefined;
+  const sessionKey = command.payload.sessionKey;
+  const session = state.coreRoot.ruleAuthority.searchSessions.bySession[sessionKey];
+  if (session === undefined) return undefined;
+  const event = events.find((entry) => entry.payload.kind === 'search-session-changed' && entry.payload.operation === 'complete' && entry.payload.sessionKey === sessionKey);
+  if (event === undefined || event.payload.kind !== 'search-session-changed' || event.payload.operation !== 'complete') return undefined;
+  const selectedObjectIds = event.payload.completionResult?.selectedObjectIds ?? event.payload.selectedObjectIds ?? [];
+  const selectedCount = selectedObjectIds.length;
+  return Object.freeze({ kind: 'core-search-completion-result-v1', sessionKey, selectedObjectIds: Object.freeze(selectedObjectIds.slice()), selectedCount, revealFound: session.revealFound });
+}
+
 export function handleOnlineVariableCommandEnvelopeV2(
   stateInput: unknown,
   messageInput: unknown,
@@ -91,7 +113,11 @@ export function handleOnlineVariableCommandEnvelopeV2(
   }
   if (state.room.lifecycle !== 'active') return reject(state, 'ROOM_NOT_ACTIVE', 'Room is not active', message);
   if (seat.outcome !== 'pending') return reject(state, 'PLAYER_NOT_PENDING', 'Player is not pending', message);
-  if (message.command.actorPlayerId !== seat.corePlayerId) return reject(state, 'ACTOR_MISMATCH', 'Actor does not match seat', message);
+  const delegatedSearch = message.command.payload.kind === 'search-complete'
+    ? state.coreRoot.ruleAuthority.searchSessions.bySession[message.command.payload.sessionKey]
+    : undefined;
+  if (delegatedSearch === undefined && message.command.actorPlayerId !== seat.corePlayerId) return reject(state, 'ACTOR_MISMATCH', 'Actor does not match seat', message);
+  if (delegatedSearch !== undefined && (delegatedSearch.selectorPlayerId !== seat.corePlayerId || delegatedSearch.rulesActorPlayerId !== message.command.actorPlayerId || message.command.decisionMakerPlayerId !== seat.corePlayerId)) return reject(state, 'ACTOR_MISMATCH', 'Delegated search authority does not match seat', message);
   if (message.command.sequence !== message.baseRevision + 1) return reject(state, 'COMMAND_SEQUENCE_MISMATCH', 'Command sequence mismatch', message);
   if (message.baseRevision !== state.revision) return reject(state, 'STALE_REVISION', 'Stale revision', message, true);
   const coreResult = applyCoreCommandV1(state.coreRoot, message.command);
@@ -105,12 +131,20 @@ export function handleOnlineVariableCommandEnvelopeV2(
   const activeCount = lifecycle.filter((entry) => entry.status === 'active').length;
   const roomResult = validateOnlineVariableRoomV2({ ...state.room, seats, lifecycle: activeCount <= 1 ? 'finished' : 'active' });
   if (!roomResult.ok) return reject(state, 'CORE_RECONCILIATION_REJECTED', 'Core reconciliation rejected', message);
+  const completion = completionForAcceptedSearch(state, message.command, coreResult.events);
   const nextCandidate = {
     ...state,
     room: roomResult.value,
     coreRoot: coreResult.root,
     revision: coreResult.root.acceptedCommandCount,
-    receipts: [...state.receipts, Object.freeze({ participantId: message.participantId, commandId: message.commandId, requestDigest: digest, acceptedRevision: coreResult.root.acceptedCommandCount, status: coreResult.status })],
+    receipts: [...state.receipts, Object.freeze({
+      participantId: message.participantId,
+      commandId: message.commandId,
+      requestDigest: digest,
+      acceptedRevision: coreResult.root.acceptedCommandCount,
+      status: coreResult.status,
+      ...(completion === undefined ? {} : { completion }),
+    })],
   };
   const nextResult = validateOnlineVariableProtocolStateV2(nextCandidate);
   if (!nextResult.ok) return reject(state, 'CORE_RECONCILIATION_REJECTED', 'Protocol reconciliation rejected', message);

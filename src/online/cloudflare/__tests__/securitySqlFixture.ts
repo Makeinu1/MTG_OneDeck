@@ -50,6 +50,9 @@ function stringBinding(value: unknown): string {
 export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
   room: RoomRow | null = null;
   journal: JournalRow[] = [];
+  journalSchema: 'legacy' | 'modern' = 'modern';
+  journalMigration: JournalRow[] = [];
+  journalMigrationExists = false;
   security: SecurityStateRow | null = null;
   grants: GrantRow[] = [];
   leases: LeaseRow[] = [];
@@ -77,6 +80,9 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     this.transactionCount += 1;
     const room = this.room === null ? null : { ...this.room };
     const journal = this.journal.map((row) => ({ ...row }));
+    const journalSchema = this.journalSchema;
+    const journalMigration = this.journalMigration.map((row) => ({ ...row }));
+    const journalMigrationExists = this.journalMigrationExists;
     const security = this.security === null ? null : { ...this.security };
     const grants = this.grants.map((row) => ({ ...row }));
     const leases = this.leases.map((row) => ({ ...row }));
@@ -93,6 +99,9 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     } catch (error: unknown) {
       this.room = room;
       this.journal = journal;
+      this.journalSchema = journalSchema;
+      this.journalMigration = journalMigration;
+      this.journalMigrationExists = journalMigrationExists;
       this.security = security;
       this.grants = grants;
       this.leases = leases;
@@ -110,6 +119,34 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
 
   protected execute<T extends Row>(query: string, bindings: readonly unknown[]): { toArray(): T[] } {
     this.queries.push(Object.freeze({ query, bindings: Object.freeze([...bindings]) }));
+    if (query.startsWith('SELECT il.seq AS index_seq')) {
+      const rows = this.journalSchema === 'legacy'
+        ? [{ index_seq: 0, index_name: 'legacy_command_id', is_unique: 1, column_seq: 0, column_name: 'command_id' }]
+        : [{ index_seq: 0, index_name: 'participant_command_id', is_unique: 1, column_seq: 0, column_name: 'participant_id' }, { index_seq: 0, index_name: 'participant_command_id', is_unique: 1, column_seq: 1, column_name: 'command_id' }];
+      return cursor<T>(rows as unknown as readonly T[]);
+    }
+    if (query.startsWith('SELECT') && query.includes('FROM online_accepted_command_migration')) return cursor<T>(this.journalMigration as unknown as readonly T[]);
+    if (query === 'DROP TABLE IF EXISTS online_accepted_command_migration') {
+      this.journalMigration = [];
+      this.journalMigrationExists = false;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('CREATE TABLE online_accepted_command_migration')) {
+      this.journalMigration = [];
+      this.journalMigrationExists = true;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('DROP TABLE online_accepted_command')) {
+      this.journal = [];
+      return cursor<T>([]);
+    }
+    if (query === 'ALTER TABLE online_accepted_command_migration RENAME TO online_accepted_command') {
+      this.journal = this.journalMigration.map((row) => ({ ...row }));
+      this.journalMigration = [];
+      this.journalMigrationExists = false;
+      this.journalSchema = 'modern';
+      return cursor<T>([]);
+    }
     if (query.startsWith("SELECT name FROM sqlite_master WHERE type = 'table'")) {
       return cursor<T>([...this.securityTables].sort().map((name) => ({ name })) as unknown as readonly T[]);
     }
@@ -134,6 +171,10 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     if (query.startsWith('CREATE TABLE online_security_audit') || query.startsWith('CREATE TABLE IF NOT EXISTS online_security_audit')) {
       if (this.securityTables.has('online_security_audit')) return cursor<T>([]);
       this.securityTables.add('online_security_audit');
+      return cursor<T>([]);
+    }
+    if (query.startsWith('CREATE TABLE') && query.includes('online_accepted_command')) {
+      this.journalSchema = /command_id\s+TEXT\s+NOT\s+NULL\s+UNIQUE/i.test(query) ? 'legacy' : 'modern';
       return cursor<T>([]);
     }
     if (query.startsWith('CREATE TABLE')) return cursor<T>([]);
@@ -213,6 +254,11 @@ export class SecuritySqlFixture implements OnlineCloudflareSqlStorage {
     }
     if (query.startsWith('INSERT INTO online_recovery_checkpoint')) {
       this.checkpoint.push({ singleton: Number(bindings[0]), room_id: String(bindings[1]), checkpoint_revision: Number(bindings[2]), state_json: String(bindings[3]) });
+      this.writeCount += 1;
+      return cursor<T>([]);
+    }
+    if (query.startsWith('INSERT INTO online_accepted_command_migration')) {
+      this.journalMigration.push({ accepted_revision: Number(bindings[0]), command_id: String(bindings[1]), participant_id: String(bindings[2]), base_revision: Number(bindings[3]), command_json: String(bindings[4]) });
       this.writeCount += 1;
       return cursor<T>([]);
     }

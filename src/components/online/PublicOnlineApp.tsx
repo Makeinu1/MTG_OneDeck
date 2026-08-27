@@ -15,6 +15,7 @@ import { OnlineGuidedActions } from './OnlineGuidedActions';
 import { PersonalWorkbench } from './PersonalWorkbench';
 import { PregameLayer } from './OnlinePregameLayer';
 import { OnlineTabletopManual } from './OnlineTabletopManual';
+import { OnlineVisibilityDecisions } from './OnlineVisibilityDecisions';
 
 export type PublicOnlineAppProps = Readonly<{
   decks: readonly PublicOnlineDeckOptionV2[];
@@ -666,6 +667,12 @@ export function PublicOnlineApp({
                 busy={tabletopBusy}
                 error={snapshot.error}
                 onSubmit={controller.submitTabletopIntent}
+              />
+              <OnlineVisibilityDecisions
+                projection={snapshot.player.projection}
+                interactionState={interactionState}
+                busy={tabletopBusy}
+                onSubmit={(intent) => { void controller.submitVisibilityIntent(intent); }}
               />
             </div>
           )}

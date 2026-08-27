@@ -266,8 +266,11 @@ function zone(
 }
 
 function normalizedDuration(
-  duration: CoreRuleDurationV1 | { readonly kind: string; readonly turnNumber?: number },
+  duration: CoreRuleDurationV1 | { readonly kind: string; readonly turnNumber?: number; readonly networkBound?: boolean },
 ): OnlineProjectedDurationV1 {
+  if (duration.kind === 'until-next-command' || duration.kind === 'next-command') return Object.freeze({ kind: 'next-command' });
+  if (duration.kind === 'until-search-completes' || duration.kind === 'choice-bound') return Object.freeze({ kind: 'choice-bound' });
+  if (duration.kind === 'until-end-of-turn' && 'networkBound' in duration && duration.networkBound === true) return Object.freeze({ kind: 'end-of-turn' });
   if (duration.kind === 'until-end-of-turn') return Object.freeze({ kind: duration.kind, turnNumber: duration.turnNumber as number });
   if (duration.kind === 'while-source-exists') return Object.freeze({ kind: 'source-bound' });
   if (duration.kind === 'single-use') return Object.freeze({ kind: 'single-use' });
@@ -284,6 +287,9 @@ function safeVisibilitySubject(
 }
 
 function visibilityGrants(ctx: ProjectionContext): readonly OnlineProjectedVisibilityGrantV1[] {
+  // Observers may receive identity widening from public Reveal grants through
+  // `canView`, but grant metadata itself is participant-authority data.
+  if (ctx.playerId === null) return Object.freeze([]);
   const output: OnlineProjectedVisibilityGrantV1[] = [];
   const slice = ctx.state.coreRoot.ruleAuthority.visibility;
   for (const key of slice.grantOrder) {
@@ -292,16 +298,14 @@ function visibilityGrants(ctx: ProjectionContext): readonly OnlineProjectedVisib
       ? Object.freeze([]) as readonly CorePlayerId[]
       : Object.freeze(ctx.effectiveViewerIds.filter((id) =>
           grant.audience.kind === 'all-players' || grant.audience.playerIds.includes(id)));
-    if (ctx.playerId === null) {
-      if (grant.mode !== 'reveal' || grant.audience.kind !== 'all-players') continue;
-    } else if (effectiveForPlayerIds.length === 0) continue;
+    if (effectiveForPlayerIds.length === 0) continue;
     const subject = safeVisibilitySubject(ctx, grant.subject);
     if (subject === null) throw new ProjectionConstructionError();
     output.push(Object.freeze({
       effectiveForPlayerIds,
       mode: grant.mode,
       subject,
-      duration: normalizedDuration(grant.duration),
+      duration: normalizedDuration({ ...grant.duration, networkBound: grant.networkBound }),
     }));
   }
   return Object.freeze(output);

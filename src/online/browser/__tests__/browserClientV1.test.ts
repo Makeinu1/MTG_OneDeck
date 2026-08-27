@@ -21,6 +21,7 @@ import {
 } from '../../room/__tests__/testHelpers';
 import * as Browser from '../index';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../../tabletopManual/types';
+import type { OnlineVisibilityIntentEnvelopeV1 } from '../../visibilityDecisions/types';
 
 const ROOM_ID = 'room-02b';
 const PARTICIPANT_ID = PARTICIPANTS[0];
@@ -222,6 +223,34 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(second.sent.at(-1)).toBe(firstFrame);
     const reconnectFrame: unknown = JSON.parse(second.sent.at(-1) ?? '{}');
     expect(reconnectFrame !== null && typeof reconnectFrame === 'object' && !Array.isArray(reconnectFrame) && !Object.prototype.hasOwnProperty.call(reconnectFrame, 'command')).toBe(true);
+  });
+
+  it('replays an unacknowledged visibility intent byte-for-byte without optimistic identity', () => {
+    const { client, sockets, scheduled } = harness();
+    const intent: OnlineVisibilityIntentEnvelopeV1 = {
+      kind: 'online-visibility-intent-v1', schemaVersion: 1,
+      commandId: 'browser-visibility-reconnect', baseRevision: 0,
+      look: {
+        subject: { kind: 'top-of-library', count: 1 },
+        viewerPlayerIds: ['P1'], duration: { kind: 'next-command' },
+      },
+    };
+    expect(client.submitVisibility(intent)).toEqual({ ok: true });
+    expect(client.getSnapshot().projection).toBeNull();
+    client.connect();
+    const first = sockets[0];
+    if (first === undefined) throw new Error('Missing first socket');
+    openClient(client, first);
+    const firstFrame = first.sent.at(-1);
+    if (firstFrame === undefined) throw new Error('Missing first visibility frame');
+    expect(JSON.parse(firstFrame)).toMatchObject({ kind: intent.kind, look: intent.look });
+    first.closeUnexpectedly();
+    scheduled[0]?.task();
+    const second = sockets[1];
+    if (second === undefined) throw new Error('Missing reconnect socket');
+    openClient(client, second);
+    expect(second.sent.at(-1)).toBe(firstFrame);
+    expect(client.getSnapshot().projection).not.toBeNull();
   });
 
   it('uses the shipped projection operation and never optimistically changes authority', () => {

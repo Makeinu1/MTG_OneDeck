@@ -36,6 +36,7 @@ import type {
 import {
   createCoreRuleAuthorityBundleV1,
 } from '../rules/ruleAuthorityBundleV1';
+import { pruneCoreVisibilityGrantsV1 } from '../rules/visibilityGrantOperationsV1';
 import { createModeNeutralCoreControlSliceV1 } from '../rules/controlEffectV1';
 import { applyCoreControlEffectV1 } from '../rules/controlEffectV1';
 import { createCoreCombatContextV1 } from '../combat/combatContextV1';
@@ -185,10 +186,23 @@ function rebuildRoot(
     pendingTriggers: root.ruleAuthority.turnPriorityBundle.pendingTriggers,
     lifecycle,
   };
+  // A tabletop transition may remove or reincarnate an object that an active
+  // visibility grant references.  Reconcile against the *next* registry
+  // before the root factory validates cross-slice object relations; otherwise
+  // a stale source/subject/top-prefix grant rejects an otherwise valid atomic
+  // transition before closure can be recorded.
+  const visibility = pruneCoreVisibilityGrantsV1(root.ruleAuthority.visibility, {
+    registry,
+    currentSequence: root.acceptedCommandCount + 1,
+    activePlayerIds: root.playerLifecycle.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId),
+    searchSessionIds: root.ruleAuthority.searchSessions.sessionOrder,
+    currentTurnNumber: lifecycle.turnNumber,
+  }).value;
   const ruleAuthority = createCoreRuleAuthorityBundleV1({
     ...root.ruleAuthority,
     control,
     turnPriorityBundle,
+    visibility,
   });
   return createModeNeutralCoreRootV1({ ...root, ruleAuthority, combatContext });
 }

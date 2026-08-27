@@ -1,0 +1,23 @@
+.online-visibility-decisions {
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  display: grid;
+  gap: var(--space-3);
+}
+.online-visibility-decisions h2 { margin: 0; color: var(--text-h); font-family: var(--serif); }
+.online-visibility-decisions p { margin: 0; color: var(--text-dim); }
+.online-visibility-decisions__actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.online-visibility-decisions fieldset { min-width: 0; display: grid; align-content: start; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.online-visibility-decisions legend { color: var(--text-h); font-weight: 700; }
+.online-visibility-decisions label { display: grid; gap: var(--space-1); color: var(--text-h); }
+.online-visibility-decisions select,
+.online-visibility-decisions button { min-width: 44px; min-height: 44px; box-sizing: border-box; }
+.online-visibility-decisions select { min-width: 0; max-width: 100%; padding: 0 var(--space-2); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-h); }
+.online-visibility-decisions input[type='checkbox'] { width: 1.25rem; height: 1.25rem; }
+.online-visibility-decisions__manual { font-size: var(--font-size-xs); }
+.online-visibility-decisions [role='alertdialog'] { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--warn); border-radius: var(--radius-md); background: var(--surface-2); }
+.online-visibility-decisions [role='alertdialog'] button { justify-self: start; }
+@media (max-width: 720px) { .online-visibility-decisions__actions { grid-template-columns: 1fr; } }

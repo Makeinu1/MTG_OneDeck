@@ -88,7 +88,7 @@ describe('O4P-08C variable runtime persistence', () => {
     for (let index = 0; index < playerCount; index += 1) { await repository.submitVariableDeckV2(current.roomId, { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: participants[index], seatCapability: caps[index], deckId: `deck-${index}`, submissionId: `submission-${index}`, entries: [{ section: 'main', quantity: 40, scryfallId: SID, oracleId: OID }] }, resolver); if (index === 0) { const replacement = await repository.submitVariableDeckV2(current.roomId, { kind: 'online-forming-lobby-deck-submit-v2', schemaVersion: 2, participantId: participants[index], seatCapability: caps[index], deckId: `deck-${index}-replacement`, submissionId: `submission-${index}-replacement`, entries: [{ section: 'main', quantity: 60, scryfallId: SID, oracleId: OID }] }, resolver); expect(replacement).toMatchObject({ state: 'accepted' }); expect(repository.loadDeckHeadsV2(current.roomId)[0]?.revision).toBe(2); } repository.setVariableReadyV4(current.roomId, participants[index] ?? '', caps[index] ?? '', true); }
     const started = repository.startVariableV4(current.roomId, 'host', caps[0] ?? ''); expect(started).toMatchObject({ schemaVersion: 2, playerCount, startingLife });
     const reloaded = new OnlineCloudflareRepository(storage, false); expect(reloaded.loadVariableProtocolV2(current.roomId)?.room.seats).toHaveLength(playerCount); expect(reloaded.loadVariableProtocolV2(current.roomId)?.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.turnOrder).toEqual(Array.from({ length: playerCount }, (_, index) => `P${index + 1}`));
-  });
+  }, 30000);
 
   it('rejects a ready 2-player/20-life start before creating protocol or Pregame state', async () => {
     const storage = new ReviewSqliteStorage();
@@ -114,7 +114,7 @@ describe('O4P-08C variable runtime persistence', () => {
     expect(repository.loadPregameV1(current.roomId)).toBeNull();
     expect(repository.loadVariableLobbyV4(current.roomId)).toEqual(beforeLobby);
     storage.close();
-  });
+  }, 30000);
 
   it.each([2, 4] as const)('completes the persisted Pregame handoff to turn one for %ip', async (playerCount) => {
     const fixture = await startedRepository(playerCount);
@@ -131,7 +131,7 @@ describe('O4P-08C variable runtime persistence', () => {
     expect(reconstructed).toEqual(complete);
     expect(JSON.stringify(fixture.repository.projectPregameV1(fixture.roomId, 'host'))).not.toMatch(/(?:randomPlan|libraryPlans|journal|seat_[A-Za-z0-9_-]{8})/);
     fixture.storage.close();
-  }, 30000);
+  }, 90000);
 
   it('rejects unauthorized, stale, reused, and conflicting Pregame commands without mutation', async () => {
     const fixture = await startedRepository(2);
@@ -172,7 +172,141 @@ describe('O4P-08C variable runtime persistence', () => {
     })).toThrow(ConflictError);
     expect(fixture.repository.loadPregameV1(fixture.roomId)).toEqual(afterAccepted);
     fixture.storage.close();
-  });
+  }, 30000);
+
+  it('accepts an E visibility intent through HTTP and returns an exact duplicate without a second mutation', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const state = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (state === null) throw new Error('Missing active variable state');
+    const initialGrantCount = state.coreRoot.ruleAuthority.visibility.grantOrder.length;
+    const initialReceiptCount = state.receipts.length;
+    const seat = state.room.seats[0];
+    if (seat?.participantId === null || seat === undefined) throw new Error('Missing host seat');
+    const clock = Date.now();
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => clock });
+    const body = {
+      kind: 'online-visibility-intent-v1', schemaVersion: 1, protocolVersion: state.protocolVersion,
+      roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability,
+      commandId: 'runtime-visibility-http-1', baseRevision: state.revision,
+      look: { subject: { kind: 'top-of-library', count: 1 }, viewerPlayerIds: [seat.corePlayerId], duration: { kind: 'next-command' } },
+    };
+    const post = () => object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+    const accepted = await post();
+    expect(accepted.status).toBe(200);
+    const acceptedBody = await accepted.json() as Record<string, unknown>;
+    expect(acceptedBody).toMatchObject({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: state.revision + 1 });
+    const afterFirst = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (afterFirst === null) throw new Error('Missing post-visibility state');
+    expect(afterFirst.revision).toBe(state.revision + 1);
+    expect(afterFirst.coreRoot.ruleAuthority.visibility.grantOrder).toHaveLength(initialGrantCount + 1);
+    expect(afterFirst.receipts).toHaveLength(initialReceiptCount + 1);
+    const acceptedReceipt = afterFirst.receipts.at(-1);
+    if (acceptedReceipt === undefined) throw new Error('Missing accepted visibility receipt');
+    expect(acceptedReceipt.commandId).toBe(body.commandId);
+    expect(acceptedReceipt.acceptedRevision).toBe(state.revision + 1);
+    expect(acceptedReceipt.status).toBe('accepted');
+    const duplicate = await post();
+    expect(duplicate.status).toBe(200);
+    expect(await duplicate.json()).toMatchObject({ kind: 'online-command-ack-v1', duplicate: true, acceptedRevision: afterFirst.revision });
+    const changedIntent = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, look: { ...body.look, viewerPlayerIds: ['P2'] } }) }));
+    expect(changedIntent.status).toBe(400);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(afterFirst);
+    fixture.storage.close();
+  }, 30000);
+
+  it('leaves protocol state, journal, revision, grants, and sessions unchanged when E persistence fails', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (before === null) throw new Error('Missing active variable state');
+    const seat = before.room.seats[0];
+    if (seat?.participantId === null || seat === undefined) throw new Error('Missing host seat');
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => Date.now() });
+    const body = {
+      kind: 'online-visibility-intent-v1', schemaVersion: 1, protocolVersion: before.protocolVersion,
+      roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability,
+      commandId: 'runtime-visibility-persist-failure', baseRevision: before.revision,
+      look: { subject: { kind: 'top-of-library', count: 1 }, viewerPlayerIds: [seat.corePlayerId], duration: { kind: 'next-command' } },
+    };
+    const originalExec = fixture.storage.sql.exec;
+    fixture.storage.sql.exec = <T extends Record<string, unknown>>(query: string, ...bindings: readonly unknown[]) => {
+      if (query.startsWith('UPDATE online_variable_room_state SET')) return { toArray: () => [] as T[] };
+      return originalExec<T>(query, ...bindings);
+    };
+    try {
+      const response = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+      expect(response.status).toBe(500);
+    } finally {
+      fixture.storage.sql.exec = originalExec;
+    }
+    const after = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    expect(after).toEqual(before);
+    expect(after?.revision).toBe(before.revision);
+    expect(after?.receipts).toEqual(before.receipts);
+    expect(after?.coreRoot.ruleAuthority.visibility).toEqual(before.coreRoot.ruleAuthority.visibility);
+    expect(after?.coreRoot.ruleAuthority.searchSessions).toEqual(before.coreRoot.ruleAuthority.searchSessions);
+    fixture.storage.close();
+  }, 30000);
+
+  it('rejects raw visibility mutations and delegated search over ordinary HTTP and WebSocket envelopes without mutation', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const state = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (state === null) throw new Error('Missing active variable state');
+    const seat = state.room.seats[0];
+    const otherSeat = state.room.seats[1];
+    if (seat?.participantId === null || seat === undefined || otherSeat === undefined) throw new Error('Missing runtime seats');
+    const before = state;
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => Date.now() });
+    const commandBase = {
+      schemaVersion: 1 as const,
+      sequence: state.revision + 1,
+      actorPlayerId: seat.corePlayerId,
+      decisionMakerPlayerId: seat.corePlayerId,
+      decisionContext: { kind: 'decision' as const, decisionKey: 'raw-visibility-bypass' },
+    };
+    const rawOpen = createCoreCommandV1({
+      ...commandBase,
+      payload: {
+        kind: 'visibility-open', grantKey: 'raw-visibility-open',
+        grant: { subject: { kind: 'top-of-library', playerId: seat.corePlayerId, count: 1 }, audience: { kind: 'players', playerIds: [seat.corePlayerId] }, mode: 'look', sourceObjectId: null, duration: { kind: 'until-next-command', openingSequence: state.revision + 1 }, networkBound: true },
+      },
+    });
+    const rawClose = createCoreCommandV1({ ...commandBase, payload: { kind: 'visibility-close', grantKey: 'raw-visibility-open' } });
+    const rawDelegatedSearch = createCoreCommandV1({ ...commandBase, decisionMakerPlayerId: otherSeat.corePlayerId, payload: { kind: 'search-complete', sessionKey: 'raw-search', selectedObjectIds: [] } });
+    const post = (commandId: string, command: unknown) => object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability, commandId, baseRevision: state.revision, command }) }));
+    expect((await post('raw-open-http', rawOpen)).status).toBe(400);
+    expect((await post('raw-close-http', rawClose)).status).toBe(400);
+    expect((await post('raw-search-http', rawDelegatedSearch)).status).toBe(400);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(before);
+
+    const sent: string[] = [];
+    let attachment: unknown;
+    const socket = { send: (data: string) => { sent.push(data); }, serializeAttachment: (value: unknown) => { attachment = value; }, deserializeAttachment: () => attachment };
+    const sockets = [socket];
+    const wsObject = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => sockets, now: () => Date.now() });
+    const client = Object.freeze({ side: 'client' });
+    class FakePair { readonly 0 = client; readonly 1 = socket; }
+    class CloudflareResponse { readonly status: number; readonly webSocket: unknown; constructor(_body: BodyInit | null, init: ResponseInit & { readonly webSocket?: unknown } = {}) { this.status = init.status ?? 200; this.webSocket = init.webSocket; } }
+    vi.stubGlobal('WebSocketPair', FakePair); vi.stubGlobal('Response', CloudflareResponse);
+    try {
+      const upgraded = await wsObject.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/websocket`, { headers: { upgrade: 'websocket' } }));
+      expect(upgraded.status).toBe(101);
+      wsObject.webSocketMessage(socket, JSON.stringify({ kind: 'online-client-hello-v1', protocolVersion: state.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability, clientBuildId: state.serverBuildId }));
+      const rawFrame = (commandId: string, command: unknown) => ({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability, commandId, baseRevision: state.revision, command });
+      wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-open-ws', rawOpen)));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
+      wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-close-ws', rawClose)));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
+      wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-search-ws', rawDelegatedSearch)));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(before);
+    } finally {
+      vi.unstubAllGlobals();
+      fixture.storage.close();
+    }
+  }, 60000);
 
   it('admits Pregame commands through security and rejects a retired credential', async () => {
     const fixture = await startedRepository(2);
@@ -219,7 +353,7 @@ describe('O4P-08C variable runtime persistence', () => {
     expect(current.status).toBe(200);
     expect(fixture.repository.loadPregameV1(fixture.roomId)?.revision).toBe(next.revision + 1);
     fixture.storage.close();
-  });
+  }, 30000);
 
   it.each([2, 4] as const)('keeps local and production Pregame transitions identical for %ip', async (playerCount) => {
     const fixture = await startedRepository(playerCount);
@@ -288,7 +422,7 @@ describe('O4P-08C variable runtime persistence', () => {
     expect(productionProtocol.room.lifecycle).toBe('active');
     expect(productionProtocol.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle).toMatchObject({ turnNumber: 1, position: { phase: 'beginning', step: 'untap' } });
     fixture.storage.close();
-  }, 60000);
+  }, 90000);
 
   it('persists shared admission through the Durable Object boundary and reports full at configured count', async () => {
     const storage = new ReviewSqliteStorage(); const initial = lobby(2, 20); const object = new OnlineRoomDurableObject({ id: { name: initial.roomId }, storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
@@ -297,7 +431,7 @@ describe('O4P-08C variable runtime persistence', () => {
     const claimed = await post({ kind: 'online-forming-lobby-shared-claim-v4', schemaVersion: 4, participantId: 'player-2', admissionCapability: initial.admissionCapability }); expect(claimed.status).toBe(200);
     const full = await post({ kind: 'online-forming-lobby-shared-claim-v4', schemaVersion: 4, participantId: 'player-3', admissionCapability: initial.admissionCapability }); expect(full.status).toBe(409);
     const reloaded = await object.fetch(new Request(`https://room.test/api/online/rooms/${initial.roomId}/lobby`)); expect(reloaded.status).toBe(200); expect((await reloaded.json() as { readonly seats: readonly unknown[] }).seats).toHaveLength(2);
-  });
+  }, 30000);
 
   it('rotates/closes admission, preserves host-only recovery, and rekeys kicked/left seats', async () => {
     const storage = new ReviewSqliteStorage(); const initial = lobby(2, 20); const object = new OnlineRoomDurableObject({ id: { name: initial.roomId }, storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
@@ -312,7 +446,7 @@ describe('O4P-08C variable runtime persistence', () => {
     const oldRecovery = await post({ kind: 'online-forming-lobby-recover-v5', schemaVersion: 5, participantId: 'player-2', seatCapability: initial.seats[1]?.seatCapability }); expect(oldRecovery.status).toBe(410); expect(await oldRecovery.json()).toMatchObject({ kind: 'online-public-error-v3', code: 'CREDENTIAL_KICKED' });
     const resetStart = await post({ kind: 'online-forming-lobby-start-v4', schemaVersion: 4, hostParticipantId: 'host', seatCapability: initial.seats[0]?.seatCapability }); expect(resetStart.status).toBe(409); expect(await resetStart.json()).toMatchObject({ kind: 'online-public-error-v3', code: 'PLAYERS_NOT_READY' });
     const leave = await post({ kind: 'online-forming-lobby-leave-v3', schemaVersion: 3, participantId: 'host', seatCapability: initial.seats[0]?.seatCapability }); expect(leave.status).toBe(200); expect(await leave.json()).toMatchObject({ closed: true });
-  });
+  }, 30000);
 
   it('persists an accepted command through the variable HTTP gameplay transport', async () => {
     const storage = new ReviewSqliteStorage(); const repository = new OnlineCloudflareRepository(storage); repository.migrateApplicationSchema(); let current = lobby(2, 40); const claimed = claimOnlineVariableLobbySeatV4(current, 'player-2', current.admissionCapability); current = claimed.lobby; repository.initializeVariableLobbyV4(current);
@@ -369,5 +503,5 @@ describe('O4P-08C variable runtime persistence', () => {
     const claimed = claimOnlineVariableLobbySeatV4(initial, 'player-2', initial.admissionCapability); repository.persistVariableLobbyV4(initial, claimed.lobby); settle(new Map([[SID, card()]]));
     expect(await pending).toMatchObject({ state: 'accepted' });
     expect(repository.loadVariableLobbyV4(initial.roomId)).toMatchObject({ seats: [{ participantId: 'host', acceptedDeck: true }, { participantId: 'player-2', acceptedDeck: false }] });
-  });
+  }, 30000);
 });

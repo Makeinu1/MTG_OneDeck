@@ -16,6 +16,7 @@ export type {
   OnlineProjectedPlayerZonesV1,
   OnlineProjectedRoomV1,
   OnlineProjectedSearchSessionV1,
+  OnlineProjectedSearchResultV1,
   OnlineProjectedSeatV1,
   OnlineProjectedSnapshotAcceptedV1,
   OnlineProjectedSnapshotRejectedV1,

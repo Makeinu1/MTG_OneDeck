@@ -12,6 +12,7 @@ import type {
 import type { OnlineRoomIdV1, OnlineRoomParticipantIdV1 } from '../room/index';
 import type { BuildId } from '../../versioning/index';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/types';
+import type { OnlineVisibilityIntentEnvelopeV1 } from '../visibilityDecisions/types';
 
 export const ONLINE_BROWSER_CLIENT_SCHEMA_VERSION_V1 = 1 as const;
 export const ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1 = 64 as const;
@@ -59,6 +60,7 @@ export type OnlineBrowserCommandIntentV1 = Readonly<{
 }>;
 
 export type OnlineBrowserTabletopIntentV1 = OnlineTabletopIntentEnvelopeV1;
+export type OnlineBrowserVisibilityIntentV1 = OnlineVisibilityIntentEnvelopeV1;
 
 export type OnlineBrowserPendingCommandV1 = Readonly<{
   readonly commandId: OnlineProtocolCommandIdV1;
@@ -108,6 +110,7 @@ export type OnlineBrowserWebSocketClientV1 = Readonly<{
   readonly disconnect: () => void;
   readonly submit: (intent: OnlineBrowserCommandIntentV1) => OnlineBrowserSubmitResultV1;
   readonly submitTabletop: (intent: OnlineBrowserTabletopIntentV1) => OnlineBrowserSubmitResultV1;
+  readonly submitVisibility: (intent: OnlineBrowserVisibilityIntentV1) => OnlineBrowserSubmitResultV1;
   readonly getSnapshot: () => OnlineBrowserStateV1;
   readonly subscribe: (
     listener: OnlineBrowserSubscriptionV1,

@@ -416,10 +416,7 @@ describe('O4P-02D judge-owned audience projection evidence', () => {
     expect(p2.zones.exile.entries[0]?.kind).toBe('visible-object');
     for (const observer of [AUDIENCES[4], AUDIENCES[5]]) {
       const game = accepted(state, observer).response.projection.game;
-      expect(game.visibilityGrants.map((grant) => [grant.mode, grant.subject.kind])).toEqual([
-        ['reveal', 'zone'], ['reveal', 'top-of-library'],
-      ]);
-      expect(game.visibilityGrants.every((grant) => grant.effectiveForPlayerIds.length === 0)).toBe(true);
+      expect(game.visibilityGrants).toEqual([]);
       expect(visibleName(playerZones({ game } as never, 'P3').hand.entries[0])).toBe('NAME-P3-hand');
       expect(visibleName(playerZones({ game } as never, 'P4').library.entries[0])).toBe('NAME-P4-library');
       expect(game.zones.exile.entries[0]?.kind).toBe('concealed-object');

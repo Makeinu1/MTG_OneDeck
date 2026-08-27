@@ -1,17 +1,28 @@
 import {
+  isCanonicalCoreObjectIdV2,
   validateModeNeutralCoreRootV1,
   type ModeNeutralCoreRootV1,
+  type CoreObjectId,
 } from '../../engine/core/index';
 import { CURRENT_CONTRACT_VERSIONS } from '../../versioning/index';
 import { validateOnlineVariableRoomV2, type OnlineVariableRoomV2 } from '../room/variable';
 
 export const ONLINE_PROTOCOL_SCHEMA_VERSION_V2 = 2 as const;
+/** Private result retained with the accepted command receipt. */
+export type OnlineVariableProtocolCompletionResultV2 = Readonly<{
+  readonly kind: 'core-search-completion-result-v1';
+  readonly sessionKey: string;
+  readonly selectedObjectIds: readonly CoreObjectId[];
+  readonly selectedCount: number;
+  readonly revealFound: boolean;
+}>;
 export type OnlineVariableProtocolReceiptV2 = Readonly<{
   readonly participantId: string;
   readonly acceptedRevision: number;
   readonly commandId: string;
   readonly requestDigest: string;
   readonly status: 'accepted' | 'accepted-with-warning';
+  readonly completion?: OnlineVariableProtocolCompletionResultV2;
 }>;
 export type OnlineVariableProtocolStateV2 = Readonly<{
   readonly kind: 'online-protocol-state-v2';
@@ -31,6 +42,14 @@ export type OnlineVariableProtocolValidationResultV2 = Readonly<{ readonly ok: t
 function fail(message: string): never { throw new Error(message); }
 function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function exact(value: unknown, fields: readonly string[]): value is Record<string, unknown> { if (!record(value)) return false; try { const keys = Reflect.ownKeys(value); return keys.length === fields.length && keys.every((key) => typeof key === 'string' && fields.includes(key) && Object.prototype.propertyIsEnumerable.call(value, key)); } catch { return false; } }
+function exactOptional(value: unknown, fields: readonly string[], optional: readonly string[]): value is Record<string, unknown> {
+  if (!record(value)) return false;
+  try {
+    const keys = Reflect.ownKeys(value);
+    return keys.every((key) => typeof key === 'string' && (fields.includes(key) || optional.includes(key)) && Object.prototype.propertyIsEnumerable.call(value, key))
+      && fields.every((key) => Object.prototype.hasOwnProperty.call(value, key));
+  } catch { return false; }
+}
 function outcomeForCore(
   entry: ModeNeutralCoreRootV1['playerLifecycle']['players'][number],
 ): 'pending' | 'conceded' | 'defeated' {
@@ -59,9 +78,21 @@ function validateInternal(input: unknown): OnlineVariableProtocolStateV2 {
   });
   const receiptKeys = new Set<string>();
   const receipts = Object.freeze((input.receipts as readonly unknown[]).map((entry) => {
-    if (!exact(entry, ['participantId', 'acceptedRevision', 'commandId', 'requestDigest', 'status']) || typeof entry.participantId !== 'string' || typeof entry.acceptedRevision !== 'number' || !Number.isSafeInteger(entry.acceptedRevision) || entry.acceptedRevision <= 0 || entry.acceptedRevision > revision || typeof entry.commandId !== 'string' || typeof entry.requestDigest !== 'string' || !/^[a-f0-9]{64}$/u.test(entry.requestDigest) || (entry.status !== 'accepted' && entry.status !== 'accepted-with-warning') || !roomResult.value.participants.some((participant) => participant.role === 'player' && participant.participantId === entry.participantId)) fail('Invalid variable protocol receipt');
+    if (!exactOptional(entry, ['participantId', 'acceptedRevision', 'commandId', 'requestDigest', 'status'], ['completion']) || typeof entry.participantId !== 'string' || typeof entry.acceptedRevision !== 'number' || !Number.isSafeInteger(entry.acceptedRevision) || entry.acceptedRevision <= 0 || entry.acceptedRevision > revision || typeof entry.commandId !== 'string' || typeof entry.requestDigest !== 'string' || !/^[a-f0-9]{64}$/u.test(entry.requestDigest) || (entry.status !== 'accepted' && entry.status !== 'accepted-with-warning') || !roomResult.value.participants.some((participant) => participant.role === 'player' && participant.participantId === entry.participantId)) fail('Invalid variable protocol receipt');
     const key = `${entry.participantId}\u0000${entry.commandId}`; if (receiptKeys.has(key)) fail('Duplicate variable protocol receipt'); receiptKeys.add(key);
-    return Object.freeze({ participantId: entry.participantId, acceptedRevision: entry.acceptedRevision, commandId: entry.commandId, requestDigest: entry.requestDigest, status: entry.status });
+    let completion: OnlineVariableProtocolCompletionResultV2 | undefined;
+    if (entry.completion !== undefined) {
+      if (!exact(entry.completion, ['kind', 'sessionKey', 'selectedObjectIds', 'selectedCount', 'revealFound']) || entry.completion.kind !== 'core-search-completion-result-v1' || typeof entry.completion.sessionKey !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(entry.completion.sessionKey) || !Array.isArray(entry.completion.selectedObjectIds) || Object.getPrototypeOf(entry.completion.selectedObjectIds) !== Array.prototype || typeof entry.completion.selectedCount !== 'number' || !Number.isSafeInteger(entry.completion.selectedCount) || entry.completion.selectedCount < 0 || typeof entry.completion.revealFound !== 'boolean') fail('Invalid variable protocol completion result');
+      const selected: CoreObjectId[] = [];
+      const seen = new Set<string>();
+      for (const id of entry.completion.selectedObjectIds as readonly unknown[]) {
+        if (!isCanonicalCoreObjectIdV2(id) || seen.has(id)) fail('Invalid variable protocol completion result');
+        seen.add(id); selected.push(id);
+      }
+      if (entry.completion.selectedCount !== selected.length) fail('Invalid variable protocol completion result');
+      completion = Object.freeze({ kind: 'core-search-completion-result-v1', sessionKey: entry.completion.sessionKey, selectedObjectIds: Object.freeze(selected), selectedCount: selected.length, revealFound: entry.completion.revealFound });
+    }
+    return Object.freeze({ participantId: entry.participantId, acceptedRevision: entry.acceptedRevision, commandId: entry.commandId, requestDigest: entry.requestDigest, status: entry.status, ...(completion === undefined ? {} : { completion }) });
   }));
   return Object.freeze({ kind: 'online-protocol-state-v2', schemaVersion: 2, protocolVersion: input.protocolVersion, serverBuildId: input.serverBuildId, room: roomResult.value, configuration: roomResult.value.configuration, coreRoot, observerAuthorizations: Object.freeze(observers), revision, receipts });
 }

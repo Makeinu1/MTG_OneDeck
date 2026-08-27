@@ -10,6 +10,7 @@ import {
   completeCoreSearchSessionV1,
   openCoreSearchSessionV1,
 } from '../searchSessionOperationsV1';
+import { CoreRuleAuthorityOperationError } from '../ruleAuthorityErrorV1';
 
 const p1 = 'P1' as CorePlayerId;
 const pc1 = 'PC1:0' as CoreObjectId;
@@ -72,6 +73,57 @@ describe('Core search session V1', () => {
       [],
     );
     expect(registry.zones.byPlayer[p1].library).toEqual([pc1, pc2]);
+  });
+
+  it('fails closed for opaque qualified criteria while allowing a may-fail empty result', () => {
+    const registry = {
+      zones: {
+        byPlayer: { P1: { library: ['PC1:0', 'PC2:0'], hand: [], graveyard: [] } },
+        shared: { battlefield: [], stack: [], exile: [], command: [] },
+      },
+    } as unknown as ModeNeutralCoreObjectRegistryStateV2;
+    const opened = openCoreSearchSessionV1(registry, p1, {
+      ...input,
+      criteria: {
+        kind: 'qualified',
+        criteriaKey: 'opaque.criteria',
+        minimum: 1,
+        maximum: 1,
+        mayFailToFind: true,
+      },
+    });
+    let rejected: unknown;
+    try {
+      completeCoreSearchSessionV1(opened.value, 'fixture-search', [pc1]);
+    } catch (error: unknown) {
+      rejected = error;
+    }
+    expect(rejected).toBeInstanceOf(CoreRuleAuthorityOperationError);
+    expect(rejected).toMatchObject({ code: 'SEARCH_SELECTION_INVALID', path: '/selectedObjectIds' });
+
+    const completed = completeCoreSearchSessionV1(opened.value, 'fixture-search', []);
+    expect(completed.selectedObjectIds).toEqual([]);
+    expect((completed.value as { readonly sessionOrder: readonly string[] }).sessionOrder).toEqual([]);
+    expect(registry.zones.byPlayer[p1].library).toEqual([pc1, pc2]);
+
+    const noMayFailOpened = openCoreSearchSessionV1(registry, p1, {
+      ...input,
+      criteria: {
+        kind: 'qualified',
+        criteriaKey: 'opaque.criteria.no-fail',
+        minimum: 0,
+        maximum: 1,
+        mayFailToFind: false,
+      },
+    });
+    let noMayFailRejected: unknown;
+    try {
+      completeCoreSearchSessionV1(noMayFailOpened.value, 'fixture-search', []);
+    } catch (error: unknown) {
+      noMayFailRejected = error;
+    }
+    expect(noMayFailRejected).toBeInstanceOf(CoreRuleAuthorityOperationError);
+    expect(noMayFailRejected).toMatchObject({ code: 'SEARCH_SELECTION_INVALID', path: '/selectedObjectIds' });
   });
 
   it('rejects duplicate, out-of-snapshot, and stale selections; cancel only removes', () => {

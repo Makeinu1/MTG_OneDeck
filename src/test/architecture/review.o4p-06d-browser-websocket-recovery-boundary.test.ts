@@ -52,6 +52,8 @@ describe('O4P-06D browser WebSocket architecture boundary', () => {
       '../room/index',
       '../tabletopManual/index',
       '../tabletopManual/types',
+      '../visibilityDecisions/index',
+      '../visibilityDecisions/types',
     ]);
     for (const file of productionFiles(browserRoot)) {
       const text = readFileSync(file, 'utf8');

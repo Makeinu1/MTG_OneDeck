@@ -7,6 +7,7 @@ export * from './ruleZoneRefV1';
 export * from './controlEffectV1';
 export * from './decisionAuthorityV1';
 export * from './visibilityGrantV1';
+export * from './visibilityGrantOperationsV1';
 export * from './visibilityQueryV1';
 export * from './searchSessionV1';
 export * from './searchSessionOperationsV1';
