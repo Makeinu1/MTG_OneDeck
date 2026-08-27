@@ -201,7 +201,29 @@ metadata remain pending.
 ## Release status
 
 The user explicitly authorized end-to-end O4P-09D shipment on 2026-08-26. The
-generated engine API manifest is re-anchored to the semantic commit above. This
-record and the synchronized audited ledger remain pending repair-4 cold audit,
-replacement exact-head CI full check, Pages served assets, and terminal shipped
+generated engine API manifest is re-anchored to the semantic commit above.
+
+Repair-4 final exact-byte audit matched fingerprint
+983f4eb0587534870e48dfa6fccc6f2a30c240805a47a6bd4d3016492b5718de at
+BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0. The Judge committed and pushed that exact
+candidate at 34dfbc7714d450fdfbd2043bbd208da5590997db. Exact-head Actions run
+33026459916 / build job 98368853021 passed the canonical full check, then
+stopped only at the generic scanner's expected classification of the four
+explicitly user-authorized Judge review files and five Judge research records.
+No product, test, build, or acceptance failure remained.
+
+The Judge recorded exact reownership without changing semantic bytes at
+terminal head c9cf348e457c201ef4f60c1ea5b639baa8050c44. Run 33027684130 / build job
+98372755718 passed terminal-metadata and forbidden checks. Its artifact and
+deploy jobs were skipped by design because terminal lanes do not publish
+semantic assets. The bounded release bridge changes only this record, the
+existing repair-4 cold-audit brief, and synchronized ledger terminal fields;
+product, ordinary tests, all review files, contracts, dependencies, workflow,
+generated API, and O4P-09E remain byte-identical to c9cf348e. A fresh-context
+audit and semantic exact-head CI/Pages remain required before terminal shipped
 metadata.
+
+The release-bridge cold audit independently matched semantic fingerprint
+495af7ddfa4e61dc932dd0a9202c1150f336d448203247f0fc932310cee0cac4,
+returned BLOCKER/HIGH/MEDIUM/LOW = 0/0/0/0, and issued verdict
+O4P-09D-REPAIR-4-RELEASE-BRIDGE-AUDIT-OK.
