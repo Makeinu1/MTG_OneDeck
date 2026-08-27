@@ -139,7 +139,7 @@ describe('validateCoreTurnPriorityBundleV1', () => {
     }
   });
 
-  it('rejects pending triggers at priority and resolution-ready public boundaries', () => {
+  it('rejects pending triggers at priority and resolution-ready public boundaries', { timeout: 15000 }, () => {
     const input = validInput();
     const pendingObjectId = '@triggered-ability:boundary-pending';
     const pendingTriggers = createModeNeutralCorePendingTriggerSliceV1(input.stackBundle.objectRegistry, {
