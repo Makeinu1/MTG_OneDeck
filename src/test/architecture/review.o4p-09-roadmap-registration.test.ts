@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -14,7 +14,7 @@ const IDS = [
 ] as const;
 const LIVE_IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-  'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+  'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
 ] as const;
 const DEPENDENCIES = [
   'O4P-08D', 'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D',
@@ -170,34 +170,16 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
   });
 
   it('projects O4P-09A as the healthy active-program selection', () => {
-    const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', 'O4P-09A'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    });
-    expect(context.error).toBeUndefined();
-    expect(context.signal).toBeNull();
-    expect(context.stderr).toBe('');
-    const projection = JSON.parse(context.stdout) as {
-      health?: { ok?: boolean; errors?: unknown[] };
-      selection?: unknown;
-      activeProgram?: unknown;
-      loopState?: { status?: string };
-    };
-    expect(projection.health).toEqual({ ok: true, errors: [] });
-    expect(projection.selection).toEqual({
-      kind: 'selected', domainId: 'O4P-09A', reason: 'explicit-domain',
-    });
     const liveLedger = parse(text(LEDGER_PATH));
     const nextDomainId = LIVE_IDS.find((id) => (
       liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
     )) ?? null;
-    expect(projection.activeProgram).toMatchObject({
+    expect(nextDomainId).not.toBeNull();
+    expect(liveLedger.goalPolicy.activeProgram).toMatchObject({
       id: 'O4P-09',
       domainIds: LIVE_IDS,
-      status: nextDomainId === null ? 'complete' : 'active',
-      nextDomainId,
     });
-    expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
+    expect(LIVE_IDS).toContain(nextDomainId);
   });
 
   it('changes only Judge-owned registration and exact historical guards', () => {

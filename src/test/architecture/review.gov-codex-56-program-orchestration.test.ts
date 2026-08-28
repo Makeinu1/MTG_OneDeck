@@ -144,7 +144,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
     expect(Buffer.byteLength(read('AGENTS.md'), 'utf8')).toBeLessThan(32768);
   });
 
-  it('projects the governance task explicitly and keeps O4P-06 complete', () => {
+  it('keeps historical governance explicit but cannot bypass the active supervised candidate', () => {
     const context = spawnSync(
       'node',
       ['scripts/codex-context.mjs', '--domain', 'GOV-CODEX-56-2026-08'],
@@ -159,11 +159,17 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       activeProgram?: { id?: string; status?: string; nextDomainId?: string | null };
       loopState?: { status?: string };
     };
-    expect(projection.health).toEqual({ ok: true, errors: [] });
+    expect(projection.health).toMatchObject({ ok: false });
+    expect(projection.health?.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'ACTIVE_SUPERVISED_CANDIDATE_DOMAIN_MISMATCH',
+        requestedDomainId: 'GOV-CODEX-56-2026-08',
+        activeDomainId: 'GOV-CODEX-58A-2026-08',
+      }),
+    ]));
     expect(projection.selection).toEqual({
-      kind: 'selected',
-      domainId: 'GOV-CODEX-56-2026-08',
-      reason: 'explicit-domain',
+      kind: 'integrity-error',
+      reason: 'supervisor-integrity-failed',
     });
     for (const id of O4P_06_IDS) {
       expect(ledger.domains.find((entry) => entry.id === id)?.status, id).toBe('shipped');
@@ -171,6 +177,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
     }
     const o4p09Ids = [
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
+      'GOV-CODEX-58A-2026-08',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
@@ -182,8 +189,8 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       status: nextDomainId === null ? 'complete' : 'active',
       nextDomainId,
     });
-    expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
-  });
+    expect(context.status).toBe(2);
+  }, 30_000);
 
   it('changes governance only and keeps the candidate diff well formed', () => {
     expect(() =>

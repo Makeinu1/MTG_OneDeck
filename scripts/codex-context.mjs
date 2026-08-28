@@ -4,6 +4,17 @@ import { existsSync, lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import {
+  buildSupervisorProjection,
+  compactActiveCandidate,
+  findActiveSupervisedDomainId,
+  parseCandidateRecords,
+} from './lib/supervisor-state.mjs';
+import {
+  readTrackedSupervisorAuthority,
+  verifySupervisorAuthority,
+} from './lib/supervisor-authority.mjs';
+
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const LOOP_STATE_PATH = '.claude/loop-state.md';
 const REQUIRED_LEDGER_KEYS = [
@@ -44,7 +55,7 @@ export function computeTreeFingerprint(root, filePaths) {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
       .split('\0')
-      .filter(Boolean);
+      .filter((path) => path && !path.startsWith('research/cr-grounding/supervisor-events/'));
   const entries = paths.map((path) => {
     const absolutePath = resolve(root, path);
     if (!existsSync(absolutePath)) return { path, kind: 'deleted' };
@@ -61,7 +72,7 @@ const compactDomain = (entry, { dependency = false } = {}) => {
   if (!entry) return null;
   const result = {};
   const keys = dependency
-    ? ['id', 'type', 'status', 'crOrder']
+    ? ['id', 'status', 'crOrder']
     : [
         'id',
         'type',
@@ -710,6 +721,7 @@ export function buildContextProjection({
   domainId,
   loopStateText = '',
   treeFingerprint,
+  trackedSupervisorVerification = null,
 }) {
   const errors = [
     ...validateLedgerShape(ledger, 'working tree'),
@@ -748,6 +760,16 @@ export function buildContextProjection({
       }
     : { domains: [], plannedSequence: [] };
   const { merged, domainMap, sequenceMap } = mergeLedgerEntries(safeLedger, errors);
+  const unshippedImplementations = [...merged.values()]
+    .filter((entry) => entry.status === 'implemented-not-audited')
+    .map((entry) => entry.id)
+    .sort();
+  if (unshippedImplementations.length > 1) {
+    errors.push({
+      code: 'MULTIPLE_UNSHIPPED_IMPLEMENTATION_CANDIDATES',
+      candidates: unshippedImplementations,
+    });
+  }
   const activeProgram = validateActiveProgram(safeLedger, headLedger, domainMap, sequenceMap, errors);
   validateActiveProgramDependencyGraph(activeProgram, domainMap, sequenceMap, errors);
   let selection;
@@ -790,6 +812,28 @@ export function buildContextProjection({
     : selected?.deliveryClass === 'player-outcome'
       ? selected
       : null;
+  const loopState = parseLoopState(loopStateText, {
+    headSha,
+    treeFingerprint,
+    domainStatuses,
+  });
+  const supervisor = buildSupervisorProjection({
+    ledger: safeLedger,
+    selectedDomainId: selected?.id ?? domainId ?? null,
+    loopStateText,
+    loopState,
+    headSha,
+    treeFingerprint,
+  });
+  const supervisorErrorStart = errors.length;
+  errors.push(...supervisor.errors);
+  if (supervisor.enforced) {
+    if (!trackedSupervisorVerification) errors.push({ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY' });
+    else errors.push(...(trackedSupervisorVerification.errors ?? []));
+  }
+  if (errors.length > supervisorErrorStart) {
+    selection = { kind: 'integrity-error', reason: 'supervisor-integrity-failed' };
+  }
 
   return {
     ledgerSha256: sourceSha256,
@@ -802,6 +846,18 @@ export function buildContextProjection({
     health: { ok: errors.length === 0, errors },
     selection,
     activeProgram: activeProgramSummary,
+    supervisionEnforced: supervisor.enforced,
+    activeCandidate: compactActiveCandidate(supervisor.activeCandidate),
+    permissionRequired: supervisor.permissionRequired,
+    supervisionPolicy: supervisor.policy,
+    trackedSupervisor: trackedSupervisorVerification
+      ? {
+          ok: trackedSupervisorVerification.ok === true,
+          latestEventHash: trackedSupervisorVerification.latestEvent?.eventHash ?? null,
+          latestSequence: trackedSupervisorVerification.latestEvent?.sequence ?? null,
+        }
+      : null,
+    advisories: supervisor.advisories ?? [],
     nextTechnicalSlice: summarizeJourney(nextTechnicalEntry),
     nextPlayerOutcome: summarizeJourney(nextPlayerEntry),
     domain: compactDomain(selected),
@@ -815,11 +871,7 @@ export function buildContextProjection({
       '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',
     ],
-    loopState: parseLoopState(loopStateText, {
-      headSha,
-      treeFingerprint,
-      domainStatuses,
-    }),
+    loopState,
   };
 }
 
@@ -863,7 +915,7 @@ export function synthesizeCleanHeadLoopState({
   ].join('\n');
 }
 
-export function createContextProjection(root, domainId) {
+export function createContextProjection(root, domainId, options = {}) {
   const ledgerText = readFileSync(resolve(root, LEDGER_PATH), 'utf8');
   let ledger;
   let headLedger;
@@ -889,6 +941,23 @@ export function createContextProjection(root, domainId) {
         treeFingerprint,
         clean: git(root, ['status', '--porcelain=v1', '--untracked-files=normal']) === '',
       });
+  let trackedSupervisorVerification = null;
+  const supervisedDomainId = findActiveSupervisedDomainId(ledger);
+  if (supervisedDomainId) {
+    const tracked = readTrackedSupervisorAuthority(root, supervisedDomainId);
+    const parsed = parseCandidateRecords(loopStateText);
+    const loopCandidate = parsed.records?.find((candidate) => candidate?.state !== 'repair-required') ??
+      parsed.records?.at(-1) ?? null;
+    trackedSupervisorVerification = tracked.authority && loopCandidate
+      ? verifySupervisorAuthority({
+          authority: tracked.authority,
+          headAuthority: tracked.headAuthority,
+          loopCandidate,
+          sessionsRoot: options.sessionsRoot,
+          completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+        })
+      : { ok: false, errors: [{ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY', path: tracked.relativePath }] };
+  }
   return buildContextProjection({
     ledger,
     headLedger,
@@ -897,6 +966,7 @@ export function createContextProjection(root, domainId) {
     domainId,
     loopStateText,
     treeFingerprint,
+    trackedSupervisorVerification,
   });
 }
 
@@ -911,7 +981,7 @@ export function contextExitCode(projection) {
 export function runContextCli(argv = process.argv.slice(2), root = process.cwd()) {
   const args = parseArguments(argv);
   const projection = createContextProjection(root, args.domain);
-  const output = `${JSON.stringify(projection, null, 2)}\n`;
+  const output = `${JSON.stringify(projection)}\n`;
   if (projection.health.ok && Buffer.byteLength(output) > 12 * 1024) {
     throw new Error('Successful context projection exceeds 12 KiB');
   }

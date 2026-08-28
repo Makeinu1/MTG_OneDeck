@@ -6,6 +6,15 @@
 
 > 本ファイルが常設統治の正本。詳細手順は下記の各正本へ委譲し、ここで再定義しない。`CLAUDE.md`は歴史的な互換入口にすぎない。
 
+## 成果契約（最優先）
+
+ユーザーが求めるのは統治手続そのものではなく、明示した製品・プレイヤー成果を、現在の品質と安全境界を保ったまま、妥当な最短時間と最小の経済的トークンで得ることである。最適化の優先順は、(1)観測可能な成果と受け入れ品質、(2)scope・authority・不可逆操作の安全、(3)wall-clock time、(4)uncached token・外部call・金銭コスト、(5)人間割込みと手続成果物の少なさ、とする。統治、台帳、監査、計測はこの成果を守る手段であり、成果を代替しない。
+
+- 人間は最初にGoal・Done when・scope・外部authorityを決める。その後に人間へ戻すのは、成果・scope・品質・北極星・不可逆操作の実質的な選択が必要な場合だけとする。token、cycle、wave、continuation等の数値を許諾質問にしない。
+- 判定者はモデル、reasoning effort、並列性、tool、context、repair、監査深度を内部で配分する。閾値超過は累積telemetryとwatchdog入力であり、fixed-scopeの続行権限ではない。まずprompt/tool削減、決定論的batch、低コストmodel、compaction、同一lineage継続、候補境界の順で是正する。
+- 同一の根本原因に対する有界修正を2回行っても進展せず、続行にGoal・scope・品質の変更が必要になったときだけ、一度のoutcome-level判断を求める。単なる新finding、別原因、quota到達、task/候補境界は該当しない。
+- メタ改修は、観測済みの失敗を除去するか、最大2 slice以内のplayer outcomeを直接unblockする場合だけ作る。新しい分類・承認・review・checkは、削減できる既存判断または検出できる実害を示せなければ追加しない。
+
 ## 正本の地図
 
 - 裁定・優先度・コールドスタート: `docs/judge-protocol.md`
@@ -52,7 +61,7 @@
 - 編集前にcleanな宣言base SHAと検証済み`codex:context -- --domain <id>`を要求する。別候補、壊れたauthority、staleな未出荷resume stateがあれば混在させない。
 - agent lineage、修正、compaction、continuation、wait、full check、push/CIの上限とpreflightは`document-governance.md`だけで定義し、task名・metadata commit・continuationでcounterをリセットしない。
 - context compactionは回復checkpointとする。現在の原子的操作を閉じ、`AGENTS.md`→検証済み`codex:context`→active brief→`docs/judge-protocol.md`該当節→Skill referenceの順で復旧する。圧縮要約のnext stepを正本扱いしない。
-- active programは`domainIds`、個別`authority`、`autonomy`、`journeyPolicy`、`usagePolicy`を機械可読で持つ。`autonomy.mode=complete`はtrueのauthority内の修正・repair・遷移の再許諾を省くが、falseのcommit/push/deploy/ship権限を生成しない。counter上限は費用計測とcandidate境界であり、同一candidateを黙ってresetせず累積usage付きrepair candidateへ移す。新規programは3件連続substrateを禁止し、player outcomeのproduction証拠を最大2 slice以内に要求する。
+- active programは`domainIds`、個別`authority`、`autonomy`、`journeyPolicy`、`usagePolicy`、適用開始後の`supervisionPolicy`を機械可読で持つ。`autonomy.mode=complete`はtrueのauthority内の修正・repair・遷移の再許諾を省くが、falseのcommit/push/deploy/ship権限を生成しない。`activeCandidate.state`、`permissionRequired`、counter、role/wait slot、guard impactは実行可能CLIがfail closedで検証する。authority、counter、acceptanceを黙ってresetしないが、counter objective超過だけで人間へ数値許諾を求めず、同一acceptance・authorityと累積usageを保持して内部repairを続ける。新規programは3件連続substrateを禁止し、player outcomeのproduction証拠を最大2 slice以内に要求する。
 - UI・音・演出は専用worktree/dev fixtureの試作と本実装を分離し、人間承認した値とscreenshotを凍結してから本実装を始める。
 
 ## 不可侵
@@ -71,7 +80,7 @@ STOPしてユーザーに聞くのは4類だけ:
 1. 優先度式でも解けないロードマップ上の真の価値判断。
 2. CRで一意に解けない真の曖昧。
 3. 北極星/契約原則変更または不可逆・通常Pages pushを超える外部書込。
-4. 同一lineageの修正waveを2回使い切っても現受け入れ条件を満たせない。
+4. 同一の根本原因に対する有界修正を2回行っても進展せず、続行にはGoal・scope・品質の変更が必要である。`audit-failed-stop`をcandidate名の変更で洗浄してはならないが、別原因のfixed-scope finding、quota到達、または意味不変のrelease defectは、同一acceptance・authority・累積counterを保持して自動repairしてよい。
 
 公開・外部送信・戻せない決定は確認が既定。例外は`/ship`で、監査合格と全check緑を認可としてpush、CI、Pages確認まで自走してよい。手順は`.claude/commands/ship.md`を参照する。
 

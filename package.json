@@ -66,9 +66,12 @@
     "check:fast": "node scripts/checks/fast-check.mjs",
     "check:domain": "node scripts/checks/domain-check.mjs",
     "check:forbidden": "node scripts/checks/forbidden-files.mjs",
+    "check:budget": "node scripts/checks/budget.mjs",
+    "check:guard-impact": "node scripts/checks/guard-impact.mjs",
     "check:release-preflight": "node scripts/checks/release-preflight.mjs",
     "check:terminal-metadata": "node scripts/checks/terminal-metadata.mjs",
     "codex:usage": "node scripts/codex-usage.mjs",
+    "codex:program-step": "node scripts/codex-program-step.mjs",
     "codex:context": "node scripts/codex-context.mjs",
     "format": "prettier --write ."
   },

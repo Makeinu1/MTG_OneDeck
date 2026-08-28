@@ -90,24 +90,28 @@ workers, auditors, or later milestone cycles.
 
 ## Budget defaults
 
-Budgets trigger compaction or fresh-context handoff; they never waive quality
-evidence.
+Budgets are internal optimization objectives and watchdog thresholds. They
+trigger leaner prompts/tools, lower-cost routing, compaction, or a same-role
+fresh-context handoff; they never waive quality evidence and never become a
+request for the user to approve a larger number.
 
-- supervisor visible usage: 750k-token objective; 1.0M hard ceiling per lineage
-- team usage: 1.2M-token objective; 1.6M hard ceiling per milestone
-- supervisor model cycles: 120 objective; 160 hard ceiling per lineage
-- team model cycles: 320 objective; 400 hard ceiling per milestone
-- context compactions: at most two per logical role lineage
-- fresh same-role continuations: at most one per logical role lineage; it shares
+- supervisor visible usage: 750k-token target; 1.0M watchdog per lineage
+- team usage: 1.2M-token target; 1.6M watchdog per milestone
+- supervisor model cycles: 120 target; 160 watchdog per lineage
+- team model cycles: 320 target; 400 watchdog per milestone
+- context compactions: two before mandatory context/routing review
+- fresh same-role continuations: one before mandatory context/routing review; it shares
   the original implementer or auditor slot and every existing counter
 - continuation and terminal packet: at most 4 KiB each
 - one bounded tool stage returned to the model: normally at most 12 KiB
 
 When the user supplies a different budget, it replaces only `Budget objective`.
-The hard ceilings above remain unchanged unless a separate explicit governance
-ruling changes them. If an objective would make the stated `Done when`
-impossible, disclose the conflict and preserve the quality boundary rather than
-silently shrinking completion.
+Structural quality limits such as one role lineage, one wait chain, and push
+counts remain unchanged. Full-check attempts stay cumulative and visible as a
+watchdog, while one final exact-tree green check remains mandatory. If an
+objective would make the stated `Done when` impossible, preserve the quality
+boundary and optimize internally; ask only when an outcome/scope/quality
+tradeoff is genuinely required, never for a numeric counter quota.
 
 ## Examples
 

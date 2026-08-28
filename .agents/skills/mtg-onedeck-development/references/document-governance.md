@@ -56,12 +56,15 @@ schedule a judge-owned active-program ledger update; never substitute the
 automatic result silently.
 
 One worktree owns one active milestone candidate only. A normal user task ends
-when that milestone ships or reaches a terminal STOP. When a candidate exhausts
-its correction/full-check allowance, close it as `repair-required`, preserve
-its cumulative usage and findings, and derive one repair candidate with the
-same acceptance and authority. Do not rename or silently reset the exhausted
-candidate. Under `autonomy.mode: complete`, this transition is automatic while
-acceptance remains satisfiable. When the user explicitly authorizes completion of the ordered
+when that milestone ships or reaches a true outcome-level STOP. A candidate
+boundary, usage watchdog, continuation count, or new fixed-scope finding does
+not ask the user for another quota. Preserve cumulative usage and derive or
+resume a same-acceptance, same-authority repair automatically under
+`autonomy.mode: complete`. `audit-failed-stop` is reserved for two bounded
+attempts at the same root cause with no progress where continuation now requires
+a Goal, scope, or quality tradeoff; do not launder that decision by renaming the
+candidate. Release-full-check, CI-environment, or exact guard-impact defects use
+the same automatic repair rule. When the user explicitly authorizes completion of the ordered
 `goalPolicy.activeProgram`, the same judge task may supervise serial milestone
 cycles. Shipping still ends the current cycle. Before the next cycle, require
 exact-head release evidence, a clean worktree, a new verified `codex:context
@@ -82,7 +85,7 @@ ordinary tests. A cold auditor receives only the frozen audit brief, edits
 nothing, and returns findings.
 
 Use at most one implementer and one cold auditor lineage per milestone. Reuse
-the same implementer within the two total correction waves. Do not create
+the same implementer for bounded corrections. Do not create
 general explorer agents or research future milestones while the active
 milestone is unresolved.
 Parallel code writes require explicitly disjoint paths, a frozen shared
@@ -129,11 +132,10 @@ candidate fingerprint, never the implementer's rationale.
   agent, repair wave, full check, or adjacent
   milestone until that recovery is current; an authorized program may continue
   after the normal transition gate.
-- Each logical role lineage may compact at most twice. The first compaction
-  resumes from the compact packet. A second compaction ends that task and
-  requires the single allowed fresh-context same-role continuation. That
-  continuation shares the original implementer or auditor slot and all counters;
-  a third compaction or second continuation is forbidden.
+- At two compactions or one fresh same-role continuation, the supervisor must
+  review prompt/tool size, model routing, and whether the next action is still
+  bounded. Continue the same logical role lineage only with a compact packet
+  and cumulative counters; the watchdog is not a human permission request.
 - Run `npm run codex:usage -- --session <id>` at every task terminal. Record
   `modelCycles`, `cachedInputTokens`, `uncachedInputTokens`, `compactions`,
   `repairWaves`, `fullChecks`, `ciRuns`, and `elapsedMs`; when
@@ -144,35 +146,69 @@ candidate fingerprint, never the implementer's rationale.
 ## Candidate execution counters and autonomous repair
 
 Counters belong to the milestone ID and candidate lineage, not a task name.
-They are cost telemetry and per-candidate safety bounds, not permission prompts.
-Renaming a repair, metadata commit, continuation, or thread never resets them.
+They are cumulative telemetry and internal admission inputs, not authority and
+not permission prompts. Renaming a repair, metadata commit, continuation, or
+thread never resets them.
 
-- implementer: one
-- cold auditor: one; reuse it for affected-claim re-audit and exact-byte review
-- logical role lineage compactions: at most two
-- fresh same-role continuations: at most one; it is not another role slot
-- correction waves: at most two total; a return to the same implementer or a
-  bounded judge-owned surgical correction consumes one wave
-- supervisor visible usage: 1.0M-token hard ceiling and 160 model-cycle hard
-  ceiling per lineage when platform counters are available
-- team visible usage: 1.6M-token hard ceiling and 400 model-cycle hard ceiling
-  per milestone when platform counters are available
-- release full check: one normally, two absolute maximum
-- semantic push: one normally
-- replacement push/exact-head CI: at most one
-- audit wait: one logical chain
-- CI wait: one logical chain
+- structural limits: one implementer lineage, one cold-auditor lineage, one
+  logical audit wait chain, one logical CI wait chain, one semantic push, and
+  one replacement push
+- internal watchdogs: two release full-check attempts, two compactions, one
+  same-role continuation, two correction waves, supervisor 1.0M uncached input
+  tokens / 160 model cycles, and team 1.6M uncached input tokens / 400 model
+  cycles
+- watchdog crossings produce explicit advisories and force prompt/tool/model/
+  repair-boundary review; they do not fail an otherwise authorized fixed-scope
+  action and do not request a larger number from the user
+- cached input tokens and total input tokens remain mandatory terminal telemetry;
+  they are never silently substituted for uncached usage
+- release full check: one normally; the second is the repair objective, and any
+  later attempt remains a cumulative advisory that never substitutes for the
+  mandatory final green check or asks the user for a larger number
 - production browser verification: once on the final release HEAD
 
 Known sandbox or IPC restrictions use the already approved execution path on
-the first attempt. Do not repeat a known-failing probe for every milestone. If a
-counter is exhausted, do not add a third wave to that candidate, weaken
-evidence, or reset its identity. Record `repair-required`, the cause, findings,
-and cumulative usage, then derive a repair candidate with the same acceptance
-and original authority. Complete autonomy allows that derived candidate without
-a new permission prompt. Stop only when the contract is contradictory,
-acceptance is no longer satisfiable, a true value/scope/North-Star decision is
-missing, or the next action lacks authority.
+the first attempt. Do not repeat a known-failing probe for every milestone. A
+fixed-scope audit, acceptance, full-check, CI-environment, or exact guard-impact
+defect resumes or derives a same-acceptance, same-authority repair without
+resetting cumulative usage. Stop only after two attempts at the same root cause
+make no progress and the next action requires an outcome/scope/quality ruling,
+or when the contract is contradictory, a true value/scope/North-Star decision
+is missing, or the next action lacks authority. Never ask for a numeric budget
+extension.
+
+## OpenAI capability routing
+
+Use the smallest relevant OpenAI capability set for the task shape. A feature
+is useful only when it improves outcome quality, latency, or measured cost.
+
+- Use programmatic tool calling to batch deterministic reads, filtering,
+  joining, and validation into one bounded result.
+- Use multi-agent only for independent parallel work or required role
+  separation. Reuse the same implementer and cold auditor instead of spawning
+  replacement lineages.
+- Use the project Skill and compact canonical context as the reusable prompt;
+  do not replay transcripts. Prefer Luna/low-medium for routine bounded work,
+  Terra/medium for balanced implementation, and Sol/high for genuinely hard
+  integration or cold audit. Raise effort only when evidence shows a quality
+  gain.
+- Use web/GitHub retrieval only for unstable or external facts, and browser or
+  computer-use only for observable UI evidence. Do not call image, audio,
+  automation, or other modalities when the product outcome does not need them.
+
+## Executable supervisor gates
+
+From `goalPolicy.supervisionPolicy.enforceFromDomainId`, prose is not enough.
+At milestone start and every state transition run
+`npm run codex:program-step -- --domain <id> --action <action>`. Before audit
+and every release full check run `npm run check:budget -- --domain <id>` and
+`npm run check:guard-impact -- --base <sha> --domain <id>`. Release preflight
+must consume the same candidate, permission, budget, lineage/wait, and
+guard-impact result. Missing or contradictory state, unavailable required
+telemetry, a stale acknowledgement, a duplicate structural role/wait slot, a
+counter reset, or an exceeded structural limit is a nonzero STOP. A valid
+cumulative usage watchdog crossing is an advisory and internal routing event,
+not a permission failure.
 
 ## Player-journey cadence
 
@@ -243,7 +279,7 @@ fingerprint before audit. R2/R3 select NARROW, STANDARD, or BROAD from actual ri
 cross-document workflow or selection-policy changes are BROAD. The auditor
 runs target-domain adversarial evidence, not the release full check.
 
-Before the audit freeze, run
+Before the audit freeze, run the three executable supervisor gates above, then
 `npm run check:release-preflight -- --base <sha> --domain <id> --owner <judge|implementer>`.
 This bounded release preflight must confirm the
 declared base/ancestor, ledger collection parity, loop-state/resume consistency,
@@ -264,8 +300,10 @@ The clean semantic verdict is `AUDIT-OK-PENDING-FULL-CHECK`. Close findings,
 re-run only invalidated evidence, freeze the release tree again, and require the
 same fingerprint as the audited tree. Run the full check once. If that full
 check itself exposes a defect, make the smallest correction, re-run invalidated
-evidence and affected audit claims, and run one final full check. Never exceed
-two full-check invocations in one task.
+evidence and affected audit claims, and run the exact final full check. Keep
+every invocation cumulative. Crossing the two-attempt objective is an internal
+watchdog, not authority or a permission prompt; stop only under the common
+same-root-cause/no-progress outcome rule above. A final green `npm run check` on the audited release tree remains mandatory.
 
 The release full check command is `npm run check`; no narrower command can
 substitute for it.

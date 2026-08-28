@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { closeSync, fstatSync, openSync, readFileSync, readSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -500,13 +501,117 @@ const collectJsonlFiles = (root) => {
 };
 
 export function findSessionFile(sessionId, sessionsRoot) {
+  return locateSessionFile(sessionId, sessionsRoot).filePath;
+}
+
+function parseReceiptRecords(content) {
+  return content
+    .toString('utf8')
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== '')
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        throw new Error(`Invalid JSONL at receipt record ${index + 1}`);
+      }
+    });
+}
+
+function firstSessionMetaRecord(content) {
+  let offset = 0;
+  while (offset < content.length) {
+    const newline = content.indexOf(0x0a, offset);
+    const end = newline < 0 ? content.length : newline;
+    const line = content.subarray(offset, end).toString('utf8').trim();
+    if (line !== '') {
+      try {
+        const record = JSON.parse(line);
+        if (sessionMetaId(record)) return record;
+      } catch {
+        throw new Error('Invalid JSONL before session metadata');
+      }
+    }
+    if (newline < 0) break;
+    offset = newline + 1;
+  }
+  return null;
+}
+
+const receiptPrefixCache = new Map();
+
+function cachedReceiptPrefix(filePath, content) {
+  const byteLength = content.length;
+  const prefixSha256 = createHash('sha256').update(content).digest('hex');
+  const cache = receiptPrefixCache.get(filePath) ?? new Map();
+  const exact = cache.get(byteLength);
+  if (exact?.prefixSha256 === prefixSha256) {
+    return { prefixSha256, records: exact.records, report: exact.report };
+  }
+
+  let records;
+  const smallerLengths = [...cache.keys()]
+    .filter((length) => length < byteLength)
+    .sort((left, right) => right - left);
+  const predecessorLength = smallerLengths[0];
+  const predecessor = predecessorLength === undefined ? null : cache.get(predecessorLength);
+  if (
+    predecessor &&
+    createHash('sha256').update(content.subarray(0, predecessorLength)).digest('hex') ===
+      predecessor.prefixSha256
+  ) {
+    records = predecessor.records.concat(parseReceiptRecords(content.subarray(predecessorLength)));
+  } else {
+    records = parseReceiptRecords(content);
+  }
+  cache.set(byteLength, { prefixSha256, records, report: null });
+  receiptPrefixCache.set(filePath, cache);
+  return { prefixSha256, records, report: null };
+}
+
+function readExactPrefix(filePath, length) {
+  const descriptor = openSync(filePath, 'r');
+  try {
+    const initialSize = fstatSync(descriptor).size;
+    if (length > initialSize) return { content: null, currentByteLength: initialSize };
+    const content = Buffer.allocUnsafe(length);
+    let offset = 0;
+    while (offset < length) {
+      const bytesRead = readSync(descriptor, content, offset, length - offset, offset);
+      if (bytesRead === 0) break;
+      offset += bytesRead;
+    }
+    const currentByteLength = fstatSync(descriptor).size;
+    if (offset !== length || currentByteLength < length) {
+      throw new Error(`Short session receipt read: ${filePath}`);
+    }
+    return { content, currentByteLength };
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
+function locateSessionFile(sessionId, sessionsRoot, byteLength) {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuid.test(sessionId)) throw new Error('Session id must be an exact UUID');
   const matches = [];
   for (const filePath of collectJsonlFiles(sessionsRoot)) {
     if (!basename(filePath).includes(sessionId)) continue;
-    const firstMeta = readJsonLines(filePath).find((record) => sessionMetaId(record));
-    if (firstMeta?.payload?.id === sessionId) matches.push(filePath);
+    const loaded = byteLength === undefined
+      ? { content: readFileSync(filePath), currentByteLength: null }
+      : readExactPrefix(filePath, byteLength);
+    if (loaded.content === null) continue;
+    if (
+      byteLength !== undefined &&
+      byteLength < loaded.currentByteLength &&
+      loaded.content[byteLength - 1] !== 0x0a
+    ) {
+      throw new Error(`Session receipt does not end at a JSONL record: ${sessionId}`);
+    }
+    const firstMeta = byteLength === undefined
+      ? parseReceiptRecords(loaded.content).find((record) => sessionMetaId(record))
+      : firstSessionMetaRecord(loaded.content);
+    if (firstMeta?.payload?.id === sessionId) matches.push({ filePath, ...loaded });
   }
   if (matches.length !== 1) {
     throw new Error(
@@ -516,6 +621,26 @@ export function findSessionFile(sessionId, sessionsRoot) {
     );
   }
   return matches[0];
+}
+
+export function readSessionUsageReceipt(sessionId, sessionsRoot, byteLength) {
+  if (byteLength !== undefined && (!Number.isSafeInteger(byteLength) || byteLength <= 0)) {
+    throw new Error(`Invalid session receipt byte length: ${sessionId}`);
+  }
+  const located = locateSessionFile(sessionId, sessionsRoot, byteLength);
+  const { content: prefix, filePath } = located;
+  const length = byteLength ?? prefix.length;
+  const currentByteLength = byteLength === undefined ? prefix.length : located.currentByteLength;
+  const cached = cachedReceiptPrefix(filePath, prefix);
+  const report = cached.report ?? analyzeSessionRecords(cached.records, { filePath });
+  receiptPrefixCache.get(filePath).get(length).report = report;
+  return {
+    filePath,
+    byteLength: length,
+    currentByteLength,
+    prefixSha256: cached.prefixSha256,
+    report,
+  };
 }
 
 const parseArguments = (argv) => {

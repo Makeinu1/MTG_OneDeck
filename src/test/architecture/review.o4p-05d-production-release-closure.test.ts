@@ -34,6 +34,7 @@ describe('O4P-05D production-release closure boundary', () => {
       { id: 'O4P-07', domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'] },
       { id: 'O4P-08', domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] },
       { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
+      { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
     ]).toContainEqual({
       id: ledger.goalPolicy?.activeProgram?.id,
       domainIds: ledger.goalPolicy?.activeProgram?.domainIds,
@@ -73,6 +74,7 @@ describe('O4P-05D production-release closure boundary', () => {
     expect(tracked.sort()).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
     expect([
       ['src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts'],
+      ['src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts'],
       [],
       ['src/test/architecture/review.o4p-09-roadmap-registration.test.ts'],
       ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],

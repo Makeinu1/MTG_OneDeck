@@ -34,6 +34,7 @@
         "O4P-09C-UI",
         "O4P-09D",
         "O4P-09E",
+        "GOV-CODEX-58A-2026-08",
         "O4P-09F",
         "O4P-09G",
         "O4P-09H",
@@ -54,6 +55,36 @@
         "legacyDebtDomainIds": ["O4P-09A", "O4P-09B", "O4P-09C"]
       },
       "usagePolicy": { "enforceFromDomainId": "O4P-09C-UI" }
+    },
+    "supervisionPolicy": {
+      "version": 1,
+      "enforceFromDomainId": "GOV-CODEX-58A-2026-08",
+      "limits": {
+        "implementerLineages": 1,
+        "coldAuditorLineages": 1,
+        "auditWaitChains": 1,
+        "ciWaitChains": 1,
+        "correctionWaves": 2,
+        "fullChecks": 2,
+        "semanticPushes": 1,
+        "replacementPushes": 1,
+        "compactionsPerLineage": 2,
+        "freshContinuationsPerLineage": 1,
+        "supervisorModelCycles": 160,
+        "supervisorUncachedInputTokens": 1000000,
+        "teamModelCycles": 400,
+        "teamUncachedInputTokens": 1600000
+      },
+      "candidateOverrides": {
+        "GOV-CODEX-58A-2026-08": {
+          "correctionWaves": 3,
+          "freshContinuationsPerLineage": 3,
+          "supervisorModelCycles": 360,
+          "supervisorUncachedInputTokens": 2100000,
+          "teamModelCycles": 620,
+          "teamUncachedInputTokens": 3400000
+        }
+      }
     }
   },
   "plannedSequenceProvenance": "plannedSequence の補充・選定履歴全文は cr-backbone-ledger-history.json に退避。2026-07-18: Claude判定者のトークン不足により、ユーザーがCodex実装者へ台帳本体の特例編集を明示許可。直接プレイ摩擦4件をACT-3より前の最上位cohortへ追加。追加entryは判定者復帰後の独立再検証までunreviewed扱い。根拠草稿=planned-sequence-batch6.draft.md。2026-07-18夜: Fable判定者が復帰、5スライス(ux-4件+ACT-3)を独立再検証(review.*再オーナー化・CR照合・冷Sonnet Tier-1=機能CRITICAL/HIGH 0・実機console 0)し再オーナー化完了。 2026-07-20: qwen判定者がledger-update-2026-07-20.draft.jsonを照合・適用。replenishment checkpoint挿入+judge-gated注記更新+UIトラック統合記録+selectionRule枯渇前補充則追加。2026-07-23: ユーザー裁定により通常Commander scopeのCR章順+最小依存先行へ再編。MyDeck需要は受け入れfixture/同CR順位tie-breakへ変更し、複数CR carryを分割。 2026-08-04: Codex判定者が未登録CR7XX節(705/706/707/708/709/710/711/713/715/718/723/724/730/732/733)を14 domainとして登録(pending 11+pruned 3)。716/719/720のplannedSequence note/evidenceをdomainsと同期(statusは元々shipped)。pending 11件をplannedSequenceへcrOrder順補充。base SHA=2f30dba。全体査察brief=research/cr-grounding/cr-coverage-audit-brief-2026-08-04.md。 2026-08-04(続): 全体査察Sagan(BLOCKER/HIGH=0・AUDIT-OK-PENDING-FULL-CHECK)のfindings裁定を適用。F1=cr-114-emblems登録(userGate: 7XXバッチ完了まで選定しない)。F2=evidence再マッピングはmaintenance送り(F2-F5 hygieneエントリ)。F3=golden-cases.json廃Playmat参照修正。F4=cr-121-drawing重複マージ。F5=草稿パスarchive追従。F6=本provenance文言是正。F7=cr-733 nextGate尊重注記。findings全文=research/cr-grounding/archive/coverage-audit-2026-08-04/findings.md。 2026-08-04(続2): ユーザー裁定「気持ちよさキュー優先」を適用。feelレーン新設(laneDefinitions.feel)。feel-1〜4を登録(guided深化/silent skip誠実化/PC退行回復/AV7統合)。selectionRule改定=feelキュー優先消費+CRバッチ並行。goalPolicy.userRuling=2026-08-04。",
@@ -2156,7 +2187,17 @@
       "nextGate": "shipped。O4P-09Eの製品出荷は完了。元セッション方針に従い、次の独立候補はGOV-CODEX-58A（STOP conflict、activeCandidate/permission、budget、guard-impact、single implementer/auditor/wait enforcement）。O4P-09Fはそのclean closureまで開始しない。", "judge": "Codex-judge-2026-08-27", "note": "O4P-09E is shipped. The final takeover product/evidence audits, full-check repair 1 bytes audit, manifest reanchor audit, full-check repair 2 audit, and CI reauthorization audit are all 0/0/0/0 on their recorded exact fingerprints. The canonical local full check passed Core 229/2119 and DOM 380/2562 plus docs, lint, TypeScript, and Vite. Initial CI 33087655508 passed the exact-head full check and exposed only the ownership stop; replacement head 20caf971 passed canonical CI, forbidden ownership, artifact upload, Pages deploy, and served HTML/JS/CSS checks. HEAD equaled origin/main and the tracked worktree was clean before this R0 terminal transition. Cumulative repairWaves=6; codex:usage observed 429 model cycles and 76142900 input tokens, above the observational policy ceiling. No quality gate was weakened; GOV-CODEX-58A is the next separate governance candidate to make those STOPs executable before O4P-09F."
     },
     {
-      "type": "checkpoint", "domainId": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09E"],
+      "type": "checkpoint", "domainId": "GOV-CODEX-58A-2026-08", "crOrder": 1037.5, "crRefs": [], "lane": "pruned", "edhValue": "meta", "status": "implemented-not-audited", "dependsOn": ["O4P-09E"],
+      "landingState": ["activeCandidateState", "permissionRequired", "cumulativeBudgetStop", "guardImpactGate", "singleRoleAndWaitSlots"],
+      "deliveryClass": "substrate", "playerOutcome": "No new production action; remove numeric approval loops and minimize time/token overhead before the O4P-09F player outcome.", "journeyEvidence": [], "outcomeDeadlineDomainId": "O4P-09F",
+      "authority": { "localWrites": true, "commit": true, "push": true, "deploy": true, "ship": true }, "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+      "boundary": "Make active candidate state, permission requirements, cumulative budget/counter STOPs, exact historical guard impact, and one implementer/auditor/wait chain executable through codex:program-step, check:budget, check:guard-impact, context, and release preflight.",
+      "evidence": ["research/cr-grounding/gov-codex-58a-supervisor-enforcement.contract.draft.md", "research/cr-grounding/gov-codex-58a-supervisor-enforcement-acceptance.draft.md", "research/cr-grounding/gov-codex-58a-supervisor-enforcement-implementation-brief.draft.md", "research/cr-grounding/gov-codex-58a-supervisor-enforcement-cold-audit-brief.draft.md", "source-policy:codex-task:01a039eb-44d8-70b2-80b0-443aaf97568e", "user-ruling:2026-08-28:GOV-CODEX-58A:commit+full-check+push+deploy+ship", "budget-stop:pre-audit:supervisorCycles101:supervisorInputTokens22034267:teamCycles193:teamInputTokens33158823:limits=160/1000000+400/1600000", "user-ruling:2026-08-28:GOV-CODEX-58A:uncached-input-hard-ceiling:no-counter-reset", "cold-audit:/root/gov58a_cold_audit:BLOCKER1-HIGH5-MEDIUM0-LOW0:fingerprint=0636fb59751b4baceaf342db9dd97aca396ce2a015101f63173c6526f8b85843", "user-ruling:2026-08-28:GOV-CODEX-58A:final-repair-wave:continuations2:supervisorCycles220:teamUncached2000000", "bootstrap-stop:STALE_USAGE_RECEIPT:tracked-authority-not-created:release-not-started", "user-ruling:2026-08-28:GOV-CODEX-58A:receipt-lifecycle-wave3:continuations3:correctionWaves3:supervisorCycles260:supervisorUncached1250000:teamCycles480:teamUncached2300000"],
+      "manualBoundary": "No typed journey-evidence migration, centralized historical-guard manifest, terminal artifact reuse redesign, fingerprint implementation unification, standalone supervisor package, O4P-09F product behavior, dependency update, or CR change.",
+      "nextGate": "Close the two final HIGH findings, reuse the same cold-auditor lineage once, run one fingerprint-matched full check, and commit. Usage watchdogs are internal advisories, not human permission.", "judge": "Codex-judge-2026-08-28", "note": "The final R3/BROAD audit failed 0/2/0/0 on envelope 28948125: receipt baseline/session-role authority was caller-selectable and the canonical derive-repair path was unreachable. The user's 2026-08-28 outcome ruling replaces numeric approval loops with internal cumulative watchdog advisories while preserving structural role/wait/full-check/push limits, audit quality, scope, authority, and all prior usage/history."
+    },
+    {
+      "type": "checkpoint", "domainId": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["GOV-CODEX-58A-2026-08"],
       "landingState": ["assistedPriorityPolicy", "responseWindows", "globalHold", "stackSteward", "stewardAdvanceAuthority"],
       "deliveryClass": "player-outcome", "playerOutcome": "Every player can HOLD while the current steward alone advances or resolves through common response windows.", "journeyEvidence": ["production-browser:hold+six-windows+steward-authority", "replay:priority-preserved+hold-safe"], "outcomeDeadlineDomainId": "O4P-09F",
       "boundary": "Keep CR priority authoritative in Core while adding six common response windows, universal HOLD, empty-stack active-player steward, nonempty-stack last-contributor steward, and steward-only Resolve/Advance/UNDO authority.",
@@ -5295,7 +5336,17 @@
       "nextGate": "shipped。O4P-09Eの製品出荷は完了。元セッション方針に従い、次の独立候補はGOV-CODEX-58A（STOP conflict、activeCandidate/permission、budget、guard-impact、single implementer/auditor/wait enforcement）。O4P-09Fはそのclean closureまで開始しない。", "judge": "Codex-judge-2026-08-27", "note": "O4P-09E is shipped. The final takeover product/evidence audits, full-check repair 1 bytes audit, manifest reanchor audit, full-check repair 2 audit, and CI reauthorization audit are all 0/0/0/0 on their recorded exact fingerprints. The canonical local full check passed Core 229/2119 and DOM 380/2562 plus docs, lint, TypeScript, and Vite. Initial CI 33087655508 passed the exact-head full check and exposed only the ownership stop; replacement head 20caf971 passed canonical CI, forbidden ownership, artifact upload, Pages deploy, and served HTML/JS/CSS checks. HEAD equaled origin/main and the tracked worktree was clean before this R0 terminal transition. Cumulative repairWaves=6; codex:usage observed 429 model cycles and 76142900 input tokens, above the observational policy ceiling. No quality gate was weakened; GOV-CODEX-58A is the next separate governance candidate to make those STOPs executable before O4P-09F."
     },
     {
-      "id": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09E"],
+      "id": "GOV-CODEX-58A-2026-08", "crOrder": 1037.5, "crRefs": [], "lane": "pruned", "edhValue": "meta", "status": "implemented-not-audited", "dependsOn": ["O4P-09E"],
+      "landingState": ["activeCandidateState", "permissionRequired", "cumulativeBudgetStop", "guardImpactGate", "singleRoleAndWaitSlots"],
+      "deliveryClass": "substrate", "playerOutcome": "No new production action; remove numeric approval loops and minimize time/token overhead before the O4P-09F player outcome.", "journeyEvidence": [], "outcomeDeadlineDomainId": "O4P-09F",
+      "authority": { "localWrites": true, "commit": true, "push": true, "deploy": true, "ship": true }, "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+      "boundary": "Make active candidate state, permission requirements, cumulative budget/counter STOPs, exact historical guard impact, and one implementer/auditor/wait chain executable through codex:program-step, check:budget, check:guard-impact, context, and release preflight.",
+      "evidence": ["research/cr-grounding/gov-codex-58a-supervisor-enforcement.contract.draft.md", "research/cr-grounding/gov-codex-58a-supervisor-enforcement-acceptance.draft.md", "research/cr-grounding/gov-codex-58a-supervisor-enforcement-implementation-brief.draft.md", "research/cr-grounding/gov-codex-58a-supervisor-enforcement-cold-audit-brief.draft.md", "source-policy:codex-task:01a039eb-44d8-70b2-80b0-443aaf97568e", "user-ruling:2026-08-28:GOV-CODEX-58A:commit+full-check+push+deploy+ship", "budget-stop:pre-audit:supervisorCycles101:supervisorInputTokens22034267:teamCycles193:teamInputTokens33158823:limits=160/1000000+400/1600000", "user-ruling:2026-08-28:GOV-CODEX-58A:uncached-input-hard-ceiling:no-counter-reset", "cold-audit:/root/gov58a_cold_audit:BLOCKER1-HIGH5-MEDIUM0-LOW0:fingerprint=0636fb59751b4baceaf342db9dd97aca396ce2a015101f63173c6526f8b85843", "user-ruling:2026-08-28:GOV-CODEX-58A:final-repair-wave:continuations2:supervisorCycles220:teamUncached2000000", "bootstrap-stop:STALE_USAGE_RECEIPT:tracked-authority-not-created:release-not-started", "user-ruling:2026-08-28:GOV-CODEX-58A:receipt-lifecycle-wave3:continuations3:correctionWaves3:supervisorCycles260:supervisorUncached1250000:teamCycles480:teamUncached2300000"],
+      "manualBoundary": "No typed journey-evidence migration, centralized historical-guard manifest, terminal artifact reuse redesign, fingerprint implementation unification, standalone supervisor package, O4P-09F product behavior, dependency update, or CR change.",
+      "nextGate": "Close the two final HIGH findings, reuse the same cold-auditor lineage once, run one fingerprint-matched full check, and commit. Usage watchdogs are internal advisories, not human permission.", "judge": "Codex-judge-2026-08-28", "note": "The final R3/BROAD audit failed 0/2/0/0 on envelope 28948125: receipt baseline/session-role authority was caller-selectable and the canonical derive-repair path was unreachable. The user's 2026-08-28 outcome ruling replaces numeric approval loops with internal cumulative watchdog advisories while preserving structural role/wait/full-check/push limits, audit quality, scope, authority, and all prior usage/history."
+    },
+    {
+      "id": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["GOV-CODEX-58A-2026-08"],
       "landingState": ["assistedPriorityPolicy", "responseWindows", "globalHold", "stackSteward", "stewardAdvanceAuthority"],
       "deliveryClass": "player-outcome", "playerOutcome": "Every player can HOLD while the current steward alone advances or resolves through common response windows.", "journeyEvidence": ["production-browser:hold+six-windows+steward-authority", "replay:priority-preserved+hold-safe"], "outcomeDeadlineDomainId": "O4P-09F",
       "boundary": "Keep CR priority authoritative in Core while adding six common response windows, universal HOLD, empty-stack active-player steward, nonempty-stack last-contributor steward, and steward-only Resolve/Advance/UNDO authority.",

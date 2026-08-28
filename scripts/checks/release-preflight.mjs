@@ -7,7 +7,10 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
 import { createContextProjection } from '../codex-context.mjs';
+import { evaluateCandidateBudget } from '../lib/supervisor-state.mjs';
 import { collectChangedFiles } from './change-detector.mjs';
+import { buildGuardImpact } from './guard-impact.mjs';
+import { isReviewPath, ownerViolation } from './ownership.mjs';
 import { computeCandidateFingerprints, LOOP_STATE_PATH } from './terminal-metadata.mjs';
 
 const GENERATED_API_PATH = 'docs/generated/engine-api.md';
@@ -22,18 +25,7 @@ const git = (root, args) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-const isReviewPath = (path) => /(^|\/|\.)review\./.test(path);
-
-export function ownerViolation(path, owner) {
-  if (owner === 'judge') return null;
-  if (isReviewPath(path)) return 'review files are Judge-owned';
-  if (/^(?:AGENTS|CLAUDE|QWEN)\.md$/.test(path)) return 'governance entry is Judge-owned';
-  if (/^(?:docs|research|rule)\//.test(path)) return 'authority/evidence path is Judge-owned';
-  if (path === LOOP_STATE_PATH) return 'loop state is Judge-owned';
-  if (path === 'package.json' || path === 'package-lock.json') return 'package files are Judge-owned';
-  if (path === 'eslint.config.js' || path.startsWith('.github/')) return 'configuration is Judge-owned';
-  return null;
-}
+export { ownerViolation } from './ownership.mjs';
 
 function walk(directory) {
   if (!existsSync(directory)) return [];
@@ -210,7 +202,7 @@ function reviewHashes(root, changedPaths) {
     .map((path) => ({ path, sha256: sha256(readFileSync(resolve(root, path))) }));
 }
 
-export function buildReleasePreflight({ root = process.cwd(), base, domain, owner } = {}) {
+export function buildReleasePreflight({ root = process.cwd(), base, domain, owner, sessionsRoot } = {}) {
   const errors = [];
   let changes;
   try {
@@ -232,16 +224,49 @@ export function buildReleasePreflight({ root = process.cwd(), base, domain, owne
     };
   }
   let projection = null;
+  let budget = null;
+  let guardImpact = null;
+  let requiredPermissions = [];
   try {
-    projection = createContextProjection(root, domain);
+    projection = createContextProjection(root, domain, { sessionsRoot });
     if (!projection.health.ok || projection.selection?.kind !== 'selected') {
       errors.push({ code: 'UNHEALTHY_CONTEXT_PROJECTION' });
+      for (const error of projection.health.errors ?? []) {
+        if (!errors.some((candidate) => JSON.stringify(candidate) === JSON.stringify(error))) errors.push(error);
+      }
     }
     if (projection.selection?.domainId !== domain) {
       errors.push({ code: 'DOMAIN_SELECTION_MISMATCH', expected: domain, actual: projection.selection?.domainId ?? null });
     }
     if (projection.loopState?.status !== 'current') {
       errors.push({ code: 'STALE_LOOP_STATE', reasons: projection.loopState?.reasons ?? [] });
+    }
+    if (projection.supervisionEnforced) {
+      budget = projection.activeCandidate && projection.supervisionPolicy
+        ? evaluateCandidateBudget(projection.activeCandidate, projection.supervisionPolicy)
+        : { ok: false, errors: [{ code: 'MISSING_BUDGET_RECORD' }] };
+      for (const error of budget.errors) {
+        if (!errors.some((candidate) => JSON.stringify(candidate) === JSON.stringify(error))) errors.push(error);
+      }
+      const permissionsByState = {
+        'contract-frozen': ['localWrites'],
+        implementing: ['localWrites'],
+        'full-check-passed': ['commit'],
+        'push-ready': ['push'],
+        'ci-passed': ['deploy', 'ship'],
+      };
+      requiredPermissions = permissionsByState[projection.activeCandidate?.state] ?? [];
+      for (const permission of requiredPermissions) {
+        if (projection.activeCandidate?.authority?.[permission] !== true) {
+          errors.push({ code: 'PREFLIGHT_PERMISSION_REQUIRED', permission });
+        }
+      }
+      try {
+        guardImpact = buildGuardImpact({ root, base, domain, projection });
+        errors.push(...guardImpact.errors);
+      } catch (error) {
+        errors.push({ code: 'GUARD_IMPACT_FAILED', message: error instanceof Error ? error.message : String(error) });
+      }
     }
   } catch (error) {
     errors.push({ code: 'CONTEXT_PROJECTION_FAILED', message: error instanceof Error ? error.message : String(error) });
@@ -291,7 +316,19 @@ export function buildReleasePreflight({ root = process.cwd(), base, domain, owne
       terminalPlanPresent,
       secretLikeChangedTextAbsent: !errors.some((error) => error.code === 'SECRET_LIKE_CHANGED_TEXT'),
       ownerPathsValid: !errors.some((error) => error.code === 'OWNER_PATH_VIOLATION'),
+      supervisorStateValid: projection?.supervisionEnforced !== true || (
+        projection?.activeCandidate !== null &&
+        !errors.some((error) => /CANDIDATE|SUPERVISION|LINEAGE|WAIT/.test(error.code))
+      ),
+      budgetValid: projection?.supervisionEnforced !== true || budget?.ok === true,
+      permissionValid: !errors.some((error) => error.code === 'PREFLIGHT_PERMISSION_REQUIRED'),
+      guardImpactValid: projection?.supervisionEnforced !== true || guardImpact?.ok === true,
     },
+    activeCandidate: projection?.activeCandidate ?? null,
+    permissionRequired: projection?.permissionRequired ?? null,
+    requiredPermissions,
+    budget,
+    guardImpact,
     reviewHashes: reviewHashes(root, changes.files),
     errors,
   };

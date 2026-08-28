@@ -53,7 +53,7 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     const successorIds = new Set([
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
-      'GOV-CODEX-57-2026-08',
+      'GOV-CODEX-57-2026-08', 'GOV-CODEX-58A-2026-08',
     ]);
     expect(ledger.domains.filter((entry) => entry.id !== id && !successorIds.has(entry.id as string))).toEqual(baseLedger.domains);
     expect(ledger.plannedSequence.filter(
@@ -61,10 +61,10 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     )).toEqual(
       baseLedger.plannedSequence,
     );
-    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(12);
+    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(13);
     expect(ledger.plannedSequence.filter(
       (entry) => successorIds.has(entry.domainId as string),
-    )).toHaveLength(12);
+    )).toHaveLength(13);
   });
 
   it('makes the LLM normalize prose without transferring authority', () => {
@@ -130,11 +130,12 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(normalization).toContain('never acquires the other authority bits');
     expect(normalization).toContain('Intent` selects the work shape but never grants');
     expect(normalization).toContain('replaces only `Budget objective`');
-    expect(normalization).toContain('hard ceilings above remain unchanged');
+    expect(normalization).toContain('never become a');
+    expect(normalization).toContain('larger number');
     expect(normalization).toContain('The original user message remains the authority');
   });
 
-  it('pins compact packets, hard counters, preflight, and risk-routed effort', () => {
+  it('pins compact packets, structural limits, watchdogs, preflight, and risk-routed effort', () => {
     const workflow = read(
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',
     );
@@ -142,13 +143,19 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     const auditor = read('.codex/agents/onedeck-cold-auditor.toml');
     expect(workflow).toContain('terminal packet no larger than 4 KiB');
     expect(workflow).toContain('## Candidate execution counters and autonomous repair');
-    expect(workflow).toContain('release full check: one normally, two absolute maximum');
-    expect(workflow).toContain('replacement push/exact-head CI: at most one');
-    expect(workflow).toContain('A second compaction ends that task');
-    expect(workflow).toContain('a third compaction or second continuation is forbidden');
-    expect(workflow).toContain('correction waves: at most two total');
-    expect(workflow).toContain('1.0M-token hard ceiling and 160 model-cycle hard');
-    expect(workflow).toContain('1.6M-token hard ceiling and 400 model-cycle hard');
+    expect(workflow).toContain('release full check: one normally; the second is the repair objective');
+    expect(workflow).toContain('A final green `npm run check` on the audited release tree remains mandatory');
+    expect(workflow).toContain('one replacement push');
+    expect(workflow).toContain('At two compactions or one fresh same-role continuation');
+    expect(workflow).toContain('internal watchdogs');
+    expect(workflow.replace(/\s+/gu, ' ')).toContain('two correction waves');
+    expect(workflow.replace(/\s+/gu, ' ')).toContain(
+      'supervisor 1.0M uncached input tokens / 160 model cycles',
+    );
+    expect(workflow.replace(/\s+/gu, ' ')).toContain(
+      'team 1.6M uncached input tokens / 400 model cycles',
+    );
+    expect(workflow).toContain('do not request a larger number from the user');
     expect(workflow).toContain(
       'Only a failure of the current milestone acceptance or a critical regression may',
     );
@@ -192,7 +199,7 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(timeoutOnlyNormalized).toBe(basePropertyTest);
   });
 
-  it('projects normalization as canonical and changes governance paths only', () => {
+  it('keeps normalization canonical while old-domain context fails closed', () => {
     const context = spawnSync(
       'node',
       ['scripts/codex-context.mjs', '--domain', 'GOV-CODEX-56R2-2026-08'],
@@ -208,7 +215,7 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(projection.canonicalPaths).toContain(
       '.agents/skills/mtg-onedeck-development/references/request-normalization.md',
     );
-    expect(context.status).toBe(projection.loopState?.status === 'current' ? 0 : 5);
+    expect(context.status).toBe(2);
     expect(() =>
       execFileSync('git', ['merge-base', '--is-ancestor', BASE_SHA, 'HEAD'], {
         cwd: ROOT,
@@ -253,5 +260,5 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(() =>
       execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' }),
     ).not.toThrow();
-  });
+  }, 30_000);
 });

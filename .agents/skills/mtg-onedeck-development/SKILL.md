@@ -22,6 +22,9 @@ compact terminal packet; candidates and worker histories never overlap.
    history only for a projection integrity error, true ambiguity, or an
    explicitly required ruling. `CLAUDE.md` / `QWEN.md` are thin compatibility
    entries.
+   From the supervision-policy enforcement domain, immediately run
+   `npm run codex:program-step -- --domain <id> --action inspect`; a nonzero
+   result is a STOP, not a prompt to bypass the state.
 3. Classify the task as judge, implementer, or cold audit. Never silently combine roles.
 4. Read `docs/judge-protocol.md` for the applicable ruling and STOP boundary.
 5. Read [references/document-governance.md](references/document-governance.md) for the selected role, risk lane, and phase.
@@ -31,6 +34,8 @@ compact terminal packet; candidates and worker histories never overlap.
 7. Start implementers and auditors with fresh context. On the current Codex
    collaboration surface use `fork_turns: "none"` and pass only the six-field
    implementer envelope or frozen audit-brief path plus candidate fingerprint.
+8. Before the first edit run
+   `npm run codex:program-step -- --domain <id> --action local-write`.
 
 ## Preserve the quality boundary
 
@@ -44,5 +49,14 @@ compact terminal packet; candidates and worker histories never overlap.
 ## Finish
 
 Run milestone-specific tests while iterating, cold-audit the R2/R3 candidate tree, then run the full machine check once on the same release fingerprint after findings are closed. A clean pre-release audit is `AUDIT-OK-PENDING-FULL-CHECK`, never ship approval by itself. For visible UI changes, verify the required viewports and zero new browser-console errors. Use the completion report required by `AGENTS.md`. After a shipped cycle, a program supervisor may continue only through the clean exact-head transition gate in the workflow reference.
-Hard counters and authority do not reset when a repair, continuation, metadata
-commit, or task is renamed.
+Structural counters, cumulative usage, and authority do not reset when a
+repair, continuation, metadata commit, or task is renamed. Usage watchdogs
+route work internally and never ask the user to approve a larger number.
+
+Before audit, run `npm run check:budget -- --domain <id>`,
+`npm run check:guard-impact -- --base <sha> --domain <id>`, and
+`npm run codex:program-step -- --domain <id> --action audit`. Before the
+release full check, commit, push, deploy, or ship, repeat `check:budget` and
+run `codex:program-step` with that exact action. Release preflight must agree
+with all three command results; missing state or a nonzero result ends the
+phase.

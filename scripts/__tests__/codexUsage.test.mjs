@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, truncateSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,6 +8,7 @@ import {
   analyzeSessionRecords,
   compareUsageReports,
   findSessionFile,
+  readSessionUsageReceipt,
 } from '../codex-usage.mjs';
 
 const tokenRecord = (input, cached, output, reasoning = 0) => ({
@@ -339,5 +340,57 @@ describe('codex usage analysis', () => {
 
     expect(findSessionFile(id, root)).toBe(path);
     expect(() => findSessionFile('not-a-uuid', root)).toThrow(/exact UUID/);
+  });
+
+  it('reads only a fixed receipt prefix even when a large sparse tail is present', () => {
+    const root = mkdtempSync(join(tmpdir(), 'codex-usage-prefix-'));
+    const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const path = join(root, `rollout-${id}.jsonl`);
+    const prefix = [
+      { type: 'session_meta', payload: { id, source: 'desktop' } },
+      tokenRecord(100, 60, 10),
+    ].map(JSON.stringify).join('\n') + '\n';
+    writeFileSync(path, prefix);
+    const expected = readSessionUsageReceipt(id, root);
+    truncateSync(path, Buffer.byteLength(prefix) + 64 * 1024 * 1024);
+
+    const fixed = readSessionUsageReceipt(id, root, Buffer.byteLength(prefix));
+    expect(fixed).toMatchObject({
+      byteLength: Buffer.byteLength(prefix),
+      currentByteLength: Buffer.byteLength(prefix) + 64 * 1024 * 1024,
+      prefixSha256: expected.prefixSha256,
+      report: expected.report,
+    });
+  });
+
+  it('rejects invalid lengths, early EOF, and partial JSONL records', () => {
+    const root = mkdtempSync(join(tmpdir(), 'codex-usage-prefix-'));
+    const id = 'ffffffff-1111-4222-8333-444444444444';
+    const path = join(root, `rollout-${id}.jsonl`);
+    const content = `${JSON.stringify({ type: 'session_meta', payload: { id, source: 'desktop' } })}\n`;
+    writeFileSync(path, content);
+
+    expect(() => readSessionUsageReceipt(id, root, 0)).toThrow(/Invalid session receipt byte length/);
+    expect(() => readSessionUsageReceipt(id, root, Buffer.byteLength(content) + 1)).toThrow();
+    expect(() => readSessionUsageReceipt(id, root, Buffer.byteLength(content) - 1)).toThrow(/does not end at a JSONL record/);
+  });
+
+  it('invalidates a cached fixed prefix when its bytes mutate', () => {
+    const root = mkdtempSync(join(tmpdir(), 'codex-usage-prefix-'));
+    const id = '12345678-1234-4234-8234-123456789abc';
+    const path = join(root, `rollout-${id}.jsonl`);
+    const original = [
+      { type: 'session_meta', payload: { id, source: 'desktop' } },
+      tokenRecord(100, 60, 10),
+    ].map(JSON.stringify).join('\n') + '\n';
+    const mutated = original.replace('"input_tokens":100', '"input_tokens":200');
+    expect(Buffer.byteLength(mutated)).toBe(Buffer.byteLength(original));
+    writeFileSync(path, original);
+    const first = readSessionUsageReceipt(id, root, Buffer.byteLength(original));
+
+    writeFileSync(path, mutated);
+    const second = readSessionUsageReceipt(id, root, Buffer.byteLength(mutated));
+    expect(second.prefixSha256).not.toBe(first.prefixSha256);
+    expect(second.report.usage.inputTokens).toBe(200);
   });
 });

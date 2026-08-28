@@ -10,9 +10,14 @@ const ledger = JSON.parse(read('research/cr-grounding/cr-backbone-ledger.json'))
   domains: Array<Record<string, unknown> & { id?: string }>;
   plannedSequence: Array<Record<string, unknown> & { domainId?: string; type?: string }>;
 };
-const IDS = [
+const PRODUCT_IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
   'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+];
+const PROGRAM_IDS = [
+  ...PRODUCT_IDS.slice(0, 6),
+  'GOV-CODEX-58A-2026-08',
+  ...PRODUCT_IDS.slice(6),
 ];
 
 const shared = (entry: Record<string, unknown>): Record<string, unknown> => {
@@ -27,7 +32,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
   it('stores explicit authority without smuggling external writes', () => {
     expect(ledger.goalPolicy.activeProgram).toMatchObject({
       id: 'O4P-09',
-      domainIds: IDS,
+      domainIds: PROGRAM_IDS,
       authority: {
         localWrites: true, commit: false, push: false, deploy: false, ship: false,
       },
@@ -42,7 +47,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
   });
 
   it('keeps both ledger collections synchronized and advances the program only after shipment', () => {
-    for (const id of [...IDS, 'GOV-CODEX-57-2026-08']) {
+    for (const id of [...PROGRAM_IDS, 'GOV-CODEX-57-2026-08']) {
       const domain = ledger.domains.filter((entry) => entry.id === id);
       const planned = ledger.plannedSequence.filter((entry) => entry.domainId === id);
       expect(domain, `${id} domain`).toHaveLength(1);
@@ -57,10 +62,15 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
     expect(['pending', 'audited', 'shipped']).toContain(cUi?.status);
     expect(d).toMatchObject({ dependsOn: ['O4P-09C-UI'], deliveryClass: 'player-outcome' });
 
-    const expectedNextDomainId = IDS.find((id) =>
+    const expectedNextDomainId = PROGRAM_IDS.find((id) =>
       ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped');
     expect(expectedNextDomainId).toEqual(expect.any(String));
     if (expectedNextDomainId === undefined) throw new Error('Active O4P-09 program requires a next domain');
+    const expectedNextPlayerOutcomeId = PROGRAM_IDS.find((id) => {
+      const entry = ledger.domains.find((candidate) => candidate.id === id);
+      return entry?.status !== 'shipped' && entry?.deliveryClass === 'player-outcome';
+    });
+    expect(expectedNextPlayerOutcomeId).toEqual(expect.any(String));
     const context = spawnSync('node', ['scripts/codex-context.mjs', '--domain', expectedNextDomainId], {
       cwd: ROOT, encoding: 'utf8',
     });
@@ -73,9 +83,9 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
       selection: { kind: 'selected', domainId: expectedNextDomainId, reason: 'explicit-domain' },
       activeProgram: { nextDomainId: expectedNextDomainId },
       nextTechnicalSlice: { domainId: expectedNextDomainId },
-      nextPlayerOutcome: { domainId: expectedNextDomainId },
+      nextPlayerOutcome: { domainId: expectedNextPlayerOutcomeId },
     });
-  });
+  }, 15_000);
 
   it('records honest historical debt and requires outcomes after activation', () => {
     for (const id of ['O4P-09A', 'O4P-09B', 'O4P-09C']) {
@@ -86,7 +96,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
         usage: { measurementStatus: 'historical-unavailable' },
       });
     }
-    for (const id of IDS.slice(3)) {
+    for (const id of PRODUCT_IDS.slice(3)) {
       const entry = ledger.domains.find((item) => item.id === id);
       expect(entry?.deliveryClass, id).toBe('player-outcome');
       expect(entry?.playerOutcome, id).toEqual(expect.any(String));
@@ -105,7 +115,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
       'check:release-preflight', 'check:terminal-metadata', 'historical-unavailable',
     ]) expect(contract, term).toContain(term);
     expect(normalization).toContain('does not turn a false authority bit into true');
-    expect(workflow).toContain('cost telemetry and per-candidate safety bounds');
+    expect(workflow).toContain('cumulative telemetry and internal admission inputs');
     expect(workflow.replace(/\s+/gu, ' ')).toContain(
       'three consecutive substrate milestones are invalid',
     );
