@@ -50,6 +50,16 @@ actions stop, `refresh-fingerprint` requires the supervisor plus exact owner and
 guard evidence, acceptance/authority drift cannot be refreshed, the old event
 prefix remains intact, and canonical context stays below 12 KiB afterward.
 
+Run the default forbidden-file scan from a clean committed release checkout
+whose diff contains Judge-owned `review.*` and research paths. It may pass only
+by recovering the exact active tracked authority and recomputing an equivalent
+guard acknowledgement; it must accept no caller owner, allowlist, manifest, or
+acknowledgement. Mutate an acknowledged path or owner, base/current hash,
+candidate/tree identity, semantic guard or predecessor ID, wildcard, authority
+chain/domain, or add another supervisor event path; every case must remain red.
+Confirm the ordinary non-supervised and governance-reset boundaries are
+unchanged.
+
 Create an actual semantic git commit in a temporary repository. Confirm the
 declared base remains immutable, the only pre-bind post-commit exception is an
 ancestor/exact-tree/semantic-clean `push-ready` candidate, push recording binds

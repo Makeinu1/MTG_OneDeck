@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { computeTreeFingerprint, createContextProjection, parseLoopState } from './codex-context.mjs';
 import { collectChangedFiles } from './checks/change-detector.mjs';
-import { buildGuardImpact } from './checks/guard-impact.mjs';
+import { buildGuardImpact, equivalentGuardAcknowledgement } from './checks/guard-impact.mjs';
 import {
   buildSupervisorProjection,
   evaluateCandidateBudget,
@@ -48,28 +48,6 @@ function failure(code, message = code) {
 }
 
 const releaseBindingActions = new Set(['push', 'record-semantic-push', 'record-replacement-push']);
-
-function equivalentGuardAcknowledgement(left, report, activeAuthorityPath) {
-  if (!left || !report?.acknowledgementRequired) return false;
-  const normalize = (value, allowedGuardIds, allowedPredecessorIds) => {
-    const copy = clone(value);
-    delete copy.reportFingerprint;
-    copy.guardReferenceIds = copy.guardReferenceIds.filter((id) => allowedGuardIds.has(id));
-    copy.predecessorHashReferenceIds = copy.predecessorHashReferenceIds.filter((id) => allowedPredecessorIds.has(id));
-    return JSON.stringify(copy);
-  };
-  const semanticGuardIds = new Set(report.guards
-    .filter((entry) => entry.guardPath !== activeAuthorityPath)
-    .map((entry) => entry.id));
-  const semanticPredecessorIds = new Set(report.predecessorHashes
-    .filter((entry) => entry.guardPath !== activeAuthorityPath)
-    .map((entry) => entry.id));
-  return normalize(left, semanticGuardIds, semanticPredecessorIds) === normalize(
-    report.acknowledgementRequired,
-    semanticGuardIds,
-    semanticPredecessorIds,
-  );
-}
 
 const clone = (value) => structuredClone(value);
 

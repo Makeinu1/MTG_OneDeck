@@ -105,3 +105,10 @@ The Judge owns these criteria. One failure fails the scenario.
     and authority/source invariants after the entire chain is rehashed. Dirty,
     corrupt, absent, unreadable, rewritten, or mismatched authority stays nonzero;
     an existing loop state retains live receipt verification.
+26. Default `check:forbidden -- --diff <base>` keeps Judge-owned `review.*`
+    changes hard-red unless the active tracked supervisor authority and clean
+    context prove the exact guard acknowledgement for every such path. No caller
+    owner, allowlist, manifest, or acknowledgement input is accepted. Exact
+    path/owner/base/current hashes/candidate/tree/semantic guards/predecessor
+    hashes pass; omission, addition, wildcard, stale bytes, wrong base or
+    candidate, corrupt/other-domain authority, or extra supervisor path fails.

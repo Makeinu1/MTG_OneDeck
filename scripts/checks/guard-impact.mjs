@@ -142,6 +142,33 @@ function hasWildcard(value) {
   return false;
 }
 
+export function equivalentGuardAcknowledgement(left, report, activeAuthorityPath) {
+  if (!left || !report?.acknowledgementRequired || hasWildcard(left)) return false;
+  try {
+    const normalize = (value, ignoredGuardIds, ignoredPredecessorIds) => {
+      const copy = structuredClone(value);
+      delete copy.reportFingerprint;
+      copy.guardReferenceIds = copy.guardReferenceIds.filter((id) => !ignoredGuardIds.has(id));
+      copy.predecessorHashReferenceIds = copy.predecessorHashReferenceIds
+        .filter((id) => !ignoredPredecessorIds.has(id));
+      return JSON.stringify(copy);
+    };
+    const ignoredGuardIds = new Set(report.guards
+      .filter((entry) => entry.guardPath === activeAuthorityPath)
+      .map((entry) => entry.id));
+    const ignoredPredecessorIds = new Set(report.predecessorHashes
+      .filter((entry) => entry.guardPath === activeAuthorityPath)
+      .map((entry) => entry.id));
+    return normalize(left, ignoredGuardIds, ignoredPredecessorIds) === normalize(
+      report.acknowledgementRequired,
+      ignoredGuardIds,
+      ignoredPredecessorIds,
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function buildGuardImpact({ root = process.cwd(), base, domain, projection } = {}) {
   const changes = collectChangedFiles({ cwd: root, base });
   const activeProjection = projection ?? createContextProjection(root, domain);

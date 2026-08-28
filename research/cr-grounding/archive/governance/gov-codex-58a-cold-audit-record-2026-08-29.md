@@ -183,3 +183,42 @@ still required the obsolete prose `one replacement push`; the executable and
 current contract now define one replacement-push objective with cumulative
 advisory crossings. Candidate 7 is the same-acceptance `release-full-check`
 repair and changes only that stale review expectation plus this evidence record.
+
+## Candidate 7 final audit and exact-head CI finding
+
+- Audited tree fingerprint: `8c59ece8ac970d0d3ebba605dc3750cfa1fe1c27c77b087f494c49ed0c2cc736`
+- Tracked authority sequence: `91`
+- Tracked authority event hash: `7646d68e0cd6c3904425e8bc2ad02d2ed24cd5ee79e3b2eefa7c61d684609fe9`
+- Audit envelope: `ba859bf5f948545972a445c401e679e010db51093881555f410f434ae0237b65`
+- Auditor: `/root/gov58a_cold_audit`
+- Verdict: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 1
+- Semantic release commit: `0ce4b3173fc1ed83e03ebd314e63458800f07264`
+- Exact-head CI: run `33209280527`, build job `98978213569`, FAIL after full check
+
+GitHub's exact-head `npm run check` passed, including the corrected Judge review,
+then the legacy forbidden-file scan rejected the two Judge-owned `review.*`
+paths by name. The scanner never consumed the already verified tracked guard
+acknowledgement, although research paths were correctly informational only.
+Candidate 8 is the same-acceptance `ci-environment` repair at base
+`0ce4b3173fc1ed83e03ebd314e63458800f07264`: it connects the default scanner to
+the existing exact tracked proof without adding a caller owner, allowlist,
+manifest, workflow exception, or new authority source.
+
+## Candidate 8 final audit and release-full-check finding
+
+- Audited tree fingerprint: `ec7996d7eb7f9b5e4c78010a713a10795bb6d18bb480db3097fa5930658b9354`
+- Tracked authority sequence: `104`
+- Tracked authority event hash: `7037ddbdbedcafca945f65ef5f7d7ccd5edc033e7bd3f5bac30df2832938f9c2`
+- Audit envelope: `53fa4c2dcf130e4ade31c0fab477a02c49f28853e1008bcc169f153495096864`
+- Auditor: `/root/gov58a_cold_audit`
+- Verdict: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 1
+
+The exact tracked Judge reauthorization closed the scanner finding. The
+release full check then passed Core 229 files / 2119 tests and 381 of 382 DOM
+files / 2637 of 2638 tests. The sole failure was the older O4P-09C frozen-path
+review, which did not yet recognize the new
+`scripts/__tests__/forbidden-policy.test.mjs` Judge verification path.
+Candidate 9 is the same-acceptance `release-full-check` repair at base
+`0ce4b3173fc1ed83e03ebd314e63458800f07264`; it adds only that exact path to the
+existing Judge set and records this evidence. It does not expand product,
+review, authority, dependency, or release scope.

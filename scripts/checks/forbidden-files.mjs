@@ -7,7 +7,18 @@
 // ゆえに境界を「行頭・パス区切り・ドット」に固定する: `.review.` は拾い、`Preview.`(直前が
 // 英字)は拾わない。
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+
+import { createContextProjection } from '../codex-context.mjs';
+import { findActiveSupervisedDomainId } from '../lib/supervisor-state.mjs';
+import {
+  readGitPathAtRef,
+  readTrackedSupervisorAuthority,
+  supervisorAuthorityPath,
+  verifySupervisorAuthorityOffline,
+} from '../lib/supervisor-authority.mjs';
+import { buildGuardImpact, equivalentGuardAcknowledgement } from './guard-impact.mjs';
+import { isReviewPath, requiredOwner } from './ownership.mjs';
 
 // FORBIDDEN: 実装エージェントが変更してはならないファイル(検出時 exit 1)
 const FORBIDDEN = [
@@ -45,28 +56,37 @@ const GOVERNANCE_RESET_ALLOWED = [
   /^src\/test\/architecture\/deployPagesGates\.test\.ts$/,
 ];
 
-const policyIdx = process.argv.indexOf('--policy');
-const policy = policyIdx === -1 ? null : process.argv[policyIdx + 1];
-if (policy !== null && policy !== 'governance-reset') {
-  console.error('usage: forbidden-files.mjs [--diff <ref>] [--policy governance-reset]');
-  process.exit(2);
+function parseArguments(argv) {
+  const options = { diff: null, policy: null };
+  for (let index = 0; index < argv.length; index += 2) {
+    const argument = argv[index];
+    const value = argv[index + 1];
+    if (
+      !['--diff', '--policy'].includes(argument) ||
+      !value || value.startsWith('--') ||
+      options[argument.slice(2)] !== null
+    ) throw new Error('usage: forbidden-files.mjs [--diff <ref>] [--policy governance-reset]');
+    options[argument.slice(2)] = value;
+  }
+  if (options.policy !== null && options.policy !== 'governance-reset') {
+    throw new Error('usage: forbidden-files.mjs [--diff <ref>] [--policy governance-reset]');
+  }
+  return options;
 }
 
-function diffRef() {
-  const diffIdx = process.argv.indexOf('--diff');
-  if (diffIdx === -1) return null;
-  const ref = process.argv[diffIdx + 1];
-  if (!ref) {
-    console.error('usage: forbidden-files.mjs [--diff <ref>]');
+const options = (() => {
+  try {
+    return parseArguments(process.argv.slice(2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(2);
   }
-  return ref;
-}
+})();
+const policy = options.policy;
 
-function changedFiles() {
-  const diffIdx = process.argv.indexOf('--diff');
-  if (diffIdx !== -1) {
-    const ref = diffRef();
+function changedFiles(root = process.cwd()) {
+  if (options.diff !== null) {
+    const ref = options.diff;
     const diffFiles = execFileSync('git', ['diff', '--name-only', ref], { encoding: 'utf8' })
       .split('\n').filter(Boolean);
     const untrackedFiles = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' })
@@ -84,17 +104,102 @@ function changedFiles() {
     });
 }
 
+const PROVENANCE_ACTIONS = new Set([
+  'bootstrap', 'refresh-fingerprint', 'acknowledge-guard-impact',
+  'push', 'record-semantic-push', 'record-replacement-push',
+]);
+
+function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
+  if (!base || existsSync('.claude/loop-state.md')) return { ok: false, code: 'CI_REAUTHORIZATION_REQUIRES_CLEAN_CHECKOUT' };
+  if (forbiddenPaths.some((path) => !isReviewPath(path))) {
+    return { ok: false, code: 'NON_REVIEW_FORBIDDEN_PATH' };
+  }
+  if (execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=normal'], { cwd: root, encoding: 'utf8' }) !== '') {
+    return { ok: false, code: 'CI_REAUTHORIZATION_REQUIRES_CLEAN_CHECKOUT' };
+  }
+  const ledger = JSON.parse(readFileSync('research/cr-grounding/cr-backbone-ledger.json', 'utf8'));
+  const domainId = findActiveSupervisedDomainId(ledger);
+  if (!domainId) return { ok: false, code: 'MISSING_ACTIVE_SUPERVISED_DOMAIN' };
+  const projection = createContextProjection(root, domainId);
+  if (!projection.health.ok || projection.supervisionEnforced !== true || projection.activeCandidate?.state !== 'push-ready') {
+    return { ok: false, code: 'INVALID_SUPERVISED_CONTEXT' };
+  }
+  const tracked = readTrackedSupervisorAuthority(root, domainId);
+  if (tracked.errors.length > 0 || !tracked.authority || !tracked.headAuthority) {
+    return { ok: false, code: 'INVALID_TRACKED_SUPERVISOR_AUTHORITY' };
+  }
+  const latestCandidate = tracked.authority.events?.at(-1)?.candidate ?? null;
+  if (
+    latestCandidate?.id !== projection.activeCandidate.id ||
+    latestCandidate?.treeFingerprint !== projection.activeCandidate.treeFingerprint
+  ) return { ok: false, code: 'TRACKED_CANDIDATE_PROJECTION_MISMATCH' };
+  const activeAuthorityPath = supervisorAuthorityPath(domainId);
+  const baseAuthorityRead = readGitPathAtRef(root, base, activeAuthorityPath);
+  if (baseAuthorityRead.status !== 'present') {
+    return { ok: false, code: 'MISSING_BASE_SUPERVISOR_AUTHORITY' };
+  }
+  let baseAuthority;
+  try {
+    baseAuthority = JSON.parse(baseAuthorityRead.text);
+  } catch {
+    return { ok: false, code: 'INVALID_BASE_SUPERVISOR_AUTHORITY' };
+  }
+  const appendVerification = verifySupervisorAuthorityOffline({
+    authority: tracked.authority,
+    headAuthority: baseAuthority,
+    loopCandidate: latestCandidate,
+    completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+  });
+  if (!appendVerification.ok) return { ok: false, code: 'INVALID_SUPERVISOR_AUTHORITY_APPEND' };
+  const eventPaths = files.filter((path) => path.startsWith('research/cr-grounding/supervisor-events/'));
+  if (eventPaths.some((path) => path !== activeAuthorityPath)) {
+    return { ok: false, code: 'UNEXPECTED_SUPERVISOR_AUTHORITY_PATH' };
+  }
+  const report = buildGuardImpact({
+    root,
+    base,
+    domain: domainId,
+    projection: { activeCandidate: latestCandidate },
+  });
+  const acknowledgement = latestCandidate.guardImpact?.acknowledgement;
+  if (!equivalentGuardAcknowledgement(acknowledgement, report, activeAuthorityPath)) {
+    return { ok: false, code: 'GUARD_ACKNOWLEDGEMENT_MISMATCH' };
+  }
+  const judgePaths = files.filter((path) => requiredOwner(path) === 'judge' && path !== activeAuthorityPath);
+  const acknowledgedPaths = new Map((acknowledgement?.paths ?? []).map((entry) => [entry.path, entry]));
+  if (judgePaths.some((path) => acknowledgedPaths.get(path)?.owner !== 'judge')) {
+    return { ok: false, code: 'UNACKNOWLEDGED_JUDGE_PATH' };
+  }
+  if (forbiddenPaths.some((path) => acknowledgedPaths.get(path)?.owner !== 'judge')) {
+    return { ok: false, code: 'UNACKNOWLEDGED_FORBIDDEN_PATH' };
+  }
+  const hasSupervisorProvenance = tracked.authority.events
+    .slice(baseAuthority.events.length)
+    .some((event) =>
+    event.candidate?.id === latestCandidate.id &&
+    event.actorRole === 'supervisor' &&
+    PROVENANCE_ACTIONS.has(event.action) &&
+    equivalentGuardAcknowledgement(event.candidate?.guardImpact?.acknowledgement, report, activeAuthorityPath));
+  if (!hasSupervisorProvenance) return { ok: false, code: 'MISSING_SUPERVISOR_ACKNOWLEDGEMENT_PROVENANCE' };
+  return { ok: true, domainId, paths: judgePaths };
+}
+
 const files = changedFiles();
 const forbidden = [];
+const forbiddenPaths = [];
 const reauth = [];
 for (const f of files) {
   if (policy === 'governance-reset') {
-    if (!GOVERNANCE_RESET_ALLOWED.some((re) => re.test(f))) forbidden.push(`${f}  (DOC-GOV-RESET scope)`);
+    if (!GOVERNANCE_RESET_ALLOWED.some((re) => re.test(f))) {
+      forbidden.push(`${f}  (DOC-GOV-RESET scope)`);
+      forbiddenPaths.push(f);
+    }
     continue;
   }
   const hit = FORBIDDEN.find((r) => r.re.test(f));
   if (hit) {
     forbidden.push(`${f}  (${hit.why})`);
+    forbiddenPaths.push(f);
     continue;
   }
   const soft = NEEDS_REAUTH.find((r) => r.re.test(f));
@@ -102,7 +207,7 @@ for (const f of files) {
 }
 
 if (policy === 'governance-reset' && files.includes('package.json')) {
-  const ref = diffRef() ?? 'HEAD';
+  const ref = options.diff ?? 'HEAD';
   try {
     const before = JSON.parse(execFileSync('git', ['show', `${ref}:package.json`], { encoding: 'utf8' }));
     const after = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -117,13 +222,38 @@ if (policy === 'governance-reset' && files.includes('package.json')) {
   }
 }
 
-if (reauth.length > 0) {
+let judgeProof = null;
+if (policy === null && options.diff !== null && forbidden.length > 0) {
+  try {
+    judgeProof = verifyJudgeReauthorization({
+      root: process.cwd(),
+      base: options.diff,
+      files,
+      forbiddenPaths,
+    });
+  } catch (error) {
+    judgeProof = {
+      ok: false,
+      code: 'JUDGE_REAUTHORIZATION_VERIFICATION_FAILED',
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+  if (judgeProof.ok) forbidden.length = 0;
+}
+
+if (reauth.length > 0 && !judgeProof?.ok) {
   console.log('NEEDS-REAUTH(判定者の再オーナー化対象・情報表示):');
   for (const f of reauth) console.log(`  ${f}`);
 }
 if (forbidden.length > 0) {
+  if (judgeProof && !judgeProof.ok) {
+    console.error(`JUDGE-REAUTHORIZATION-REJECTED: ${judgeProof.code}`);
+  }
   console.error('FORBIDDEN(実装エージェント変更禁止ファイルに変更あり):');
   for (const f of forbidden) console.error(`  ${f}`);
   process.exit(1);
+}
+if (judgeProof?.ok) {
+  console.log(`JUDGE-REAUTHORIZED: ${judgeProof.paths.length} exact path(s) for ${judgeProof.domainId}`);
 }
 console.log(`OK: FORBIDDEN 変更なし(走査 ${files.length} ファイル)`);

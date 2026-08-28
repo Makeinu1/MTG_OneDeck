@@ -236,6 +236,18 @@ fingerprint. It cannot authorize new product meaning, review assertions,
 contracts, dependencies, workflows, or secrets. Release preflight consumes the
 same report and cannot disagree with the standalone command.
 
+The default forbidden-file scan remains hard-red for Judge-owned `review.*`
+paths unless a `--diff` release checkout can recover the active supervised
+candidate from its tracked authority and recompute an equivalent exact guard
+acknowledgement. The scanner takes no caller-supplied owner, allowlist, manifest,
+or acknowledgement. It may normalize only post-commit report-fingerprint and
+the exact active-authority self-reference already permitted by the supervisor;
+path, owner, base/current byte identity, candidate/tree identity, semantic guard
+references, and predecessor hashes remain exact. Missing, dirty, malformed,
+rewritten, other-domain, wildcard, extra-path, or non-supervised proof stays
+hard-red. Thus the tracked supervisor receipt and Judge-owned acknowledgement,
+not a command-line claim, perform CI reauthorization.
+
 ## Compatibility and deferred scope
 
 - Existing active-program order, journey cadence, terminal-only lane,
