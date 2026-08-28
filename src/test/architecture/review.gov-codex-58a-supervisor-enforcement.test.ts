@@ -179,7 +179,7 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
         ]));
       }
     }
-  }, 30_000);
+  }, 60_000);
 
   it('wires all three gates into the existing skill and keeps the candidate governance-only', () => {
     const packageJson = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };

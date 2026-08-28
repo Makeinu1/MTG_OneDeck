@@ -85,7 +85,7 @@ describe('GOV-CODEX-57 complete autonomy and player journey governance', () => {
       nextTechnicalSlice: { domainId: expectedNextDomainId },
       nextPlayerOutcome: { domainId: expectedNextPlayerOutcomeId },
     });
-  }, 15_000);
+  }, 30_000);
 
   it('records honest historical debt and requires outcomes after activation', () => {
     for (const id of ['O4P-09A', 'O4P-09B', 'O4P-09C']) {

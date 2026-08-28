@@ -1,7 +1,7 @@
 {
   "version": 1,
   "domainId": "GOV-CODEX-58A-2026-08",
-  "candidateId": "GOV-CODEX-58A-2026-08-candidate-9",
+  "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
   "events": [
     {
       "sequence": 0,
@@ -74164,6 +74164,2660 @@
         }
       },
       "eventHash": "35babfb29d8add31218bc222000e71e3994db1347d60fd1451bd8ad2715db1cf"
+    },
+    {
+      "sequence": 116,
+      "action": "require-repair",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": "ci-environment",
+      "previousHash": "35babfb29d8add31218bc222000e71e3994db1347d60fd1451bd8ad2715db1cf",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-9",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "repair-required",
+        "baseSha": "0ce4b3173fc1ed83e03ebd314e63458800f07264",
+        "treeFingerprint": "669fd54528ca766a8729d2ebec3a15cf5e5d6e48659e6fbc2ae176c1178ce40c",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 9,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1558,
+          "supervisorUncachedInputTokens": 5080449,
+          "teamModelCycles": 2321,
+          "teamUncachedInputTokens": 9207173
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "b75bfc633b3daa11bf238e853aba2adb130762878cd44f577048001a7585ce91",
+          "acknowledgement": {
+            "reportFingerprint": "b75bfc633b3daa11bf238e853aba2adb130762878cd44f577048001a7585ce91",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-9",
+            "candidateTreeFingerprint": "669fd54528ca766a8729d2ebec3a15cf5e5d6e48659e6fbc2ae176c1178ce40c",
+            "paths": [
+              {
+                "path": "research/cr-grounding/archive/governance/gov-codex-58a-cold-audit-record-2026-08-29.md",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "3bab472ed4d53251f52ed68981f63f58fafeeb8179f75aa5d9574b129f3c62b3"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "16a7928691108afce4a6cb4674f86ed8df1993e9f0f843eb6e15f31b933f3619"
+                }
+              },
+              {
+                "path": "research/cr-grounding/gov-codex-58a-supervisor-enforcement-acceptance.draft.md",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4895472033beb90b48943b33da761a59bdc3a22a20305262b2001d987afefcc8"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "9cf09f3e2e0b076715a8e19f96c13b8defa511a06f5d3f5a81d7758ce9d5473c"
+                }
+              },
+              {
+                "path": "research/cr-grounding/gov-codex-58a-supervisor-enforcement-cold-audit-brief.draft.md",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "8acb43333a5a213755eb29387d94e3a2eafdd4caff49f8a931e275b6f4158c8b"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "cf269cc507ff42347ec18c85f7eeb7c0e44324b800d5a84899feb266f3e44e55"
+                }
+              },
+              {
+                "path": "research/cr-grounding/gov-codex-58a-supervisor-enforcement.contract.draft.md",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "32a0cd3f72ddcd6c258c096dc52a745297bdec933e1288287db4fab0c4596b9a"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "39b8763a1a855c2dfe057c0672b476c5c3f3735ee6a8399b9ede1ea446445638"
+                }
+              },
+              {
+                "path": "scripts/__tests__/forbidden-policy.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "9b8a3d5449d09a08e59a871cd5e5b30d220e353aef44ba7f1c3feb119667ecd7"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "724eab8b37b73d95f1ee90702f1373a5646204201a2408153c155655ba063294"
+                }
+              },
+              {
+                "path": "scripts/checks/forbidden-files.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "2686251f4bbfed020a915c51c17b23c66fe762785396fed0a0740fc89ee395f9"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "da9a88992d86be3f57936f331c851b3b3a8550eecbf548a2075b41ff45443ac9"
+                }
+              },
+              {
+                "path": "scripts/checks/guard-impact.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "df50780a481a23a4fcbab1517915a48253b079055b424cf686158fab4d7ae134"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "24ea55ab49289b724c8b5286536f7e9f96c53ef8ac38e9116281c78595ded0d4"
+                }
+              },
+              {
+                "path": "scripts/codex-program-step.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "877f5f0374faf78d4cd4283a44c696e642748ff55b4b77b2eb46b95d74e84a29"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4c30dfa36955223dc917c4775c80605669fccfe69bf6e27a0318c2fed20070b4"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.o4p-09c-pregame-lifecycle.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "63aed569dd592f75efc4e81f9dbe6f6af1d4b2bae92135c3ea67877b86887396"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "df7482cfeb69f976160d39ce9eb42401676c8802ea1cbce2d3e494a44e8f7181"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "047c381cf26e03fe9057e7f85ddbbd461813adae8ad4818ada2c42cdd294421e",
+              "074f92ff1180341b9fc3bf7b172c34ed053b34d31542008f3a6f318883fd2f88",
+              "07ab7ca01e2c7c2e46c9d95edcc7d20f4a8cf6d0f1caf92549c1dda4a737d27d",
+              "08c011b298cd67e9bccd93c2db53cfc296ab70a674b0ecc001d1a367dbd0661b",
+              "0d70273a9db91c77f1628605e9435a3f676c734eead77af3f919afd981ecca99",
+              "1476881460f7cbb06c33de6827bf9e0bbb25e2e5efef155eaf7cd27e8a3a803a",
+              "1556ab55bc4c731000c56aaef28f88cdce26a177dbaa76dde5af6b94a9328ef0",
+              "158b152ae577ab451d093537561f4a121f1dd7490660d6076d2b5caf0c4d2aaa",
+              "15936ba739d46abc5ec160bcfc8ae54f041d3c93904216f00f47f151cac0c039",
+              "18d6b51ba2e8914863b68efde028b2f77e4c8ba92f67d0d621809e2b59f658a9",
+              "1d0e44d415ae7e1bf1f601f09b87d5ca5d2349859454e5bb285c2036c6069f5c",
+              "1d4b6926759f6bdf32fb5de494dbb244b2f9a68b084e9beb45846b2059bd7b8c",
+              "20d32e57039515fb2f32f2b03532c8fb5c61c74dc28e925cb7f8488faf8f2b57",
+              "228bbd073fdb6e4a56e0506d2861cc036145274d1ecf3f3aa91064f585034d69",
+              "26b971e85cbfeb9e062c3cf1ece5532613a3b91d9a27262260a676e4b6f434c2",
+              "381f2b9cb612c30de1042708f826fd3b8f6cc17860d2184b19d49702ae88795f",
+              "3fe84110c61498422f1fc8ea1ab85a3d41c0e4556ff1d32972d133e264ee58a5",
+              "4097378d535e5f848177fb12918638171bd5e3eeff22ff4d95f614607d40c54a",
+              "43974d104c3ebbb18e340c008a90d3078ccb66242ebf8a5d783da7a252b12f15",
+              "43dc6156ef5f602c82b45f4a50a9d281926466e3c51b9dcb603ecf49be881473",
+              "44e39e6fd136d313745cc30fd34e10b6a6d6a4110a63c0d9e4945a8a301791aa",
+              "467844d11746f5f309f620376fd304ee31467a12e84b937c6e37471fef4bdf02",
+              "4df4d16a30796e42fb408d73af7782d8a5fddedcd62a3eebcdd88096e1cd09cb",
+              "4f4ad531ef9dac12f5caed7d9d2116adc264d65b921f8bd90342c04da3c97b69",
+              "520077ecc9b664484ce67bf401405ef4d5a1ee388369b5f282624015c8b994d2",
+              "5602b850854127b3ad2d39101bfda0e346682d906cba739576d244a667adefc3",
+              "577c0234b5b044f967c78f8e0f2e846a4b9a303f2315a978831f95910dde3f9d",
+              "5e3eb035e2498d59643e4b0faf0888be90984f7312a6ba7fc65d03e27b41ee4e",
+              "5ff3aa2d00521d7c0f0d7feef8cc30dde22986087843566b7fb42ec919b4a938",
+              "60f2ef09342cc810e346702bac3769b5a91076e90cb0aa62cf75db5f30cbed80",
+              "65d0fea9edb9115d674aff30f3be0f8f43b8597cc840db5a2a60cbaaca8ea21d",
+              "6af89b0241544f6302111c0d69669186c4b0a00b8f0484b5872833f49923efc8",
+              "6b581815e01a6d9c229d1dc3bf7624d50f23e091caf85f5901d07641b94c1d5f",
+              "6dd1bf3e4993a24f175ea69a91f6af3aae7e796629bbdb8f1104fbfebd6a6db0",
+              "6f00a903454c9a1d42619b58bd547038fe12327529358f6c403b45f23131a35b",
+              "72517cfc93b5bcb1a5be6df0a4ebaf342f77073f7424a5b8a04c9eade8447805",
+              "7603eae3b0e5e2f2c296ad636c27a22ceb43fd5dc0abf2f80fed76037c3abf74",
+              "79f1e4ae945a0063df538036a75eb6e6b202f690dc88350c3f995eb5aca8040c",
+              "82f467b30261963b815870e10ee631a8795a5256d731fffa6163c042ace655a2",
+              "87a208685c02c7ab04fc4758c633fc43bfab685bf8b43af30ae59c0f9223253c",
+              "8c606471d4655ee9f39f4c754a6becf2d8a8d567959810a26889e4a3c5cea93c",
+              "8e375892adcbfde1b34f03dfaa38e54ce8f71440cd918c00ff537d6d902042e4",
+              "8e6c35c7defc92acb6a7bed8e1e23375ac29c35b6a683a8ae665198bf947f215",
+              "913e0d9aa4449ffa3ed30916c96d2e40ed271c59d80f175ce4b859d6e62c3cba",
+              "929ce10be3e707ddc0e50b5e459d2f84cbfa607dac7290854824dd8f87c89fe2",
+              "935607198c096a91c9234e08861c0712bf7eeef4ce68a1f4e0799d7356bc1f39",
+              "938bb0e4bda601ee6ff66fe13b0fe7681c8ca19722b83ecae188646090ae30c4",
+              "94a1ce0245964c44fe89a90bf1a5b2bb202381b06616a175827f5ccd3e81fe16",
+              "9d39ff0fda01ed0c0d45f8f65a118e0b122eca719808d2047da7a4fd49b02412",
+              "a16ba97d400d9806b86d3e359815551809f9700a60682117224d91fc493e0fe0",
+              "a73a410f6785c7d9ec8070a818cce03566b021b5eb52bbabfb2aa365acde1340",
+              "a8088f5c1506aaa1c054b1572700a0f1e4338d26ba942e793c96339922dcf1ac",
+              "aa53a6d1952774ff00fe19e2b958fe7554fd360992dfafe2a507fb9ac4125411",
+              "ac91f4ac6d380ea4dfa9a7a50245cc344ea68e8b844e865146fa0790244517d6",
+              "ad8dfb3b08b85f8475679a3f3daf1cbf4843dc40f81d1e0dd07e3553df690c2e",
+              "ad92b11173f1a66c628ed755d9f5a9e25382aac08e201d9464614807d754385c",
+              "b24053a50fa788c483c89f602b3d27fe7d696c998f224f0462d40c7ed3bfa284",
+              "b5164248bdaaa168a9e0a03682368e1091de6dbfa8419dd058124b0102ee5747",
+              "bc7f2b0a82012cb3006e03be698c351f986ed6de7a0de7bb5583b0b98f27772c",
+              "c47b213fe59d869937b91447d3e9b81622f8e3c75b8bd49a8ccfde456202ea76",
+              "c60a11681075456f217986bedf8dee1401b40691d764a1d049e25f1f1272dfa9",
+              "cd258e854586d8feeb8c3c25d45904110ec6c88ef99000775f2e2cdcb33404e7",
+              "d07fac217f430b49602bcaca924ad918fab8e8d66b88b4d34f30d2ca6e1341b7",
+              "d231b671cfc2f2557909453617a834a96b27d1fe57ff3390ceb7c265cd5bc755",
+              "d375166e4cdd610d1ce032a871c4136956093c891184a1666f2bd1928704bc5f",
+              "d3ffc85360cfc27d38e014432d5117f3a8c060ffc40bc438b1f2300726ab4764",
+              "d6c576260c1ecf420d77258255da44fa1d223459ac0c64781283eefa695c4255",
+              "dd9fd4405c3997091e0ee2b866c1e26863bdd5b22d5a0e9aa7839784c8a226de",
+              "e335e6c12514dda2fdbdca4af7c0b90ba15cc4d5b4318974aa827164c6e00657",
+              "e529d39a18467a78e6109cfdfdba8d18baaf6870f01f59862071e6a18a00cede",
+              "e811cc9072c4612d46ecd10c21094e6649ca803498db573a937443dbd2fe487c",
+              "ead5676b48ebef8161682aedabd9164eec13ab6085e5762ac0193a0796037378",
+              "f0898fea686fe5e859c85e6b046d5e24c6fc1b399a86e7d6356eafed03709072",
+              "f11f54b88ae4a3c808060029f333290ee91073ef3fbb031c020ed1544c43e063",
+              "f24b4c14ea96dcf2832cdebd8c02ab05f7363f472d9f650e481903feb5235fec",
+              "f7559fbebd71252baf4e75a0099e55b0d5daf395bf93e415eaf6d1e39f5a6351",
+              "f7c57d5cb6dfad5432e16fda2a87e78f563fc2bcab7ddeb5ca407b7d39a11a97",
+              "fbffd572bbd235bb2a5b30f01b42dfad6c2e9dc4f9e24959d96a3e0b11d77608",
+              "fc73c1cfefcc51c9ebdb45c9ef61bb7fb80c454707a2995a803060f2f4c7d152",
+              "ff11c8f53d9d53ebe4fefef200fb4d43bf3de30b4235c5610fc6a4707b6d4279"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-8",
+        "releaseHeadSha": null,
+        "repairReason": "ci-environment"
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "669fd54528ca766a8729d2ebec3a15cf5e5d6e48659e6fbc2ae176c1178ce40c",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 93084614,
+          "prefixSha256": "f696eae94baae895638afb61bba9a2480eceaacbd40584f3f74d9cfc33ce0348"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 17803438,
+            "prefixSha256": "575c06bac4c4949ecdfb4ede88b217444de9319568a7403521c159f7c96e223e"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 19675582,
+            "prefixSha256": "6750bab30aca9edcc8b833c99e81a31a60738e22adee6a3b5dcaa5f959208403"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1558,
+          "supervisorUncachedInputTokens": 5080449,
+          "teamModelCycles": 2321,
+          "teamUncachedInputTokens": 9207173,
+          "cachedInputTokens": 486974720,
+          "totalInputTokens": 497855673
+        }
+      },
+      "eventHash": "172851d13a5faf9b8db9922564b1f6e7602cd9ee4a6f3b6ff431710645ac8972"
+    },
+    {
+      "sequence": 117,
+      "action": "derive-repair",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "172851d13a5faf9b8db9922564b1f6e7602cd9ee4a6f3b6ff431710645ac8972",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-10",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "implementing",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "669fd54528ca766a8729d2ebec3a15cf5e5d6e48659e6fbc2ae176c1178ce40c",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 9,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1564,
+          "supervisorUncachedInputTokens": 5108733,
+          "teamModelCycles": 2327,
+          "teamUncachedInputTokens": 9235457
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": null,
+          "acknowledgement": null
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-9",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "669fd54528ca766a8729d2ebec3a15cf5e5d6e48659e6fbc2ae176c1178ce40c",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 93374918,
+          "prefixSha256": "135bc473e0337a45a58982890c8adaf6fe103413aad239695d74165279275370"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 17803438,
+            "prefixSha256": "575c06bac4c4949ecdfb4ede88b217444de9319568a7403521c159f7c96e223e"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 19675582,
+            "prefixSha256": "6750bab30aca9edcc8b833c99e81a31a60738e22adee6a3b5dcaa5f959208403"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1564,
+          "supervisorUncachedInputTokens": 5108733,
+          "teamModelCycles": 2327,
+          "teamUncachedInputTokens": 9235457,
+          "cachedInputTokens": 487246592,
+          "totalInputTokens": 498155829
+        }
+      },
+      "eventHash": "ef2d3fb8c204fbe9e29184bbe82319796631adc929bc79940ce6d528eccbddb2"
+    },
+    {
+      "sequence": 118,
+      "action": "refresh-fingerprint",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "ef2d3fb8c204fbe9e29184bbe82319796631adc929bc79940ce6d528eccbddb2",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-10",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "implementing",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 9,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1575,
+          "supervisorUncachedInputTokens": 5127404,
+          "teamModelCycles": 2345,
+          "teamUncachedInputTokens": 9273184
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+          "acknowledgement": {
+            "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-10",
+            "candidateTreeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-9",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 93517244,
+          "prefixSha256": "3c995d4bf9ca59789e965e23d20d1223919f6def0e5cf40cb0b5a4343a3320c9"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 19675582,
+            "prefixSha256": "6750bab30aca9edcc8b833c99e81a31a60738e22adee6a3b5dcaa5f959208403"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1575,
+          "supervisorUncachedInputTokens": 5127404,
+          "teamModelCycles": 2345,
+          "teamUncachedInputTokens": 9273184,
+          "cachedInputTokens": 488540416,
+          "totalInputTokens": 499487380
+        }
+      },
+      "eventHash": "d576379bd0887de41574f990ad5d2e3ef8210df70a874014d9a2d174ba012c7b"
+    },
+    {
+      "sequence": 119,
+      "action": "mark-audit-ready",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "d576379bd0887de41574f990ad5d2e3ef8210df70a874014d9a2d174ba012c7b",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-10",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "audit-ready",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 9,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1577,
+          "supervisorUncachedInputTokens": 5130071,
+          "teamModelCycles": 2347,
+          "teamUncachedInputTokens": 9275851
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+          "acknowledgement": {
+            "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-10",
+            "candidateTreeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-9",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 93558835,
+          "prefixSha256": "9c0de6bfa21ab9334915032c28105571d6f599cd55ce6656327d9c32ef683e9a"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 19675582,
+            "prefixSha256": "6750bab30aca9edcc8b833c99e81a31a60738e22adee6a3b5dcaa5f959208403"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1577,
+          "supervisorUncachedInputTokens": 5130071,
+          "teamModelCycles": 2347,
+          "teamUncachedInputTokens": 9275851,
+          "cachedInputTokens": 488686336,
+          "totalInputTokens": 499635967
+        }
+      },
+      "eventHash": "d92cba0432000dae77fd3634f462daae429c9c45af06158b8b410f9293025905"
+    },
+    {
+      "sequence": 120,
+      "action": "mark-audited",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "d92cba0432000dae77fd3634f462daae429c9c45af06158b8b410f9293025905",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-10",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "audited",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 9,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1594,
+          "supervisorUncachedInputTokens": 5304108,
+          "teamModelCycles": 2369,
+          "teamUncachedInputTokens": 9474668
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+          "acknowledgement": {
+            "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-10",
+            "candidateTreeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-9",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 94249200,
+          "prefixSha256": "29992eb871e7dc6cd9a38cda61f3fc5edd27963ca990f3f2f1bd733db7fb8747"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20055338,
+            "prefixSha256": "3bcbf7e93b589de17176ba7e677c7cf01d0e8a8a4643c93c58317ad52b4b7b1a"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1594,
+          "supervisorUncachedInputTokens": 5304108,
+          "teamModelCycles": 2369,
+          "teamUncachedInputTokens": 9474668,
+          "cachedInputTokens": 491451648,
+          "totalInputTokens": 502600096
+        }
+      },
+      "eventHash": "5e1fed286ba24b9877a52afaad18ae56ea23450ca69c095eb132ab2c3a6be965"
+    },
+    {
+      "sequence": 121,
+      "action": "start-full-check",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "5e1fed286ba24b9877a52afaad18ae56ea23450ca69c095eb132ab2c3a6be965",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-10",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "audited",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 10,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1596,
+          "supervisorUncachedInputTokens": 5306110,
+          "teamModelCycles": 2371,
+          "teamUncachedInputTokens": 9476670
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+          "acknowledgement": {
+            "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-10",
+            "candidateTreeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-9",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 94290501,
+          "prefixSha256": "a4c8c0f0835e8be94e7a4827bd8ea858d955f8e58fa70c19ad15e05516031f11"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20055338,
+            "prefixSha256": "3bcbf7e93b589de17176ba7e677c7cf01d0e8a8a4643c93c58317ad52b4b7b1a"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1596,
+          "supervisorUncachedInputTokens": 5306110,
+          "teamModelCycles": 2371,
+          "teamUncachedInputTokens": 9476670,
+          "cachedInputTokens": 491720448,
+          "totalInputTokens": 502870898
+        }
+      },
+      "eventHash": "4567f9be27eca38b6502221bbc8086495294506ec04581ea9295c06512dfbe64"
+    },
+    {
+      "sequence": 122,
+      "action": "require-repair",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": "release-full-check",
+      "previousHash": "4567f9be27eca38b6502221bbc8086495294506ec04581ea9295c06512dfbe64",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-10",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "repair-required",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 10,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1622,
+          "supervisorUncachedInputTokens": 5364120,
+          "teamModelCycles": 2397,
+          "teamUncachedInputTokens": 9534680
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+          "acknowledgement": {
+            "reportFingerprint": "ec8cfa286c45bd549f7b3058f072af1dbb7f94abe0c85286a4bd4c2b60227633",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-10",
+            "candidateTreeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-9",
+        "releaseHeadSha": null,
+        "repairReason": "release-full-check"
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 94914485,
+          "prefixSha256": "81307319335a885d9e507425df4b5a09e7d305feb0ea89e485465c5307ac5b9d"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20055338,
+            "prefixSha256": "3bcbf7e93b589de17176ba7e677c7cf01d0e8a8a4643c93c58317ad52b4b7b1a"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1622,
+          "supervisorUncachedInputTokens": 5364120,
+          "teamModelCycles": 2397,
+          "teamUncachedInputTokens": 9534680,
+          "cachedInputTokens": 495728896,
+          "totalInputTokens": 506937356
+        }
+      },
+      "eventHash": "c05ea776c26bd5bee29ec3e88dfb742114584f3b1994dcee6f22268789de285d"
+    },
+    {
+      "sequence": 123,
+      "action": "derive-repair",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "c05ea776c26bd5bee29ec3e88dfb742114584f3b1994dcee6f22268789de285d",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "implementing",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 10,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1624,
+          "supervisorUncachedInputTokens": 5369722,
+          "teamModelCycles": 2399,
+          "teamUncachedInputTokens": 9540282
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": null,
+          "acknowledgement": null
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "f996f7476f613a44cd86ddcfdf117b941a69e9c35990fb9431ef8ec88d709295",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 94956886,
+          "prefixSha256": "e36f03dd83f23a187f7896f05f03686ea3f24cbe3df5936f0fa99d1e997ac970"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20055338,
+            "prefixSha256": "3bcbf7e93b589de17176ba7e677c7cf01d0e8a8a4643c93c58317ad52b4b7b1a"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1624,
+          "supervisorUncachedInputTokens": 5369722,
+          "teamModelCycles": 2399,
+          "teamUncachedInputTokens": 9540282,
+          "cachedInputTokens": 496085760,
+          "totalInputTokens": 507299822
+        }
+      },
+      "eventHash": "2acbce8f2aa34e5d603d68ecf43cc6c21e0f860f020a8f754fc75ccf0108ef11"
+    },
+    {
+      "sequence": 124,
+      "action": "refresh-fingerprint",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "2acbce8f2aa34e5d603d68ecf43cc6c21e0f860f020a8f754fc75ccf0108ef11",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "implementing",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 10,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1629,
+          "supervisorUncachedInputTokens": 5379294,
+          "teamModelCycles": 2404,
+          "teamUncachedInputTokens": 9549854
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+          "acknowledgement": {
+            "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
+            "candidateTreeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "c34af276f03294fc1d28539b29a10085e7525e1da00f2be5ef5249932c8baf0a"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "27e4bb3b3cf39e4e1bbd0daf6a79955414a224e726011316b94869af29650df3"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5ca5f8f67dd31c414d3ad7a252634484c99fd239cd62d042fd5b6d3c4c8c3817",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7602266433ceba80afa3b1d5769408ec831190bb2289b2e5e400dc86903c1673",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 95017795,
+          "prefixSha256": "0c56a68577f0365c0e5a29c3abe59314cdc94e07ee578e14f7efd67dfa4426a2"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20055338,
+            "prefixSha256": "3bcbf7e93b589de17176ba7e677c7cf01d0e8a8a4643c93c58317ad52b4b7b1a"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1629,
+          "supervisorUncachedInputTokens": 5379294,
+          "teamModelCycles": 2404,
+          "teamUncachedInputTokens": 9549854,
+          "cachedInputTokens": 497007104,
+          "totalInputTokens": 508230738
+        }
+      },
+      "eventHash": "5a29b67700fc24a59145d83a01734f4f87655147090ad64f315fd46dc6cb6050"
+    },
+    {
+      "sequence": 125,
+      "action": "mark-audit-ready",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "5a29b67700fc24a59145d83a01734f4f87655147090ad64f315fd46dc6cb6050",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "audit-ready",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 10,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1634,
+          "supervisorUncachedInputTokens": 5388793,
+          "teamModelCycles": 2409,
+          "teamUncachedInputTokens": 9559353
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+          "acknowledgement": {
+            "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
+            "candidateTreeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "c34af276f03294fc1d28539b29a10085e7525e1da00f2be5ef5249932c8baf0a"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "27e4bb3b3cf39e4e1bbd0daf6a79955414a224e726011316b94869af29650df3"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5ca5f8f67dd31c414d3ad7a252634484c99fd239cd62d042fd5b6d3c4c8c3817",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7602266433ceba80afa3b1d5769408ec831190bb2289b2e5e400dc86903c1673",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 95100982,
+          "prefixSha256": "7c731487671b2fe4e0cd13170f7caa31fdf7a8db493e5eccfe88f5d2fcc2eb04"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20055338,
+            "prefixSha256": "3bcbf7e93b589de17176ba7e677c7cf01d0e8a8a4643c93c58317ad52b4b7b1a"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1634,
+          "supervisorUncachedInputTokens": 5388793,
+          "teamModelCycles": 2409,
+          "teamUncachedInputTokens": 9559353,
+          "cachedInputTokens": 497955072,
+          "totalInputTokens": 509188205
+        }
+      },
+      "eventHash": "0e1bd59052a58952d9c1f255cf927c1f0d7afb5d26f2c031a4149da43991102b"
+    },
+    {
+      "sequence": 126,
+      "action": "mark-audited",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "0e1bd59052a58952d9c1f255cf927c1f0d7afb5d26f2c031a4149da43991102b",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "audited",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 10,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1640,
+          "supervisorUncachedInputTokens": 5399228,
+          "teamModelCycles": 2421,
+          "teamUncachedInputTokens": 9595116
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+          "acknowledgement": {
+            "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
+            "candidateTreeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "c34af276f03294fc1d28539b29a10085e7525e1da00f2be5ef5249932c8baf0a"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "27e4bb3b3cf39e4e1bbd0daf6a79955414a224e726011316b94869af29650df3"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5ca5f8f67dd31c414d3ad7a252634484c99fd239cd62d042fd5b6d3c4c8c3817",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7602266433ceba80afa3b1d5769408ec831190bb2289b2e5e400dc86903c1673",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 95181144,
+          "prefixSha256": "baa20b5f999a7a0dab3b43e6771a6dc150ac8afa03596bcc3ae68c8d8e5a4f78"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20402984,
+            "prefixSha256": "affea4b883d5d4d03dc7ccb953e5248ce8d9aed3f5c806d0ec8af9ca6b8570f2"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1640,
+          "supervisorUncachedInputTokens": 5399228,
+          "teamModelCycles": 2421,
+          "teamUncachedInputTokens": 9595116,
+          "cachedInputTokens": 500407552,
+          "totalInputTokens": 511676448
+        }
+      },
+      "eventHash": "58108a77856dac84f1fbef95e3bdab7932261514542f34e66a8bcebd9533e118"
+    },
+    {
+      "sequence": 127,
+      "action": "start-full-check",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "58108a77856dac84f1fbef95e3bdab7932261514542f34e66a8bcebd9533e118",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "audited",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 11,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1644,
+          "supervisorUncachedInputTokens": 5407317,
+          "teamModelCycles": 2425,
+          "teamUncachedInputTokens": 9603205
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+          "acknowledgement": {
+            "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
+            "candidateTreeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "c34af276f03294fc1d28539b29a10085e7525e1da00f2be5ef5249932c8baf0a"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "27e4bb3b3cf39e4e1bbd0daf6a79955414a224e726011316b94869af29650df3"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5ca5f8f67dd31c414d3ad7a252634484c99fd239cd62d042fd5b6d3c4c8c3817",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7602266433ceba80afa3b1d5769408ec831190bb2289b2e5e400dc86903c1673",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 95365352,
+          "prefixSha256": "31295b86035bb03299b3457eec4eb112f4360ed517ebf4cdb58ff1d3cd73a31d"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20402984,
+            "prefixSha256": "affea4b883d5d4d03dc7ccb953e5248ce8d9aed3f5c806d0ec8af9ca6b8570f2"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1644,
+          "supervisorUncachedInputTokens": 5407317,
+          "teamModelCycles": 2425,
+          "teamUncachedInputTokens": 9603205,
+          "cachedInputTokens": 501212416,
+          "totalInputTokens": 512489401
+        }
+      },
+      "eventHash": "3e9634fc65dcf4035104000a941a50ebf2450ab33f5b88bc201b148547aca2f6"
+    },
+    {
+      "sequence": 128,
+      "action": "mark-full-check-passed",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "3e9634fc65dcf4035104000a941a50ebf2450ab33f5b88bc201b148547aca2f6",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "full-check-passed",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 11,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1667,
+          "supervisorUncachedInputTokens": 5440160,
+          "teamModelCycles": 2448,
+          "teamUncachedInputTokens": 9636048
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+          "acknowledgement": {
+            "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
+            "candidateTreeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "c34af276f03294fc1d28539b29a10085e7525e1da00f2be5ef5249932c8baf0a"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "27e4bb3b3cf39e4e1bbd0daf6a79955414a224e726011316b94869af29650df3"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5ca5f8f67dd31c414d3ad7a252634484c99fd239cd62d042fd5b6d3c4c8c3817",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7602266433ceba80afa3b1d5769408ec831190bb2289b2e5e400dc86903c1673",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 95572751,
+          "prefixSha256": "b8a50d0182d5cdc9dcee51847e0e39b312cf888fd3dad37fa1cbfd596e085f1c"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20402984,
+            "prefixSha256": "affea4b883d5d4d03dc7ccb953e5248ce8d9aed3f5c806d0ec8af9ca6b8570f2"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1667,
+          "supervisorUncachedInputTokens": 5440160,
+          "teamModelCycles": 2448,
+          "teamUncachedInputTokens": 9636048,
+          "cachedInputTokens": 506242560,
+          "totalInputTokens": 517552388
+        }
+      },
+      "eventHash": "62fd31dad5323907a4da6becb83e73d8c86b368491a9ac1d0a0800d57c60eac6"
+    },
+    {
+      "sequence": 129,
+      "action": "commit",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "62fd31dad5323907a4da6becb83e73d8c86b368491a9ac1d0a0800d57c60eac6",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-11",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "push-ready",
+        "baseSha": "b363ec1abf40eb5b37c9a087fbd1ff0123cd0ffd",
+        "treeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 9,
+          "fullChecks": 11,
+          "semanticPushes": 0,
+          "replacementPushes": 2,
+          "supervisorModelCycles": 1669,
+          "supervisorUncachedInputTokens": 5443480,
+          "teamModelCycles": 2450,
+          "teamUncachedInputTokens": 9639368
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+          "acknowledgement": {
+            "reportFingerprint": "3fa6d8db3f23186ef78e877ef02ed474869f2f14cd9b0fd3efde5e2c1f279025",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-11",
+            "candidateTreeFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+            "paths": [
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "c34af276f03294fc1d28539b29a10085e7525e1da00f2be5ef5249932c8baf0a"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "27e4bb3b3cf39e4e1bbd0daf6a79955414a224e726011316b94869af29650df3"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3db72421a6b1144017ef4197c3540276b86af9d3fbfec51af14ab6e5a77628da",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5ca5f8f67dd31c414d3ad7a252634484c99fd239cd62d042fd5b6d3c4c8c3817",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "7602266433ceba80afa3b1d5769408ec831190bb2289b2e5e400dc86903c1673",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac"
+            ],
+            "predecessorHashReferenceIds": []
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-10",
+        "releaseHeadSha": null
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "cadba213b8d22b1181ac8a37646d8ee818fe09eaf2c60b78cbbc61fc48c353ad",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 95623123,
+          "prefixSha256": "e08dc741da31327a5562215fd4ffc17ef0dea2bab1ba375201ce0bc78763163d"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 18052945,
+            "prefixSha256": "1d23b324e89c7abf14bde9165e6823047519696ad2e306c9bda40caaa5f3f66b"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 20402984,
+            "prefixSha256": "affea4b883d5d4d03dc7ccb953e5248ce8d9aed3f5c806d0ec8af9ca6b8570f2"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 1669,
+          "supervisorUncachedInputTokens": 5443480,
+          "teamModelCycles": 2450,
+          "teamUncachedInputTokens": 9639368,
+          "cachedInputTokens": 506687488,
+          "totalInputTokens": 518000636
+        }
+      },
+      "eventHash": "672cd271a9e8209b93426287a4eb9cf9be07b4037e10e8e3a50add41c927b76f"
     }
   ]
 }
