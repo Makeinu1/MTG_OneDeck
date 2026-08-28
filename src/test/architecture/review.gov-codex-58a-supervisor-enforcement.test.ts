@@ -212,6 +212,7 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     }
     expect(workflow).toContain('one');
     expect(workflow).toContain('internal watchdogs');
+    expect(workflow.replace(/\s+/gu, ' ')).toContain('replacement-push objective');
     expect(workflow).toContain('two release full-check attempts');
     expect(workflow).toContain('A final green `npm run check` on the audited release tree remains mandatory');
     expect(workflow.replace(/\s+/gu, ' ')).toContain('Never ask for a numeric budget extension');
@@ -223,6 +224,8 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     expect(contract).toContain('a final green');
     expect(contract).toContain('releaseHeadSha');
     expect(contract).toContain('immutable prefix');
+    expect(contract).toContain('clean checkout');
+    expect(contract).toContain('A replacement push always requires the explicit push authority');
     expect(contract).toContain('terminal diff base');
     expect(contract).toContain('same-length/different-hash');
 

@@ -151,15 +151,19 @@ not permission prompts. Renaming a repair, metadata commit, continuation, or
 thread never resets them.
 
 - structural limits: one implementer lineage, one cold-auditor lineage, one
-  logical audit wait chain, one logical CI wait chain, one semantic push, and
-  one replacement push
-- internal watchdogs: two release full-check attempts, two compactions, one
-  same-role continuation, two correction waves, supervisor 1.0M uncached input
-  tokens / 160 model cycles, and team 1.6M uncached input tokens / 400 model
-  cycles
+  logical audit wait chain, one logical CI wait chain, and one initial semantic
+  push
+- internal watchdogs: two release full-check attempts, one replacement-push
+  objective, two compactions, one same-role continuation, two correction waves,
+  supervisor 1.0M uncached input tokens / 160 model cycles, and team 1.6M
+  uncached input tokens / 400 model cycles
 - watchdog crossings produce explicit advisories and force prompt/tool/model/
   repair-boundary review; they do not fail an otherwise authorized fixed-scope
   action and do not request a larger number from the user
+- every replacement push stays cumulative and still requires the already
+  granted push authority plus a same-acceptance audited repair; crossing its
+  objective is advisory, because a different CI/release root cause is not a
+  human quota decision
 - cached input tokens and total input tokens remain mandatory terminal telemetry;
   they are never silently substituted for uncached usage
 - release full check: one normally; the second is the repair objective, and any

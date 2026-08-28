@@ -57,7 +57,6 @@ const STRUCTURAL_COUNTER_KEYS = new Set([
   'auditWaitChains',
   'ciWaitChains',
   'semanticPushes',
-  'replacementPushes',
 ]);
 
 const DEFAULT_LIMITS = {

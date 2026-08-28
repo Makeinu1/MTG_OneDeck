@@ -91,6 +91,14 @@ require exact `HEAD === releaseHeadSha`; even a same-tree metadata commit is a
 different release head. A repair candidate declares the then-current HEAD as
 its new immutable base and clears `releaseHeadSha`.
 
+On a clean checkout where ignored `.claude/loop-state.md` is absent, context
+recovers the candidate only from the latest candidate in the tracked supervisor
+authority at the current HEAD and verifies that hash/receipt/counter/state chain
+offline before synthesizing the compact loop packet. It never treats a missing
+local-only file as missing canonical authority. Dirty, absent, unreadable,
+rewritten, malformed, or HEAD-mismatched authority remains a nonzero STOP; a
+checkout with a real loop packet continues to require live receipt verification.
+
 Outside that narrow transition, the active candidate is conflicting and
 execution stops when its ID/domain, selected domain, base SHA, release head,
 fingerprint, tracked authority, or loop-state record disagree. Multiple
@@ -120,17 +128,23 @@ limits and usage watchdog objectives. From its enforcement domain:
 - implementer lineages: 1; cold-auditor lineages: 1;
 - audit wait chains: 1; CI wait chains: 1;
 - release full-check attempt objective: 2;
-- semantic pushes: 1; replacement pushes: 1;
-- compactions, continuations, and correction waves retain measured watchdogs;
+- semantic pushes: 1 structural initial push;
+- replacement pushes: cumulative watchdog objective 1;
+- full checks, compactions, continuations, correction waves, and replacement
+  pushes retain measured watchdogs;
 - supervisor: 160 model cycles and 1,000,000 uncached input tokens;
 - team: 400 model cycles and 1,600,000 uncached input tokens.
 
-Lineage, wait, and push limits are structural and fail closed. Valid cumulative
-full-check, model-cycle, uncached-token, correction, compaction, and continuation
-watchdog crossings are reported as advisories and trigger an internal routing
-review; they do not grant or revoke authority and do not block a progressing
-fixed-scope repair. Every full-check attempt remains counted, and a final green
-`npm run check` on the audited exact tree is still mandatory. Prior
+Lineage, wait, and initial semantic-push limits are structural and fail closed.
+A replacement push always requires the explicit push authority and a
+same-acceptance repair that has passed the ordinary audit/full-check/commit
+path, but its cumulative objective is a watchdog rather than a new permission
+boundary. Valid cumulative replacement-push, full-check, model-cycle,
+uncached-token, correction, compaction, and continuation watchdog crossings are
+reported as advisories and trigger an internal routing review; they do not
+grant or revoke authority and do not block a progressing fixed-scope repair.
+Every attempt remains counted, and a final green `npm run check` on the audited
+exact tree is still mandatory. Prior
 candidate-specific numeric rulings remain history only and are not an active
 permission mechanism. All cumulative counters remain unchanged.
 

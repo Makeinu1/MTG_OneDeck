@@ -9,13 +9,19 @@ import { collectChangedFiles } from './checks/change-detector.mjs';
 import {
   buildSupervisorProjection,
   compactActiveCandidate,
+  computeAcceptanceFingerprint,
   findActiveSupervisedDomainId,
   parseCandidateRecords,
+  resolveCandidateAuthority,
+  resolveSupervisionPolicy,
+  validateCandidateRecord,
 } from './lib/supervisor-state.mjs';
 import {
   readTrackedSupervisorAuthority,
+  stableJson,
   supervisorAuthorityPath,
   verifySupervisorAuthority,
+  verifySupervisorAuthorityOffline,
 } from './lib/supervisor-authority.mjs';
 
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
@@ -938,6 +944,52 @@ export function synthesizeCleanHeadLoopState({
   ].join('\n');
 }
 
+const synthesizeTrackedCandidateLoopState = (candidate) => [
+  `milestone: ${candidate.domainId}`,
+  `step: ${candidate.state}`,
+  `baseSha: ${candidate.baseSha}`,
+  `treeFingerprint: ${candidate.treeFingerprint}`,
+  `activeCandidates: ${JSON.stringify([candidate])}`,
+].join('\n');
+
+function verifyCleanCheckoutAuthority({ authority, headAuthority, ledger, domainId, completeAutonomy }) {
+  const chain = verifySupervisorAuthorityOffline({
+    authority,
+    headAuthority,
+    loopCandidate: authority?.events?.at(-1)?.candidate ?? null,
+    completeAutonomy,
+  });
+  const errors = [...chain.errors];
+  const policyResult = resolveSupervisionPolicy(ledger, domainId);
+  errors.push(...policyResult.errors);
+  const domain = ledger?.domains?.find((entry) => entry?.id === domainId);
+  const planned = ledger?.plannedSequence?.find((entry) => entry?.domainId === domainId);
+  const resolvedAuthority = resolveCandidateAuthority({
+    domain,
+    planned,
+    activeProgram: ledger?.goalPolicy?.activeProgram,
+  });
+  errors.push(...resolvedAuthority.errors);
+  const acceptanceFingerprint = computeAcceptanceFingerprint(domain);
+  for (const event of authority?.events ?? []) {
+    const sequence = event?.sequence ?? null;
+    const candidate = event?.candidate;
+    const validation = validateCandidateRecord(candidate, policyResult.policy);
+    errors.push(...validation.errors.map((error) => ({ ...error, sequence })));
+    if (candidate?.domainId !== domainId) {
+      errors.push({ code: 'TRACKED_CANDIDATE_DOMAIN_MISMATCH', sequence });
+    }
+    if (candidate?.acceptanceFingerprint !== acceptanceFingerprint) {
+      errors.push({ code: 'TRACKED_CANDIDATE_ACCEPTANCE_MISMATCH', sequence });
+    }
+    if (
+      stableJson(candidate?.authority) !== stableJson(resolvedAuthority.authority) ||
+      candidate?.authoritySource !== resolvedAuthority.authoritySource
+    ) errors.push({ code: 'TRACKED_CANDIDATE_AUTHORITY_MISMATCH', sequence });
+  }
+  return { ...chain, ok: chain.ok && errors.length === 0, errors };
+}
+
 export function createContextProjection(root, domainId, options = {}) {
   const ledgerText = readFileSync(resolve(root, LEDGER_PATH), 'utf8');
   let ledger;
@@ -955,33 +1007,54 @@ export function createContextProjection(root, domainId, options = {}) {
   const headSha = git(root, ['rev-parse', 'HEAD']);
   const treeFingerprint = computeTreeFingerprint(root);
   const loopStatePath = resolve(root, LOOP_STATE_PATH);
-  const loopStateText = existsSync(loopStatePath)
+  const hasLoopState = existsSync(loopStatePath);
+  const cleanCheckout = !hasLoopState &&
+    git(root, ['status', '--porcelain=v1', '--untracked-files=normal']) === '';
+  let loopStateText = hasLoopState
     ? readFileSync(loopStatePath, 'utf8')
     : synthesizeCleanHeadLoopState({
         domainId,
         headLedger,
         headSha,
         treeFingerprint,
-        clean: git(root, ['status', '--porcelain=v1', '--untracked-files=normal']) === '',
+        clean: cleanCheckout,
       });
   let trackedSupervisorVerification = null;
   const supervisedDomainId = findActiveSupervisedDomainId(ledger);
   if (supervisedDomainId) {
     const tracked = readTrackedSupervisorAuthority(root, supervisedDomainId);
-    const parsed = parseCandidateRecords(loopStateText);
-    const loopCandidate = parsed.records?.find((candidate) => candidate?.state !== 'repair-required') ??
-      parsed.records?.at(-1) ?? null;
-    trackedSupervisorVerification = tracked.errors?.length
-      ? { ok: false, errors: tracked.errors }
-      : tracked.authority && loopCandidate
-      ? verifySupervisorAuthority({
-          authority: tracked.authority,
-          headAuthority: tracked.headAuthority,
-          loopCandidate,
-          sessionsRoot: options.sessionsRoot,
-          completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
-        })
-      : { ok: false, errors: [{ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY', path: tracked.relativePath }] };
+    if (!hasLoopState && cleanCheckout) {
+      const trackedCandidate = tracked.authority?.events?.at(-1)?.candidate ?? null;
+      trackedSupervisorVerification = tracked.errors?.length
+        ? { ok: false, errors: tracked.errors }
+        : tracked.authority && tracked.headAuthority && trackedCandidate
+        ? verifyCleanCheckoutAuthority({
+            authority: tracked.authority,
+            headAuthority: tracked.headAuthority,
+            ledger,
+            domainId: supervisedDomainId,
+            completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+          })
+        : { ok: false, errors: [{ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY', path: tracked.relativePath }] };
+      if (trackedSupervisorVerification.ok) {
+        loopStateText = synthesizeTrackedCandidateLoopState(trackedCandidate);
+      }
+    } else {
+      const parsed = parseCandidateRecords(loopStateText);
+      const loopCandidate = parsed.records?.find((candidate) => candidate?.state !== 'repair-required') ??
+        parsed.records?.at(-1) ?? null;
+      trackedSupervisorVerification = tracked.errors?.length
+        ? { ok: false, errors: tracked.errors }
+        : tracked.authority && loopCandidate
+        ? verifySupervisorAuthority({
+            authority: tracked.authority,
+            headAuthority: tracked.headAuthority,
+            loopCandidate,
+            sessionsRoot: options.sessionsRoot,
+            completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+          })
+        : { ok: false, errors: [{ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY', path: tracked.relativePath }] };
+    }
   }
   const parsedLoop = parseCandidateRecords(loopStateText);
   const activeLoopCandidate = parsedLoop.records?.find((entry) => entry?.state !== 'repair-required') ??

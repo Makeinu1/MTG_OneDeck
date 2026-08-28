@@ -134,7 +134,7 @@ function addWaitChain(candidate, kind, waitChainId) {
 
 const STRUCTURAL_COUNTER_KEYS = [
   'implementerLineages', 'coldAuditorLineages', 'auditWaitChains', 'ciWaitChains',
-  'semanticPushes', 'replacementPushes',
+  'semanticPushes',
 ];
 
 function assertStructuralLimits(candidate, limits) {

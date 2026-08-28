@@ -25,6 +25,7 @@ import {
   createSupervisorBootstrap,
   createSupervisorEvent,
   deriveUsageReceipt,
+  hashSupervisorEvent,
   readTrackedSupervisorAuthority,
   supervisorAuthorityPath,
   verifySupervisorAuthority,
@@ -646,8 +647,21 @@ describe('GOV-CODEX-58A supervisor state', () => {
       .toThrow(/semanticPushes/);
     const replacementReady = candidateFixture({ state: 'push-ready', repairOf: 'M1-candidate-0' });
     const replacement = applyProgramAction({ records: [replacementReady], action: 'record-replacement-push', options: { releaseHeadSha }, policy: { limits: limits() } });
-    expect(() => applyProgramAction({ records: replacement.records, action: 'record-replacement-push', options: { releaseHeadSha }, policy: { limits: limits() } }))
-      .toThrow(/replacementPushes/);
+    const secondReplacement = applyProgramAction({
+      records: replacement.records,
+      action: 'record-replacement-push',
+      options: { releaseHeadSha },
+      policy: { limits: limits() },
+    });
+    expect(secondReplacement.activeCandidate.counters.replacementPushes).toBe(2);
+    expect(secondReplacement.advisories).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'WATCHDOG_THRESHOLD_EXCEEDED',
+        counter: 'replacementPushes',
+        value: 2,
+        limit: 1,
+      }),
+    ]));
   });
 });
 
@@ -834,7 +848,102 @@ function usageAuthorityFixture(root, candidate, { writeAuthority = true } = {}) 
   return { sessionsRoot, receiptPath, receipt, receiptPlan, receiptPlanPath };
 }
 
+function rehashSupervisorAuthority(authority) {
+  let previousHash = null;
+  for (const event of authority.events) {
+    event.previousHash = previousHash;
+    event.eventHash = hashSupervisorEvent(event);
+    previousHash = event.eventHash;
+  }
+  authority.candidateId = authority.events.at(-1).candidate.id;
+}
+
+function cleanCheckoutAuthorityFixture() {
+  const { root } = guardRepoFixture({ full: true });
+  git(root, ['add', '.']);
+  git(root, ['commit', '-qm', 'semantic candidate']);
+  const base = git(root, ['rev-parse', 'HEAD']);
+  const tree = computeTreeFingerprint(root);
+  const candidate = pushReadyCandidate(base, tree);
+  const usage = usageAuthorityFixture(root, candidate);
+  const path = supervisorAuthorityPath('M1');
+  const authority = JSON.parse(readFileSync(join(root, path), 'utf8'));
+  authority.events.push(createSupervisorEvent({
+    sequence: 1,
+    action: 'acknowledge-guard-impact',
+    actorSessionId: SESSION_IDS.supervisor,
+    actorRole: 'supervisor',
+    candidate,
+    receipt: usage.receipt,
+    previousHash: authority.events[0].eventHash,
+  }));
+  write(root, path, `${JSON.stringify(authority, null, 2)}\n`);
+  git(root, ['add', path]);
+  git(root, ['commit', '-qm', 'tracked authority']);
+  return { root, candidate, path };
+}
+
+function makeAuditStopCandidate(candidate) {
+  candidate.state = 'audit-failed-stop';
+  candidate.stopReason = 'prior cold-audit stop';
+  candidate.usageSnapshot = structuredClone(candidate.counters);
+}
+
 describe('GOV-CODEX-58A tracked authority and verified receipts', () => {
+  it('recovers a clean checkout without loop-state from verified tracked authority and rejects a corrupt clean authority', () => {
+    const { root, candidate, path } = cleanCheckoutAuthorityFixture();
+
+    const recovered = createContextProjection(root, 'M1');
+    expect(recovered.health.ok, JSON.stringify(recovered.health.errors)).toBe(true);
+    expect(recovered.activeCandidate).toMatchObject({
+      id: candidate.id,
+      domainId: candidate.domainId,
+      state: candidate.state,
+      baseSha: candidate.baseSha,
+      treeFingerprint: candidate.treeFingerprint,
+    });
+    expect(recovered.trackedSupervisor).toMatchObject({ ok: true, latestSequence: 1 });
+
+    const authority = JSON.parse(readFileSync(join(root, path), 'utf8'));
+    authority.events[0].eventHash = '0'.repeat(64);
+    write(root, path, `${JSON.stringify(authority, null, 2)}\n`);
+    git(root, ['add', path]);
+    git(root, ['commit', '-qm', 'corrupt tracked authority']);
+    const corrupt = createContextProjection(root, 'M1');
+    expect(corrupt.health.ok).toBe(false);
+    expect(corrupt.health.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'INVALID_TRACKED_SUPERVISOR_EVENT' }),
+    ]));
+  });
+
+  it.each([
+    ['missing historical STOP usageSnapshot', (candidate) => {
+      makeAuditStopCandidate(candidate);
+      delete candidate.usageSnapshot;
+    }, 'INCOMPLETE_AUDIT_FAILED_STOP'],
+    ['incomplete historical STOP usage evidence', (candidate) => {
+      makeAuditStopCandidate(candidate);
+      delete candidate.usageSnapshot.fullChecks;
+    }, 'AUDIT_STOP_USAGE_MISMATCH'],
+    ['invalid historical push-ready state evidence', (candidate) => {
+      candidate.counters.fullChecks = 0;
+    }, 'CANDIDATE_STATE_FULL_CHECK_MISMATCH'],
+  ])('rejects clean-checkout recovery with %s after the whole chain is rehashed', (_, mutate, code) => {
+    const { root, path } = cleanCheckoutAuthorityFixture();
+    const authority = JSON.parse(readFileSync(join(root, path), 'utf8'));
+    mutate(authority.events[0].candidate);
+    rehashSupervisorAuthority(authority);
+    write(root, path, `${JSON.stringify(authority, null, 2)}\n`);
+    git(root, ['add', path]);
+    git(root, ['commit', '-qm', 'semantic candidate forgery']);
+
+    const projection = createContextProjection(root, 'M1');
+    expect(projection.health.ok).toBe(false);
+    expect(projection.health.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code, sequence: 0 }),
+    ]));
+  });
+
   it('reads a tracked HEAD authority above Node default maxBuffer and reports malformed HEAD bytes', () => {
     const root = mkdtempSync(join(tmpdir(), 'onedeck-large-authority-'));
     git(root, ['init', '-q']);

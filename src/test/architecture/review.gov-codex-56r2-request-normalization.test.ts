@@ -145,7 +145,8 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(workflow).toContain('## Candidate execution counters and autonomous repair');
     expect(workflow).toContain('release full check: one normally; the second is the repair objective');
     expect(workflow).toContain('A final green `npm run check` on the audited release tree remains mandatory');
-    expect(workflow).toContain('one replacement push');
+    expect(workflow.replace(/\s+/gu, ' ')).toContain('one replacement-push objective');
+    expect(workflow.replace(/\s+/gu, ' ')).toContain('every replacement push stays cumulative');
     expect(workflow).toContain('At two compactions or one fresh same-role continuation');
     expect(workflow).toContain('internal watchdogs');
     expect(workflow.replace(/\s+/gu, ' ')).toContain('two correction waves');

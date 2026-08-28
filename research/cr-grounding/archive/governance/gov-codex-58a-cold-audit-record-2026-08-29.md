@@ -110,3 +110,76 @@ The remaining HIGH is one application gap: the live HEAD-authority reader still
 mapped every predecessor probe failure to bootstrap absence. The shared strict
 absence/error classification must also protect context and every program-step,
 with corrupt-object/probe-failure fixtures through both public paths.
+
+## Candidate 5 final audit and release-CI finding
+
+- Audited tree fingerprint: `b9ec85ee625490614b0d396f48e7b39db967e180ea0548b1b678d78518127772`
+- Tracked authority sequence: `69`
+- Tracked authority event hash: `d1b67a5c6eb0e3c153c65c5c3a1fff6c99fcd21ef60e78bf27d09d4698aa8779`
+- Audit envelope: `90b853351510f6823d494394362a9b99f86fea5d45214208bf18391c5375d810`
+- Auditor: `/root/gov58a_cold_audit`
+- Verdict: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 1
+- Semantic release commit: `1d7e9eff1b37a0bf8829835d48a349086189556e`
+- Exact-head CI: run `33203050695`, build job `98957049543`, FAIL before Pages
+
+The final candidate-5 audit closed every executable finding. Its sole LOW was
+the already recorded stale duplicated ledger `nextGate`, reserved for terminal
+metadata synchronization. The canonical local full check passed Core 229 files
+/ 2119 tests and DOM 382 files / 2618 tests plus docs, lint, TypeScript, Vite,
+and all verifiers on the audited tree.
+
+The exact-head GitHub run then passed the verifiers, Core suite, and 380 of 382
+DOM files, but two architecture reviews observed `codex:context` exit 2. A
+clean reproduction at the release commit proved the cause: ignored
+`.claude/loop-state.md` was absent, so context synthesized no candidate and
+reported both `MISSING_ACTIVE_CANDIDATE_RECORD` and
+`MISSING_TRACKED_SUPERVISOR_AUTHORITY` even though the exact tracked authority
+was present at HEAD. This is a clean-checkout recovery defect, not a product,
+CR, dependency, acceptance, or authority change.
+
+Candidate 6 is the same-acceptance `ci-environment` repair at base
+`1d7e9eff1b37a0bf8829835d48a349086189556e`. It may recover a loop packet only
+from a clean checkout's fully verified tracked authority at HEAD; local live
+state and every dirty/corrupt/missing/mismatched case remain fail closed. The
+failure also demonstrated that a hard one-replacement-push quota would turn a
+different release root cause into the numeric human loop this milestone exists
+to remove. The initial semantic push, explicit external authority, one logical
+CI wait chain, audit, full check, and append-only counters remain mandatory;
+additional same-acceptance replacement pushes are cumulative watchdog
+advisories rather than permission questions.
+
+## Candidate 6 clean-recovery cold audit
+
+- Audited tree fingerprint: `7bc294e6c3394eea9d544c23cda1b2a1d2569f9ac594347d33074c9ee8144e0c`
+- Tracked authority sequence: `81`
+- Tracked authority event hash: `fbb498383573f7e1ef5dd93da7db9b3b46ebbbf4510283a199bf26762d29eb6d`
+- Audit envelope: `cbd69b9c6b0a3701cf4758ca65d06ea53e9ee433ccf3497609226ca6c3121e62`
+- Auditor: `/root/gov58a_cold_audit`
+- Verdict: BLOCKER 0 / HIGH 1 / MEDIUM 0 / LOW 1
+
+The HIGH is confined to clean-checkout recovery. Its offline authority verifier
+proved event hashes, receipts, deltas, and transitions, but did not apply the
+full candidate shape and state-evidence validator to every historical event. A
+historical `audit-failed-stop` candidate could lose `usageSnapshot`, have the
+remaining chain rehashed, and still yield a green latest-candidate projection.
+Candidate 6 therefore remains the same acceptance and authority while adding
+full-history candidate validation plus rehashed malformed-shape, incomplete
+STOP, and state-evidence fixtures. The LOW remains the terminal-only duplicated
+ledger prose and does not alter the repair scope.
+
+## Candidate 6 final audit and release-full-check finding
+
+- Audited tree fingerprint: `2df7bf9a2dc5b0d2ae99d325bee5132f2a9638fbebe17c018ee57872dfdf921a`
+- Tracked authority sequence: `85`
+- Tracked authority event hash: `d88f0fbee016aa4e072d034b01b808fbb1ceca8b86cefb5580fc63f21b266201`
+- Audit envelope: `0ee31659358650104ff1ae673c78ceba89b9a45ec9d9dae5343604a0344a4d0b`
+- Auditor: `/root/gov58a_cold_audit`
+- Verdict: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 1
+
+The audit closed the executable clean-checkout finding. The release full check
+then passed Core 229 files / 2119 tests and 381 of 382 DOM files / 2621 of 2622
+tests. The sole failure was a Judge-owned GOV-CODEX-56R2 review assertion that
+still required the obsolete prose `one replacement push`; the executable and
+current contract now define one replacement-push objective with cumulative
+advisory crossings. Candidate 7 is the same-acceptance `release-full-check`
+repair and changes only that stale review expectation plus this evidence record.

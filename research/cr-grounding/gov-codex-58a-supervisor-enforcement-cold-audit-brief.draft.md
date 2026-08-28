@@ -38,9 +38,12 @@ Drive the canonical `runProgramStep` path from `require-repair` through
 and hash-chain append. A malformed tracked chain must still fail. Also cross
 the full-check/usage/correction/continuation watchdogs and confirm they remain
 visible advisories without becoming permission, while duplicate role/wait and
-excess push structural limits remain nonzero. Confirm that an advised later
-full check still requires an actual final exact-tree green result before
-commit or release.
+excess initial semantic push remain nonzero. Cross the replacement-push
+objective twice and confirm the counter remains cumulative and advisory only,
+while every replacement still requires explicit push authority plus the
+same-acceptance audit/full-check/commit path. Confirm that an advised later full
+check still requires an actual final exact-tree green result before commit or
+release.
 
 Adversarially mutate repository bytes after tracked bootstrap. Confirm ordinary
 actions stop, `refresh-fingerprint` requires the supervisor plus exact owner and
@@ -54,6 +57,17 @@ the current commit once as `releaseHeadSha`, and CI/deploy/ship reject a
 different HEAD including a same-tree metadata commit. Exercise a post-commit
 repair and confirm the new candidate uses the current HEAD as its base without
 changing acceptance, authority, counters, roles, or waits.
+
+Create a clean checkout with no ignored loop-state file. Confirm context
+recovers the exact latest candidate only from the tracked authority at HEAD,
+verifies its event/receipt/counter/state chain offline, and returns a compact
+green projection. Repeat with dirty, absent, corrupt, rewritten, and
+HEAD-mismatched authority; all must fail. Confirm that a checkout with an
+existing loop-state record still uses live receipt verification and cannot be
+laundered through the offline recovery path. Rehash the complete authority
+chain after separately corrupting an earlier candidate's required shape, an
+incomplete STOP record, and state-specific evidence. Each must still fail from
+the clean-checkout path, including when the latest candidate remains valid.
 
 Audit the terminal authority append independently. Only the exact active-domain
 path may leave the semantic fingerprint; HEAD events must be a strict immutable

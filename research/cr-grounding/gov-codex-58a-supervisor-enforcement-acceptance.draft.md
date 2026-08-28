@@ -19,14 +19,17 @@ The Judge owns these criteria. One failure fails the scenario.
    authority, history, and cumulative counters. It never asks for or accepts a
    numeric quota as authority.
 5. `check:budget` rejects missing, decreasing, reset, negative, or mislabeled
-   counters. Structural lineage/wait/push excess remains nonzero. Valid
-   cumulative full-check/token/cycle/correction/compaction/continuation watchdog
-   crossings return explicit advisories and remain executable. Cached and total
-   input remain separate terminal telemetry.
+   counters. Structural lineage/wait/initial-semantic-push excess remains
+   nonzero. Valid cumulative replacement-push/full-check/token/cycle/correction/
+   compaction/continuation watchdog crossings return explicit advisories and
+   remain executable. Cached and total input remain separate terminal telemetry.
 6. A second implementer or cold-auditor lineage, second audit or CI wait chain,
-   or excess semantic/replacement push stops. A third full-check attempt remains
-   counted and advised; it cannot substitute for a final exact-tree green check.
-   Numeric objectives never generate a human permission request.
+   or excess initial semantic push stops. An additional replacement push stays
+   cumulative and advised, requires existing push authority and the ordinary
+   same-acceptance audit/full-check/commit path, and never resets prior history.
+   A third full-check attempt likewise remains counted and advised; neither can
+   substitute for a final exact-tree green check. Numeric objectives never
+   generate a human permission request.
 7. `check:guard-impact` emits stable changed paths, ownership, exact
    path/import/allowlist guard references, predecessor-hash references,
    reauthorization paths, and a stable fingerprint.
@@ -94,3 +97,11 @@ The Judge owns these criteria. One failure fails the scenario.
     lengths never decrease, and the hash at an identical byte length never
     changes. A confirmed missing predecessor is distinct from any probe/read
     execution or integrity failure, and both categories fail closed.
+25. A clean checkout without ignored loop state recovers its active candidate
+    only from the latest candidate in a valid tracked authority at HEAD, verifies
+    the chain offline, and synthesizes matching milestone/state/base/tree fields.
+    Every historical event candidate must also satisfy the full candidate shape,
+    state-specific evidence, resolved supervision policy, acceptance fingerprint,
+    and authority/source invariants after the entire chain is rehashed. Dirty,
+    corrupt, absent, unreadable, rewritten, or mismatched authority stays nonzero;
+    an existing loop state retains live receipt verification.
