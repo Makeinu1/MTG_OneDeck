@@ -290,11 +290,22 @@ API, secret-like changed text, and a CI diff-base/ownership mismatch. A failed
 preflight forbids the audit/full-check/push sequence until repaired.
 
 Semantic and terminal fingerprints are separate. A terminal-only successor may
-change only synchronized terminal fields in the ledger and loop-state, as
-verified by `npm run check:terminal-metadata`. Product, contract, workflow,
-generated, and `review.*` bytes force the semantic lane. Exact terminal-only CI
-reuses the already deployed semantic artifact by leaving Pages untouched; it
-does not repeat full Vitest/build or redeploy identical product bytes.
+change synchronized terminal fields in the ledger and loop-state plus the exact
+active-domain supervisor event file. `npm run check:terminal-metadata` must
+prove that the HEAD event list is an immutable prefix and that every append has
+valid event/receipt hashes, actor/usage, counter/state, authority/acceptance,
+lineage/wait, and ledger agreement. Another domain, wildcard path, truncation,
+rewrite, unreadable HEAD authority, or extra file fails closed. Product,
+contract, workflow, generated, and `review.*` bytes force the semantic lane.
+Receipt prefixes are monotonic per session: lengths never decrease and the
+hash at the same byte length is immutable. Confirmed absence is reported
+separately from probe, object-integrity, permission, and read failures.
+For the terminal metadata commit, the candidate release head remains the
+already checked and deployed semantic diff base; the successor HEAD may differ
+only by those verified terminal paths and never rebinds the release artifact.
+Exact terminal-only CI reuses the already deployed semantic artifact by leaving
+Pages untouched; it does not repeat full Vitest/build or redeploy identical
+product bytes.
 
 The clean semantic verdict is `AUDIT-OK-PENDING-FULL-CHECK`. Close findings,
 re-run only invalidated evidence, freeze the release tree again, and require the

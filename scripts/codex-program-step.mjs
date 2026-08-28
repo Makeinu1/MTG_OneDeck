@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { computeTreeFingerprint, createContextProjection, parseLoopState } from './codex-context.mjs';
+import { collectChangedFiles } from './checks/change-detector.mjs';
 import { buildGuardImpact } from './checks/guard-impact.mjs';
 import {
   buildSupervisorProjection,
@@ -44,6 +45,30 @@ function failure(code, message = code) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+const releaseBindingActions = new Set(['push', 'record-semantic-push', 'record-replacement-push']);
+
+function equivalentGuardAcknowledgement(left, report, activeAuthorityPath) {
+  if (!left || !report?.acknowledgementRequired) return false;
+  const normalize = (value, allowedGuardIds, allowedPredecessorIds) => {
+    const copy = clone(value);
+    delete copy.reportFingerprint;
+    copy.guardReferenceIds = copy.guardReferenceIds.filter((id) => allowedGuardIds.has(id));
+    copy.predecessorHashReferenceIds = copy.predecessorHashReferenceIds.filter((id) => allowedPredecessorIds.has(id));
+    return JSON.stringify(copy);
+  };
+  const semanticGuardIds = new Set(report.guards
+    .filter((entry) => entry.guardPath !== activeAuthorityPath)
+    .map((entry) => entry.id));
+  const semanticPredecessorIds = new Set(report.predecessorHashes
+    .filter((entry) => entry.guardPath !== activeAuthorityPath)
+    .map((entry) => entry.id));
+  return normalize(left, semanticGuardIds, semanticPredecessorIds) === normalize(
+    report.acknowledgementRequired,
+    semanticGuardIds,
+    semanticPredecessorIds,
+  );
 }
 
 const clone = (value) => structuredClone(value);
@@ -118,6 +143,15 @@ function assertStructuralLimits(candidate, limits) {
   }
 }
 
+function bindReleaseHead(candidate, options) {
+  if (!/^[0-9a-f]{40}$/.test(options.releaseHeadSha ?? '')) throw failure('MISSING_RELEASE_HEAD_SHA');
+  const current = candidate.releaseHeadSha ?? null;
+  if (current !== null && current !== options.releaseHeadSha) throw failure('RELEASE_HEAD_ALREADY_BOUND');
+  if (current === null && candidate.baseSha === options.releaseHeadSha) throw failure('POST_COMMIT_HEAD_REQUIRED');
+  candidate.releaseHeadSha = options.releaseHeadSha;
+  if (options.guardImpact) candidate.guardImpact = clone(options.guardImpact);
+}
+
 const watchdogAdvisories = (candidate, policy) =>
   evaluateCandidateBudget(candidate, policy).advisories ?? [];
 
@@ -138,6 +172,8 @@ export function applyProgramAction({ records, action, options = {}, policy }) {
     candidate.id = candidateId;
     candidate.state = 'implementing';
     candidate.repairOf = previous.id;
+    candidate.baseSha = requireValue(options.baseSha, 'MISSING_REPAIR_BASE_SHA');
+    candidate.releaseHeadSha = null;
     delete candidate.repairReason;
     delete candidate.stopReason;
     delete candidate.usageSnapshot;
@@ -149,6 +185,7 @@ export function applyProgramAction({ records, action, options = {}, policy }) {
   }
   if (!candidate) throw failure('MISSING_ACTIVE_CANDIDATE');
   applyUsage(candidate, options.usage);
+  if (options.guardImpact) candidate.guardImpact = clone(options.guardImpact);
 
   if (action === 'user-reopen') {
     if (candidate.state !== 'audit-failed-stop') throw failure('INVALID_USER_REOPEN_ORIGIN');
@@ -254,22 +291,26 @@ export function applyProgramAction({ records, action, options = {}, policy }) {
     case 'record-commit':
       requireState(candidate, ['full-check-passed']);
       requirePermission(candidate, 'commit');
+      candidate.releaseHeadSha = null;
       candidate.state = 'push-ready';
       break;
     case 'push':
       requireState(candidate, ['push-ready']);
       requirePermission(candidate, 'push');
+      bindReleaseHead(candidate, options);
       candidate.counters[candidate.repairOf ? 'replacementPushes' : 'semanticPushes'] += 1;
       break;
     case 'record-semantic-push':
       requireState(candidate, ['push-ready']);
       requirePermission(candidate, 'push');
+      bindReleaseHead(candidate, options);
       candidate.counters.semanticPushes += 1;
       break;
     case 'record-replacement-push':
       requireState(candidate, ['push-ready']);
       requirePermission(candidate, 'push');
       if (!candidate.repairOf) throw failure('REPLACEMENT_PUSH_REQUIRES_REPAIR');
+      bindReleaseHead(candidate, options);
       candidate.counters.replacementPushes += 1;
       break;
     case 'start-ci-wait':
@@ -355,6 +396,34 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
   const parsed = parseCandidateRecords(loopStateText);
   if (!parsed.records) return { ok: false, domain: options.domain, action: options.action, errors: parsed.errors };
   const currentCandidate = parsed.records.find((entry) => entry.state !== 'repair-required') ?? parsed.records.at(-1);
+  const activeAuthorityPath = currentCandidate?.domainId
+    ? supervisorAuthorityPath(currentCandidate.domainId)
+    : null;
+  let authorityDriftPaths = [];
+  try {
+    authorityDriftPaths = collectChangedFiles({ cwd: root, base: 'HEAD' }).files
+      .filter((path) => path.startsWith('research/cr-grounding/supervisor-events/'));
+  } catch (error) {
+    return {
+      ok: false,
+      domain: options.domain,
+      action: options.action,
+      errors: [{ code: 'SUPERVISOR_AUTHORITY_DRIFT_SCAN_FAILED', message: error instanceof Error ? error.message : String(error) }],
+    };
+  }
+  const unexpectedAuthorityPaths = authorityDriftPaths.filter((path) => path !== activeAuthorityPath);
+  if (unexpectedAuthorityPaths.length > 0) {
+    return {
+      ok: false,
+      domain: options.domain,
+      action: options.action,
+      errors: unexpectedAuthorityPaths.map((path) => ({
+        code: 'UNEXPECTED_SUPERVISOR_AUTHORITY_DRIFT',
+        path,
+        expectedPath: activeAuthorityPath,
+      })),
+    };
+  }
   const readReceipt = (contextFingerprint = currentCandidate?.treeFingerprint) => {
     if (!options.receipt && !options['receipt-plan']) throw failure('MISSING_VERIFIED_USAGE_RECEIPT');
     if (options.receipt && options['receipt-plan']) throw failure('AMBIGUOUS_USAGE_RECEIPT_INPUT');
@@ -404,7 +473,11 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
       if (!activeDomainId || options.domain !== activeDomainId || currentCandidate?.domainId !== activeDomainId) {
         throw failure('ACTIVE_SUPERVISED_CANDIDATE_DOMAIN_MISMATCH');
       }
-      if (existsSync(resolve(root, supervisorAuthorityPath(activeDomainId)))) {
+      const tracked = readTrackedSupervisorAuthority(root, activeDomainId);
+      if (tracked.errors?.length) {
+        throw failure('INVALID_HEAD_SUPERVISOR_AUTHORITY', JSON.stringify(tracked.errors));
+      }
+      if (tracked.authority || tracked.headAuthority) {
         throw failure('TRACKED_SUPERVISOR_AUTHORITY_ALREADY_EXISTS');
       }
       const bootstrapFingerprint = computeTreeFingerprint(root);
@@ -477,6 +550,7 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
         throw failure('ACTIVE_SUPERVISED_CANDIDATE_DOMAIN_MISMATCH');
       }
       const tracked = readTrackedSupervisorAuthority(root, activeDomainId);
+      if (tracked.errors?.length) throw failure('INVALID_HEAD_SUPERVISOR_AUTHORITY', JSON.stringify(tracked.errors));
       if (!tracked.authority) throw failure('MISSING_TRACKED_SUPERVISOR_AUTHORITY');
       const historical = verifySupervisorAuthority({
         authority: tracked.authority,
@@ -598,12 +672,16 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
   try {
     const verifiedReceipt = options.action === 'inspect' ? null : readReceipt();
     let guardReport = null;
+    let exactAuthorityOnlyGuardDrift = false;
     if (GUARD_GATED_ACTIONS.has(options.action)) {
       if (!options.base) throw failure('MISSING_GUARD_IMPACT_BASE');
       const guardProjection = projection.activeCandidate
         ? projection
         : { ...projection, activeCandidate: currentCandidate };
       guardReport = buildGuardImpact({ root, base: options.base, domain: options.domain, projection: guardProjection });
+      if (currentCandidate?.baseSha && guardReport.baseSha !== currentCandidate.baseSha) {
+        throw failure('CANDIDATE_GUARD_BASE_MISMATCH');
+      }
       const guardRepairTransition =
         (options.action === 'require-repair' && options.reason === 'guard-impact') ||
         (options.action === 'derive-repair' && currentCandidate?.repairReason === 'guard-impact');
@@ -614,7 +692,17 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
           'MISSING_GUARD_ACKNOWLEDGEMENT',
           'GUARD_ACKNOWLEDGEMENT_MISMATCH',
         ].includes(error.code));
-      if (!guardReport.ok && !verifiedGuardDefect) {
+      exactAuthorityOnlyGuardDrift =
+        guardReport.errors.every((error) => [
+          'STALE_GUARD_REPORT_FINGERPRINT',
+          'GUARD_ACKNOWLEDGEMENT_MISMATCH',
+        ].includes(error.code)) &&
+        equivalentGuardAcknowledgement(
+          currentCandidate.guardImpact?.acknowledgement,
+          guardReport,
+          activeAuthorityPath,
+        );
+      if (!guardReport.ok && !verifiedGuardDefect && !exactAuthorityOnlyGuardDrift) {
         throw failure('INTRINSIC_GUARD_VALIDATION_FAILED', JSON.stringify(guardReport.errors));
       }
     }
@@ -647,6 +735,14 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
           waitChain: verifiedReceipt?.actor.source.sessionId ?? options['wait-chain'],
           candidate: options.candidate,
           reason: options.reason,
+          baseSha: projection.headSha,
+          releaseHeadSha: projection.headSha,
+          guardImpact: guardReport && (guardReport.ok || exactAuthorityOnlyGuardDrift)
+            ? {
+                reportFingerprint: guardReport.reportFingerprint,
+                acknowledgement: guardReport.acknowledgementRequired,
+              }
+            : null,
           usage: verifiedReceipt
             ? Object.fromEntries(
                 ['supervisorModelCycles', 'supervisorUncachedInputTokens', 'teamModelCycles', 'teamUncachedInputTokens']
@@ -659,6 +755,7 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
     }
     if (transitioned.mutated !== false) {
       const tracked = readTrackedSupervisorAuthority(root, currentCandidate.domainId);
+      if (tracked.errors?.length) throw failure('INVALID_HEAD_SUPERVISOR_AUTHORITY', JSON.stringify(tracked.errors));
       if (!tracked.authority) throw failure('MISSING_TRACKED_SUPERVISOR_AUTHORITY');
       const events = tracked.authority.events;
       const event = createSupervisorEvent({
@@ -677,6 +774,9 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
     }
     let nextText = replaceLoopField(loopStateText, ACTIVE_CANDIDATES_KEY, JSON.stringify(transitioned.records));
     nextText = replaceLoopField(nextText, 'step', transitioned.activeCandidate.state);
+    if (options.action === 'derive-repair') {
+      nextText = replaceLoopField(nextText, 'baseSha', transitioned.activeCandidate.baseSha);
+    }
     if (transitioned.mutated !== false) writeFileSync(loopPath, nextText);
     return {
       ok: true,

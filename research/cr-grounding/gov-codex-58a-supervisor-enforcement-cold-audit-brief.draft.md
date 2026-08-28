@@ -47,6 +47,38 @@ actions stop, `refresh-fingerprint` requires the supervisor plus exact owner and
 guard evidence, acceptance/authority drift cannot be refreshed, the old event
 prefix remains intact, and canonical context stays below 12 KiB afterward.
 
+Create an actual semantic git commit in a temporary repository. Confirm the
+declared base remains immutable, the only pre-bind post-commit exception is an
+ancestor/exact-tree/semantic-clean `push-ready` candidate, push recording binds
+the current commit once as `releaseHeadSha`, and CI/deploy/ship reject a
+different HEAD including a same-tree metadata commit. Exercise a post-commit
+repair and confirm the new candidate uses the current HEAD as its base without
+changing acceptance, authority, counters, roles, or waits.
+
+Audit the terminal authority append independently. Only the exact active-domain
+path may leave the semantic fingerprint; HEAD events must be a strict immutable
+prefix and appended sequence/hash/receipt-plan/actor/usage/counter/state/scope/
+lineage/wait/ledger evidence must validate offline. Confirm the terminal
+fingerprint binds the exact path and latest event hash. Test truncation,
+rewrite, damaged hash or receipt, another domain, extra paths, and an existing
+HEAD authority beyond the bounded reader size; none may be treated as a missing
+predecessor or a terminal green.
+
+Reproduce the workflow's real terminal CI shape: commit the audited/deployed
+semantic release head `S`, bind `releaseHeadSha=S`, then commit only the
+verified authority/ledger/loop terminal successor `T`. The terminal verifier
+must accept `base=S, head=T` without rebinding the release head, and must reject
+a different release base, semantic bytes in `T`, or any extra path. This narrow
+R0 successor must not weaken the live same-tree-different-HEAD rejection before
+CI, deploy, and ship.
+
+Mutate a later receipt while recomputing its outer event hash. A shorter prefix
+for the same session and a different SHA-256 at the same byte length must both
+fail offline and must not enter the terminal lane. Separately confirm that a
+truly absent predecessor uses the missing code while probe execution,
+permission, object-integrity, oversized, malformed, and read failures use an
+explicit integrity/read-failure code.
+
 Return findings only, counted as BLOCKER/HIGH/MEDIUM/LOW. Return
 `GOV-CODEX-58A-AUDIT-OK` only when all four counts are zero on the exact
 fingerprint.

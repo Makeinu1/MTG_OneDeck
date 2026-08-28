@@ -4,6 +4,8 @@ import { existsSync, lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { collectChangedFiles } from './checks/change-detector.mjs';
+
 import {
   buildSupervisorProjection,
   compactActiveCandidate,
@@ -12,6 +14,7 @@ import {
 } from './lib/supervisor-state.mjs';
 import {
   readTrackedSupervisorAuthority,
+  supervisorAuthorityPath,
   verifySupervisorAuthority,
 } from './lib/supervisor-authority.mjs';
 
@@ -47,15 +50,25 @@ export function hashTreeEntries(entries) {
 }
 
 export function computeTreeFingerprint(root, filePaths) {
+  let activeAuthorityPath = null;
+  if (!filePaths) {
+    try {
+      const ledger = JSON.parse(readFileSync(resolve(root, LEDGER_PATH), 'utf8'));
+      const domainId = findActiveSupervisedDomainId(ledger);
+      activeAuthorityPath = domainId ? supervisorAuthorityPath(domainId) : null;
+    } catch {
+      activeAuthorityPath = null;
+    }
+  }
   const paths =
     filePaths ??
     execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
       cwd: root,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-    })
+      })
       .split('\0')
-      .filter((path) => path && !path.startsWith('research/cr-grounding/supervisor-events/'));
+      .filter((path) => path && path !== activeAuthorityPath);
   const entries = paths.map((path) => {
     const absolutePath = resolve(root, path);
     if (!existsSync(absolutePath)) return { path, kind: 'deleted' };
@@ -722,6 +735,8 @@ export function buildContextProjection({
   loopStateText = '',
   treeFingerprint,
   trackedSupervisorVerification = null,
+  baseIsAncestor,
+  semanticWorkingTreeClean,
 }) {
   const errors = [
     ...validateLedgerShape(ledger, 'working tree'),
@@ -812,8 +827,14 @@ export function buildContextProjection({
     : selected?.deliveryClass === 'player-outcome'
       ? selected
       : null;
+  const parsedLoopCandidates = parseCandidateRecords(loopStateText);
+  const loopCandidate = parsedLoopCandidates.records?.find((entry) => entry?.state !== 'repair-required') ??
+    parsedLoopCandidates.records?.at(-1) ?? null;
+  const supervisedLoopBaseSha = findActiveSupervisedDomainId(safeLedger)
+    ? loopCandidate?.baseSha
+    : null;
   const loopState = parseLoopState(loopStateText, {
-    headSha,
+    headSha: supervisedLoopBaseSha ?? headSha,
     treeFingerprint,
     domainStatuses,
   });
@@ -824,6 +845,8 @@ export function buildContextProjection({
     loopState,
     headSha,
     treeFingerprint,
+    baseIsAncestor: baseIsAncestor ?? loopCandidate?.baseSha === headSha,
+    semanticWorkingTreeClean: semanticWorkingTreeClean ?? true,
   });
   const supervisorErrorStart = errors.length;
   errors.push(...supervisor.errors);
@@ -948,7 +971,9 @@ export function createContextProjection(root, domainId, options = {}) {
     const parsed = parseCandidateRecords(loopStateText);
     const loopCandidate = parsed.records?.find((candidate) => candidate?.state !== 'repair-required') ??
       parsed.records?.at(-1) ?? null;
-    trackedSupervisorVerification = tracked.authority && loopCandidate
+    trackedSupervisorVerification = tracked.errors?.length
+      ? { ok: false, errors: tracked.errors }
+      : tracked.authority && loopCandidate
       ? verifySupervisorAuthority({
           authority: tracked.authority,
           headAuthority: tracked.headAuthority,
@@ -957,6 +982,31 @@ export function createContextProjection(root, domainId, options = {}) {
           completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
         })
       : { ok: false, errors: [{ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY', path: tracked.relativePath }] };
+  }
+  const parsedLoop = parseCandidateRecords(loopStateText);
+  const activeLoopCandidate = parsedLoop.records?.find((entry) => entry?.state !== 'repair-required') ??
+    parsedLoop.records?.at(-1) ?? null;
+  let baseIsAncestor = activeLoopCandidate?.baseSha === headSha;
+  if (activeLoopCandidate?.baseSha && !baseIsAncestor) {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', activeLoopCandidate.baseSha, headSha], {
+        cwd: root,
+        stdio: ['ignore', 'ignore', 'ignore'],
+      });
+      baseIsAncestor = true;
+    } catch {
+      baseIsAncestor = false;
+    }
+  }
+  let semanticWorkingTreeClean = false;
+  try {
+    const activeAuthorityPath = activeLoopCandidate?.domainId
+      ? supervisorAuthorityPath(activeLoopCandidate.domainId)
+      : null;
+    semanticWorkingTreeClean = collectChangedFiles({ cwd: root, base: headSha }).files
+      .every((path) => path === activeAuthorityPath);
+  } catch {
+    semanticWorkingTreeClean = false;
   }
   return buildContextProjection({
     ledger,
@@ -967,6 +1017,8 @@ export function createContextProjection(root, domainId, options = {}) {
     loopStateText,
     treeFingerprint,
     trackedSupervisorVerification,
+    baseIsAncestor,
+    semanticWorkingTreeClean,
   });
 }
 

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -25,6 +25,7 @@ import {
   createSupervisorBootstrap,
   createSupervisorEvent,
   deriveUsageReceipt,
+  readTrackedSupervisorAuthority,
   supervisorAuthorityPath,
   verifySupervisorAuthority,
   verifyUsageReceipt,
@@ -162,6 +163,8 @@ const project = (records, overrides = {}) => {
     domainId,
     loopStateText: loopText(records, overrides.step, overrides.base, overrides.tree, overrides.milestone),
     treeFingerprint,
+    baseIsAncestor: overrides.baseIsAncestor,
+    semanticWorkingTreeClean: overrides.semanticWorkingTreeClean,
     trackedSupervisorVerification: overrides.trackedSupervisorVerification ?? {
       ok: true,
       errors: [],
@@ -210,6 +213,41 @@ describe('GOV-CODEX-58A supervisor state', () => {
     expect(project([candidateFixture(override)]).health.errors).toEqual(
       expect.arrayContaining([expect.objectContaining({ code })]),
     );
+  });
+
+  it('allows only the one unbound push-ready post-commit head and then pins it exactly', () => {
+    const committedHead = 'f'.repeat(40);
+    const pending = candidateFixture({
+      state: 'push-ready',
+      baseSha: committedHead,
+      counters: {
+        ...emptyCandidateCounters(),
+        implementerLineages: 1,
+        coldAuditorLineages: 1,
+        auditWaitChains: 1,
+        fullChecks: 1,
+      },
+      lineages: {
+        implementer: [{ id: 'impl-1', compactions: 0, freshContinuations: 0 }],
+        coldAuditor: [{ id: 'audit-1', compactions: 0, freshContinuations: 0 }],
+      },
+      waitChains: { audit: ['audit-1'], ci: [] },
+    });
+    expect(project([pending], { base: committedHead, baseIsAncestor: true }).health.ok).toBe(true);
+    expect(project([pending], { base: committedHead, baseIsAncestor: false }).health.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'CANDIDATE_BASE_NOT_ANCESTOR' })]),
+    );
+    expect(project([pending], {
+      base: committedHead,
+      baseIsAncestor: true,
+      semanticWorkingTreeClean: false,
+    }).health.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'POST_COMMIT_SEMANTIC_WORKTREE_DRIFT' }),
+    ]));
+    const pinned = { ...structuredClone(pending), baseSha: headSha, releaseHeadSha: committedHead };
+    expect(project([pinned]).health.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'CANDIDATE_RELEASE_HEAD_SHA_MISMATCH' }),
+    ]));
   });
 
   it('fails explicit-domain context when multiple active candidates or ledger implementations exist', () => {
@@ -319,7 +357,7 @@ describe('GOV-CODEX-58A supervisor state', () => {
     const derived = applyProgramAction({
       records: required.records,
       action: 'derive-repair',
-      options: { candidate: 'M1-candidate-2' },
+      options: { candidate: 'M1-candidate-2', baseSha: headSha },
       policy: { limits: limits() },
     });
     expect(derived.activeCandidate).toMatchObject({
@@ -602,12 +640,13 @@ describe('GOV-CODEX-58A supervisor state', () => {
     })).toThrow(/cannot perform this action/);
 
     const pushReady = candidateFixture({ state: 'push-ready' });
-    const pushed = applyProgramAction({ records: [pushReady], action: 'record-semantic-push', policy: { limits: limits() } });
-    expect(() => applyProgramAction({ records: pushed.records, action: 'record-semantic-push', policy: { limits: limits() } }))
+    const releaseHeadSha = 'f'.repeat(40);
+    const pushed = applyProgramAction({ records: [pushReady], action: 'record-semantic-push', options: { releaseHeadSha }, policy: { limits: limits() } });
+    expect(() => applyProgramAction({ records: pushed.records, action: 'record-semantic-push', options: { releaseHeadSha }, policy: { limits: limits() } }))
       .toThrow(/semanticPushes/);
     const replacementReady = candidateFixture({ state: 'push-ready', repairOf: 'M1-candidate-0' });
-    const replacement = applyProgramAction({ records: [replacementReady], action: 'record-replacement-push', policy: { limits: limits() } });
-    expect(() => applyProgramAction({ records: replacement.records, action: 'record-replacement-push', policy: { limits: limits() } }))
+    const replacement = applyProgramAction({ records: [replacementReady], action: 'record-replacement-push', options: { releaseHeadSha }, policy: { limits: limits() } });
+    expect(() => applyProgramAction({ records: replacement.records, action: 'record-replacement-push', options: { releaseHeadSha }, policy: { limits: limits() } }))
       .toThrow(/replacementPushes/);
   });
 });
@@ -659,6 +698,26 @@ function guardRepoFixture({ full = false } = {}) {
   const base = git(root, ['rev-parse', 'HEAD']);
   write(root, 'src/value.mjs', 'export const value = 2;\n');
   return { root, base };
+}
+
+function pushReadyCandidate(baseSha, candidateTreeFingerprint) {
+  return candidateFixture({
+    state: 'push-ready',
+    baseSha,
+    treeFingerprint: candidateTreeFingerprint,
+    counters: {
+      ...emptyCandidateCounters(),
+      implementerLineages: 1,
+      coldAuditorLineages: 1,
+      auditWaitChains: 1,
+      fullChecks: 1,
+    },
+    lineages: {
+      implementer: [{ id: SESSION_IDS.implementer, compactions: 0, freshContinuations: 0 }],
+      coldAuditor: [{ id: SESSION_IDS.auditor, compactions: 0, freshContinuations: 0 }],
+    },
+    waitChains: { audit: [SESSION_IDS.auditor], ci: [] },
+  });
 }
 
 const SESSION_IDS = {
@@ -776,6 +835,123 @@ function usageAuthorityFixture(root, candidate, { writeAuthority = true } = {}) 
 }
 
 describe('GOV-CODEX-58A tracked authority and verified receipts', () => {
+  it('reads a tracked HEAD authority above Node default maxBuffer and reports malformed HEAD bytes', () => {
+    const root = mkdtempSync(join(tmpdir(), 'onedeck-large-authority-'));
+    git(root, ['init', '-q']);
+    git(root, ['config', 'user.email', 'fixture@example.com']);
+    git(root, ['config', 'user.name', 'Fixture']);
+    const path = supervisorAuthorityPath('M1');
+    write(root, path, `${JSON.stringify({ version: 1, padding: 'x'.repeat(3_200_000) })}\n`);
+    git(root, ['add', '.']);
+    git(root, ['commit', '-qm', 'large authority']);
+    const large = readTrackedSupervisorAuthority(root, 'M1');
+    expect(large.errors).toEqual([]);
+    expect(large.headAuthority.padding).toHaveLength(3_200_000);
+
+    const oversizedRoot = mkdtempSync(join(tmpdir(), 'onedeck-oversized-authority-'));
+    git(oversizedRoot, ['init', '-q']);
+    git(oversizedRoot, ['config', 'user.email', 'fixture@example.com']);
+    git(oversizedRoot, ['config', 'user.name', 'Fixture']);
+    write(oversizedRoot, path, `${JSON.stringify({ version: 1, padding: 'x'.repeat(17_000_000) })}\n`);
+    git(oversizedRoot, ['add', '.']);
+    git(oversizedRoot, ['commit', '-qm', 'oversized head authority']);
+    write(oversizedRoot, path, '{"version":1}\n');
+    expect(readTrackedSupervisorAuthority(oversizedRoot, 'M1').errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'HEAD_SUPERVISOR_AUTHORITY_READ_FAILED', path }),
+    ]));
+
+    const malformedRoot = mkdtempSync(join(tmpdir(), 'onedeck-malformed-authority-'));
+    git(malformedRoot, ['init', '-q']);
+    git(malformedRoot, ['config', 'user.email', 'fixture@example.com']);
+    git(malformedRoot, ['config', 'user.name', 'Fixture']);
+    write(malformedRoot, path, '{not-json\n');
+    git(malformedRoot, ['add', '.']);
+    git(malformedRoot, ['commit', '-qm', 'malformed head authority']);
+    write(malformedRoot, path, '{"version":1}\n');
+    expect(readTrackedSupervisorAuthority(malformedRoot, 'M1').errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'HEAD_SUPERVISOR_AUTHORITY_READ_FAILED', path }),
+    ]));
+  });
+
+  it('fails context and program steps closed on corrupt or failed HEAD authority probes while preserving bootstrap absence', () => {
+    const prepare = () => {
+      const { root, base } = guardRepoFixture({ full: true });
+      const tree = computeTreeFingerprint(root);
+      const candidate = pushReadyCandidate(base, tree);
+      const usage = usageAuthorityFixture(root, candidate);
+      write(root, '.claude/loop-state.md', loopText([candidate], candidate.state, base, tree));
+      git(root, ['add', '.']);
+      git(root, ['commit', '-qm', 'semantic candidate with tracked authority']);
+      return { root, usage, path: supervisorAuthorityPath('M1') };
+    };
+
+    const bootstrap = guardRepoFixture({ full: true });
+    const bootstrapPath = supervisorAuthorityPath('M1');
+    write(bootstrap.root, bootstrapPath, '{"version":1}\n');
+    expect(readTrackedSupervisorAuthority(bootstrap.root, 'M1')).toMatchObject({
+      headAuthority: null,
+      errors: [],
+    });
+
+    const corrupt = prepare();
+    const blob = git(corrupt.root, ['rev-parse', `HEAD:${corrupt.path}`]);
+    rmSync(join(corrupt.root, '.git', 'objects', blob.slice(0, 2), blob.slice(2)));
+    for (const result of [
+      createContextProjection(corrupt.root, 'M1', { sessionsRoot: corrupt.usage.sessionsRoot }),
+      runProgramStep({ root: corrupt.root, domain: 'M1', action: 'inspect', 'sessions-root': corrupt.usage.sessionsRoot }),
+    ]) {
+      const errors = result.health?.errors ?? result.errors;
+      expect(errors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: 'HEAD_SUPERVISOR_AUTHORITY_PROBE_FAILED', path: corrupt.path }),
+      ]));
+    }
+    expect(runProgramStep({
+      root: corrupt.root,
+      domain: 'M1',
+      action: 'bootstrap-authority',
+      'sessions-root': corrupt.usage.sessionsRoot,
+    }).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'INVALID_HEAD_SUPERVISOR_AUTHORITY' }),
+    ]));
+
+    const failedProbe = prepare();
+    const bin = mkdtempSync(join(tmpdir(), 'onedeck-git-wrapper-'));
+    const wrapper = join(bin, 'git');
+    const realGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    writeFileSync(wrapper, [
+      '#!/bin/sh',
+      'if [ "$1" = "cat-file" ]; then',
+      '  echo "forced cat-file probe failure" >&2',
+      '  exit 77',
+      'fi',
+      `exec ${JSON.stringify(realGit)} "$@"`,
+    ].join('\n'));
+    chmodSync(wrapper, 0o755);
+    const originalPath = process.env.PATH;
+    process.env.PATH = `${bin}:${originalPath}`;
+    try {
+      for (const result of [
+        createContextProjection(failedProbe.root, 'M1', { sessionsRoot: failedProbe.usage.sessionsRoot }),
+        runProgramStep({ root: failedProbe.root, domain: 'M1', action: 'inspect', 'sessions-root': failedProbe.usage.sessionsRoot }),
+      ]) {
+        const errors = result.health?.errors ?? result.errors;
+        expect(errors).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: 'HEAD_SUPERVISOR_AUTHORITY_PROBE_FAILED', path: failedProbe.path }),
+        ]));
+      }
+      expect(runProgramStep({
+        root: failedProbe.root,
+        domain: 'M1',
+        action: 'bootstrap-authority',
+        'sessions-root': failedProbe.usage.sessionsRoot,
+      }).errors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: 'INVALID_HEAD_SUPERVISOR_AUTHORITY' }),
+      ]));
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  }, 15_000);
+
   it('derives full evidence only from a strict caller-minimal receipt plan', () => {
     const root = mkdtempSync(join(tmpdir(), 'onedeck-authority-'));
     const candidate = candidateFixture();
@@ -957,6 +1133,53 @@ describe('GOV-CODEX-58A tracked authority and verified receipts', () => {
 });
 
 describe('GOV-CODEX-58A guard impact and preflight', () => {
+  it('rejects other-domain authority drift before every release action and same-domain history rewrite', () => {
+    for (const action of ['record-semantic-push', 'start-ci-wait', 'mark-ci-passed', 'deploy', 'ship']) {
+      const { root, base } = guardRepoFixture({ full: true });
+      const tree = computeTreeFingerprint(root);
+      const candidate = pushReadyCandidate(base, tree);
+      usageAuthorityFixture(root, candidate);
+      write(root, '.claude/loop-state.md', loopText([candidate], candidate.state, base, tree));
+      write(root, supervisorAuthorityPath('OTHER'), '{"unexpected":true}\n');
+      expect(runProgramStep({ root, domain: 'M1', action }).errors).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          code: 'UNEXPECTED_SUPERVISOR_AUTHORITY_DRIFT',
+          path: supervisorAuthorityPath('OTHER'),
+        }),
+      ]));
+    }
+
+    const { root, base } = guardRepoFixture({ full: true });
+    const tree = computeTreeFingerprint(root);
+    const candidate = pushReadyCandidate(base, tree);
+    const usage = usageAuthorityFixture(root, candidate);
+    write(root, '.claude/loop-state.md', loopText([candidate], candidate.state, base, tree));
+    const path = supervisorAuthorityPath('M1');
+    git(root, ['add', '.']);
+    git(root, ['commit', '-qm', 'semantic candidate with authority']);
+    const rewritten = JSON.parse(readFileSync(join(root, path), 'utf8'));
+    rewritten.events[0].reason = 'rewritten';
+    rewritten.events[0].eventHash = createSupervisorEvent({
+      ...rewritten.events[0],
+      candidate: rewritten.events[0].candidate,
+      receipt: rewritten.events[0].receipt,
+    }).eventHash;
+    write(root, path, `${JSON.stringify(rewritten, null, 2)}\n`);
+    const rejected = runProgramStep({
+      root,
+      base,
+      domain: 'M1',
+      action: 'record-semantic-push',
+      'receipt-plan': usage.receiptPlanPath,
+      'sessions-root': usage.sessionsRoot,
+      'actor-session': SESSION_IDS.supervisor,
+      'actor-role': 'supervisor',
+    });
+    expect(rejected.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'TRACKED_SUPERVISOR_HISTORY_REWRITTEN' }),
+    ]));
+  }, 15_000);
+
   it('reaches canonical derive-repair only from a verified repair-required tracked record', () => {
     const { root, base } = guardRepoFixture({ full: true });
     const tree = computeTreeFingerprint(root);
@@ -1017,6 +1240,8 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
     expect(readFileSync(join(root, '.claude/loop-state.md'), 'utf8')).toBe(repairLoop);
 
     writeFileSync(authorityPath, validAuthority);
+    git(root, ['commit', '--allow-empty', '-qm', 'post-commit repair head']);
+    const repairBase = git(root, ['rev-parse', 'HEAD']);
     const derived = runProgramStep({
       root,
       base,
@@ -1033,6 +1258,8 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
       id: 'M1-candidate-2',
       repairOf: candidate.id,
       state: 'implementing',
+      baseSha: repairBase,
+      releaseHeadSha: null,
       acceptanceFingerprint: candidate.acceptanceFingerprint,
       authority: candidate.authority,
       counters: required.activeCandidate.counters,
@@ -1042,6 +1269,7 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
       action: 'derive-repair',
       candidate: { id: 'M1-candidate-2', repairOf: candidate.id },
     });
+    expect(readFileSync(join(root, '.claude/loop-state.md'), 'utf8')).toContain(`baseSha: ${repairBase}`);
   }, 15_000);
 
   it('bootstraps a STOP atomically and survives JSONL growth during the next long guard action', () => {
@@ -1353,7 +1581,11 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
   it('makes release preflight consume the same supervisor, budget, permission, and guard result', () => {
     const { root, base } = guardRepoFixture({ full: true });
     const tree = computeTreeFingerprint(root);
-    const candidate = candidateFixture({ baseSha: base, treeFingerprint: tree });
+    const candidate = candidateFixture({
+      baseSha: base,
+      treeFingerprint: tree,
+      repairOf: 'M1-candidate-0',
+    });
     const usage = usageAuthorityFixture(root, candidate);
     write(root, '.claude/loop-state.md', loopText([candidate], candidate.state, base, tree));
     const beforeInspect = readFileSync(join(root, '.claude/loop-state.md'), 'utf8');
@@ -1428,7 +1660,6 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
       'full-check',
       'mark-full-check-passed',
       'commit',
-      'push',
     ]) {
       const result = runProgramStep({
         root,
@@ -1442,6 +1673,20 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
       });
       expect(result.ok, `${action}: ${JSON.stringify(result.errors)}`).toBe(true);
     }
+    git(root, ['add', '.']);
+    git(root, ['commit', '-qm', 'semantic candidate']);
+    const pushed = runProgramStep({
+      root,
+      base,
+      domain: 'M1',
+      action: 'record-replacement-push',
+      receipt: usage.receiptPath,
+      'sessions-root': usage.sessionsRoot,
+      'actor-session': SESSION_IDS.supervisor,
+      'actor-role': 'supervisor',
+    });
+    expect(pushed.ok, `push: ${JSON.stringify(pushed.errors)}`).toBe(true);
+    expect(pushed.activeCandidate.releaseHeadSha).toBe(git(root, ['rev-parse', 'HEAD']));
     const supervisorAction = (action) => runProgramStep({
       root,
       base,
@@ -1452,12 +1697,22 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
       'actor-session': SESSION_IDS.supervisor,
       'actor-role': 'supervisor',
     });
-    expect(supervisorAction('start-ci-wait').ok).toBe(true);
+    const ciWait = supervisorAction('start-ci-wait');
+    expect(ciWait.ok, JSON.stringify(ciWait.errors)).toBe(true);
     expect(supervisorAction('mark-ci-passed').ok).toBe(true);
     expect(supervisorAction('deploy').ok).toBe(true);
     const shipped = supervisorAction('ship');
     expect(shipped.ok, JSON.stringify(shipped.errors)).toBe(true);
     expect(shipped.activeCandidate.state).toBe('shipped');
+    git(root, ['commit', '--allow-empty', '-qm', 'metadata-only different head']);
+    expect(runProgramStep({
+      root,
+      domain: 'M1',
+      action: 'inspect',
+      'sessions-root': usage.sessionsRoot,
+    }).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'CANDIDATE_RELEASE_HEAD_SHA_MISMATCH' }),
+    ]));
   }, 15_000);
 
   it('makes context, budget, and preflight reject the same old token-counter schema', () => {

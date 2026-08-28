@@ -72,3 +72,25 @@ The Judge owns these criteria. One failure fails the scenario.
 20. The permanent contract states the requested outcome and human decision
     boundary, and the executable supervisor proves all-true candidate authority
     proceeds without repeated permission prompts.
+21. A real semantic git commit may advance a `push-ready` candidate only when
+    its immutable base is an ancestor, its HEAD/working semantic tree equals
+    the audited fingerprint, and semantic drift is absent. Push recording binds
+    current HEAD once as `releaseHeadSha`; later CI/deploy/ship rejects every
+    other HEAD, including a same-tree metadata commit.
+22. A repair candidate uses the current HEAD as its new immutable base while
+    preserving acceptance, authority, cumulative counters, lineage, waits, and
+    append-only history. `baseSha` is never overwritten merely to disguise a
+    post-commit mismatch.
+23. Only the exact active-domain supervisor event file can be a terminal
+    append. The verifier proves the HEAD prefix, event/receipt/hash/counter/state
+    chain and ledger agreement; truncation, rewrite, corruption, another domain,
+    unreadable oversized HEAD authority, or any extra path fails closed. A
+    valid append leaves the semantic fingerprint unchanged and changes the
+    terminal fingerprint by its exact path and latest event hash. In CI for the
+    terminal metadata commit, `releaseHeadSha` equals the already checked and
+    deployed semantic diff base, while the successor HEAD may differ only by
+    the verified terminal paths; it is never rebound to the metadata commit.
+24. Offline receipt history is prefix-monotonic per verified session: byte
+    lengths never decrease, and the hash at an identical byte length never
+    changes. A confirmed missing predecessor is distinct from any probe/read
+    execution or integrity failure, and both categories fail closed.

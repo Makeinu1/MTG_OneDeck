@@ -67,7 +67,8 @@ warning-only green.
 `codex:context` and `codex:program-step` project one nested
 `activeCandidate` object with at least:
 
-- `id`, `domainId`, `state`, `baseSha`, and `treeFingerprint`;
+- `id`, `domainId`, `state`, immutable candidate `baseSha`, optional
+  `releaseHeadSha`, and `treeFingerprint`;
 - exact candidate-specific authority and its tracked source, falling back to
   `goalPolicy.activeProgram.authority` only when no override exists;
 - cumulative counters, implementer/auditor lineage slots, audit/CI wait-chain
@@ -80,10 +81,21 @@ Candidate authority overrides are allowed only when synchronized in
 `authoritySource`. Conversation intent, autonomy, notes, and loop-state text
 cannot grant permission.
 
-The active candidate is conflicting and execution stops when its ID/domain,
-selected domain, base SHA, fingerprint, tracked authority, or loop-state record
-disagree. Multiple unshipped implementation candidates also stop; one cannot
-be hidden by choosing an explicit domain.
+Before the semantic commit, the candidate base, loop base, and HEAD must agree.
+The one post-commit exception is `push-ready` with no `releaseHeadSha`: the
+declared base must be an ancestor of HEAD, HEAD and the semantic working tree
+must equal the audited tree fingerprint, and no nonterminal semantic drift may
+exist. The push-record transition then binds current HEAD once as
+`releaseHeadSha` without changing `baseSha`. CI wait, CI pass, deploy, and ship
+require exact `HEAD === releaseHeadSha`; even a same-tree metadata commit is a
+different release head. A repair candidate declares the then-current HEAD as
+its new immutable base and clears `releaseHeadSha`.
+
+Outside that narrow transition, the active candidate is conflicting and
+execution stops when its ID/domain, selected domain, base SHA, release head,
+fingerprint, tracked authority, or loop-state record disagree. Multiple
+unshipped implementation candidates also stop; one cannot be hidden by
+choosing an explicit domain.
 
 ## State and STOP semantics
 
@@ -167,6 +179,30 @@ SHA-256 of stable JSON containing both treeFingerprint and the tracked
 authority's latest eventHash. The auditor verifies both components and the
 derived envelope before returning findings; after the first commit, the same
 event-prefix is additionally anchored by HEAD.
+
+Reading the HEAD authority is bounded but fail closed: an existing oversized,
+unreadable, or malformed file is an explicit integrity error, never treated as
+an absent predecessor. After the semantic release commit, only the exact
+active-domain authority file may join the terminal lane. Its HEAD event list
+must be an immutable prefix and every appended event must pass sequence,
+previous/event hash, receipt-plan anchor, actor/usage, counter/state,
+authority/acceptance, lineage/wait, and ledger consistency checks. A verified
+authority append is excluded from the semantic fingerprint and contributes its
+exact path and latest event hash to the terminal fingerprint. Wildcards,
+another domain, truncation, rewrite, or damaged receipts remain semantic or
+fail closed. The R0 terminal metadata commit is a successor of the already
+checked and deployed semantic release head: its `releaseHeadSha` must equal the
+terminal diff base, not the metadata successor HEAD, and that successor may
+contain only the verified terminal paths. This exception is available only
+after ship evidence; it does not relax the live exact-HEAD checks for CI,
+deploy, or ship.
+
+For every verified session in the receipt history, prefix byte lengths are
+nondecreasing and an identical byte length has one immutable SHA-256. A shorter
+later prefix or same-length/different-hash receipt is corrupt even when its
+outer event hash is recomputed. The predecessor existence probe distinguishes
+confirmed absence from command, permission, object-integrity, and read errors;
+all fail closed, but only confirmed absence uses the missing-predecessor code.
 
 ## Guard-impact contract
 

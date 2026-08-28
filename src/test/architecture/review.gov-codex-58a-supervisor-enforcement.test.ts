@@ -25,6 +25,7 @@ type CandidateProjection = {
   id?: string;
   domainId?: string;
   state?: string;
+  releaseHeadSha?: string | null;
   authoritySource?: string;
   counters?: Record<string, number>;
   lineages?: { implementer?: unknown[]; coldAuditor?: unknown[] };
@@ -139,6 +140,7 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     expect(context.activeCandidate).toMatchObject({
       domainId: DOMAIN_ID,
       authoritySource: 'user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release',
+      releaseHeadSha: null,
     });
     expect(context.permissionRequired).toEqual({
       commit: false,
@@ -190,7 +192,12 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     const supervisorAuthority = read('scripts/lib/supervisor-authority.mjs');
     expect(programStep).toContain('--receipt-plan');
     expect(programStep).toContain('refresh-fingerprint');
+    expect(programStep).toContain('releaseHeadSha');
     expect(supervisorAuthority).toContain('deriveUsageReceipt');
+    expect(supervisorAuthority).toContain('HEAD_SUPERVISOR_AUTHORITY_READ_FAILED');
+    const terminalMetadata = read('scripts/checks/terminal-metadata.mjs');
+    expect(terminalMetadata).toContain('verifySupervisorAuthorityOffline');
+    expect(terminalMetadata).toContain('latestEventHash');
     const skill = read('.agents/skills/mtg-onedeck-development/SKILL.md');
     const workflow = read(
       '.agents/skills/mtg-onedeck-development/references/document-governance.md',
@@ -214,6 +221,10 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     expect(contract).toContain('is never itself a user decision');
     expect(contract).toContain('release full-check attempt objective: 2');
     expect(contract).toContain('a final green');
+    expect(contract).toContain('releaseHeadSha');
+    expect(contract).toContain('immutable prefix');
+    expect(contract).toContain('terminal diff base');
+    expect(contract).toContain('same-length/different-hash');
 
     const tracked = execFileSync('git', ['diff', '--name-only', BASE_SHA, '--'], {
       cwd: ROOT,

@@ -104,6 +104,7 @@ const CANDIDATE_REQUIRED_KEYS = [
 ];
 
 const CANDIDATE_OPTIONAL_KEYS = [
+  'releaseHeadSha',
   'repairOf',
   'repairReason',
   'stopReason',
@@ -375,6 +376,8 @@ function validateCandidateShape(candidate, context, errors) {
     !isNonEmptyString(candidate.domainId) ||
     !SUPPORTED_CANDIDATE_STATES.includes(candidate.state) ||
     !/^[0-9a-f]{40}$/.test(candidate.baseSha) ||
+    (candidate.releaseHeadSha !== undefined && candidate.releaseHeadSha !== null &&
+      !/^[0-9a-f]{40}$/.test(candidate.releaseHeadSha)) ||
     !/^[0-9a-f]{64}$/.test(candidate.treeFingerprint) ||
     !/^[0-9a-f]{64}$/.test(candidate.acceptanceFingerprint)
   ) {
@@ -441,6 +444,17 @@ function validateCandidateShape(candidate, context, errors) {
   }
 }
 
+export function validateCandidateRecord(candidate, policy) {
+  const errors = [];
+  if (!policy?.limits) return { ok: false, errors: [{ code: 'MISSING_SUPERVISION_LIMITS' }] };
+  validateCandidateShape(candidate, { policy }, errors);
+  return { ok: errors.length === 0, errors };
+}
+
+export function resolveSupervisionPolicy(ledger, selectedDomainId) {
+  return validateSupervisionPolicy(ledger, selectedDomainId);
+}
+
 export function buildSupervisorProjection({
   ledger,
   selectedDomainId,
@@ -448,6 +462,8 @@ export function buildSupervisorProjection({
   loopState,
   headSha,
   treeFingerprint,
+  baseIsAncestor = false,
+  semanticWorkingTreeClean = true,
 }) {
   const errors = [];
   const policyResult = validateSupervisionPolicy(ledger, selectedDomainId);
@@ -503,7 +519,17 @@ export function buildSupervisorProjection({
     if (activeCandidate.domainId !== supervisedDomainId) errors.push({ code: 'CANDIDATE_DOMAIN_MISMATCH' });
     if (loopState?.milestone !== activeCandidate.domainId) errors.push({ code: 'CANDIDATE_LOOP_MILESTONE_MISMATCH' });
     if (loopState?.step !== activeCandidate.state) errors.push({ code: 'CANDIDATE_LOOP_STATE_MISMATCH' });
-    if (activeCandidate.baseSha !== loopState?.baseSha || activeCandidate.baseSha !== headSha) errors.push({ code: 'CANDIDATE_BASE_SHA_MISMATCH' });
+    if (activeCandidate.baseSha !== loopState?.baseSha) errors.push({ code: 'CANDIDATE_BASE_SHA_MISMATCH' });
+    const releaseHeadSha = activeCandidate.releaseHeadSha ?? null;
+    if (releaseHeadSha !== null) {
+      if (releaseHeadSha !== headSha) errors.push({ code: 'CANDIDATE_RELEASE_HEAD_SHA_MISMATCH' });
+    } else if (activeCandidate.baseSha !== headSha) {
+      if (activeCandidate.state !== 'push-ready') errors.push({ code: 'CANDIDATE_BASE_SHA_MISMATCH' });
+      else {
+        if (!baseIsAncestor) errors.push({ code: 'CANDIDATE_BASE_NOT_ANCESTOR' });
+        if (!semanticWorkingTreeClean) errors.push({ code: 'POST_COMMIT_SEMANTIC_WORKTREE_DRIFT' });
+      }
+    }
     if (activeCandidate.treeFingerprint !== loopState?.treeFingerprint || activeCandidate.treeFingerprint !== treeFingerprint) errors.push({ code: 'CANDIDATE_TREE_FINGERPRINT_MISMATCH' });
     if (activeCandidate.acceptanceFingerprint !== expectedAcceptance) errors.push({ code: 'CANDIDATE_ACCEPTANCE_MISMATCH' });
     if (
@@ -536,6 +562,7 @@ export function compactActiveCandidate(candidate) {
   const acknowledgement = candidate.guardImpact?.acknowledgement;
   return {
     ...candidate,
+    releaseHeadSha: candidate.releaseHeadSha ?? null,
     guardImpact: {
       reportFingerprint: candidate.guardImpact?.reportFingerprint ?? null,
       acknowledged: acknowledgement !== null && acknowledgement !== undefined,

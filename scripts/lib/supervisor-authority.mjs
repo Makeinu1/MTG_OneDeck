@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -8,6 +8,7 @@ import { readSessionUsageReceipt } from '../codex-usage.mjs';
 import { COUNTER_KEYS } from './supervisor-state.mjs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HEAD_AUTHORITY_MAX_BUFFER = 16 * 1024 * 1024;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const exactKeys = (value, keys) => isObject(value) &&
@@ -52,6 +53,55 @@ export function hashSupervisorEvent(event) {
 const receiptSourceKeys = ['byteLength', 'prefixSha256', 'role', 'sessionId'];
 const receiptPlanSourceKeys = ['role', 'sessionId'];
 const RECEIPT_ROLES = ['supervisor', 'implementer', 'cold-auditor', 'team', 'ci-wait'];
+
+export function readGitPathAtRef(root, ref, path, { maxBuffer = HEAD_AUTHORITY_MAX_BUFFER } = {}) {
+  const objectPath = `${ref}:${path}`;
+  const probe = spawnSync('git', ['cat-file', '-e', objectPath], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    maxBuffer,
+  });
+  if (probe.error) {
+    return { status: 'error', text: null, phase: 'probe', error: probe.error.message };
+  }
+  if (probe.status !== 0) {
+    const stderr = probe.stderr ?? '';
+    const absentMessages = [
+      `path '${path}' does not exist in '${ref}'`,
+      `path '${path}' exists on disk, but not in '${ref}'`,
+    ];
+    if (probe.status === 128 && absentMessages.some((message) => stderr.includes(message))) {
+      return { status: 'absent', text: null, phase: 'probe', error: null };
+    }
+    return {
+      status: 'error',
+      text: null,
+      phase: 'probe',
+      error: `git cat-file probe failed with status ${probe.status}: ${stderr.trim() || 'no stderr'}`,
+    };
+  }
+  try {
+    return {
+      status: 'present',
+      text: execFileSync('git', ['show', objectPath], {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer,
+      }),
+      phase: 'read',
+      error: null,
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      text: null,
+      phase: 'read',
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 function readVerifiedSource(source, sessionsRoot, { requireCurrent = false } = {}) {
   if (
@@ -276,6 +326,111 @@ function compareCandidateHistory(previousEvent, event, errors) {
     stableJson(current.authority) !== stableJson(previous.authority) ||
     current.authoritySource !== previous.authoritySource
   ) errors.push({ code: 'TRACKED_CANDIDATE_SCOPE_CHANGED' });
+  if (current.baseSha !== previous.baseSha && event.action !== 'derive-repair') {
+    errors.push({ code: 'TRACKED_CANDIDATE_BASE_CHANGED' });
+  }
+  if (current.treeFingerprint !== previous.treeFingerprint && event.action !== 'refresh-fingerprint') {
+    errors.push({ code: 'TRACKED_CANDIDATE_TREE_CHANGED', sequence: event.sequence });
+  }
+  const previousReleaseHead = previous.releaseHeadSha ?? null;
+  const currentReleaseHead = current.releaseHeadSha ?? null;
+  if (previousReleaseHead !== currentReleaseHead) {
+    const releaseBound = previousReleaseHead === null && currentReleaseHead !== null &&
+      ['push', 'record-semantic-push', 'record-replacement-push'].includes(event.action);
+    const releaseClearedForRepair = previousReleaseHead !== null && currentReleaseHead === null &&
+      event.action === 'derive-repair';
+    if (!releaseBound && !releaseClearedForRepair) errors.push({ code: 'TRACKED_RELEASE_HEAD_CHANGED' });
+  }
+  const usageCounters = new Set([
+    'supervisorModelCycles', 'supervisorUncachedInputTokens',
+    'teamModelCycles', 'teamUncachedInputTokens',
+  ]);
+  const actionCounters = {
+    'local-write': ['implementerLineages'],
+    'start-implementation': ['implementerLineages'],
+    'start-correction': ['correctionWaves', 'implementerLineages'],
+    audit: ['auditWaitChains', 'coldAuditorLineages'],
+    'start-audit': ['auditWaitChains', 'coldAuditorLineages'],
+    'start-audit-wait': ['auditWaitChains'],
+    'full-check': ['fullChecks'],
+    'start-full-check': ['fullChecks'],
+    push: [current.repairOf ? 'replacementPushes' : 'semanticPushes'],
+    'record-semantic-push': ['semanticPushes'],
+    'record-replacement-push': ['replacementPushes'],
+    'start-ci-wait': ['ciWaitChains'],
+  };
+  const allowedCounters = new Set([...usageCounters, ...(actionCounters[event.action] ?? [])]);
+  for (const key of COUNTER_KEYS) {
+    const delta = current.counters?.[key] - previous.counters?.[key];
+    if (delta !== 0 && !allowedCounters.has(key)) {
+      errors.push({ code: 'TRACKED_UNAUTHORIZED_COUNTER_CHANGE', sequence: event.sequence, counter: key });
+    }
+    if (!usageCounters.has(key) && delta > 1) {
+      errors.push({ code: 'TRACKED_INVALID_COUNTER_DELTA', sequence: event.sequence, counter: key });
+    }
+  }
+  const lineageActions = new Set([
+    'local-write', 'start-implementation', 'start-correction', 'audit', 'start-audit',
+    'compact-implementer', 'continue-implementer', 'compact-cold-auditor', 'continue-cold-auditor',
+  ]);
+  if (!lineageActions.has(event.action) && stableJson(current.lineages) !== stableJson(previous.lineages)) {
+    errors.push({ code: 'TRACKED_UNAUTHORIZED_LINEAGE_CHANGE', sequence: event.sequence });
+  }
+  const waitActions = new Set(['audit', 'start-audit', 'start-audit-wait', 'start-ci-wait']);
+  if (!waitActions.has(event.action) && stableJson(current.waitChains) !== stableJson(previous.waitChains)) {
+    errors.push({ code: 'TRACKED_UNAUTHORIZED_WAIT_CHANGE', sequence: event.sequence });
+  }
+  const stateTransitions = {
+    'local-write': [['contract-frozen', 'implementing']],
+    'start-implementation': [['contract-frozen', 'implementing']],
+    'mark-audit-ready': [['implementing', 'audit-ready']],
+    'start-correction': [['audit-repairable', 'implementing']],
+    audit: [['implementing', 'audit-ready'], ['audit-ready', 'audit-ready']],
+    'start-audit': [['audit-ready', 'audit-ready']],
+    'start-audit-wait': [['audit-ready', 'audit-ready']],
+    'record-audit-failure': [['audit-ready', 'audit-repairable']],
+    'record-audit-stop': [['audit-ready', 'audit-failed-stop'], ['audit-repairable', 'audit-failed-stop']],
+    'mark-audited': [['audit-ready', 'audited']],
+    'full-check': [['audited', 'audited']],
+    'start-full-check': [['audited', 'audited']],
+    'mark-full-check-passed': [['audited', 'full-check-passed']],
+    'require-repair': [
+      ['audited', 'repair-required'], ['full-check-passed', 'repair-required'],
+      ['push-ready', 'repair-required'], ['ci-passed', 'repair-required'],
+    ],
+    commit: [['full-check-passed', 'push-ready']],
+    'record-commit': [['full-check-passed', 'push-ready']],
+    push: [['push-ready', 'push-ready']],
+    'record-semantic-push': [['push-ready', 'push-ready']],
+    'record-replacement-push': [['push-ready', 'push-ready']],
+    'start-ci-wait': [['push-ready', 'push-ready']],
+    'mark-ci-passed': [['push-ready', 'ci-passed']],
+    deploy: [['ci-passed', 'ci-passed']],
+    'record-deploy': [['ci-passed', 'ci-passed']],
+    ship: [['ci-passed', 'shipped']],
+    'mark-shipped': [['ci-passed', 'shipped']],
+    'derive-repair': [['repair-required', 'implementing']],
+    'repair-resume': [['audit-failed-stop', 'audit-repairable']],
+    'user-reopen': [['audit-failed-stop', 'audit-repairable']],
+    'acknowledge-guard-impact': null,
+    'refresh-fingerprint': null,
+    'compact-implementer': null,
+    'continue-implementer': null,
+    'compact-cold-auditor': null,
+    'continue-cold-auditor': null,
+  };
+  const sameStateActions = new Set([
+    'acknowledge-guard-impact', 'refresh-fingerprint',
+    'compact-implementer', 'continue-implementer', 'compact-cold-auditor', 'continue-cold-auditor',
+  ]);
+  const allowedStates = stateTransitions[event.action];
+  if (
+    !(event.action in stateTransitions) ||
+    (sameStateActions.has(event.action) && previous.state !== current.state) ||
+    (allowedStates && !allowedStates.some(([from, to]) => previous.state === from && current.state === to))
+  ) {
+    errors.push({ code: 'TRACKED_INVALID_STATE_TRANSITION', sequence: event.sequence, action: event.action });
+  }
 }
 
 const IMPLEMENTER_ACTIONS = new Set([
@@ -287,7 +442,7 @@ const AUDITOR_ACTIONS = new Set([
   'compact-cold-auditor', 'continue-cold-auditor',
 ]);
 
-function expectedActorRole(action) {
+export function expectedSupervisorActorRole(action) {
   if (IMPLEMENTER_ACTIONS.has(action)) return 'implementer';
   if (AUDITOR_ACTIONS.has(action)) return 'cold-auditor';
   return 'supervisor';
@@ -302,7 +457,7 @@ function verifyEventActorAndUsage(event, receipt, errors) {
   const verifiedRole = sources.get(event.actorSessionId);
   if (
     verifiedRole !== event.actorRole ||
-    event.actorRole !== expectedActorRole(event.action)
+    event.actorRole !== expectedSupervisorActorRole(event.action)
   ) errors.push({ code: 'TRACKED_EVENT_ACTOR_MISMATCH', sequence: event.sequence });
   for (const key of ['supervisorModelCycles', 'supervisorUncachedInputTokens', 'teamModelCycles', 'teamUncachedInputTokens']) {
     if (event.candidate.counters?.[key] !== receipt.observed[key]) {
@@ -363,6 +518,119 @@ function validateActorBoundDelta(previousEvent, event, errors) {
   }
 }
 
+function validateOfflineReceipt(event, anchorReceipt, errors) {
+  const receipt = event?.receipt;
+  if (
+    !exactKeys(receipt, ['baseline', 'contextFingerprint', 'observed', 'participants', 'supervisor', 'version']) ||
+    receipt.version !== 1 ||
+    !/^[0-9a-f]{64}$/.test(receipt.contextFingerprint ?? '') ||
+    !exactKeys(receipt.baseline, ['modelCycles', 'uncachedInputTokens']) ||
+    !Number.isSafeInteger(receipt.baseline.modelCycles) || receipt.baseline.modelCycles < 0 ||
+    !Number.isSafeInteger(receipt.baseline.uncachedInputTokens) || receipt.baseline.uncachedInputTokens < 0 ||
+    !exactKeys(receipt.supervisor, receiptSourceKeys) || receipt.supervisor.role !== 'supervisor' ||
+    !Array.isArray(receipt.participants) || receipt.participants.length === 0 ||
+    receipt.participants.some((source) => !exactKeys(source, receiptSourceKeys))
+  ) {
+    errors.push({ code: 'INVALID_TRACKED_USAGE_RECEIPT', sequence: event?.sequence ?? null });
+    return;
+  }
+  if (receipt.contextFingerprint !== event?.candidate?.treeFingerprint) {
+    errors.push({ code: 'TRACKED_RECEIPT_TREE_FINGERPRINT_MISMATCH', sequence: event?.sequence ?? null });
+  }
+  const sources = [receipt.supervisor, ...receipt.participants];
+  if (
+    sources.some((source) =>
+      !UUID.test(source.sessionId) || !RECEIPT_ROLES.includes(source.role) ||
+      !Number.isSafeInteger(source.byteLength) || source.byteLength <= 0 ||
+      !/^[0-9a-f]{64}$/.test(source.prefixSha256)) ||
+    new Set(sources.map((source) => source.sessionId)).size !== sources.length
+  ) errors.push({ code: 'INVALID_TRACKED_USAGE_RECEIPT_SOURCE', sequence: event.sequence });
+  if (!receiptPlanMatchesAnchor(receipt, anchorReceipt)) {
+    errors.push({ code: 'TRACKED_RECEIPT_PLAN_MISMATCH', sequence: event.sequence });
+  }
+  if (
+    !exactKeys(receipt.observed, [
+      'cachedInputTokens', 'supervisorModelCycles', 'supervisorUncachedInputTokens',
+      'teamModelCycles', 'teamUncachedInputTokens', 'totalInputTokens',
+    ]) ||
+    Object.values(receipt.observed ?? {}).some((value) => !Number.isSafeInteger(value) || value < 0) ||
+    receipt.observed.supervisorModelCycles === 0 || receipt.observed.supervisorUncachedInputTokens === 0 ||
+    receipt.observed.teamModelCycles === 0 || receipt.observed.teamUncachedInputTokens === 0
+  ) errors.push({ code: 'INVALID_TRACKED_USAGE_RECEIPT_OBSERVED', sequence: event.sequence });
+  verifyEventActorAndUsage(event, { ok: true, observed: receipt.observed }, errors);
+}
+
+function validateReceiptSourceProgress(previousReceipt, receipt, sequence, errors) {
+  if (!previousReceipt || !receipt) return;
+  const previousSources = [previousReceipt.supervisor, ...(previousReceipt.participants ?? [])]
+    .filter(isObject);
+  const sourcesBySessionId = new Map(previousSources.map((source) => [source.sessionId, source]));
+  for (const source of [receipt.supervisor, ...(receipt.participants ?? [])].filter(isObject)) {
+    const previous = sourcesBySessionId.get(source.sessionId);
+    if (!previous || !Number.isSafeInteger(previous.byteLength) || !Number.isSafeInteger(source.byteLength)) continue;
+    if (source.byteLength < previous.byteLength) {
+      errors.push({
+        code: 'TRACKED_RECEIPT_SOURCE_LENGTH_DECREASED',
+        sequence,
+        sessionId: source.sessionId,
+        previousByteLength: previous.byteLength,
+        byteLength: source.byteLength,
+      });
+    } else if (source.byteLength === previous.byteLength && source.prefixSha256 !== previous.prefixSha256) {
+      errors.push({
+        code: 'TRACKED_RECEIPT_SOURCE_PREFIX_REWRITTEN',
+        sequence,
+        sessionId: source.sessionId,
+        byteLength: source.byteLength,
+      });
+    }
+  }
+}
+
+export function verifySupervisorAuthorityOffline({
+  authority,
+  headAuthority = null,
+  loopCandidate = null,
+  completeAutonomy = false,
+} = {}) {
+  const errors = [];
+  if (!exactKeys(authority, ['candidateId', 'domainId', 'events', 'version']) || authority.version !== 1 || !Array.isArray(authority.events) || authority.events.length === 0) {
+    return { ok: false, errors: [{ code: 'INVALID_TRACKED_SUPERVISOR_AUTHORITY' }] };
+  }
+  if (headAuthority) {
+    if (!Array.isArray(headAuthority.events) || authority.events.length < headAuthority.events.length) {
+      errors.push({ code: 'TRACKED_SUPERVISOR_HISTORY_TRUNCATED' });
+    } else if (stableJson(authority.events.slice(0, headAuthority.events.length)) !== stableJson(headAuthority.events)) {
+      errors.push({ code: 'TRACKED_SUPERVISOR_HISTORY_REWRITTEN' });
+    }
+  }
+  const receiptPlanAnchor = authority.events[0]?.receipt;
+  let previousEvent = null;
+  for (let index = 0; index < authority.events.length; index += 1) {
+    const event = authority.events[index];
+    if (
+      !exactKeys(event, ['action', 'actorRole', 'actorSessionId', 'candidate', 'eventHash', 'previousHash', 'reason', 'receipt', 'sequence']) ||
+      event.sequence !== index || event.previousHash !== (previousEvent?.eventHash ?? null) ||
+      event.eventHash !== hashSupervisorEvent(event) || !UUID.test(event.actorSessionId)
+    ) errors.push({ code: 'INVALID_TRACKED_SUPERVISOR_EVENT', sequence: index });
+    if (event.action === 'repair-resume' && !completeAutonomy) {
+      errors.push({ code: 'TRACKED_REPAIR_RESUME_REQUIRES_COMPLETE_AUTONOMY', sequence: index });
+    }
+    validateOfflineReceipt(event, receiptPlanAnchor, errors);
+    validateReceiptSourceProgress(previousEvent?.receipt, event.receipt, index, errors);
+    if (previousEvent) compareCandidateHistory(previousEvent, event, errors);
+    validateActorBoundDelta(previousEvent, event, errors);
+    previousEvent = event;
+  }
+  const latest = authority.events.at(-1);
+  if (
+    authority.domainId !== latest?.candidate?.domainId ||
+    authority.candidateId !== latest?.candidate?.id ||
+    (loopCandidate && stableJson(latest?.candidate) !== stableJson(loopCandidate))
+  ) errors.push({ code: 'TRACKED_SUPERVISOR_LOOP_MISMATCH' });
+  return { ok: errors.length === 0, errors, latestEvent: latest };
+}
+
 export function verifySupervisorAuthority({
   authority,
   headAuthority = null,
@@ -405,6 +673,7 @@ export function verifySupervisorAuthority({
     });
     errors.push(...receipt.errors.map((error) => ({ ...error, sequence: index })));
     verifyEventActorAndUsage(event, receipt, errors);
+    validateReceiptSourceProgress(previousEvent?.receipt, event.receipt, index, errors);
     if (previousEvent) compareCandidateHistory(previousEvent, event, errors);
     validateActorBoundDelta(previousEvent, event, errors);
     latestReceipt = receipt;
@@ -421,17 +690,28 @@ export function verifySupervisorAuthority({
 export function readTrackedSupervisorAuthority(root, domainId) {
   const relativePath = supervisorAuthorityPath(domainId);
   const path = resolve(root, relativePath);
-  if (!existsSync(path)) return { relativePath, authority: null, headAuthority: null };
-  const authority = JSON.parse(readFileSync(path, 'utf8'));
+  const authority = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null;
   let headAuthority = null;
-  try {
-    headAuthority = JSON.parse(execFileSync('git', ['show', `HEAD:${relativePath}`], {
-      cwd: root,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }));
-  } catch {
-    // An exact bootstrap has no HEAD predecessor yet.
+  const errors = [];
+  const headRead = readGitPathAtRef(root, 'HEAD', relativePath);
+  if (headRead.status === 'error') {
+    errors.push({
+      code: headRead.phase === 'probe'
+        ? 'HEAD_SUPERVISOR_AUTHORITY_PROBE_FAILED'
+        : 'HEAD_SUPERVISOR_AUTHORITY_READ_FAILED',
+      path: relativePath,
+      message: headRead.error,
+    });
+  } else if (headRead.status === 'present') {
+    try {
+      headAuthority = JSON.parse(headRead.text);
+    } catch (error) {
+      errors.push({
+        code: 'HEAD_SUPERVISOR_AUTHORITY_READ_FAILED',
+        path: relativePath,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
-  return { relativePath, authority, headAuthority };
+  return { relativePath, authority, headAuthority, errors };
 }

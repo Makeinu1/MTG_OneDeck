@@ -6,6 +6,19 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { collectChangedFiles } from './change-detector.mjs';
+import {
+  computeAcceptanceFingerprint,
+  findActiveSupervisedDomainId,
+  parseCandidateRecords,
+  resolveCandidateAuthority,
+  resolveSupervisionPolicy,
+  validateCandidateRecord,
+} from '../lib/supervisor-state.mjs';
+import {
+  readGitPathAtRef,
+  supervisorAuthorityPath,
+  verifySupervisorAuthorityOffline,
+} from '../lib/supervisor-authority.mjs';
 
 export const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 export const LOOP_STATE_PATH = '.claude/loop-state.md';
@@ -41,6 +54,7 @@ const REQUIRED_USAGE_FIELDS = Object.freeze([
   'elapsedMs',
 ]);
 const TERMINAL_FIELD_SET = new Set(TERMINAL_FIELDS);
+const GIT_TEXT_MAX_BUFFER = 16 * 1024 * 1024;
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 
@@ -69,6 +83,7 @@ const gitText = (root, args) =>
     cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    maxBuffer: GIT_TEXT_MAX_BUFFER,
   });
 
 const readBaseText = (root, baseSha, path) => {
@@ -77,6 +92,11 @@ const readBaseText = (root, baseSha, path) => {
   } catch {
     return null;
   }
+};
+
+export const readRequiredBaseText = (root, baseSha, path) => {
+  const result = readGitPathAtRef(root, baseSha, path, { maxBuffer: GIT_TEXT_MAX_BUFFER });
+  return { status: result.status, text: result.text, error: result.error };
 };
 
 const readCandidateEntry = (root, path) => {
@@ -149,7 +169,7 @@ function validateStructuredUsage(baseLedger, candidateLedger, errors) {
   }
 }
 
-function validateTerminalTransitions(baseLedger, candidateLedger, reasons) {
+function validateTerminalTransitions(baseLedger, candidateLedger, reasons, terminalAuthorityProof = null) {
   const allowedStatuses = new Set(Object.keys(candidateLedger?.statusDefinitions ?? {}));
   const collections = ['domains', 'plannedSequence'];
   const maps = Object.fromEntries(collections.flatMap((collection) => [
@@ -188,17 +208,26 @@ function validateTerminalTransitions(baseLedger, candidateLedger, reasons) {
     const afterStatus = afterDomain.status;
     if (beforeStatus === 'shipped' && afterStatus !== 'shipped') {
       reasons.push({ code: 'SHIPPED_STATUS_REGRESSION', domainId: id, from: beforeStatus, to: afterStatus });
-    } else if (beforeStatus !== afterStatus && !(beforeStatus === 'audited' && afterStatus === 'shipped')) {
+    } else if (
+      beforeStatus !== afterStatus &&
+      !(beforeStatus === 'audited' && afterStatus === 'shipped') &&
+      !(
+        beforeStatus === 'implemented-not-audited' && afterStatus === 'shipped' &&
+        terminalAuthorityProof?.domainId === id &&
+        terminalAuthorityProof?.candidateState === 'shipped'
+      )
+    ) {
       reasons.push({ code: 'INVALID_TERMINAL_STATUS_TRANSITION', domainId: id, from: beforeStatus, to: afterStatus });
     }
   }
 }
 
-export function computeCandidateFingerprints({ root = process.cwd(), ledger } = {}) {
+export function computeCandidateFingerprints({ root = process.cwd(), ledger, terminalAuthority = null } = {}) {
   const candidateLedger = ledger ?? JSON.parse(readFileSync(resolve(root, LEDGER_PATH), 'utf8'));
   const semanticEntries = [];
   for (const path of candidatePaths(root)) {
     if (path === LOOP_STATE_PATH) continue;
+    if (terminalAuthority?.path === path) continue;
     const entry = readCandidateEntry(root, path);
     if (entry.kind === 'deleted') continue;
     if (path === LEDGER_PATH && entry.kind === 'file') {
@@ -217,7 +246,116 @@ export function computeCandidateFingerprints({ root = process.cwd(), ledger } = 
     : '';
   return {
     semanticFingerprint: hashEntries(semanticEntries),
-    terminalFingerprint: hash(`${stableStringify(ledgerTerminal)}\0${loopText}`),
+    terminalFingerprint: hash(`${stableStringify(ledgerTerminal)}\0${loopText}\0${stableStringify(terminalAuthority)}`),
+  };
+}
+
+function validateTerminalAuthority({ root, baseSha, baseLedger, candidateLedger, changedPaths, reasons, parseErrors }) {
+  const baseDomainId = findActiveSupervisedDomainId(baseLedger);
+  const candidateDomainId = findActiveSupervisedDomainId(candidateLedger);
+  const supervisorPaths = changedPaths.filter((path) => path.startsWith('research/cr-grounding/supervisor-events/'));
+  if (supervisorPaths.length === 0) {
+    if (baseDomainId && changedPaths.includes(LOOP_STATE_PATH)) {
+      reasons.push({ code: 'MISSING_TERMINAL_AUTHORITY_APPEND', domainId: baseDomainId });
+    }
+    return null;
+  }
+  if (!baseDomainId) {
+    reasons.push({ code: 'MISSING_ACTIVE_TERMINAL_AUTHORITY_DOMAIN' });
+    return null;
+  }
+  const expectedPath = supervisorAuthorityPath(baseDomainId);
+  for (const path of supervisorPaths) {
+    if (path !== expectedPath) reasons.push({ code: 'UNEXPECTED_TERMINAL_AUTHORITY_PATH', path, expectedPath });
+  }
+  if (supervisorPaths.length !== 1 || supervisorPaths[0] !== expectedPath) return null;
+  const validationReasonStart = reasons.length;
+  const parseErrorStart = parseErrors.length;
+  const baseRead = readRequiredBaseText(root, baseSha, expectedPath);
+  if (baseRead.status === 'absent') {
+    reasons.push({ code: 'MISSING_TERMINAL_AUTHORITY_PREDECESSOR', path: expectedPath });
+    return null;
+  }
+  if (baseRead.status === 'error') {
+    reasons.push({ code: 'TERMINAL_AUTHORITY_PREDECESSOR_READ_FAILED', path: expectedPath, message: baseRead.error });
+    return null;
+  }
+  let currentText = '';
+  try {
+    currentText = readFileSync(resolve(root, expectedPath), 'utf8');
+  } catch (error) {
+    reasons.push({ code: 'TERMINAL_AUTHORITY_CURRENT_READ_FAILED', path: expectedPath, message: error instanceof Error ? error.message : String(error) });
+    return null;
+  }
+  const baseAuthority = parseJson(baseRead.text, `${baseSha}:${expectedPath}`, parseErrors);
+  const authority = parseJson(currentText, expectedPath, parseErrors);
+  if (!baseAuthority || !authority) return null;
+  const verification = verifySupervisorAuthorityOffline({
+    authority,
+    headAuthority: baseAuthority,
+    completeAutonomy: candidateLedger?.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+  });
+  reasons.push(...verification.errors);
+  if (authority.events?.length <= baseAuthority.events?.length) {
+    reasons.push({ code: 'TERMINAL_AUTHORITY_APPEND_REQUIRED', path: expectedPath });
+  }
+  const latestCandidate = verification.latestEvent?.candidate;
+  const policyResult = resolveSupervisionPolicy(baseLedger, baseDomainId);
+  reasons.push(...policyResult.errors);
+  const baseDomain = baseLedger?.domains?.find((entry) => entry?.id === baseDomainId);
+  const basePlanned = baseLedger?.plannedSequence?.find((entry) => entry?.domainId === baseDomainId);
+  const resolvedAuthority = resolveCandidateAuthority({
+    domain: baseDomain,
+    planned: basePlanned,
+    activeProgram: baseLedger?.goalPolicy?.activeProgram,
+  });
+  reasons.push(...resolvedAuthority.errors);
+  for (const event of authority.events ?? []) {
+    const candidateValidation = validateCandidateRecord(event?.candidate, policyResult.policy);
+    reasons.push(...candidateValidation.errors.map((error) => ({ ...error, sequence: event?.sequence ?? null })));
+    if (event?.candidate?.acceptanceFingerprint !== computeAcceptanceFingerprint(baseDomain)) {
+      reasons.push({ code: 'TERMINAL_CANDIDATE_ACCEPTANCE_MISMATCH', sequence: event?.sequence ?? null });
+    }
+    if (
+      stableStringify(event?.candidate?.authority) !== stableStringify(resolvedAuthority.authority) ||
+      event?.candidate?.authoritySource !== resolvedAuthority.authoritySource
+    ) reasons.push({ code: 'TERMINAL_CANDIDATE_AUTHORITY_MISMATCH', sequence: event?.sequence ?? null });
+  }
+  if (latestCandidate?.releaseHeadSha !== baseSha) {
+    reasons.push({
+      code: 'TERMINAL_RELEASE_HEAD_SHA_MISMATCH',
+      expected: baseSha,
+      actual: latestCandidate?.releaseHeadSha ?? null,
+    });
+  }
+  if (
+    authority.domainId !== baseDomainId || latestCandidate?.domainId !== baseDomainId ||
+    authority.candidateId !== latestCandidate?.id
+  ) reasons.push({ code: 'TERMINAL_AUTHORITY_DOMAIN_CANDIDATE_MISMATCH', domainId: baseDomainId });
+  if (candidateDomainId && candidateDomainId !== baseDomainId && latestCandidate?.state !== 'shipped') {
+    reasons.push({ code: 'TERMINAL_AUTHORITY_LEDGER_MISMATCH', activeDomainId: candidateDomainId });
+  }
+  const domain = candidateLedger?.domains?.find((entry) => entry?.id === baseDomainId);
+  const planned = candidateLedger?.plannedSequence?.find((entry) => entry?.domainId === baseDomainId);
+  if (!domain || !planned || domain.status !== planned.status) {
+    reasons.push({ code: 'TERMINAL_AUTHORITY_LEDGER_MISMATCH', domainId: baseDomainId });
+  }
+  const loopText = existsSync(resolve(root, LOOP_STATE_PATH))
+    ? readFileSync(resolve(root, LOOP_STATE_PATH), 'utf8')
+    : '';
+  const loopRecords = parseCandidateRecords(loopText).records;
+  const loopCandidate = loopRecords?.find((entry) => entry?.state !== 'repair-required') ?? loopRecords?.at(-1) ?? null;
+  const loopComplete = /^milestone:\s*complete\s*$/m.test(loopText);
+  if (
+    loopCandidate && stableStringify(loopCandidate) !== stableStringify(latestCandidate) ||
+    (!loopCandidate && !(loopComplete && latestCandidate?.state === 'shipped'))
+  ) reasons.push({ code: 'TERMINAL_AUTHORITY_LOOP_MISMATCH', domainId: baseDomainId });
+  if (reasons.length > validationReasonStart || parseErrors.length > parseErrorStart) return null;
+  return {
+    path: expectedPath,
+    latestEventHash: verification.latestEvent?.eventHash ?? null,
+    domainId: baseDomainId,
+    candidateState: latestCandidate?.state ?? null,
   };
 }
 
@@ -238,9 +376,6 @@ export function verifyTerminalMetadata({ root = process.cwd(), base, head = 'HEA
       errors: [{ code: 'INVALID_BASE', message: error instanceof Error ? error.message : String(error) }],
     };
   }
-  for (const path of changes.files) {
-    if (!TERMINAL_ALLOWED_PATHS.includes(path)) reasons.push({ code: 'NON_TERMINAL_PATH', path });
-  }
   const candidateText = existsSync(resolve(root, LEDGER_PATH))
     ? readFileSync(resolve(root, LEDGER_PATH), 'utf8')
     : '';
@@ -252,11 +387,33 @@ export function verifyTerminalMetadata({ root = process.cwd(), base, head = 'HEA
     if (stableStringify(semanticLedger(candidateLedger)) !== stableStringify(semanticLedger(baseLedger))) {
       reasons.push({ code: 'SEMANTIC_LEDGER_CHANGE' });
     }
-    validateTerminalTransitions(baseLedger, candidateLedger, reasons);
+  }
+  const terminalAuthority = candidateLedger && baseLedger
+    ? validateTerminalAuthority({
+        root,
+        baseSha: changes.base,
+        baseLedger,
+        candidateLedger,
+        changedPaths: changes.files,
+        reasons,
+        parseErrors,
+      })
+    : null;
+  if (candidateLedger && baseLedger) {
+    validateTerminalTransitions(baseLedger, candidateLedger, reasons, terminalAuthority);
     validateStructuredUsage(baseLedger, candidateLedger, reasons);
   }
+  for (const path of changes.files) {
+    if (!TERMINAL_ALLOWED_PATHS.includes(path) && path !== terminalAuthority?.path) {
+      if (!path.startsWith('research/cr-grounding/supervisor-events/')) {
+        reasons.push({ code: 'NON_TERMINAL_PATH', path });
+      } else if (!reasons.some((reason) => reason.path === path)) {
+        reasons.push({ code: 'NON_TERMINAL_PATH', path });
+      }
+    }
+  }
   let fingerprints = { semanticFingerprint: null, terminalFingerprint: null };
-  if (candidateLedger) fingerprints = computeCandidateFingerprints({ root, ledger: candidateLedger });
+  if (candidateLedger) fingerprints = computeCandidateFingerprints({ root, ledger: candidateLedger, terminalAuthority });
   const lane = reasons.length === 0 && parseErrors.length === 0 ? 'terminal' : 'semantic';
   const errors = [...parseErrors];
   if (requireTerminal && lane !== 'terminal') errors.push(...reasons);
