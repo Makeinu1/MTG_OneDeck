@@ -96,6 +96,12 @@ the audit if the current tree does not match it.
     unchanged, reject any later repair/prior push/mismatch, and permit only
     re-verification of the same frozen acknowledgement after the one exact
     release head is bound?
+13. In a clean checkout with no volatile loop state, does guard verification
+    recover the raw acknowledgement only from a fully verified tracked
+    authority whose latest candidate and event identity match healthy context?
+    Does it keep `headSha` in the fingerprint and accept only exact equivalent
+    post-commit drift while missing acknowledgement, wildcard, byte/path/guard
+    drift, rewritten history, and mismatched candidate state remain hard-red?
 
 ## Required evidence
 
@@ -116,6 +122,13 @@ the audit if the current tree does not match it.
   `8b906a8...HEAD` release diff even though its immutable repair base remains
   `1e948c1...`, and exercise the zero-push/predecessor/ancestry/scope negative
   cases.
+- Reproduce semantic CI run `33248563800` at release HEAD
+  `465316ac8669101de510fcb2928518c24494dd51`: the protected O4P-09C review
+  must no longer fail because `.claude/loop-state.md` is absent. In a temporary
+  clean checkout, exercise the pre-commit acknowledgement/post-commit HEAD
+  equivalence positive and tampered-authority, missing-acknowledgement,
+  wildcard, changed-byte, changed-path, changed-guard, and changed-predecessor
+  negatives.
 - Return severity-counted BLOCKER/HIGH/MEDIUM/LOW findings with exact path and
   line evidence. If no finding exists, return `AUDIT-OK-PENDING-FULL-CHECK`.
 

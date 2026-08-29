@@ -309,6 +309,14 @@ and current unpublished HEAD. It changes neither candidate base nor release
 binding. The cumulative acknowledgement can be created only before the first
 push; after that one exact release head is bound, later release gates may
 re-verify the same frozen acknowledgement but cannot refresh or expand it.
+When volatile loop state is absent in a clean checkout, that re-verification
+may recover the raw acknowledgement only from a fully verified tracked
+supervisor authority whose latest candidate, sequence, and event hash match
+the healthy context projection. `headSha` remains part of the report identity;
+only an otherwise byte-for-byte equivalent acknowledgement may survive the
+commit-induced report-identity change. Missing acknowledgement, wildcard,
+rewritten history, or any path, owner, byte, guard, predecessor-reference,
+candidate, or tree-fingerprint drift remains hard-red.
 
 ## Freeze, audit, correction, and release
 

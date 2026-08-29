@@ -257,3 +257,40 @@ duplicate, conflicting, or counter-modified loop copies fail closed. This is a
 single-root-cause correction inside candidate 5 and does not change product,
 acceptance, authority, release base, or the audited first-commit boundaries.
 It does not pre-claim replacement audit or full-check closure.
+
+## Candidate 5 final audit, full check, and semantic CI finding
+
+- Frozen tree fingerprint:
+  `f9e19c015a907894d65830ad1c4a80e90c31ca864accfd200c53145a47cdd12b`
+- Final cold audit: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+- Full-check attempt: 5
+- Local result: PASS; Core 229 files / 2119 tests, DOM 382 files / 2649
+  tests, lint, TypeScript, production build, static verifiers, and O4P-07C
+  runtime all green
+- Release commit: `465316ac8669101de510fcb2928518c24494dd51`
+- Clean-checkout cumulative forbidden scan: PASS with `JUDGE-REAUTHORIZED`
+- Semantic CI: run `33248563800`, FAIL in the protected O4P-09C review
+
+The exact audited tree and local release check were green, and the clean
+forbidden scan accepted the original-base release diff. GitHub CI then exposed
+one clean-checkout guard-proof defect. `liveCandidatePathScope` invoked
+`guard-impact.mjs`; the volatile `.claude/loop-state.md` was absent, so the
+compact context candidate did not provide the raw acknowledgement stored in
+the verified tracked supervisor event. The report fingerprint also correctly
+changed when the semantic commit fixed a new `headSha`. The review therefore
+received a nonzero guard result even though acknowledged paths, owners, bytes,
+guard references, predecessor references, candidate identity, and tree
+fingerprint were unchanged. Product, runtime, CR, dependency, authority, and
+acceptance behavior were not implicated.
+
+Candidate 6 is the same-acceptance `guard-impact` repair at base
+`465316ac8669101de510fcb2928518c24494dd51`. It keeps `headSha` in the report.
+When volatile loop state cannot provide the raw acknowledgement, guard
+verification may recover it only from a fully verified tracked authority whose
+latest candidate, sequence, and event hash exactly match healthy context. It
+may then accept only the existing exact-equivalence case already used by the
+program-step release path. Missing acknowledgement, wildcard, rewritten or
+truncated authority, mismatched candidate identity/state, and any acknowledged
+byte, path, owner, guard, or predecessor-reference drift remain failures. This
+section records the CI finding and bounded repair; it does not pre-claim the
+replacement audit, final full check, CI, or Pages closure.

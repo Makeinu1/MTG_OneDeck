@@ -77,6 +77,15 @@ lineages, waits, and receipts remain immutable.
   predecessor with zero prior pushes and no release-head binding. After the
   one exact release head is bound, later gates may only re-verify the same
   frozen acknowledgement; they cannot refresh or expand it.
+- After a release commit fixes `HEAD`, a clean checkout without volatile loop
+  state must recover a raw guard acknowledgement only from a fully verified
+  tracked supervisor authority whose latest candidate, sequence, and hash
+  match the healthy context projection. Keeping `headSha` in the report, it may
+  accept only the already defined exact-equivalence case where report identity
+  changed but acknowledged paths, owners, bytes, guard references, predecessor
+  references, candidate identity, and tree fingerprint did not. Missing,
+  wildcard, rewritten, byte-drifted, or structurally different proof remains
+  hard-red.
 - One canonical `.agents/skills/mtg-onedeck-release/SKILL.md` provides
   `prepare`, `ship`, `resume`, and `verify` routing without granting external
   authority, and `.claude/commands/ship.md` is a compatibility pointer to it.

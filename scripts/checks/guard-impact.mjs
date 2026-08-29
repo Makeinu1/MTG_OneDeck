@@ -7,6 +7,11 @@ import { pathToFileURL } from 'node:url';
 
 import { createContextProjection } from '../codex-context.mjs';
 import { parseCandidateRecords } from '../lib/supervisor-state.mjs';
+import {
+  readTrackedSupervisorAuthority,
+  supervisorAuthorityPath,
+  verifySupervisorAuthorityOffline,
+} from '../lib/supervisor-authority.mjs';
 import { collectChangedFiles } from './change-detector.mjs';
 import { requiredOwner } from './ownership.mjs';
 
@@ -233,11 +238,36 @@ export function buildGuardImpact({ root = process.cwd(), base, domain, projectio
     predecessorHashReferenceIds: predecessorHashes.map((reference) => reference.id),
   };
   let candidate = activeProjection.activeCandidate ?? null;
+  let recoveredTrackedCandidate = false;
   if (candidate && !Object.hasOwn(candidate.guardImpact ?? {}, 'acknowledgement')) {
     const loopPath = resolve(root, '.claude/loop-state.md');
     if (existsSync(loopPath)) {
       const parsed = parseCandidateRecords(readFileSync(loopPath, 'utf8'));
       candidate = parsed.records?.find((record) => record?.id === candidate.id) ?? candidate;
+    }
+    if (!Object.hasOwn(candidate.guardImpact ?? {}, 'acknowledgement') && !existsSync(loopPath)) {
+      const tracked = readTrackedSupervisorAuthority(root, domain);
+      const latest = tracked.authority?.events?.at(-1);
+      const verified = tracked.errors.length === 0 && tracked.authority && tracked.headAuthority
+        ? verifySupervisorAuthorityOffline({
+            authority: tracked.authority,
+            headAuthority: tracked.headAuthority,
+            loopCandidate: latest?.candidate ?? null,
+            completeAutonomy: activeProjection.activeProgram?.autonomy?.mode === 'complete',
+          })
+        : { ok: false };
+      if (
+        activeProjection.health?.ok && activeProjection.trackedSupervisor?.ok === true &&
+        verified.ok && latest?.sequence === activeProjection.trackedSupervisor.latestSequence &&
+        latest?.eventHash === activeProjection.trackedSupervisor.latestEventHash &&
+        latest.candidate?.id === candidate.id && latest.candidate?.domainId === candidate.domainId &&
+        latest.candidate?.treeFingerprint === candidate.treeFingerprint &&
+        latest.candidate?.baseSha === candidate.baseSha && latest.candidate?.state === candidate.state &&
+        JSON.stringify(latest.candidate?.counters) === JSON.stringify(candidate.counters)
+      ) {
+        candidate = latest.candidate;
+        recoveredTrackedCandidate = true;
+      }
     }
   }
   const guardImpact = candidate?.guardImpact ?? null;
@@ -263,6 +293,14 @@ export function buildGuardImpact({ root = process.cwd(), base, domain, projectio
       }
     }
   }
+  if (
+    recoveredTrackedCandidate &&
+    errors.length === 2 &&
+    errors.every((error) => ['STALE_GUARD_REPORT_FINGERPRINT', 'GUARD_ACKNOWLEDGEMENT_MISMATCH'].includes(error.code)) &&
+    equivalentGuardAcknowledgement(guardImpact?.acknowledgement, {
+      guards, predecessorHashes, acknowledgementRequired,
+    }, supervisorAuthorityPath(domain))
+  ) errors.length = 0;
   return {
     ok: errors.length === 0,
     ...fingerprintInput,
