@@ -17,7 +17,8 @@ import {
   supervisorAuthorityPath,
   verifySupervisorAuthorityOffline,
 } from '../lib/supervisor-authority.mjs';
-import { buildGuardImpact, equivalentGuardAcknowledgement } from './guard-impact.mjs';
+import { buildGuardImpact } from './guard-impact.mjs';
+import { selectJudgeReauthorizationProof } from './judge-reauthorization-proof.mjs';
 import { isReviewPath, requiredOwner } from './ownership.mjs';
 
 // FORBIDDEN: 実装エージェントが変更してはならないファイル(検出時 exit 1)
@@ -103,11 +104,6 @@ function changedFiles(root = process.cwd()) {
       return arrow === -1 ? p : p.slice(arrow + 4);
     });
 }
-
-const PROVENANCE_ACTIONS = new Set([
-  'bootstrap', 'refresh-fingerprint', 'acknowledge-guard-impact',
-  'push', 'record-semantic-push', 'record-replacement-push',
-]);
 
 function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
   if (!base || existsSync('.claude/loop-state.md')) return { ok: false, code: 'CI_REAUTHORIZATION_REQUIRES_CLEAN_CHECKOUT' };
@@ -216,10 +212,24 @@ function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
     domain: domainId,
     projection: { activeCandidate: latestCandidate },
   });
-  const acknowledgement = latestCandidate.guardImpact?.acknowledgement;
-  if (!equivalentGuardAcknowledgement(acknowledgement, report, activeAuthorityPath)) {
-    return { ok: false, code: 'GUARD_ACKNOWLEDGEMENT_MISMATCH' };
-  }
+  const activeReport = report.baseSha === latestCandidate.baseSha
+    ? report
+    : buildGuardImpact({
+        root,
+        base: latestCandidate.baseSha,
+        domain: domainId,
+        projection: { activeCandidate: latestCandidate },
+      });
+  const proof = selectJudgeReauthorizationProof({
+    events: tracked.authority.events,
+    baseEventCount: baseAuthority?.events.length ?? 0,
+    latestCandidate,
+    cumulativeReport: report,
+    activeReport,
+    activeAuthorityPath,
+  });
+  if (!proof.ok) return proof;
+  const acknowledgement = proof.acknowledgement;
   const judgePaths = files.filter((path) => requiredOwner(path) === 'judge' && path !== activeAuthorityPath);
   const acknowledgedPaths = new Map((acknowledgement?.paths ?? []).map((entry) => [entry.path, entry]));
   if (judgePaths.some((path) => acknowledgedPaths.get(path)?.owner !== 'judge')) {
@@ -228,14 +238,6 @@ function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
   if (forbiddenPaths.some((path) => acknowledgedPaths.get(path)?.owner !== 'judge')) {
     return { ok: false, code: 'UNACKNOWLEDGED_FORBIDDEN_PATH' };
   }
-  const hasSupervisorProvenance = tracked.authority.events
-    .slice(baseAuthority?.events.length ?? 0)
-    .some((event) =>
-    event.candidate?.id === latestCandidate.id &&
-    event.actorRole === 'supervisor' &&
-    PROVENANCE_ACTIONS.has(event.action) &&
-    equivalentGuardAcknowledgement(event.candidate?.guardImpact?.acknowledgement, report, activeAuthorityPath));
-  if (!hasSupervisorProvenance) return { ok: false, code: 'MISSING_SUPERVISOR_ACKNOWLEDGEMENT_PROVENANCE' };
   return { ok: true, domainId, paths: judgePaths };
 }
 

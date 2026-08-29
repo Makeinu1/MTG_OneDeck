@@ -7,6 +7,7 @@ import { describe, expect, test } from 'vitest';
 
 import { computeTreeFingerprint } from '../codex-context.mjs';
 import { buildGuardImpact } from '../checks/guard-impact.mjs';
+import { selectJudgeReauthorizationProof } from '../checks/judge-reauthorization-proof.mjs';
 import { computeAcceptanceFingerprint, emptyCandidateCounters } from '../lib/supervisor-state.mjs';
 import {
   createSupervisorBootstrap,
@@ -47,6 +48,100 @@ const SUPERVISOR_ID = '11111111-1111-4111-8111-111111111111';
 const IMPLEMENTER_ID = '22222222-2222-4222-8222-222222222222';
 const AUDITOR_ID = '33333333-3333-4333-8333-333333333333';
 const candidateAuthority = { commit: true, deploy: true, localWrites: true, push: true, ship: true };
+
+function guardAcknowledgement(candidate, paths) {
+  return {
+    reportFingerprint: '0'.repeat(64),
+    candidateId: candidate.id,
+    candidateTreeFingerprint: candidate.treeFingerprint,
+    paths,
+    guardReferenceIds: [],
+    predecessorHashReferenceIds: [],
+  };
+}
+
+function proofReport(acknowledgement) {
+  return {
+    acknowledgementRequired: structuredClone(acknowledgement),
+    guards: [],
+    predecessorHashes: [],
+  };
+}
+
+function proofSelectorFixture() {
+  const candidate = {
+    id: 'candidate-2',
+    domainId: DOMAIN_ID,
+    baseSha: '1'.repeat(40),
+    treeFingerprint: '2'.repeat(64),
+    acceptanceFingerprint: '3'.repeat(64),
+    authority: candidateAuthority,
+    authoritySource: 'user-ruling:fixture',
+    repairOf: 'candidate-1',
+    lineages: { implementer: [{ id: IMPLEMENTER_ID }], coldAuditor: [{ id: AUDITOR_ID }] },
+    waitChains: { audit: [AUDITOR_ID], ci: [SUPERVISOR_ID] },
+    releaseHeadSha: null,
+  };
+  const firstPath = {
+    path: 'research/first.md', owner: 'judge',
+    base: { kind: 'present', sha256: '4'.repeat(64) },
+    current: { kind: 'file', sha256: '5'.repeat(64) },
+  };
+  const secondPath = {
+    path: 'src/test/architecture/review.second.test.ts', owner: 'judge',
+    base: { kind: 'present', sha256: '6'.repeat(64) },
+    current: { kind: 'file', sha256: '7'.repeat(64) },
+  };
+  const cumulative = guardAcknowledgement(candidate, [firstPath, secondPath]);
+  const active = guardAcknowledgement(candidate, [secondPath]);
+  const latestCandidate = {
+    ...structuredClone(candidate),
+    guardImpact: { acknowledgement: active },
+  };
+  const proofCandidate = {
+    ...structuredClone(candidate),
+    guardImpact: { acknowledgement: cumulative },
+  };
+  return {
+    candidate,
+    latestCandidate,
+    cumulative,
+    active,
+    input: {
+      events: [{ actorRole: 'supervisor', action: 'acknowledge-guard-impact', candidate: proofCandidate }],
+      baseEventCount: 0,
+      latestCandidate,
+      cumulativeReport: proofReport(cumulative),
+      activeReport: proofReport(active),
+      activeAuthorityPath: supervisorAuthorityPath(DOMAIN_ID),
+    },
+  };
+}
+
+describe('Judge reauthorization proof selection', () => {
+  test('keeps the active candidate-base proof narrow while selecting an earlier cumulative proof', () => {
+    const fixture = proofSelectorFixture();
+    const result = selectJudgeReauthorizationProof(fixture.input);
+    expect(result).toEqual({ ok: true, acknowledgement: fixture.cumulative });
+    expect(fixture.latestCandidate.guardImpact.acknowledgement).toEqual(fixture.active);
+  });
+
+  test.each([
+    ['invalid active proof', (input) => { input.latestCandidate.guardImpact.acknowledgement.paths = []; }],
+    ['tampered cumulative proof', (input) => {
+      input.events[0].candidate.guardImpact.acknowledgement.paths[0].owner = 'implementer';
+    }],
+    ['wrong actor', (input) => { input.events[0].actorRole = 'implementer'; }],
+    ['wrong action', (input) => { input.events[0].action = 'mark-audited'; }],
+    ['wrong tree scope', (input) => { input.events[0].candidate.treeFingerprint = '8'.repeat(64); }],
+    ['wrong authority scope', (input) => { input.events[0].candidate.authority.push = false; }],
+    ['proof before base authority', (input) => { input.baseEventCount = 1; }],
+  ])('rejects %s', (_, mutate) => {
+    const fixture = proofSelectorFixture();
+    mutate(fixture.input);
+    expect(selectJudgeReauthorizationProof(fixture.input).ok).toBe(false);
+  });
+});
 
 function write(repository, path, value) {
   const target = join(repository.cwd, path);

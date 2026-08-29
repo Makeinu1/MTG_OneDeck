@@ -327,3 +327,37 @@ its ID, domain, and tree fingerprint, and invokes the same
 Missing, wildcard, structurally different, or byte/path/guard-drifted proof
 therefore remains red. This section records the bounded repair and does not
 pre-claim its cold audit, final full check, CI, or Pages closure.
+
+## Candidate 7 cumulative-push finding and candidate 8 repair
+
+- Candidate-7 frozen tree fingerprint:
+  `d4b9eadb01a047668d70d820f966892a4caa5da6666395c9aa4ab1a22178dff3`
+- Candidate-7 cold audit: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+- Full-check attempt: 7
+- Local result: PASS; Core 229 files / 2119 tests, DOM 382 files / 2649
+  tests, lint, TypeScript, production build, static verifiers, and O4P-07C
+  runtime all green
+- Repair commit: `e42c57bac31bae9589ffca7d5d6abdd806395467`
+- Clean candidate-base guard: PASS
+- Clean protected O4P-09C review: 7 / 7 PASS
+- Clean cumulative forbidden scan from `465316ac...`: FAIL with
+  `GUARD_ACKNOWLEDGEMENT_MISMATCH`
+
+The candidate-6 acknowledgement covered `465316ac...48aa566`, and candidate 7
+covered `48aa566...e42c57b`. Their path sets were contiguous, but the final
+review also introduced a new current guard reference to the earlier changed
+`guard-impact.mjs`. No segment had acknowledged that cross-segment relation;
+therefore mechanically unioning the two proofs would be unsafe.
+
+Candidate 8 is the same-acceptance `ci-environment` repair at base
+`e42c57bac31bae9589ffca7d5d6abdd806395467`. Before release-head binding, the
+Judge must record one exact cumulative acknowledgement for the final
+`465316ac...HEAD` bytes, then restore the candidate-base acknowledgement used
+by ordinary release transitions. Clean forbidden verification may select the
+earlier cumulative event only when it is supervisor-authored, guard-equivalent,
+and identical to the latest candidate on identity, scope, tree, authority,
+repair lineage, release binding, roles, and waits, with any state or counter
+progress validated by the anchored append-only event chain.
+Segment composition, subset admission, or any actor/action/scope/tree/byte/
+path/guard drift remains red. This section does not pre-claim candidate-8
+audit, full check, CI, or Pages closure.

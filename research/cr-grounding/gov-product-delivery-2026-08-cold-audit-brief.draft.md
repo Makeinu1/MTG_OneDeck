@@ -102,6 +102,12 @@ the audit if the current tree does not match it.
     Does it keep `headSha` in the fingerprint and accept only exact equivalent
     post-commit drift while missing acknowledgement, wildcard, byte/path/guard
     drift, rewritten history, and mismatched candidate state remain hard-red?
+14. When consecutive unpublished repairs form one push diff, does clean-CI
+    Judge reauthorization require one explicit cumulative acknowledgement on
+    the same candidate/tree rather than composing segment proofs? Can it use a
+    prior supervisor provenance event while the latest acknowledgement remains
+    candidate-base-bound, but reject wrong actor/action, scope, invalid counter
+    chain, repair lineage, release binding, tree, byte, path, or guard data?
 
 ## Required evidence
 
@@ -129,6 +135,12 @@ the audit if the current tree does not match it.
   equivalence positive and tampered-authority, missing-acknowledgement,
   wildcard, changed-byte, changed-path, changed-guard, and changed-predecessor
   negatives.
+- Reproduce the single-push diff from
+  `465316ac8669101de510fcb2928518c24494dd51` through candidates 6-8. Prove that
+  separate candidate 6/7 acknowledgements remain insufficient, one explicit
+  candidate-8 cumulative supervisor acknowledgement passes even after the
+  active candidate-base proof is restored, and actor/action/scope/tree/counter/
+  byte/path/guard tampering remains red.
 - Return severity-counted BLOCKER/HIGH/MEDIUM/LOW findings with exact path and
   line evidence. If no finding exists, return `AUDIT-OK-PENDING-FULL-CHECK`.
 

@@ -318,6 +318,19 @@ commit-induced report-identity change. Missing acknowledgement, wildcard,
 rewritten history, or any path, owner, byte, guard, predecessor-reference,
 candidate, or tree-fingerprint drift remains hard-red.
 
+When one unpublished repair follows another and CI must inspect their single
+cumulative push diff, segmented acknowledgements are never inferred or
+unioned. Before binding the release head, the Judge must append one explicit
+supervisor provenance event whose acknowledgement exactly covers that
+cumulative diff. Clean-CI reauthorization may use that earlier event while the
+latest same-candidate acknowledgement remains bound to the candidate base only
+if candidate identity, domain, base, tree, acceptance, authority, repair
+lineage, role/wait structure, and release binding are unchanged, while any
+state or counter progress is valid in the anchored append-only event chain.
+The cumulative event must itself be an exact guard-equivalent proof;
+subsets, composed segments, a different actor or action, later byte drift, or
+any scope mismatch remain hard-red.
+
 ## Freeze, audit, correction, and release
 
 Iterate with targeted checks. Freeze the candidate tree and record its

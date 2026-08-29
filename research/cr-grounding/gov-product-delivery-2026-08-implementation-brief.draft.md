@@ -86,6 +86,15 @@ lineages, waits, and receipts remain immutable.
   references, candidate identity, and tree fingerprint did not. Missing,
   wildcard, rewritten, byte-drifted, or structurally different proof remains
   hard-red.
+- If multiple unpublished repair commits will be pushed together, the release
+  must not compose their separate acknowledgements. Before release-head
+  binding, the Judge records one explicit cumulative-diff acknowledgement on
+  the same candidate and tree, then restores the active candidate-base proof
+  used by ordinary release transitions. Clean CI may select the earlier
+  cumulative supervisor provenance only when candidate scope, roles, waits,
+  repair lineage, and release binding still match, while any state or counter
+  progress is valid in the anchored append-only event chain.
+  Missing, subset, wrong-actor/action, stale-tree, or tampered proof fails.
 - One canonical `.agents/skills/mtg-onedeck-release/SKILL.md` provides
   `prepare`, `ship`, `resume`, and `verify` routing without granting external
   authority, and `.claude/commands/ship.md` is a compatibility pointer to it.

@@ -222,6 +222,7 @@ const JUDGE_PATHS = new Set([
   'scripts/checks/budget.mjs',
   'scripts/checks/forbidden-files.mjs',
   'scripts/checks/guard-impact.mjs',
+  'scripts/checks/judge-reauthorization-proof.mjs',
   'scripts/checks/ownership.mjs',
   'scripts/checks/release-preflight.mjs',
   'scripts/checks/terminal-metadata.mjs',
