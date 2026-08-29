@@ -63,6 +63,20 @@ lineages, waits, and receipts remain immutable.
   append a monotonic authority/acceptance epoch, become implementing again,
   preserve the old immutable event prefix, and fail closed for malformed,
   downgraded, unverified, or non-user authority changes.
+- The clean-CI forbidden scan can verify this domain's first semantic commit
+  when its active supervisor record is introduced in that same diff. The
+  bootstrap must be supervisor-authored, fully verified from its declared
+  base, tied to a newly inserted governance successor and exact Judge-owned
+  bytes, and contain the single retained user-ruling epoch before `AGENTS.md`
+  can pass. `CLAUDE.md`, `eslint.config.js`, other-domain records, caller
+  allowlists, and malformed or stale proof remain hard failures.
+- Because this repair follows an unpublished audited semantic commit, its
+  exact guard acknowledgement still covers the cumulative diff from the
+  original release base. The candidate base remains the semantic commit; the
+  alternate guard base is admitted only through the retained `ci-environment`
+  predecessor with zero prior pushes and no release-head binding. After the
+  one exact release head is bound, later gates may only re-verify the same
+  frozen acknowledgement; they cannot refresh or expand it.
 - One canonical `.agents/skills/mtg-onedeck-release/SKILL.md` provides
   `prepare`, `ship`, `resume`, and `verify` routing without granting external
   authority, and `.claude/commands/ship.md` is a compatibility pointer to it.
@@ -83,6 +97,7 @@ The existing implementer lineage may write only these files:
 - `scripts/codex-context.mjs`
 - `scripts/lib/supervisor-authority.mjs`
 - `scripts/lib/supervisor-state.mjs`
+- `scripts/checks/forbidden-files.mjs`
 - `scripts/checks/guard-impact.mjs`
 - `scripts/__tests__/governanceSupervisor.test.mjs`
 - `scripts/__tests__/codexContext.test.mjs`

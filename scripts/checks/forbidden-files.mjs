@@ -111,7 +111,8 @@ const PROVENANCE_ACTIONS = new Set([
 
 function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
   if (!base || existsSync('.claude/loop-state.md')) return { ok: false, code: 'CI_REAUTHORIZATION_REQUIRES_CLEAN_CHECKOUT' };
-  if (forbiddenPaths.some((path) => !isReviewPath(path))) {
+  const nonReviewHardPaths = forbiddenPaths.filter((path) => !isReviewPath(path));
+  if (nonReviewHardPaths.some((path) => path !== 'AGENTS.md')) {
     return { ok: false, code: 'NON_REVIEW_FORBIDDEN_PATH' };
   }
   if (execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=normal'], { cwd: root, encoding: 'utf8' }) !== '') {
@@ -135,14 +136,53 @@ function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
   ) return { ok: false, code: 'TRACKED_CANDIDATE_PROJECTION_MISMATCH' };
   const activeAuthorityPath = supervisorAuthorityPath(domainId);
   const baseAuthorityRead = readGitPathAtRef(root, base, activeAuthorityPath);
-  if (baseAuthorityRead.status !== 'present') {
-    return { ok: false, code: 'MISSING_BASE_SUPERVISOR_AUTHORITY' };
-  }
-  let baseAuthority;
-  try {
-    baseAuthority = JSON.parse(baseAuthorityRead.text);
-  } catch {
-    return { ok: false, code: 'INVALID_BASE_SUPERVISOR_AUTHORITY' };
+  if (baseAuthorityRead.status === 'error') return { ok: false, code: 'INVALID_BASE_SUPERVISOR_AUTHORITY' };
+  let baseAuthority = null;
+  const bootstrapMode = baseAuthorityRead.status === 'absent';
+  if (baseAuthorityRead.status === 'present') {
+    try { baseAuthority = JSON.parse(baseAuthorityRead.text); } catch { return { ok: false, code: 'INVALID_BASE_SUPERVISOR_AUTHORITY' }; }
+  } else if (
+    !files.includes(activeAuthorityPath) ||
+    tracked.authority.events[0]?.action !== 'bootstrap' ||
+    tracked.authority.events[0]?.actorRole !== 'supervisor' ||
+    tracked.authority.events[0]?.reason !== 'migration-from-loop-state' ||
+    tracked.authority.events[0]?.previousHash !== null ||
+    tracked.authority.events[0]?.candidate?.baseSha !== base
+  ) return { ok: false, code: 'INVALID_SUPERVISOR_BOOTSTRAP' };
+  if (bootstrapMode) {
+    let baseLedger;
+    try {
+      const baseLedgerRead = readGitPathAtRef(root, base, 'research/cr-grounding/cr-backbone-ledger.json');
+      if (baseLedgerRead.status !== 'present') return { ok: false, code: 'INVALID_BASE_LEDGER' };
+      baseLedger = JSON.parse(baseLedgerRead.text);
+    } catch {
+      return { ok: false, code: 'INVALID_BASE_LEDGER' };
+    }
+    const currentDomain = ledger.domains?.filter((entry) => entry?.id === domainId) ?? [];
+    const currentPlanned = ledger.plannedSequence?.filter((entry) => entry?.domainId === domainId) ?? [];
+    const baseDomains = baseLedger.domains ?? [];
+    const basePlanned = baseLedger.plannedSequence ?? [];
+    const dependencies = currentDomain[0]?.dependsOn;
+    const predecessor = dependencies?.find((id) =>
+      baseDomains.find((entry) => entry?.id === id)?.status === 'shipped' &&
+      basePlanned.find((entry) => entry?.domainId === id)?.status === 'shipped',
+    );
+    const baseIds = baseLedger.goalPolicy?.activeProgram?.domainIds;
+    const currentIds = ledger.goalPolicy?.activeProgram?.domainIds;
+    const insertion = Array.isArray(baseIds) && predecessor
+      ? [...baseIds.slice(0, baseIds.indexOf(predecessor) + 1), domainId, ...baseIds.slice(baseIds.indexOf(predecessor) + 1)]
+      : null;
+    if (
+      baseDomains.some((entry) => entry?.id === domainId) ||
+      basePlanned.some((entry) => entry?.domainId === domainId) ||
+      currentDomain.length !== 1 || currentPlanned.length !== 1 ||
+      currentPlanned[0]?.type !== 'checkpoint' ||
+      currentDomain[0]?.lane !== 'pruned' || currentPlanned[0]?.lane !== 'pruned' ||
+      currentDomain[0]?.deliveryClass !== 'substrate' || currentPlanned[0]?.deliveryClass !== 'substrate' ||
+      JSON.stringify(currentDomain[0]?.dependsOn) !== JSON.stringify(currentPlanned[0]?.dependsOn) ||
+      !Array.isArray(dependencies) || dependencies.length === 0 ||
+      !predecessor || JSON.stringify(currentIds) !== JSON.stringify(insertion)
+    ) return { ok: false, code: 'INVALID_BOOTSTRAP_DOMAIN_SUCCESSOR' };
   }
   const appendVerification = verifySupervisorAuthorityOffline({
     authority: tracked.authority,
@@ -154,6 +194,21 @@ function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
   const eventPaths = files.filter((path) => path.startsWith('research/cr-grounding/supervisor-events/'));
   if (eventPaths.some((path) => path !== activeAuthorityPath)) {
     return { ok: false, code: 'UNEXPECTED_SUPERVISOR_AUTHORITY_PATH' };
+  }
+  if (nonReviewHardPaths.includes('AGENTS.md')) {
+    const epochs = tracked.authority.events.filter((event) =>
+      event.action === 'user-reauthorize' && event.actorRole === 'supervisor' &&
+      typeof event.reason === 'string' && event.reason.startsWith('user-ruling:') &&
+      event.candidate?.authoritySource === event.reason,
+    );
+    const currentAuthority = latestCandidate.authority;
+    if (
+      epochs.length !== 1 ||
+      latestCandidate.authoritySource !== epochs[0].reason ||
+      JSON.stringify(latestCandidate.authority) !== JSON.stringify(epochs[0].candidate.authority) ||
+      latestCandidate.acceptanceFingerprint !== epochs[0].candidate.acceptanceFingerprint ||
+      !Object.values(currentAuthority ?? {}).every((value) => value === true)
+    ) return { ok: false, code: 'INVALID_AGENTS_REAUTHORIZATION_EPOCH' };
   }
   const report = buildGuardImpact({
     root,
@@ -174,7 +229,7 @@ function verifyJudgeReauthorization({ root, base, files, forbiddenPaths }) {
     return { ok: false, code: 'UNACKNOWLEDGED_FORBIDDEN_PATH' };
   }
   const hasSupervisorProvenance = tracked.authority.events
-    .slice(baseAuthority.events.length)
+    .slice(baseAuthority?.events.length ?? 0)
     .some((event) =>
     event.candidate?.id === latestCandidate.id &&
     event.actorRole === 'supervisor' &&

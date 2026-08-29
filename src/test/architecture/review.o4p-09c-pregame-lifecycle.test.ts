@@ -543,7 +543,13 @@ function liveCandidatePathScope(): LiveCandidatePathScope {
       id?: string;
       domainId?: string;
       baseSha?: string;
+      repairOf?: string;
       treeFingerprint?: string;
+      acceptanceFingerprint?: string;
+      authority?: Record<string, boolean>;
+      authoritySource?: string;
+      counters?: { semanticPushes?: number; replacementPushes?: number };
+      releaseHeadSha?: string | null;
       guardImpact?: { reportFingerprint?: string | null };
     } | null;
   };
@@ -555,9 +561,33 @@ function liveCandidatePathScope(): LiveCandidatePathScope {
     throw new Error('Verified live candidate is required for frozen path classification');
   }
 
+  let guardBase = candidate.baseSha;
+  if (candidate.repairOf !== undefined) {
+    const authority = JSON.parse(readFileSync(resolve(
+      ROOT,
+      `research/cr-grounding/supervisor-events/${candidate.domainId}.json`,
+    ), 'utf8')) as {
+      events?: Array<{ reason?: string | null; candidate?: typeof candidate & { state?: string } }>;
+    };
+    const predecessor = [...(authority.events ?? [])].reverse()
+      .find((event) => event.candidate?.id === candidate.repairOf)?.candidate;
+    const pushes = (value: typeof candidate) =>
+      (value?.counters?.semanticPushes ?? -1) + (value?.counters?.replacementPushes ?? -1);
+    const repairEvent = [...(authority.events ?? [])].reverse().find((event) =>
+      event.candidate?.id === candidate.repairOf && event.candidate?.state === 'repair-required');
+    if (
+      predecessor?.state === 'repair-required' && repairEvent?.reason === 'ci-environment' &&
+      predecessor.releaseHeadSha == null && pushes(predecessor) === 0 &&
+      [0, 1].includes(pushes(candidate)) &&
+      predecessor.acceptanceFingerprint === candidate.acceptanceFingerprint &&
+      JSON.stringify(predecessor.authority) === JSON.stringify(candidate.authority) &&
+      predecessor.authoritySource === candidate.authoritySource
+    ) guardBase = predecessor.baseSha ?? guardBase;
+  }
+
   const guardRun = spawnSync(process.execPath, [
     'scripts/checks/guard-impact.mjs',
-    '--base', candidate.baseSha,
+    '--base', guardBase,
     '--domain', candidate.domainId,
   ], { cwd: ROOT, encoding: 'utf8' });
   expect(guardRun.error).toBeUndefined();

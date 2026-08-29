@@ -437,7 +437,9 @@ describe('forbidden policy boundaries', () => {
         const result = run(repository, '--diff', repository.base);
         const output = `${result.stdout}${result.stderr}`;
         expect(result.status).toBe(1);
-        expect(output).toContain('JUDGE-REAUTHORIZATION-REJECTED: NON_REVIEW_FORBIDDEN_PATH');
+        expect(output).toContain(path === 'AGENTS.md'
+          ? 'JUDGE-REAUTHORIZATION-REJECTED: INVALID_AGENTS_REAUTHORIZATION_EPOCH'
+          : 'JUDGE-REAUTHORIZATION-REJECTED: NON_REVIEW_FORBIDDEN_PATH');
         expect(output).toContain(path);
       } finally {
         rmSync(repository.cwd, { recursive: true, force: true });

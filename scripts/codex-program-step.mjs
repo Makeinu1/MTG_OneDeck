@@ -59,6 +59,56 @@ const releaseBindingActions = new Set(['push', 'record-semantic-push', 'record-r
 
 const clone = (value) => structuredClone(value);
 
+export function allowsCumulativeReleaseGuardBase({
+  records, candidate, requestedBase, headSha, isAncestor,
+}) {
+  if (requestedBase === candidate?.baseSha) return true;
+  const predecessor = records?.find((entry) => entry.id === candidate?.repairOf);
+  const pushed = (entry) => (entry?.counters?.semanticPushes ?? -1) + (entry?.counters?.replacementPushes ?? -1);
+  if (
+    !predecessor || predecessor.state !== 'repair-required' ||
+    predecessor.repairReason !== 'ci-environment' || predecessor.baseSha !== requestedBase ||
+    (predecessor.releaseHeadSha ?? null) !== null || pushed(predecessor) !== 0 ||
+    !['implementing', 'audit-ready', 'audit-repairable', 'audit-failed-stop', 'audited', 'full-check-passed', 'push-ready', 'ci-passed'].includes(candidate?.state) ||
+    predecessor.domainId !== candidate.domainId ||
+    predecessor.acceptanceFingerprint !== candidate.acceptanceFingerprint ||
+    stableJson(predecessor.authority) !== stableJson(candidate.authority) ||
+    predecessor.authoritySource !== candidate.authoritySource ||
+    stableJson(predecessor.lineages) !== stableJson(candidate.lineages) ||
+    stableJson(predecessor.waitChains?.audit) !== stableJson(candidate.waitChains?.audit) ||
+    predecessor.counters?.ciWaitChains !== 0 || predecessor.waitChains?.ci?.length !== 0 ||
+    !((candidate.counters?.ciWaitChains === 0 && candidate.waitChains?.ci?.length === 0) ||
+      (candidate.counters?.ciWaitChains === 1 && candidate.waitChains?.ci?.length === 1)) ||
+    ![0, 1].includes(pushed(candidate)) ||
+    !isAncestor(requestedBase, candidate.baseSha) ||
+    !isAncestor(candidate.baseSha, headSha)
+  ) return false;
+  return pushed(candidate) === 0
+    ? (candidate.releaseHeadSha ?? null) === null
+    : candidate.releaseHeadSha === headSha;
+}
+
+export function augmentRepairPredecessor(records, candidate, authority) {
+  if (!candidate?.repairOf) return records;
+  const matches = (authority?.events ?? []).map((event) => event.candidate)
+    .filter((entry) => entry?.id === candidate.repairOf && entry.state === 'repair-required');
+  if (matches.length === 0 || new Set(matches.map(stableJson)).size !== 1) return null;
+  const loopMatches = records.filter((entry) => entry?.id === candidate.repairOf);
+  if (loopMatches.length > 1 || (loopMatches.length === 1 && stableJson(loopMatches[0]) !== stableJson(matches[0]))) {
+    return null;
+  }
+  return loopMatches.length === 1 ? records : [matches[0], ...records];
+}
+
+export function gitAncestor(root, base, descendant) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', base, descendant], { cwd: root, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function requireState(candidate, states) {
   if (candidate.state === 'audit-failed-stop') throw failure('AUDIT_FAILED_STOP_TERMINAL');
   if (!states.includes(candidate.state)) {
@@ -917,6 +967,12 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
       }
 
       const refreshedFingerprint = computeTreeFingerprint(root);
+      const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+      const cumulativeRecords = augmentRepairPredecessor(parsed.records, currentCandidate, tracked.authority);
+      if (!cumulativeRecords || !allowsCumulativeReleaseGuardBase({
+        records: cumulativeRecords, candidate: currentCandidate, requestedBase: options.base, headSha: head,
+        isAncestor: (left, right) => gitAncestor(root, left, right),
+      })) throw failure('CANDIDATE_GUARD_BASE_MISMATCH');
       const verifiedReceipt = readReceipt(refreshedFingerprint);
       const refreshedCandidate = clone(currentCandidate);
       applyUsage(refreshedCandidate, Object.fromEntries(
@@ -944,7 +1000,7 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
       let refreshedLoopText = replaceLoopField(
         loopStateText,
         ACTIVE_CANDIDATES_KEY,
-        JSON.stringify([refreshedCandidate]),
+        JSON.stringify(cumulativeRecords.map((entry) => entry.id === refreshedCandidate.id ? refreshedCandidate : entry)),
       );
       refreshedLoopText = replaceLoopField(refreshedLoopText, 'step', refreshedCandidate.state);
       refreshedLoopText = replaceLoopField(
@@ -1165,7 +1221,16 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
         ? projection
         : { ...projection, activeCandidate: currentCandidate };
       guardReport = buildGuardImpact({ root, base: options.base, domain: options.domain, projection: guardProjection });
-      if (currentCandidate?.baseSha && guardReport.baseSha !== currentCandidate.baseSha) {
+      const tracked = readTrackedSupervisorAuthority(root, currentCandidate?.domainId);
+      if (tracked.errors?.length || !tracked.authority) throw failure('INVALID_TRACKED_SUPERVISOR_AUTHORITY');
+      const cumulativeRecords = augmentRepairPredecessor(parsed.records, currentCandidate, tracked.authority);
+      if (currentCandidate?.repairOf && !cumulativeRecords && guardReport.baseSha !== currentCandidate.baseSha) {
+        throw failure('MISSING_CUMULATIVE_REPAIR_PREDECESSOR');
+      }
+      if (!allowsCumulativeReleaseGuardBase({
+        records: cumulativeRecords ?? parsed.records, candidate: currentCandidate, requestedBase: guardReport.baseSha,
+        headSha: projection.headSha, isAncestor: (left, right) => gitAncestor(root, left, right),
+      })) {
         throw failure('CANDIDATE_GUARD_BASE_MISMATCH');
       }
       const guardRepairTransition =

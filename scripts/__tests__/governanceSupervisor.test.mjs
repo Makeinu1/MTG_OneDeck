@@ -8,6 +8,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyProgramAction,
+  allowsCumulativeReleaseGuardBase,
+  augmentRepairPredecessor,
+  gitAncestor,
   replaceLedgerEntryText,
   runProgramStep,
   writeAtomicTransition,
@@ -183,6 +186,85 @@ const project = (records, overrides = {}) => {
 };
 
 describe('GOV-CODEX-58A supervisor state', () => {
+  it('allows only the one inherited unpushed cumulative guard base', () => {
+    const predecessor = candidateFixture({
+      id: 'M1-candidate-4', state: 'repair-required', repairReason: 'ci-environment',
+      baseSha: 'c'.repeat(40), counters: emptyCandidateCounters(),
+    });
+    const candidate = candidateFixture({
+      id: 'M1-candidate-5', repairOf: predecessor.id, state: 'implementing',
+      baseSha: headSha, counters: emptyCandidateCounters(),
+    });
+    const valid = () => allowsCumulativeReleaseGuardBase({
+      records: [predecessor, candidate], candidate, requestedBase: predecessor.baseSha, headSha,
+      isAncestor: () => true,
+    });
+    expect(allowsCumulativeReleaseGuardBase({
+      records: [candidate], candidate, requestedBase: candidate.baseSha, headSha, isAncestor: () => false,
+    })).toBe(true);
+    expect(valid()).toBe(true);
+    expect(allowsCumulativeReleaseGuardBase({
+      records: [predecessor, candidate], candidate, requestedBase: predecessor.baseSha, headSha,
+      isAncestor: () => false,
+    })).toBe(false);
+    candidate.authority.push = false;
+    expect(valid()).toBe(false);
+    candidate.authority.push = true;
+    candidate.lineages.implementer = [{ id: 'different', compactions: 0, freshContinuations: 0 }];
+    expect(valid()).toBe(false);
+    candidate.lineages = structuredClone(predecessor.lineages);
+    predecessor.counters.semanticPushes = 1;
+    expect(valid()).toBe(false);
+    predecessor.counters.semanticPushes = 0;
+    candidate.counters.semanticPushes = 2;
+    expect(valid()).toBe(false);
+    candidate.counters.semanticPushes = 1;
+    candidate.releaseHeadSha = 'd'.repeat(40);
+    expect(valid()).toBe(false);
+    candidate.releaseHeadSha = headSha;
+    candidate.state = 'ci-passed';
+    expect(valid()).toBe(true);
+    candidate.counters.ciWaitChains = 1;
+    candidate.waitChains.ci = ['ci-1'];
+    expect(valid()).toBe(true);
+    candidate.counters.ciWaitChains = 2;
+    candidate.waitChains.ci = ['ci-1', 'ci-2'];
+    expect(valid()).toBe(false);
+    predecessor.repairReason = 'guard-impact';
+    expect(valid()).toBe(false);
+  });
+
+  it('restores only one exact repair-required predecessor from tracked history', () => {
+    const predecessor = candidateFixture({ id: 'predecessor', state: 'repair-required' });
+    const candidate = candidateFixture({ id: 'current', repairOf: predecessor.id, baseSha: headSha });
+    predecessor.baseSha = 'c'.repeat(40);
+    const earlier = { ...structuredClone(predecessor), state: 'audited' };
+    const authority = { events: [{ candidate: earlier }, { candidate: predecessor }] };
+    expect(augmentRepairPredecessor([candidate], candidate, authority)).toEqual([predecessor, candidate]);
+    const conflicting = structuredClone(predecessor);
+    conflicting.baseSha = 'd'.repeat(40);
+    expect(augmentRepairPredecessor([candidate], candidate, {
+      events: [{ candidate: predecessor }, { candidate: conflicting }],
+    })).toBeNull();
+    const mutated = structuredClone(predecessor);
+    mutated.counters.fullChecks += 1;
+    mutated.counters.correctionWaves += 1;
+    mutated.counters.teamModelCycles += 1;
+    expect(augmentRepairPredecessor([mutated, candidate], candidate, authority)).toBeNull();
+    expect(augmentRepairPredecessor([predecessor, predecessor, candidate], candidate, authority)).toBeNull();
+    expect(augmentRepairPredecessor([predecessor, candidate], candidate, authority)).toEqual([predecessor, candidate]);
+    expect(allowsCumulativeReleaseGuardBase({
+      records: [candidate], candidate, requestedBase: predecessor.baseSha, headSha,
+      isAncestor: () => true,
+    })).toBe(false);
+  });
+
+  it('uses git ancestry with conventional true-on-success semantics', () => {
+    const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    const parent = execFileSync('git', ['rev-parse', 'HEAD^'], { encoding: 'utf8' }).trim();
+    expect(gitAncestor(process.cwd(), parent, head)).toBe(true);
+    expect(gitAncestor(process.cwd(), head, parent)).toBe(false);
+  });
   it('exposes the three canonical package commands', () => {
     const packageJson = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
     expect(packageJson.scripts).toMatchObject({

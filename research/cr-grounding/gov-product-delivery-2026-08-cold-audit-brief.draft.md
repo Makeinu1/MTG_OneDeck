@@ -32,6 +32,7 @@ the audit if the current tree does not match it.
 - `scripts/codex-program-step.mjs`
 - `scripts/codex-context.mjs`
 - `scripts/lib/supervisor-authority.mjs`
+- `scripts/checks/forbidden-files.mjs`
 - `scripts/checks/guard-impact.mjs`
 - `scripts/checks/verify-o4p-05d-production-release-closure.ts`
 - `scripts/__tests__/governanceSupervisor.test.mjs`
@@ -82,6 +83,19 @@ the audit if the current tree does not match it.
    obsolete one-player-only positioning, or a requirement for Display B?
 10. Are exact ratios and pixel values correctly left to prototype evidence while
    the user retains Goal, scope, quality, North-Star, and external decisions?
+11. Does clean-CI verification accept the first semantic commit without a
+    pre-existing same-domain authority only through a fully verified
+    supervisor bootstrap and newly inserted synchronized governance successor?
+    Is `AGENTS.md` additionally gated by the one retained user-ruling epoch,
+    while `CLAUDE.md`, `eslint.config.js`, other-domain records, caller claims,
+    wrong bases, stale bytes, and malformed base ledgers remain hard-red?
+12. Does the pre-first-push repair retain the original cumulative release
+    guard base only through the exact `ci-environment` predecessor, zero push
+    counters, null release heads, identical scope/roles/waits, and verified
+    ancestry/current HEAD? Does it leave candidate base and release binding
+    unchanged, reject any later repair/prior push/mismatch, and permit only
+    re-verification of the same frozen acknowledgement after the one exact
+    release head is bound?
 
 ## Required evidence
 
@@ -94,6 +108,14 @@ the audit if the current tree does not match it.
 - Run the focused guard-policy regression and verify that neither current nor
   base supervisor-event records can become guard or predecessor-reference
   sources when tracked, staged, or crossing the two-megabyte scan threshold.
+- Reproduce `check:forbidden -- --diff
+  8b906a888facc49213f51071d660f42098cc174c` from a clean checkout of the
+  frozen release tree. Exercise the first-commit bootstrap positives and the
+  hard-path, actor, base-ledger, extra-authority, and stale-byte negatives.
+- Verify that candidate 5's stored acknowledgement covers the cumulative
+  `8b906a8...HEAD` release diff even though its immutable repair base remains
+  `1e948c1...`, and exercise the zero-push/predecessor/ancestry/scope negative
+  cases.
 - Return severity-counted BLOCKER/HIGH/MEDIUM/LOW findings with exact path and
   line evidence. If no finding exists, return `AUDIT-OK-PENDING-FULL-CHECK`.
 

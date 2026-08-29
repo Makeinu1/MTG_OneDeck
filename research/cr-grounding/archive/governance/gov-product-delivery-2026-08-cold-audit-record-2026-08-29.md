@@ -190,3 +190,70 @@ regression covers small and over-limit event files while preserving detection
 of ordinary executable guards. This section records the finding and planned
 correction; it does not pre-claim the replacement audit or exact-tree full
 check.
+
+## Candidate 4 clean-CI pre-push finding and candidate 5 repair
+
+- Candidate-4 audited tree fingerprint: `1687b6dfaea148a0ab926d0d5115bceb421ff9a1dc7f36a3564aa39743eb9e98`
+- Final candidate-4 cold audit: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+- Full-check attempt: 4
+- Core: 229 files / 2119 tests passed
+- DOM: 382 files / 2646 tests passed
+- Semantic commit: `1e948c1cf4c50463ba2ec55987003b46fce7b962`
+- Clean-checkout forbidden result: `NON_REVIEW_FORBIDDEN_PATH`
+
+The audited candidate and final local full check were green. Before push, the
+Judge reproduced the workflow's explicit-base forbidden scan in a temporary
+clean checkout. It rejected the exact acknowledged `AGENTS.md` byte because
+the existing CI bridge admitted only `review.*`; the next unreachable branch
+also required the active domain's supervisor record to exist at the diff base,
+although this first semantic commit introduces that record itself.
+
+Candidate 5 is the same-acceptance `ci-environment` repair at base
+`1e948c1cf4c50463ba2ec55987003b46fce7b962`. It adds only a narrow first-commit
+verification path: a clean checkout must prove the complete supervisor-authored
+bootstrap chain, the newly inserted synchronized governance successor, exact
+guard acknowledgement, and the single retained user-ruling authority epoch
+before `AGENTS.md` can pass. `CLAUDE.md`, `eslint.config.js`, caller-supplied
+ownership, another authority path, wrong bootstrap/base history, stale bytes,
+and malformed proof remain hard failures. This section records the defect and
+repair scope; it does not pre-claim replacement audit, full-check, CI, or Pages
+closure.
+
+The same pre-push reproduction also established that the repair candidate's
+immutable base is the unpublished semantic commit while GitHub's eventual
+single-push diff base remains the original `origin/main`. Candidate 5 therefore
+retains candidate-base ancestry but binds its guard acknowledgement to the
+cumulative original-base diff only while the exact `ci-environment`
+predecessor, zero push counters, null release heads, unchanged scope/roles,
+and current unpublished HEAD all hold. Any first push or mismatch disables
+creation or expansion of that acknowledgement; after the one exact release
+head is bound, later gates may only re-verify the frozen cumulative proof. This
+closes the cumulative-diff gap without
+rewriting history, sending an intentionally red intermediate push, or changing
+the release artifact binding.
+
+## Candidate 5 conflicting-predecessor audit finding
+
+- Audited tree fingerprint: `38939d6fabc5862ec6831f12d99dc96034f01ae90cd8993403c4ef2b5b66e13b`
+- Tracked sequence/event hash: `61` /
+  `c691be1e5e47204d56332d72fdb9c7c6c301e8770973acea8f9cda25920a4aaa`
+- Auditor: `/root/product_delivery_cold_audit`
+- Verdict: BLOCKER 0 / HIGH 1 / MEDIUM 0 / LOW 0
+- Ship gate: FAIL
+
+The first-commit bootstrap, user-ruling gate, cumulative original-base guard,
+clean positive and actor/base-ledger/extra-authority/stale-byte negatives, 92
+targeted tests, protected review, docs, Skill, lint, and diff checks passed.
+The remaining HIGH was confined to volatile predecessor recovery: when a
+same-ID `repair-required` predecessor was already present in loop state, the
+helper returned it without byte-comparing it to the hash-chained tracked
+snapshot. Changing only its `fullChecks`, `correctionWaves`, and usage counters
+therefore left cumulative-base admission green.
+
+The accepted correction always derives the unique repair-required predecessor
+from verified tracked history, then requires any loop copy to be byte-identical
+in stable JSON. A missing loop copy is restored from the tracked snapshot;
+duplicate, conflicting, or counter-modified loop copies fail closed. This is a
+single-root-cause correction inside candidate 5 and does not change product,
+acceptance, authority, release base, or the audited first-commit boundaries.
+It does not pre-claim replacement audit or full-check closure.

@@ -290,6 +290,26 @@ both Vitest projects, and exactly one production build. Pages passes the base
 path to that build and uploads its `dist` output; it does not build again. The
 forbidden-file guard receives an explicit diff base in CI.
 
+When a governed domain's first semantic commit introduces its active tracked
+supervisor record in the same diff, the forbidden guard may verify that record
+from its canonical supervisor bootstrap instead of requiring a same-domain
+record at the base. This path requires a clean checkout, a valid full event
+chain, the exact newly inserted synchronized governance successor, exact
+Judge-owned byte acknowledgement, and the sole retained supervisor-authored
+`user-ruling:` epoch before `AGENTS.md` can pass. It grants no caller owner or
+allowlist input; `CLAUDE.md`, `eslint.config.js`, another authority path,
+malformed base history, and stale or mismatched proof remain hard-red.
+If a same-acceptance `ci-environment` repair is derived after an audited
+semantic commit but before any release push, its candidate base remains that
+unpublished commit while guard acknowledgement continues to cover the original
+cumulative release diff. This alternate guard base is valid only through the
+exact retained repair-required predecessor, zero push counters, no bound
+release head, identical acceptance/authority/roles/waits, verified ancestry,
+and current unpublished HEAD. It changes neither candidate base nor release
+binding. The cumulative acknowledgement can be created only before the first
+push; after that one exact release head is bound, later release gates may
+re-verify the same frozen acknowledgement but cannot refresh or expand it.
+
 ## Freeze, audit, correction, and release
 
 Iterate with targeted checks. Freeze the candidate tree and record its
