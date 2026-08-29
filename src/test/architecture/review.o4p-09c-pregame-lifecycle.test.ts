@@ -613,7 +613,45 @@ function liveCandidatePathScope(): LiveCandidatePathScope {
     candidateTreeFingerprint: candidate.treeFingerprint,
     errors: [],
   });
-  expect(guard.reportFingerprint).toBe(candidate.guardImpact?.reportFingerprint);
+  if (guard.reportFingerprint !== candidate.guardImpact?.reportFingerprint) {
+    const authorityPath = `research/cr-grounding/supervisor-events/${candidate.domainId}.json`;
+    const authority = JSON.parse(readFileSync(resolve(ROOT, authorityPath), 'utf8')) as {
+      events?: Array<{
+        candidate?: {
+          id?: string;
+          domainId?: string;
+          treeFingerprint?: string;
+          guardImpact?: { acknowledgement?: unknown };
+        };
+      }>;
+    };
+    const trackedCandidate = authority.events?.at(-1)?.candidate;
+    expect(trackedCandidate).toMatchObject({
+      id: candidate.id,
+      domainId: candidate.domainId,
+      treeFingerprint: candidate.treeFingerprint,
+    });
+    const equivalenceProgram = [
+      'import { readFileSync } from "node:fs";',
+      'import { equivalentGuardAcknowledgement } from "./scripts/checks/guard-impact.mjs";',
+      'const input = JSON.parse(readFileSync(0, "utf8"));',
+      'process.stdout.write(JSON.stringify(equivalentGuardAcknowledgement(',
+      '  input.acknowledgement, input.report, input.authorityPath,',
+      ')));',
+    ].join('\n');
+    const equivalent = JSON.parse(execFileSync(process.execPath, [
+      '--input-type=module', '--eval', equivalenceProgram,
+    ], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      input: JSON.stringify({
+        acknowledgement: trackedCandidate?.guardImpact?.acknowledgement,
+        report: guard,
+        authorityPath,
+      }),
+    })) as boolean;
+    expect(equivalent).toBe(true);
+  }
   expect(guard.acknowledgementRequired).toMatchObject({
     candidateId: candidate.id,
     candidateTreeFingerprint: candidate.treeFingerprint,

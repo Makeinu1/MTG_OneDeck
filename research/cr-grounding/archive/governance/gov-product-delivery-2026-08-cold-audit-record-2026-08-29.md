@@ -294,3 +294,36 @@ truncated authority, mismatched candidate identity/state, and any acknowledged
 byte, path, owner, guard, or predecessor-reference drift remain failures. This
 section records the CI finding and bounded repair; it does not pre-claim the
 replacement audit, final full check, CI, or Pages closure.
+
+## Candidate 6 clean-checkout protected-review finding and candidate 7 repair
+
+- Candidate-6 frozen tree fingerprint:
+  `4f3457e4b18cc0f42d97bdef0f426f03e7537c116c8175dbdd3c5d18d8d7f8fb`
+- Candidate-6 cold audit: BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0
+- Full-check attempt: 6
+- Local result: PASS; Core 229 files / 2119 tests, DOM 382 files / 2649
+  tests, lint, TypeScript, production build, static verifiers, and O4P-07C
+  runtime all green
+- Repair commit: `48aa566dd64dc9c83e7cfbdc7e8a7f432395cae6`
+- Clean-checkout guard result: PASS
+- Clean-checkout forbidden result: PASS
+- Protected O4P-09C review: FAIL at its independent exact-fingerprint assertion
+
+The guard executable correctly recovered the verified tracked acknowledgement
+and accepted only its exact semantic equivalence after the commit changed
+`headSha`. The protected review then rejected that successful result because
+it separately required the recomputed report fingerprint to equal the compact
+candidate's pre-commit fingerprint. That assertion contradicted the accepted
+post-commit rule while adding no check for paths, owners, bytes, guards, or
+predecessor references.
+
+Candidate 7 is the same-acceptance `guard-impact` repair at base
+`48aa566dd64dc9c83e7cfbdc7e8a7f432395cae6`. The review retains the executable
+guard's zero exit, `ok`, empty errors, candidate ID, candidate tree, and required
+acknowledgement assertions. Only when report fingerprints differ, it reads the
+latest candidate from the exact tracked supervisor-authority path, verifies
+its ID, domain, and tree fingerprint, and invokes the same
+`equivalentGuardAcknowledgement` implementation used by the release gates.
+Missing, wildcard, structurally different, or byte/path/guard-drifted proof
+therefore remains red. This section records the bounded repair and does not
+pre-claim its cold audit, final full check, CI, or Pages closure.
