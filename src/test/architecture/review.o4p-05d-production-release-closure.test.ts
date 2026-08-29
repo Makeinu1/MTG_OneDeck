@@ -34,8 +34,6 @@ describe('O4P-05D production-release closure boundary', () => {
       { id: 'O4P-07', domainIds: ['O4P-07A', 'O4P-07B', 'O4P-07C'] },
       { id: 'O4P-08', domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] },
       { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
-      { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
-      { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
     ]).toContainEqual({
       id: ledger.goalPolicy?.activeProgram?.id,
       domainIds: ledger.goalPolicy?.activeProgram?.domainIds,
@@ -74,8 +72,6 @@ describe('O4P-05D production-release closure boundary', () => {
     }).trim().split(/\r?\n/).filter(Boolean);
     expect(tracked.sort()).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
     expect([
-      ['src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts'],
-      ['src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts'],
       [],
       ['src/test/architecture/review.o4p-09-roadmap-registration.test.ts'],
       ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
@@ -120,8 +116,8 @@ describe('O4P-05D production-release closure boundary', () => {
 
   it('keeps Cloudflare deployment out of CI and preserves both release surfaces', () => {
     const workflow = text('.github/workflows/deploy-pages.yml');
-    expect(workflow).toContain('npm run check -- --build-base=/MTG_OneDeck/');
-    expect(workflow).toContain('npm run check:forbidden -- --diff');
+    expect(workflow).toContain('npm run check:release -- --base');
+    expect(workflow).not.toContain('terminal-metadata');
     expect(workflow).toContain('actions/upload-pages-artifact@v5');
     expect(workflow).toContain('actions/deploy-pages@v5');
     expect(workflow).not.toMatch(/wrangler|cloudflare|CLOUDFLARE_/i);
@@ -134,18 +130,14 @@ describe('O4P-05D production-release closure boundary', () => {
     expect(config).not.toMatch(/account_id|zone_id|routes|token|secret/i);
   });
 
-  it('orders the final verifier after O4P-05C and before lint', () => {
+  it('keeps historical release-proof wrappers out of the active semantic lane', () => {
     const pkg = JSON.parse(text('package.json')) as { scripts?: Record<string, unknown> };
-    expect(pkg.scripts?.['verify:o4p-05d-production-release-closure']).toBe(
-      'tsx scripts/checks/verify-o4p-05d-production-release-closure.ts',
-    );
+    expect(pkg.scripts?.['verify:o4p-05c-release-gates']).toBeUndefined();
+    expect(pkg.scripts?.['verify:o4p-05d-production-release-closure']).toBeUndefined();
     const checks = text('scripts/checks/machine-checks.mjs');
-    const predecessor = "args: ['run', 'verify:o4p-05c-release-gates']";
-    const current = "args: ['run', 'verify:o4p-05d-production-release-closure']";
-    const lint = "{ name: 'lint', cmd: 'npm', args: ['run', 'lint'] }";
-    expect(checks.split(current)).toHaveLength(2);
-    expect(checks.indexOf(predecessor)).toBeLessThan(checks.indexOf(current));
-    expect(checks.indexOf(current)).toBeLessThan(checks.indexOf(lint));
+    expect(checks).not.toContain('verify:o4p-05c-release-gates');
+    expect(checks).not.toContain('verify:o4p-05d-production-release-closure');
+    expect(checks).toContain("args: ['run', 'lint']");
   });
 
   it('keeps secrets out of frozen release records and preserves the failure boundary', () => {

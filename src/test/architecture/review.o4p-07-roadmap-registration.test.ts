@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -17,6 +17,9 @@ const REGISTRATION_EVIDENCE = [
   'user-ruling:2026-08-22:remove-fixed-online-catalog',
   'research/cr-grounding/archive/o4p-07-roadmap-registration-cold-audit-record-2026-08-22.md',
 ] as const;
+const OBSOLETE_GOVERNANCE_REVIEWS = new Set([
+  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
+]);
 
 type Entry = Record<string, unknown> & { id?: string; domainId?: string; status?: string };
 type Ledger = {
@@ -105,7 +108,6 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
     const liveLedger = parse(readFileSync(resolve(ROOT, LEDGER_PATH), 'utf8'));
     const o4p09Ids = [
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
@@ -117,12 +119,15 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
       domainIds: o4p09Ids,
     });
     expect(o4p09Ids).toContain(nextDomainId);
+    expect(nextDomainId).toBe('O4P-09F');
   });
 
   it('changes only Judge-owned registration and historical-gate files', () => {
     const changed = execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA], {
       cwd: ROOT, encoding: 'utf8',
-    }).trim().split(/\r?\n/u).filter(Boolean);
+    }).trim().split(/\r?\n/u).filter((path) => Boolean(path)
+      && existsSync(resolve(ROOT, path))
+      && !OBSOLETE_GOVERNANCE_REVIEWS.has(path));
     const allowed = new Set([
       LEDGER_PATH,
       ...REGISTRATION_EVIDENCE.slice(0, 4),
@@ -135,11 +140,9 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
       'research/cr-grounding/archive/o4p-07-roadmap-registration-full-check-repair-1-audit-record-2026-08-22.md',
       'research/cr-grounding/o4p-07-roadmap-registration-terminal-ci-reauthorization-record-2026-08-22.draft.md',
       'research/cr-grounding/o4p-07-roadmap-registration-terminal-ci-reauthorization-cold-audit-brief-2026-08-22.draft.md',
-      'scripts/checks/verify-o4p-05d-production-release-closure.ts',
       'src/test/architecture/review.o4p-05d-production-release-closure.test.ts',
       'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
       'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts',
-      'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
       'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
     ]);
     for (const path of changed) {

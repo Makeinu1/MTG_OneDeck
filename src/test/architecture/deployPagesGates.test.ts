@@ -99,37 +99,23 @@ describe('GitHub Pages verification gates', () => {
     expect(labels[1]).toMatch(/^actions\/setup-node@/);
     expect(labels[2]).toBe('npm ci');
     expect(labels[3]).toContain('node scripts/checks/resolve-diff-base.mjs --before');
-    expect(labels[4]).toBe('|');
-    expect(labels[5]).toBe('npm run check -- --build-base=/MTG_OneDeck/');
-    expect(labels[6]).toContain('npm run check:terminal-metadata');
-    expect(labels[7]).toContain('npm run check:forbidden -- --diff');
-    expect(labels[8]).toMatch(/^actions\/configure-pages@/);
-    expect(labels[9]).toMatch(/^actions\/upload-pages-artifact@/);
-    expect(labels).toHaveLength(10);
+    expect(labels[4]).toContain('npm run check:release -- --base');
+    expect(labels[5]).toMatch(/^actions\/configure-pages@/);
+    expect(labels[6]).toMatch(/^actions\/upload-pages-artifact@/);
+    expect(labels).toHaveLength(7);
 
-    const checkIndex = labels.indexOf('npm run check -- --build-base=/MTG_OneDeck/');
-    const forbiddenIndex = labels.findIndex((label) => label.startsWith('npm run check:forbidden -- --diff'));
+    const checkIndex = labels.findIndex((label) => label.startsWith('npm run check:release'));
     const uploadIndex = labels.findIndex((label) => label.startsWith('actions/upload-pages-artifact@'));
     expect(checkIndex).toBeGreaterThanOrEqual(0);
-    expect(forbiddenIndex).toBeGreaterThan(checkIndex);
-    expect(uploadIndex).toBeGreaterThan(forbiddenIndex);
+    expect(uploadIndex).toBeGreaterThan(checkIndex);
     expect(build.steps[0].fields.get('fetch-depth')).toBe('0');
     expect(text).not.toContain('--policy governance-reset');
     expect(text).toContain('id: diff-base');
-    expect(text).toContain(
-      'node scripts/checks/terminal-metadata.mjs --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --json > "$lane_report"',
-    );
-    expect(text).not.toContain(
-      'npm run check:terminal-metadata -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --json > "$lane_report"',
-    );
-    expect(text).toContain(
-      `jq -er '.lane | select(. == "semantic" or . == "terminal")'`,
-    );
-    expect(text).toContain('echo "lane=$lane" >> "$GITHUB_OUTPUT"');
+    expect(text).toContain('npm run check:release');
+    expect(text).not.toContain('terminal-metadata');
+    expect(text).not.toContain('change-lane');
     expect(deploy.fields.get('needs')).toBe('build');
-    expect(deploy.fields.get('if')).toContain("needs.build.outputs.lane == 'semantic");
-    expect(text).toContain("steps.change-lane.outputs.lane == 'terminal'");
-    expect(text).toContain("steps.change-lane.outputs.lane == 'semantic'");
+    expect(deploy.fields.get('if')).toBeUndefined();
     expect(deploy.steps.some((step) => step.fields.has('uses'))).toBe(true);
   });
 

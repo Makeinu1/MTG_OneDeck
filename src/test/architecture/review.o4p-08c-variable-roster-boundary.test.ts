@@ -53,8 +53,7 @@ describe('O4P-08C variable roster and genesis architecture review', () => {
     const packageAfter = JSON.parse(source('package.json')) as typeof packageBefore;
     expect(packageAfter.dependencies).toEqual(packageBefore.dependencies);
     expect(packageAfter.devDependencies).toEqual(packageBefore.devDependencies);
-    expect(packageAfter.scripts?.['check:release-preflight']).toBe('node scripts/checks/release-preflight.mjs');
-    expect(packageAfter.scripts?.['check:terminal-metadata']).toBe('node scripts/checks/terminal-metadata.mjs');
+    expect(packageAfter.scripts?.['check:release']).toBe('node scripts/checks/release-check.mjs');
     expect(() => execFileSync('git', ['diff', '--check'])).not.toThrow();
   });
 });

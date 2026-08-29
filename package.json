@@ -53,8 +53,6 @@
     "verify:online-cloudflare-websocket-recovery": "tsx scripts/checks/verify-online-cloudflare-websocket-recovery.ts",
     "verify:online-cloudflare-capability-abuse-control": "tsx scripts/checks/verify-online-cloudflare-capability-abuse-control.ts",
     "verify:online-cloudflare-production-gate": "tsx scripts/checks/verify-online-cloudflare-production-gate.ts",
-    "verify:o4p-05c-release-gates": "tsx scripts/checks/verify-o4p-05c-release-gates.ts",
-    "verify:o4p-05d-production-release-closure": "tsx scripts/checks/verify-o4p-05d-production-release-closure.ts",
     "verify:o4p-07c-production-runtime": "tsx scripts/checks/verify-o4p-07c-production-runtime.ts",
     "evidence:o4p-06f": "tsx scripts/online/o4p-06f-four-browser-evidence.ts",
     "preview": "vite preview",
@@ -66,13 +64,7 @@
     "check:fast": "node scripts/checks/fast-check.mjs",
     "check:domain": "node scripts/checks/domain-check.mjs",
     "check:forbidden": "node scripts/checks/forbidden-files.mjs",
-    "check:budget": "node scripts/checks/budget.mjs",
-    "check:guard-impact": "node scripts/checks/guard-impact.mjs",
-    "check:release-preflight": "node scripts/checks/release-preflight.mjs",
-    "check:terminal-metadata": "node scripts/checks/terminal-metadata.mjs",
-    "codex:usage": "node scripts/codex-usage.mjs",
-    "codex:program-step": "node scripts/codex-program-step.mjs",
-    "codex:context": "node scripts/codex-context.mjs",
+    "check:release": "node scripts/checks/release-check.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

@@ -1,36 +1,35 @@
 ---
 name: mtg-onedeck-release
-description: Prepare, resume, verify, or execute an already-authorized MTG OneDeck release through its existing audit, full-check, GitHub CI, Pages, and terminal-evidence gates. Use for release, ship, publish, deploy, Pages verification, or interrupted-release recovery; this skill never grants commit, push, deploy, or ship authority.
+description: Prepare or perform an authorized MTG OneDeck release through one local check, exact-SHA push/deploy, and one CI/Pages verification.
 ---
 
 # MTG OneDeck release
 
-This is the operator entry point for releasing one existing milestone candidate.
-It creates no authority, candidate, state machine, or quality rule. Read the
-repository `AGENTS.md`, recover the selected domain with `codex:context`, then
-follow the release section of
-[document governance](../mtg-onedeck-development/references/document-governance.md).
-Treat every nonzero executable gate as a stop for that phase.
+Use only when the user has explicitly authorized the requested external action.
+This skill never creates permission. Work in the repository checkout and keep
+the release tied to one exact commit.
 
-Choose one mode from the request and live state:
+## Four stages
 
-- `prepare`: inspect the candidate and run the existing budget, guard-impact,
-  and release-preflight checks. Make no external write. Report the exact
-  missing audit, fingerprint, permission, or check evidence.
-- `ship`: require separately recorded `commit`, `push`, `deploy`, and `ship`
-  authority. Continue the executable candidate transitions through the one
-  final full check, explicit-file commit, exact release-head push, CI, Pages
-  and asset verification, shipped state, and terminal closure.
-- `resume`: reconcile worktree, HEAD, `origin/main`, CI, Pages, ledger,
-  loop-state, release head, and tracked authority. Resume only the same
-  candidate at the first incomplete gate; never reset counters, lineages,
-  waits, receipts, or an immutable event prefix.
-- `verify`: verify existing exact-head CI, Pages/assets, terminal metadata, and
-  clean closure. Reuse fingerprint-bound green evidence and do not repeat the
-  full check or deployment merely to produce another report.
+1. **Authority and clean state** — Read [`AGENTS.md`](../../../AGENTS.md), inspect
+   `git status`, `HEAD`, and the intended remote branch. Stop if the checkout is
+   dirty, the commit is not the intended one, or commit/push/deploy authority is
+   absent. Resolve any required review before continuing.
+2. **One read-only release check** — Without editing or staging files, inspect
+   the release diff and run the repository's final check once (`npm run check`).
+   Record its result. If a correction changes a checked claim, recheck that
+   claim and perform the final check again; do not repeat it for reporting only.
+3. **Exact-SHA push/deploy** — Only with explicit authority, commit the named
+   files, push the exact verified SHA to the intended branch, and deploy through
+   the repository's configured path. Stop before any external write when
+   authority or the exact SHA is unclear.
+4. **Verify once** — Inspect the matching CI run, Pages HTTP response, and served
+   asset/version once. Report success or the concrete failure. Do not claim a
+   release from local checks alone, and do not retry external writes without a
+   new, explicit decision.
 
-Invocation of this skill or `/ship` is not permission. If a required authority
-bit is absent, stop before that external action and report the missing bit.
-During a fixed-scope release repair, preserve the same acceptance and authority
-and use the repair path defined by document governance. Report the delivered
-player outcome separately from audit, CI, and governance evidence.
+## Resume
+
+After interruption, reconstruct from `git status`, `HEAD`, and CI/Pages state.
+Continue only at the first missing stage for the same SHA; never infer authority
+from a previous message or from a successful local check.

@@ -37,7 +37,6 @@ const JUDGE_TIMEOUT_REPAIR =
   'src/online/cloudflare/__tests__/review.o4p-06c-browser-safe-lobby.test.ts';
 
 const ALLOWED_PATHS = new Set([
-  '.claude/loop-state.md',
   'docs/contracts/manifest.json',
   'research/cr-grounding/cr-backbone-ledger.json',
   'research/cr-grounding/archive/o4p-09b-shared-intent-application-cold-audit-record-2026-08-25.md',
@@ -54,8 +53,6 @@ const ALLOWED_PATHS = new Set([
   'src/test/architecture/review.o4p-02e-local-room-gate-boundary.test.ts',
   'src/test/architecture/review.o4p-09a-unified-game-surface.test.ts',
   'src/test/architecture/review.o4p-09b-shared-intent-application.test.ts',
-  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
-  'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
   'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-08-roadmap-registration.test.ts',

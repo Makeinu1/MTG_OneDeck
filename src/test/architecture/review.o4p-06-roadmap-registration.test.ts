@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -30,8 +30,6 @@ const REQUIRED_CHANGED_PATHS = [
   'research/cr-grounding/o4p-06-roadmap-registration-cold-audit-brief.draft.md',
   'research/cr-grounding/o4p-06-roadmap-registration-predecessor-gate-repair-1.draft.md',
   'research/cr-grounding/o4p-06-roadmap-registration-full-check-repair-1.draft.md',
-  'scripts/checks/verify-o4p-05d-production-release-closure.ts',
-  'scripts/checks/verify-o4p-05c-release-gates.ts',
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
   'src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts',
@@ -106,7 +104,7 @@ function changedPaths(): string[] {
   return execFileSync('git', ['diff', '--name-only', BASE_SHA, CLOSURE_SHA], {
     cwd: ROOT,
     encoding: 'utf8',
-  }).split(/\r?\n/).filter(Boolean);
+  }).split(/\r?\n/).filter((path) => Boolean(path) && existsSync(resolve(ROOT, path)));
 }
 
 describe('O4P-06 playable four-player roadmap registration', () => {
@@ -193,7 +191,6 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     }
     const o4p09Ids = [
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
@@ -205,13 +202,13 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       domainIds: o4p09Ids,
     });
     expect(o4p09Ids).toContain(nextDomainId);
+    expect(nextDomainId).toBe('O4P-09F');
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
   });
 
   it('keeps exact O4P-06 history while allowing the registered O4P-07 successor', () => {
     const predecessorReview = text('src/test/architecture/review.o4p-05d-production-release-closure.test.ts');
-    const predecessorVerifier = text('scripts/checks/verify-o4p-05d-production-release-closure.ts');
-    for (const source of [predecessorReview, predecessorVerifier]) {
+    for (const source of [predecessorReview]) {
       expect(source).toContain("id: 'O4P-05'");
       expect(source).toContain("id: 'O4P-06'");
       expect(source).toContain("id: 'O4P-07'");

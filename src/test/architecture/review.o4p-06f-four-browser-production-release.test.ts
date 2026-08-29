@@ -13,7 +13,6 @@ const HARNESS = 'scripts/online/o4p-06f-four-browser-evidence.ts';
 const ORDINARY_TEST = 'src/online/browser/__tests__/fourBrowserProductionEvidenceV1.test.ts';
 const THIS_REVIEW = 'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts';
 const TERMINAL_ROADMAP_REVIEW = 'src/test/architecture/review.o4p-06-roadmap-registration.test.ts';
-const GOVERNANCE_REVIEW = 'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts';
 const FULL_CHECK_REPAIR_REVIEWS = [
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
@@ -25,6 +24,9 @@ const PRODUCTION_CORRECTION_PATHS = [
   'src/online/cloudflare/persistence.ts',
   'src/test/architecture/modeNeutralCoreBoundary.test.ts',
 ] as const;
+const OBSOLETE_GOVERNANCE_REVIEWS = new Set([
+  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
+]);
 
 function text(path: string): string {
   return readFileSync(resolve(ROOT, path), 'utf8');
@@ -43,8 +45,8 @@ describe('review O4P-06F four-browser production release', () => {
 
     const changedSrc = git('diff', '--name-only', BASE_SHA, TERMINAL_SHA, '--', 'src')
       .split('\n')
-      .filter(Boolean);
-    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, TERMINAL_ROADMAP_REVIEW, GOVERNANCE_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
+      .filter((path) => Boolean(path) && !OBSOLETE_GOVERNANCE_REVIEWS.has(path));
+    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, TERMINAL_ROADMAP_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
     expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc', '.github'))
       .toBe('.github/workflows/deploy-pages.yml');
 
@@ -59,13 +61,12 @@ describe('review O4P-06F four-browser production release', () => {
     };
     expect(after.dependencies).toEqual(before.dependencies);
     expect(after.devDependencies).toEqual(before.devDependencies);
-    expect(after.scripts?.['check:release-preflight']).toBe('node scripts/checks/release-preflight.mjs');
-    expect(after.scripts?.['check:terminal-metadata']).toBe('node scripts/checks/terminal-metadata.mjs');
+    expect(after.scripts?.['check:release']).toBe('node scripts/checks/release-check.mjs');
     expect(after.scripts?.['evidence:o4p-06f']).toBe('tsx scripts/online/o4p-06f-four-browser-evidence.ts');
 
     const workflow = text('.github/workflows/deploy-pages.yml');
-    expect(workflow).toContain('npm run check:terminal-metadata');
-    expect(workflow).toContain("if: steps.change-lane.outputs.lane == 'semantic'");
+    expect(workflow).toContain('npm run check:release');
+    expect(workflow).not.toContain('change-lane');
 
     const onlineTsconfig = JSON.parse(text('scripts/online/tsconfig.json')) as { include?: unknown };
     expect(onlineTsconfig.include).toEqual(['./o4p-03d-evidence.ts', './o4p-06f-four-browser-evidence.ts']);

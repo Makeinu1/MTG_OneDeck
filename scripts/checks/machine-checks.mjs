@@ -112,16 +112,6 @@ const machineCheckSteps = [
     cmd: 'npm',
     args: ['run', 'verify:online-cloudflare-production-gate'],
   },
-  {
-    name: 'O4P-05C Release Gates検証',
-    cmd: 'npm',
-    args: ['run', 'verify:o4p-05c-release-gates'],
-  },
-  {
-    name: 'O4P-05D Production Release Closure検証',
-    cmd: 'npm',
-    args: ['run', 'verify:o4p-05d-production-release-closure'],
-  },
   { name: 'lint', cmd: 'npm', args: ['run', 'lint'] },
   { name: 'test', cmd: 'npm', args: ['test'] },
   { name: 'build (型検査内蔵)', cmd: 'npm', args: ['run', 'build'] },

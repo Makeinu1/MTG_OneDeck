@@ -1,9 +1,7 @@
 ---
-description: 1タスク1マイルストーンの契約→実装→監査→ship互換入口
+description: 旧 autoloop 呼出しを開発 Skill へ転送する互換入口
 ---
 
-`$ARGUMENTS`をmilestone idまたはgoalとして使い、`.agents/skills/mtg-onedeck-development/references/codex-autoloop.md`をそのまま実行する。
-
-- 1回の呼び出しで1マイルストーンだけを扱う。
-- 開始時は`npm run codex:context -- [--domain <id>]`、実装者と冷監査者は各1名・`fork_context: false`。
-- 次マイルストーンを同一タスクで開始しない。shipとloop-state reset後に終了する。
+過去の状態機械は使わず、`$ARGUMENTS` を Goal として
+`.agents/skills/mtg-onedeck-development/SKILL.md` を実行する。成果の完了後に別の Goal を
+自動開始しない。外部書込みは明示許可がある場合に限り release Skill へ渡す。

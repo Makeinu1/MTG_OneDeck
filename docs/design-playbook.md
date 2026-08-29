@@ -48,7 +48,7 @@
 
 ### 2.1 サイクル(autoloopの D-トラック版)
 
-1. **milestone**: 本書§3の実行カードを読む(=契約は起草済み。再起草しない)。台帳の該当エントリをin-progress相当としてloop-stateに記録。
+1. **milestone**: 本書§3の実行カードを読む(=契約は起草済み。再起草しない)。台帳の該当エントリと作業ブリーフに進行中の状態を記録。
 2. **review.\* 授权(判定者自筆・実装前)**: §3(b)の逐条仕様をそのままテストに起こす。**対象は純関数層のみ**(actionCatalog/selector/viewStore/投影/ヒューリスティック)。コンポーネントのDOMマウントはしない——`@testing-library/react` は未導入であり、**導入は依存追加=STOP③**(必要と判断したらユーザーへ)。DOM/視覚の正しさは2.3の実機レシピが受け持つ。
 3. **Codexブリーフ dispatch**: §3(a)の本文を`research/`配下の一時ファイルに書き、`"$(cat file)"`経由でbackground起動([[codex-dispatch-backtick-quoting-bug]]・`< /dev/null`)。AGENTS.md共通則は再掲しない。
 4. **Tier-1 独立監査**(冷たいCodex/Sonnetサブエージェント・findings only): 機械4点(各個実行)+review.\*+禁止ファイル走査+§3(f)のリスク観点を敵対プロンプトで。

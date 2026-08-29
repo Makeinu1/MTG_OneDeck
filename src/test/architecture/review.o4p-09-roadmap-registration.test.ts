@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -14,7 +14,6 @@ const IDS = [
 ] as const;
 const LIVE_IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-  'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08',
   'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
 ] as const;
 const DEPENDENCIES = [
@@ -32,6 +31,10 @@ const REGISTRATION_EVIDENCE = [
   AUDIT_RECORD_PATH,
   'cold-audit:/root/o4p09_registration_cold_audit:0/0/0/0:fingerprint=f7432d16a590969a5996fcb48aaeac66f378da2956cc9c302bf897606d02e11d',
 ] as const;
+const OBSOLETE_GOVERNANCE_REVIEWS = new Set([
+  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
+  'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
+]);
 const O4P_09_DOMAIN_BYTES_SHA256 =
   '1592ce268d431c809bc5707840caf30018e0dc4c59b6249a2e468c803a6184a1';
 const AUDIT_RECORD_BYTES_SHA256 =
@@ -41,9 +44,6 @@ const REQUIRED_CHANGED_PATHS = [
   ...REGISTRATION_EVIDENCE.slice(0, 4),
   'research/cr-grounding/o4p-09-roadmap-registration-cold-audit-brief.draft.md',
   AUDIT_RECORD_PATH,
-  'scripts/checks/verify-o4p-05d-production-release-closure.ts',
-  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
-  'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
   'src/test/architecture/review.o4p-05d-production-release-closure.test.ts',
   'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
@@ -181,12 +181,13 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
       domainIds: LIVE_IDS,
     });
     expect(LIVE_IDS).toContain(nextDomainId);
+    expect(nextDomainId).toBe('O4P-09F');
   });
 
   it('changes only Judge-owned registration and exact historical guards', () => {
     const changed = new Set(gitLines([
       'diff', '--name-only', BASE_SHA, CLOSURE_SHA,
-    ]));
+    ]).filter((path) => existsSync(resolve(ROOT, path)) && !OBSOLETE_GOVERNANCE_REVIEWS.has(path)));
     const allowed = new Set<string>(REQUIRED_CHANGED_PATHS);
     for (const path of REQUIRED_CHANGED_PATHS) expect(changed, path).toContain(path);
     for (const path of changed) {

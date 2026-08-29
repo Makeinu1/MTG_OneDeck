@@ -1,69 +1,26 @@
-# 常設の監査者規約(Tier-1)
+# Independent review policy
 
-`AGENTS.md` が実装者の常設規約であるように、これは **Tier-1 独立監査者の常設規約**。
-判定者のブリーフは**この規約を再掲せず、タスク固有のことだけ**書く(4行ヘッダ+固有の注意点)。
-判定者は委譲時にこのファイルを読ませる: 「まず `.claude/audit-standing.md` を読み、その規約に従って以下を監査せよ」。
+The reviewer is a separate, read-only quality check. Review is required only
+for changes to authentication/security, multiplayer shared state or protocol,
+persistence/migration/data loss, major CR semantics, or release/deploy
+infrastructure. Routine UI, compiler, and test edits use their targeted tests.
 
-## 立場
+## Method
 
-あなたは**独立 Tier-1 監査者**であり実装者ではない。**findings only** = コード・契約・`docs/`・`review.*` を変更しない。
-調査のための**一時的なミューテーションは可**。ただし必ず復元し、`git diff` で byte-identical を確認して報告する。
-**再委譲しない**(あなたは実行者でありオーケストレータではない)。
-「問題なし」と報告したい誘惑に抗う。だが**でっち上げもしない**——下記の到達可能性バーを満たさないものは finding にしない。
+1. Read `AGENTS.md`, the applicable contract, and the supplied acceptance claim.
+   Do not rely on implementation history or a prior verdict.
+2. Reproduce the real user path with real data where practical. A mechanism
+   demonstrated only by synthetic state is not a defect until reachability is
+   shown. For CR questions, quote the pinned rule number; CR outranks human gold,
+   and LLM output is interpretation only.
+3. Check that tests still constrain behavior: look for removed assertions,
+   skipped cases, weakened thresholds, silent drops, and unsafe disclosure.
+   Verify that unsupported compound effects remain guided/manual.
+4. Return findings only. Each finding has `HIGH`, `MEDIUM`, or `LOW`, a
+   `file:line`, the user input and incorrect result, and evidence. Separate
+   observed facts from hypotheses. If no finding exists, state what was tested.
 
-## 監査時間とタイムアウト
-
-監査ブリーフに時間プロファイルがある場合はそれに従う。ない場合は
-`STANDARD` とする。
-
-| プロファイル | 想定完了 | hard wait |
-| --- | ---: | ---: |
-| `NARROW` | 5分 | 15分 |
-| `STANDARD` | 15分 | 30分 |
-| `BROAD` | 25分 | 45分 |
-
-`hard wait` は監査の品質を下げる制限ではなく、監査者を無期限に放置しない
-ための締切である。監査者は対象範囲を広げず、指定された証拠を優先し、締切
-までに簡潔な findings を返す。完了できない場合は、完了済み証拠・未検証の
-主張・残りの作業を `AUDIT-TIMEOUT` として返す。`AUDIT-OK-PENDING-FULL-CHECK`
-を推測して返してはならない。
-
-オーケストレータ側の短い待機が切れた場合、それだけでは監査終了ではない。
-監査者が実行中なら新しい監査者を並列起動せず、同じ監査者の最終結果を待つ。
-最終結果なしで hard wait を超えた場合だけ、上記の `AUDIT-TIMEOUT` とする。
-
-## 必ず実行し「実出力」で報告する(自己申告禁止)
-
-1. **監査モードと機械チェック証跡**: 標準はrelease full check前のsemantic cold audit。ブリーフの候補tree fingerprintを確認し、監査者自身は`npm run check`を実行しない。BLOCKER/HIGH 0なら`AUDIT-OK-PENDING-FULL-CHECK`を返すが、これはship承認ではない。判定者はfindingsを閉じた同一fingerprintで後からフルcheckを通す。監査後の変更でfingerprintが変われば、影響claimを再監査する。例外的にブリーフへ同一fingerprintの既存フルcheck実出力がある場合は一致だけを確認して再利用し、重複実行しない。
-2. **禁止ファイル走査**: `npm run check:forbidden`(単一正本 = `scripts/checks/forbidden-files.mjs`。FORBIDDEN 検出=赤旗、NEEDS-REAUTH 表示=判定者の再オーナー化対象として報告に含める。`review.` 部分一致の誤検出対策はスクリプト内に固定済み——散文で regex を再定義しない)。
-3. **対象domain/claimの`review.*` テスト実行**(FP/FN ガード込みで壊れていないか)。全`review.*`の網羅はrelease full checkが担い、監査者はブリーフ指定の関連証拠を敵対的に再実行する。
-4. **weakening 検出**: テスト diff の**削除行**を精査。アサーション削除・`skip` 化・閾値緩和・期待値の緩みを敵対的に探す。
-5. **scope 漏れ**: ブリーフの defer/隔離を破っていないか。UI 差分に見せかけてエンジンの意味論を変えていないか。
-6. **vacuity 検査**: 新規テストが実装を実際に拘束しているか。実装を一時的に壊して red になるか確かめる(**必ず復元**)。
-
-## finding の到達可能性バー(最重要・2026-07-15 追加)
-
-**機構(mechanism)の証明は finding ではない。到達可能性(reachability)まで示して初めて finding。**
-
-- 内部値を合成的に注入した実証(jsdom で `scrollWidth` を手で書き換える等)は**機構の証明にすぎない**。
-- 必ず問う: **①その状態に到達する実ユーザー操作は存在するか ②実レイアウト/実データで前提を測ったか。**
-- 前提(「X が起きると Y が伸びる」等)は**実物で測ってから**主張する。
-- 到達可能性を示せないものは finding にせず「機構としては可能だが到達経路を実証できず」と**明示して分離**する。
-
-> 実例(2026-07-15): 「マナ値が1桁→2桁で `scrollWidth` が伸びフェードが出ない」と MEDIUM 報告したが、実ブラウザではステッパーが `flex: 0 0 80px` の固定幅で `scrollWidth` は 1px も動かず、前提が偽だった。判定者が実測で却下。**修正していれば存在しないバグにコードを足していた。**
-
-## 実機ブラウザの既知の罠——結論を出す前に必ず確認
-
-この自動化ブラウザは実ブラウザと挙動が違う。**実装を疑う前に「イベントが発火しているか」を自前プローブで確かめる**(カウンタを仕込む→操作→カウンタ確認)。発火 0 なら**環境要因であって実装バグではない**。
-
-- `element.scrollLeft = v` の代入は **scroll イベントを発火しない** → `el.dispatchEvent(new Event('scroll'))` を手動で投げる。
-- ウィンドウリサイズは**レイアウトを変えるが `resize` も `ResizeObserver` も発火しない** → **リサイズ経路はこの環境では検証不能**。「出ない=バグ」と書かない。
-- タブが非表示/未描画だと **`innerWidth === 0`** になり全 rect が潰れる → **必ず `if (innerWidth===0) return` でガード**し、測定前に screenshot を1回撮ってレイアウトを確定させる。
-- `requestAnimationFrame` も非表示時はスロットルされ発火しない(rAF 依存のフォーカス復帰が壊れて見える)。
-
-## 報告様式
-
-- 各 finding = **重大度(HIGH/MEDIUM/LOW) + `file:line` + 具体的な失敗シナリオ(入力→誤った結果)**。
-- **実証と推測を明確に分ける**(「実証済み」と書くなら再現手順と実測値を添える)。
-- 指摘ゼロなら「何を確認した上でゼロなのか」を列挙する。
-- 最後に「ship してよいか」の推奨を一行。
+Do not edit source, contracts, docs, tests, or release state; do not commit or
+perform external writes. After a correction, recheck only claims invalidated by
+that correction. A review does not authorize shipment; release still requires
+the release Skill, explicit authority, a green final check, and CI/Pages proof.

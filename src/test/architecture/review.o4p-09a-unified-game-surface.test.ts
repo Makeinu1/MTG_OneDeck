@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '0c0c7a533fffd8e3495cf74bb7d86b827f222c2e';
 const FROZEN_CANDIDATE_SHA = '3fb115b58260bebbea6911642616bc8a863ef95c';
+const OBSOLETE_GOVERNANCE_REVIEWS = new Set([
+  'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
+]);
 const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8');
 const gitLines = (args: string[]): string[] => execFileSync('git', args, {
   cwd: ROOT,
@@ -30,7 +33,6 @@ const REQUIRED_PRODUCT_PATHS = [
   'src/dev/uxResearch/ResearchRecorder.tsx',
 ] as const;
 const ALLOWED_PATHS = new Set([
-  '.claude/loop-state.md',
   'docs/contracts/manifest.json',
   'research/cr-grounding/cr-backbone-ledger.json',
   'research/cr-grounding/archive/o4p-09a-unified-game-surface-cold-audit-record-2026-08-25.md',
@@ -45,9 +47,7 @@ const ALLOWED_PATHS = new Set([
   'src/components/game/OpponentSetupScreen.review.test.tsx',
   'src/components/game/TriggerSheet.test.tsx',
   'src/components/game/__tests__/review.s1-stack-pile.test.tsx',
-  'src/test/architecture/review.gov-codex-56-program-orchestration.test.ts',
   'src/test/architecture/review.o4p-09a-unified-game-surface.test.ts',
-  'src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts',
   'src/test/architecture/review.o4p-06-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-07-roadmap-registration.test.ts',
   'src/test/architecture/review.o4p-08-roadmap-registration.test.ts',
@@ -115,7 +115,7 @@ describe('O4P-09A unified GameScreen surface seam', () => {
   it('does not fork online/player presentation or expand the milestone', () => {
     const changed = new Set(gitLines([
       'diff', '--name-only', BASE_SHA, FROZEN_CANDIDATE_SHA,
-    ]));
+    ]).filter((path) => !OBSOLETE_GOVERNANCE_REVIEWS.has(path)));
     for (const path of REQUIRED_PRODUCT_PATHS) expect(changed, path).toContain(path);
     expect(changed).toContain('src/components/game/GameScreenInteractionPort.test.tsx');
     for (const path of changed) {
