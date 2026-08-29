@@ -14,7 +14,7 @@ const IDS = [
 ] as const;
 const LIVE_IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-  'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+  'O4P-09F', 'O4P-09G', 'O4P-09I',
 ] as const;
 const DEPENDENCIES = [
   'O4P-08D', 'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D',
