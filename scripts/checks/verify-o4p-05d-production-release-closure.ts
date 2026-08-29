@@ -27,7 +27,7 @@ const frozenHashes = Object.freeze({
   'research/cr-grounding/o4p-05d-judge-surgery-1.draft.md': '788d4e100dd96086fc00bde4d4a7bb3788cf8cb4a743e8fb724c0b7ea251bb2b',
   'research/cr-grounding/o4p-05d-judge-surgery-2.draft.md': 'a8c1880d5d7c1fb639a8d78462c907990ef3c0ae85dcc54561a889b71ffca3fd',
   'research/cr-grounding/o4p-05d-full-check-repair-1.draft.md': 'b29cf3736be0a7c6259ec58883183be5687e3ad2aa1a64f83fca2d1fa01f9029',
-  [reviewPath]: '4c52b96d846f3c414d1aa0cf10980046e90a9e36aab0c6fd911b421e410d3bdf',
+  [reviewPath]: 'a424121d2c2a3121f37f462228180e2ea6b2f109baf5ba2f93a3d27583953051',
   'package-lock.json': '37506c0d414b82b91fb9f95662d7aeb9f390138e0a6905a813f401bea0b54832',
   'wrangler.jsonc': 'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
   '.github/workflows/deploy-pages.yml': 'c2c3d75d5816547db13a835ba9c9ffec921ab5620caf5192daacbeff579ecb19',
@@ -134,6 +134,7 @@ const allowedPrograms = [
   { id: 'O4P-08', domainIds: ['O4P-08A', 'O4P-08B', 'O4P-08C', 'O4P-08D'] },
   { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
   { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
+  { id: 'O4P-09', domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'] },
 ];
 assert.equal(
   allowedPrograms.some((program) => JSON.stringify(program) === JSON.stringify({

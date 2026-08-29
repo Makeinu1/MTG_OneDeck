@@ -1,16 +1,22 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { describe, expect, it } from 'vitest';
 
-import { applyProgramAction, runProgramStep } from '../codex-program-step.mjs';
+import {
+  applyProgramAction,
+  replaceLedgerEntryText,
+  runProgramStep,
+  writeAtomicTransition,
+} from '../codex-program-step.mjs';
 import {
   buildContextProjection,
   computeTreeFingerprint,
   createContextProjection,
+  verifyCleanCheckoutAuthority,
 } from '../codex-context.mjs';
 import { buildBudgetReport } from '../checks/budget.mjs';
 import { buildGuardImpact } from '../checks/guard-impact.mjs';
@@ -30,6 +36,7 @@ import {
   readTrackedSupervisorAuthority,
   supervisorAuthorityPath,
   verifySupervisorAuthority,
+  verifySupervisorAuthorityOffline,
   verifyUsageReceipt,
 } from '../lib/supervisor-authority.mjs';
 
@@ -849,6 +856,77 @@ function usageAuthorityFixture(root, candidate, { writeAuthority = true } = {}) 
   return { sessionsRoot, receiptPath, receipt, receiptPlan, receiptPlanPath };
 }
 
+function userReauthorizeFixture() {
+  const fixture = guardRepoFixture({ full: true });
+  const ledgerPath = join(fixture.root, 'research/cr-grounding/cr-backbone-ledger.json');
+  const ledger = JSON.parse(readFileSync(ledgerPath, 'utf8'));
+  for (const entry of [ledger.domains[0], ledger.plannedSequence[0]]) {
+    delete entry.authority;
+    delete entry.authoritySource;
+  }
+  const later = {
+    ...structuredClone(ledger.domains[0]),
+    id: 'M2',
+    dependsOn: ['M1'],
+    outcomeDeadlineDomainId: 'M2',
+  };
+  ledger.domains.push(later);
+  ledger.plannedSequence.push({ ...structuredClone(later), domainId: 'M2', type: 'checkpoint' });
+  ledger.goalPolicy.activeProgram.domainIds.push('M2');
+  writeFileSync(ledgerPath, `${JSON.stringify(ledger, null, 2)}\n`);
+  git(fixture.root, ['add', 'research/cr-grounding/cr-backbone-ledger.json']);
+  git(fixture.root, ['commit', '-qm', 'freeze original authority']);
+  const base = git(fixture.root, ['rev-parse', 'HEAD']);
+  const tree = computeTreeFingerprint(fixture.root);
+  const originalAuthority = structuredClone(ledger.goalPolicy.activeProgram.authority);
+  const candidate = candidateFixture({
+    state: 'audited',
+    baseSha: base,
+    treeFingerprint: tree,
+    acceptanceFingerprint: computeAcceptanceFingerprint(ledger.domains[0]),
+    authority: originalAuthority,
+    authoritySource: 'goalPolicy.activeProgram.authority',
+    counters: {
+      ...emptyCandidateCounters(),
+      implementerLineages: 1,
+      coldAuditorLineages: 1,
+      auditWaitChains: 1,
+    },
+    lineages: {
+      implementer: [{ id: SESSION_IDS.implementer, compactions: 0, freshContinuations: 0 }],
+      coldAuditor: [{ id: SESSION_IDS.auditor, compactions: 0, freshContinuations: 0 }],
+    },
+    waitChains: { audit: [SESSION_IDS.auditor], ci: [] },
+  });
+  const usage = usageAuthorityFixture(fixture.root, candidate);
+  write(fixture.root, '.claude/loop-state.md', loopText([candidate], candidate.state, base, tree));
+  const tracked = readTrackedSupervisorAuthority(fixture.root, 'M1').authority;
+  const reason = 'user-ruling:fixture:release';
+  const acceptance = {
+    boundary: `${ledger.domains[0].boundary}; release skill and exact authority epoch`,
+    evidence: [...ledger.domains[0].evidence, reason],
+    landingState: [...ledger.domains[0].landingState, 'releaseWorkflowSkill'],
+    manualBoundary: `${ledger.domains[0].manualBoundary}; no later-domain authority`,
+  };
+  const invoke = (overrides = {}) => runProgramStep({
+    root: fixture.root,
+    base,
+    domain: 'M1',
+    action: 'user-reauthorize',
+    reason,
+    authority: authority(),
+    authoritySource: reason,
+    acceptance,
+    expectedEventHash: tracked.events.at(-1).eventHash,
+    'receipt-plan': usage.receiptPlanPath,
+    'sessions-root': usage.sessionsRoot,
+    'actor-session': SESSION_IDS.supervisor,
+    'actor-role': 'supervisor',
+    ...overrides,
+  });
+  return { ...fixture, base, candidate, ledger, ledgerPath, usage, tracked, reason, acceptance, invoke };
+}
+
 function rehashSupervisorAuthority(authority) {
   let previousHash = null;
   for (const event of authority.events) {
@@ -935,6 +1013,181 @@ function makeAuditStopCandidate(candidate) {
 }
 
 describe('GOV-CODEX-58A tracked authority and verified receipts', () => {
+  it('appends one atomic user-ruling authority and acceptance epoch without rewriting history', () => {
+    const fixture = userReauthorizeFixture();
+    const beforePrefix = structuredClone(fixture.tracked.events);
+    const beforeGlobal = structuredClone(fixture.ledger.goalPolicy.activeProgram.authority);
+    const beforeStructural = Object.fromEntries([
+      'implementerLineages', 'coldAuditorLineages', 'auditWaitChains', 'ciWaitChains',
+      'correctionWaves', 'fullChecks', 'semanticPushes', 'replacementPushes',
+    ].map((key) => [key, fixture.candidate.counters[key]]));
+
+    const result = fixture.invoke();
+    expect(result.ok, JSON.stringify(result.errors)).toBe(true);
+    expect(result.activeCandidate).toMatchObject({
+      id: fixture.candidate.id,
+      domainId: fixture.candidate.domainId,
+      state: 'implementing',
+      baseSha: fixture.candidate.baseSha,
+      authority: authority(),
+      authoritySource: fixture.reason,
+      lineages: fixture.candidate.lineages,
+      waitChains: fixture.candidate.waitChains,
+      guardImpact: { reportFingerprint: null, acknowledgement: null },
+    });
+    expect(result.activeCandidate.releaseHeadSha ?? null).toBe(null);
+    expect(result.activeCandidate.treeFingerprint).not.toBe(fixture.candidate.treeFingerprint);
+    expect(result.activeCandidate.acceptanceFingerprint).not.toBe(fixture.candidate.acceptanceFingerprint);
+    expect(Object.fromEntries(Object.keys(beforeStructural)
+      .map((key) => [key, result.activeCandidate.counters[key]]))).toEqual(beforeStructural);
+
+    const nextLedger = JSON.parse(readFileSync(fixture.ledgerPath, 'utf8'));
+    expect(nextLedger.goalPolicy.activeProgram.authority).toEqual(beforeGlobal);
+    expect(nextLedger.domains[1]).toEqual(fixture.ledger.domains[1]);
+    expect(nextLedger.plannedSequence[1]).toEqual(fixture.ledger.plannedSequence[1]);
+    for (const entry of [nextLedger.domains[0], nextLedger.plannedSequence[0]]) {
+      expect(entry).toMatchObject({
+        ...fixture.acceptance,
+        authority: authority(),
+        authoritySource: fixture.reason,
+      });
+    }
+    const nextTracked = readTrackedSupervisorAuthority(fixture.root, 'M1').authority;
+    expect(nextTracked.events.slice(0, beforePrefix.length)).toEqual(beforePrefix);
+    expect(nextTracked.events.at(-1)).toMatchObject({
+      action: 'user-reauthorize',
+      reason: fixture.reason,
+      previousHash: beforePrefix.at(-1).eventHash,
+      candidate: { id: fixture.candidate.id, state: 'implementing' },
+    });
+    expect(verifyCleanCheckoutAuthority({
+      authority: nextTracked,
+      headAuthority: null,
+      ledger: nextLedger,
+      domainId: 'M1',
+      completeAutonomy: true,
+    }).errors).toEqual([]);
+    const staleLatest = structuredClone(nextTracked);
+    staleLatest.events.at(-1).candidate.authority = fixture.candidate.authority;
+    rehashSupervisorAuthority(staleLatest);
+    expect(verifyCleanCheckoutAuthority({
+      authority: staleLatest,
+      headAuthority: null,
+      ledger: nextLedger,
+      domainId: 'M1',
+      completeAutonomy: true,
+    }).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'TRACKED_CANDIDATE_AUTHORITY_MISMATCH' }),
+    ]));
+    const mismatchedReason = structuredClone(nextTracked);
+    mismatchedReason.events.at(-1).reason = 'user-ruling:fixture:other-release';
+    rehashSupervisorAuthority(mismatchedReason);
+    expect(verifySupervisorAuthorityOffline({
+      authority: mismatchedReason,
+      loopCandidate: mismatchedReason.events.at(-1).candidate,
+      completeAutonomy: true,
+    }).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'TRACKED_CANDIDATE_SCOPE_CHANGED' }),
+    ]));
+    expect(computeTreeFingerprint(fixture.root)).toBe(result.activeCandidate.treeFingerprint);
+    expect(createContextProjection(fixture.root, 'M1', { sessionsRoot: fixture.usage.sessionsRoot }).health)
+      .toEqual({ ok: true, errors: [] });
+  }, 15_000);
+
+  it('fails closed on malformed, downgraded, partial, non-user, and rewritten reauthorization inputs', () => {
+    const cases = [
+      ['malformed authority', userReauthorizeFixture(), { authority: { localWrites: true } }, 'INVALID_USER_REAUTHORIZE_AUTHORITY'],
+      ['authority downgrade', userReauthorizeFixture(), {
+        authority: authority({ localWrites: false }),
+      }, 'NON_MONOTONIC_USER_REAUTHORIZE_AUTHORITY'],
+      ['non-user reason', userReauthorizeFixture(), {
+        reason: 'operator-choice', authoritySource: 'operator-choice',
+      }, 'INVALID_USER_REAUTHORIZE_EPOCH'],
+      ['partial acceptance', userReauthorizeFixture(), {
+        acceptance: { boundary: 'partial' },
+      }, 'INVALID_USER_REAUTHORIZE_ACCEPTANCE'],
+      ['stale predecessor hash', userReauthorizeFixture(), {
+        expectedEventHash: '0'.repeat(64),
+      }, 'USER_REAUTHORIZE_PREDECESSOR_HASH_MISMATCH'],
+    ];
+    for (const [label, fixture, overrides, code] of cases) {
+      const beforeLedger = readFileSync(fixture.ledgerPath, 'utf8');
+      const authorityPath = join(fixture.root, supervisorAuthorityPath('M1'));
+      const beforeAuthority = readFileSync(authorityPath, 'utf8');
+      const beforeLoop = readFileSync(join(fixture.root, '.claude/loop-state.md'), 'utf8');
+      expect(fixture.invoke(overrides).errors, label).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code })]),
+      );
+      expect(readFileSync(fixture.ledgerPath, 'utf8'), `${label}: ledger`).toBe(beforeLedger);
+      expect(readFileSync(authorityPath, 'utf8'), `${label}: authority`).toBe(beforeAuthority);
+      expect(readFileSync(join(fixture.root, '.claude/loop-state.md'), 'utf8'), `${label}: loop`).toBe(beforeLoop);
+    }
+
+    const partial = userReauthorizeFixture();
+    const partialLedger = JSON.parse(readFileSync(partial.ledgerPath, 'utf8'));
+    partialLedger.plannedSequence[0].boundary = 'mismatched collection';
+    writeFileSync(partial.ledgerPath, `${JSON.stringify(partialLedger, null, 2)}\n`);
+    expect(partial.invoke().errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'CANDIDATE_AUTHORITY_COLLECTION_MISMATCH' }),
+    ]));
+
+    const rewritten = userReauthorizeFixture();
+    const rewrittenPath = join(rewritten.root, supervisorAuthorityPath('M1'));
+    const changed = JSON.parse(readFileSync(rewrittenPath, 'utf8'));
+    changed.events[0].reason = 'rewritten-prefix';
+    rehashSupervisorAuthority(changed);
+    writeFileSync(rewrittenPath, `${JSON.stringify(changed, null, 2)}\n`);
+    expect(rewritten.invoke().errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'USER_REAUTHORIZE_PREDECESSOR_HASH_MISMATCH' }),
+    ]));
+  }, 30_000);
+
+  it('rolls all replaced files back when an atomic transition fails mid-rename', () => {
+    const root = mkdtempSync(join(tmpdir(), 'onedeck-atomic-transition-'));
+    const paths = ['ledger.json', 'authority.json', 'loop.md'].map((name) => join(root, name));
+    paths.forEach((path, index) => writeFileSync(path, `before-${index}\n`));
+    let primaryRenames = 0;
+    expect(() => writeAtomicTransition(paths.map((path, index) => ({
+      path,
+      text: `after-${index}\n`,
+      previousText: `before-${index}\n`,
+    })), {
+      rename(source, target) {
+        if (!source.endsWith('-rollback') && ++primaryRenames === 2) {
+          throw new Error('injected rename failure');
+        }
+        renameSync(source, target);
+      },
+    })).toThrow('injected rename failure');
+    paths.forEach((path, index) => expect(readFileSync(path, 'utf8')).toBe(`before-${index}\n`));
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('preserves ledger formatting outside the exact amended entry', () => {
+    const text = [
+      '{',
+      '  "plannedSequence": [',
+      '    { "domainId": "M1", "status": "pending" },',
+      '    { "domainId": "M2", "status": "pending" }',
+      '  ],',
+      '  "domains": []',
+      '}',
+      '',
+    ].join('\n');
+    const replaced = replaceLedgerEntryText(text, {
+      collectionKey: 'plannedSequence',
+      identityKey: 'domainId',
+      identityValue: 'M1',
+      nextEntry: { domainId: 'M1', status: 'pending', authority: authority() },
+    });
+    expect(replaced).toContain('    { "domainId": "M2", "status": "pending" }');
+    expect(JSON.parse(replaced).plannedSequence[0]).toEqual({
+      domainId: 'M1',
+      status: 'pending',
+      authority: authority(),
+    });
+  });
+
   it('recovers a clean checkout without loop-state from verified tracked authority and rejects a corrupt clean authority', () => {
     const { root, candidate, path } = cleanCheckoutAuthorityFixture();
 

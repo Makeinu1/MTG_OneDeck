@@ -1,6 +1,6 @@
 ---
 name: mtg-onedeck-development
-description: Run contract-first MTG OneDeck development with separated ChatGPT judge, implementer, and cold-auditor roles. Use for starting or continuing a milestone, implementing engine or UI work, auditing a frozen change, updating the CR-grounding queue, or preparing a verified release while preserving token economy and fake-green safeguards.
+description: Run contract-first MTG OneDeck development with separated ChatGPT judge, implementer, and cold-auditor roles. Use for starting or continuing a milestone, implementing engine or UI work, auditing a frozen change, or updating the CR-grounding queue while preserving token economy and fake-green safeguards; use mtg-onedeck-release for the release lane.
 ---
 
 # MTG OneDeck development
@@ -48,7 +48,7 @@ compact terminal packet; candidates and worker histories never overlap.
 
 ## Finish
 
-Run milestone-specific tests while iterating, cold-audit the R2/R3 candidate tree, then run the full machine check once on the same release fingerprint after findings are closed. A clean pre-release audit is `AUDIT-OK-PENDING-FULL-CHECK`, never ship approval by itself. For visible UI changes, verify the required viewports and zero new browser-console errors. Use the completion report required by `AGENTS.md`. After a shipped cycle, a program supervisor may continue only through the clean exact-head transition gate in the workflow reference.
+Run milestone-specific tests while iterating and cold-audit the R2/R3 candidate tree. A clean pre-release audit is `AUDIT-OK-PENDING-FULL-CHECK`, never ship approval by itself. For visible UI changes, verify the required viewports and zero new browser-console errors. Use `../mtg-onedeck-release/SKILL.md` for release preparation, the final machine check, external release, recovery, or verification. Use the completion report required by `AGENTS.md`. After a shipped cycle, a program supervisor may continue only through the clean exact-head transition gate in the workflow reference.
 Structural counters, cumulative usage, and authority do not reset when a
 repair, continuation, metadata commit, or task is renamed. Usage watchdogs
 route work internally and never ask the user to approve a larger number.

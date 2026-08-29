@@ -193,7 +193,8 @@ describe('O4P-06 playable four-player roadmap registration', () => {
     }
     const o4p09Ids = [
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+      'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08',
+      'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
       ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped'

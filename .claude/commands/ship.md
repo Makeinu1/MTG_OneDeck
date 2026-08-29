@@ -2,6 +2,6 @@
 description: 監査合格後のcommit・push・CI・Pages確認互換入口
 ---
 
-`.agents/skills/mtg-onedeck-development/references/codex-autoloop.md` §6–7を実行する。
-
-監査BLOCKER/HIGH = 0、`review.*`緑、凍結treeの`npm run check`緑が前提。明示ファイルだけをstageし、監査者id入りcommit、push、`HEAD == origin/main`、対象SHAのCI success、Pages HTTP 200、worktree clean、loop-state resetを全て満たして完了とする。
+`.agents/skills/mtg-onedeck-release/SKILL.md` の `ship` modeを実行する互換入口。
+呼出し自体は権限を生成しない。候補に記録されたcommit、push、deploy、ship権限と、
+同Skillが委譲する`document-governance.md`の機械gateを満たすこと。

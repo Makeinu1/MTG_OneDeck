@@ -154,7 +154,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     expect(withoutActiveProgram(after.goalPolicy)).toEqual(withoutActiveProgram(before.goalPolicy));
     expect(after.goalPolicy.activeProgram).toMatchObject({
       id: 'O4P-09',
-      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
+      domainIds: ['O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E', 'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J'],
     });
     expect(after.domains.slice(0, before.domains.length)).toEqual(before.domains);
     expect(after.plannedSequence.slice(0, before.plannedSequence.length)).toEqual(before.plannedSequence);
@@ -217,7 +217,8 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
     const liveLedger = parse(read(LEDGER_PATH));
     const o4p09Ids = [
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      'GOV-CODEX-58A-2026-08', 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+      'GOV-CODEX-58A-2026-08', 'GOV-PRODUCT-DELIVERY-2026-08',
+      'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
       liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'

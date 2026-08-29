@@ -15,6 +15,7 @@ const read = (path: string): string => readFileSync(resolve(ROOT, path), 'utf8')
 const ledger = JSON.parse(read('research/cr-grounding/cr-backbone-ledger.json')) as {
   domains: Array<Record<string, unknown>>;
   plannedSequence: Array<Record<string, unknown>>;
+  goalPolicy: { activeProgram: { id: string; domainIds: string[] } };
 };
 const expectOrdered = (source: string, terms: string[]): void => {
   let cursor = -1;
@@ -145,6 +146,11 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
   });
 
   it('keeps historical governance explicit but cannot bypass the active supervised candidate', () => {
+    const liveProgramIds = ledger.goalPolicy.activeProgram.domainIds;
+    const nextDomainId = liveProgramIds.find((id) => (
+      ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
+    )) ?? null;
+    expect(nextDomainId).not.toBeNull();
     const context = spawnSync(
       'node',
       ['scripts/codex-context.mjs', '--domain', 'GOV-CODEX-56-2026-08'],
@@ -164,7 +170,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       expect.objectContaining({
         code: 'ACTIVE_SUPERVISED_CANDIDATE_DOMAIN_MISMATCH',
         requestedDomainId: 'GOV-CODEX-56-2026-08',
-        activeDomainId: 'GOV-CODEX-58A-2026-08',
+        activeDomainId: nextDomainId,
       }),
     ]));
     expect(projection.selection).toEqual({
@@ -175,17 +181,9 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       expect(ledger.domains.find((entry) => entry.id === id)?.status, id).toBe('shipped');
       expect(ledger.plannedSequence.find((entry) => entry.domainId === id)?.status, id).toBe('shipped');
     }
-    const o4p09Ids = [
-      'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      'GOV-CODEX-58A-2026-08',
-      'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
-    ] as const;
-    const nextDomainId = o4p09Ids.find((id) => (
-      ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
-    )) ?? null;
     expect(projection.activeProgram).toMatchObject({
       id: 'O4P-09',
-      domainIds: o4p09Ids,
+      domainIds: liveProgramIds,
       status: nextDomainId === null ? 'complete' : 'active',
       nextDomainId,
     });

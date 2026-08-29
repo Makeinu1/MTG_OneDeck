@@ -295,6 +295,27 @@ export function createSupervisorBootstrap({ candidate, receipt, actorSessionId, 
 function compareCandidateHistory(previousEvent, event, errors) {
   const previous = previousEvent.candidate;
   const current = event.candidate;
+  const userReauthorization =
+    event.action === 'user-reauthorize' &&
+    typeof event.reason === 'string' && event.reason.startsWith('user-ruling:') &&
+    previous.state === 'audited' && current.state === 'implementing' &&
+    current.id === previous.id && current.baseSha === previous.baseSha &&
+    /^[0-9a-f]{64}$/.test(current.treeFingerprint ?? '') &&
+    current.treeFingerprint !== previous.treeFingerprint &&
+    current.guardImpact?.reportFingerprint === null &&
+    current.guardImpact?.acknowledgement === null &&
+    (current.releaseHeadSha ?? null) === (previous.releaseHeadSha ?? null) &&
+    stableJson(current.lineages) === stableJson(previous.lineages) &&
+    stableJson(current.waitChains) === stableJson(previous.waitChains) &&
+    Object.keys(previous.authority ?? {}).every((key) =>
+      typeof current.authority?.[key] === 'boolean' &&
+      !(previous.authority[key] === true && current.authority[key] !== true),
+    ) &&
+    Object.keys(current.authority ?? {}).length === Object.keys(previous.authority ?? {}).length &&
+    Object.keys(previous.authority ?? {}).some((key) => previous.authority[key] === false && current.authority[key] === true) &&
+    current.acceptanceFingerprint !== previous.acceptanceFingerprint &&
+    typeof current.authoritySource === 'string' &&
+    current.authoritySource === event.reason;
   const postShipAcknowledgement = current.guardImpact?.acknowledgement;
   const exactPostShipRepair =
     event.action === 'derive-post-ship-repair' &&
@@ -347,16 +368,18 @@ function compareCandidateHistory(previousEvent, event, errors) {
     }
   }
   if (
-    current.acceptanceFingerprint !== previous.acceptanceFingerprint ||
-    stableJson(current.authority) !== stableJson(previous.authority) ||
-    current.authoritySource !== previous.authoritySource
+    (
+      current.acceptanceFingerprint !== previous.acceptanceFingerprint ||
+      stableJson(current.authority) !== stableJson(previous.authority) ||
+      current.authoritySource !== previous.authoritySource
+    ) && !userReauthorization
   ) errors.push({ code: 'TRACKED_CANDIDATE_SCOPE_CHANGED' });
   if (current.baseSha !== previous.baseSha && event.action !== 'derive-repair' && !exactPostShipRepair) {
     errors.push({ code: 'TRACKED_CANDIDATE_BASE_CHANGED' });
   }
   if (
     current.treeFingerprint !== previous.treeFingerprint &&
-    event.action !== 'refresh-fingerprint' && !exactPostShipRepair
+    event.action !== 'refresh-fingerprint' && !exactPostShipRepair && !userReauthorization
   ) {
     errors.push({ code: 'TRACKED_CANDIDATE_TREE_CHANGED', sequence: event.sequence });
   }
@@ -441,6 +464,7 @@ function compareCandidateHistory(previousEvent, event, errors) {
     'derive-post-ship-repair': [['shipped', 'implementing']],
     'repair-resume': [['audit-failed-stop', 'audit-repairable']],
     'user-reopen': [['audit-failed-stop', 'audit-repairable']],
+    'user-reauthorize': [['audited', 'implementing']],
     'acknowledge-guard-impact': null,
     'refresh-fingerprint': null,
     'compact-implementer': null,

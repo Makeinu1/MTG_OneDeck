@@ -18,14 +18,22 @@ const git = (root, args, encoding = 'utf8') => execFileSync('git', args, {
 });
 
 const normalized = (path) => path.replaceAll('\\', '/').replace(/^\.\//, '');
+const isSupervisorEventPath = (path) =>
+  normalized(path).startsWith('research/cr-grounding/supervisor-events/');
 
 function repositoryPaths(root, changedPaths) {
   const tracked = git(root, ['ls-files', '-z']).split('\0').filter(Boolean);
-  return [...new Set([...tracked, ...changedPaths])].map(normalized).sort();
+  return [...new Set([...tracked, ...changedPaths])]
+    .map(normalized)
+    .filter((path) => !isSupervisorEventPath(path))
+    .sort();
 }
 
 function baseRepositoryPaths(root, base) {
-  return git(root, ['ls-tree', '-r', '--name-only', '-z', base]).split('\0').filter(Boolean).map(normalized).sort();
+  return git(root, ['ls-tree', '-r', '--name-only', '-z', base]).split('\0').filter(Boolean)
+    .map(normalized)
+    .filter((path) => !isSupervisorEventPath(path))
+    .sort();
 }
 
 function readCandidateText(root, path) {
@@ -172,7 +180,7 @@ export function equivalentGuardAcknowledgement(left, report, activeAuthorityPath
 export function buildGuardImpact({ root = process.cwd(), base, domain, projection } = {}) {
   const changes = collectChangedFiles({ cwd: root, base });
   const activeProjection = projection ?? createContextProjection(root, domain);
-  const changedPaths = changes.files.filter((path) => !path.startsWith('research/cr-grounding/supervisor-events/'));
+  const changedPaths = changes.files.filter((path) => !isSupervisorEventPath(path));
   const scanEntries = repositoryPaths(root, changedPaths)
     .map((path) => ({ path, text: readCandidateText(root, path) }))
     .filter((entry) => entry.text !== null);

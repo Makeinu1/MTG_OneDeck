@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -520,28 +520,103 @@ function turnCommand(
   });
 }
 
-function liveCandidatePaths(): string[] {
-  const ledger = JSON.parse(read('research/cr-grounding/cr-backbone-ledger.json')) as {
-    domains: Array<{ id: string; status: string; evidence?: string[] }>;
+type LiveCandidatePathScope = {
+  changed: Set<string>;
+  current: Set<string>;
+  historicalJudge: Set<string>;
+  guardedJudge: Set<string>;
+};
+
+function liveCandidatePathScope(): LiveCandidatePathScope {
+  const contextRun = spawnSync(process.execPath, ['scripts/codex-context.mjs'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  expect(contextRun.error).toBeUndefined();
+  expect(contextRun.signal).toBeNull();
+  expect(contextRun.stderr).toBe('');
+  expect(contextRun.status).toBe(0);
+  const context = JSON.parse(contextRun.stdout) as {
+    health?: { ok?: boolean; errors?: unknown[] };
+    trackedSupervisor?: { ok?: boolean };
+    activeCandidate?: {
+      id?: string;
+      domainId?: string;
+      baseSha?: string;
+      treeFingerprint?: string;
+      guardImpact?: { reportFingerprint?: string | null };
+    } | null;
   };
-  const domain = ledger.domains.find((entry) => entry.id === 'O4P-09C');
-  if (domain?.status === 'shipped') {
-    const semantic = domain.evidence?.find((entry) =>
-      /^semantic-head:[0-9a-f]{7,40}$/u.test(entry));
-    if (semantic === undefined) throw new Error('Shipped O4P-09C requires semantic-head evidence');
-    const semanticHead = semantic.slice('semantic-head:'.length);
-    return [
-      ...gitLines(['diff', '--name-only', BASE_SHA, semanticHead]),
-      ...gitLines(['diff', '--name-only', semanticHead, 'HEAD']),
-      ...gitLines(['diff', '--cached', '--name-only']),
-      ...gitLines(['diff', '--name-only']),
-      ...gitLines(['ls-files', '--others', '--exclude-standard']),
-    ];
+  expect(context.health).toEqual({ ok: true, errors: [] });
+  expect(context.trackedSupervisor?.ok).toBe(true);
+  const candidate = context.activeCandidate;
+  if (candidate?.id === undefined || candidate.domainId === undefined
+    || candidate.baseSha === undefined || candidate.treeFingerprint === undefined) {
+    throw new Error('Verified live candidate is required for frozen path classification');
   }
-  return [
-    ...gitLines(['diff', '--name-only', BASE_SHA]),
+
+  const guardRun = spawnSync(process.execPath, [
+    'scripts/checks/guard-impact.mjs',
+    '--base', candidate.baseSha,
+    '--domain', candidate.domainId,
+  ], { cwd: ROOT, encoding: 'utf8' });
+  expect(guardRun.error).toBeUndefined();
+  expect(guardRun.signal).toBeNull();
+  expect(guardRun.stderr).toBe('');
+  expect(guardRun.status).toBe(0);
+  const guard = JSON.parse(guardRun.stdout) as {
+    ok?: boolean;
+    candidateId?: string;
+    candidateTreeFingerprint?: string;
+    reportFingerprint?: string;
+    errors?: unknown[];
+    acknowledgementRequired?: {
+      candidateId?: string;
+      candidateTreeFingerprint?: string;
+      reportFingerprint?: string;
+      paths?: Array<{ path?: string; owner?: string }>;
+    };
+  };
+  expect(guard).toMatchObject({
+    ok: true,
+    candidateId: candidate.id,
+    candidateTreeFingerprint: candidate.treeFingerprint,
+    errors: [],
+  });
+  expect(guard.reportFingerprint).toBe(candidate.guardImpact?.reportFingerprint);
+  expect(guard.acknowledgementRequired).toMatchObject({
+    candidateId: candidate.id,
+    candidateTreeFingerprint: candidate.treeFingerprint,
+    reportFingerprint: guard.reportFingerprint,
+  });
+
+  const current = new Set([
+    ...gitLines(['diff', '--name-only', candidate.baseSha, 'HEAD']),
+    ...gitLines(['diff', '--cached', '--name-only']),
+    ...gitLines(['diff', '--name-only']),
     ...gitLines(['ls-files', '--others', '--exclude-standard']),
-  ];
+  ]);
+  const historical = new Set(gitLines(['diff', '--name-only', BASE_SHA, candidate.baseSha]));
+  const historicalOnly = [...historical].filter((path) => !current.has(path));
+  const ownerProgram = [
+    'import { requiredOwner } from "./scripts/checks/ownership.mjs";',
+    'const paths = JSON.parse(process.argv[1]);',
+    'process.stdout.write(JSON.stringify(paths.filter((path) => requiredOwner(path) === "judge")));',
+  ].join('\n');
+  const historicalJudge = new Set(JSON.parse(execFileSync(process.execPath, [
+    '--input-type=module', '--eval', ownerProgram, JSON.stringify(historicalOnly),
+  ], { cwd: ROOT, encoding: 'utf8' })) as string[]);
+  const guardedJudge = new Set((guard.acknowledgementRequired?.paths ?? [])
+    .filter((entry) => entry.owner === 'judge' && typeof entry.path === 'string')
+    .map((entry) => entry.path as string));
+  guardedJudge.add(`research/cr-grounding/supervisor-events/${candidate.domainId}.json`);
+
+  return {
+    changed: new Set([...historical, ...current]),
+    current,
+    historicalJudge,
+    guardedJudge,
+  };
 }
 
 describe('O4P-09C server-authoritative Pregame lifecycle', () => {
@@ -1500,8 +1575,12 @@ describe('O4P-09C server-authoritative Pregame lifecycle', () => {
     expect(drawnRegistry.players['P3' as Core.CorePlayerId]?.drawnThisTurn).toBe(1);
   });
 
-  it('keeps the candidate inside the frozen Core and headless Pregame paths', { timeout: 30000 }, () => {
-    const changed = new Set(liveCandidatePaths());
+  it('keeps the candidate inside the frozen Core and headless Pregame paths', { timeout: 90000 }, () => {
+    const scope = liveCandidatePathScope();
+    const { changed } = scope;
+    for (const path of ['.claude/commands/unacknowledged.md', 'docs/unrelated.md']) {
+      expect(scope.guardedJudge.has(path), path).toBe(false);
+    }
     for (const path of [
       ...ONLINE_PRODUCT_PATHS,
       ...CORE_PREGAME_PATHS,
@@ -1511,7 +1590,11 @@ describe('O4P-09C server-authoritative Pregame lifecycle', () => {
       expect(changed, path).toContain(path);
     }
     for (const path of changed) {
+      const inheritedJudgePath = !scope.current.has(path) && scope.historicalJudge.has(path);
+      const guardedJudgePath = scope.current.has(path) && scope.guardedJudge.has(path);
       const allowed = JUDGE_PATHS.has(path)
+        || inheritedJudgePath
+        || guardedJudgePath
         || O4P_09C_UI_SUCCESSOR_PATHS.has(path)
         || O4P_09D_SUCCESSOR_PATHS.has(path)
         || O4P_09E_SUCCESSOR_PATHS.has(path)

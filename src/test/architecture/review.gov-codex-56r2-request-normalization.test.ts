@@ -54,6 +54,7 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
       'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
       'GOV-CODEX-57-2026-08', 'GOV-CODEX-58A-2026-08',
+      'GOV-PRODUCT-DELIVERY-2026-08',
     ]);
     expect(ledger.domains.filter((entry) => entry.id !== id && !successorIds.has(entry.id as string))).toEqual(baseLedger.domains);
     expect(ledger.plannedSequence.filter(
@@ -61,10 +62,10 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     )).toEqual(
       baseLedger.plannedSequence,
     );
-    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(13);
+    expect(ledger.domains.filter((entry) => successorIds.has(entry.id as string))).toHaveLength(14);
     expect(ledger.plannedSequence.filter(
       (entry) => successorIds.has(entry.domainId as string),
-    )).toHaveLength(13);
+    )).toHaveLength(14);
   });
 
   it('makes the LLM normalize prose without transferring authority', () => {

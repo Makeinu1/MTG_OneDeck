@@ -89,7 +89,8 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     expect(stripIdentity(planned[0] ?? {})).toEqual(stripIdentity(domain[0] ?? {}));
     expect(ledger.goalPolicy.activeProgram.domainIds).toEqual([
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      DOMAIN_ID, 'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
+      DOMAIN_ID, 'GOV-PRODUCT-DELIVERY-2026-08',
+      'O4P-09F', 'O4P-09G', 'O4P-09H', 'O4P-09I', 'O4P-09J',
     ]);
     expect(ledger.goalPolicy.supervisionPolicy).toMatchObject({
       enforceFromDomainId: DOMAIN_ID,
@@ -126,7 +127,34 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
   });
 
   it('projects one live candidate and makes the standalone budget gate agree', () => {
-    const contextResult = runJson('scripts/codex-context.mjs', ['--domain', DOMAIN_ID]);
+    const ledger = JSON.parse(read('research/cr-grounding/cr-backbone-ledger.json')) as {
+      goalPolicy: {
+        activeProgram: {
+          domainIds: string[];
+          authority: Record<string, boolean>;
+        };
+      };
+      domains: Array<{
+        id?: string;
+        status?: string;
+        authority?: Record<string, boolean>;
+        authoritySource?: string;
+      }>;
+    };
+    const activeDomainId = ledger.goalPolicy.activeProgram.domainIds.find((id) =>
+      ledger.domains.find((entry) => entry.id === id)?.status !== 'shipped');
+    expect(activeDomainId).toEqual(expect.any(String));
+    if (activeDomainId === undefined) throw new Error('missing live supervised domain');
+    const activeDomain = ledger.domains.find((entry) => entry.id === activeDomainId);
+    expect(activeDomain).toBeDefined();
+    const activeAuthority = activeDomain?.authority ?? ledger.goalPolicy.activeProgram.authority;
+    const activeAuthoritySource = activeDomain?.authoritySource ?? 'goalPolicy.activeProgram.authority';
+    const expectedPermissionRequired = Object.fromEntries(
+      ['localWrites', 'commit', 'push', 'deploy', 'ship']
+        .map((key) => [key, activeAuthority[key] !== true]),
+    );
+
+    const contextResult = runJson('scripts/codex-context.mjs', ['--domain', activeDomainId]);
     const context = contextResult.value as ContextProjection;
     expect(contextResult.status).toBe(0);
     expect(contextResult.bytes).toBeLessThanOrEqual(12 * 1024);
@@ -141,17 +169,11 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     })).digest('hex');
     expect(auditEnvelope).toMatch(/^[0-9a-f]{64}$/u);
     expect(context.activeCandidate).toMatchObject({
-      domainId: DOMAIN_ID,
-      authoritySource: 'user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release',
+      domainId: activeDomainId,
+      authoritySource: activeAuthoritySource,
       releaseHeadSha: null,
     });
-    expect(context.permissionRequired).toEqual({
-      commit: false,
-      deploy: false,
-      localWrites: false,
-      push: false,
-      ship: false,
-    });
+    expect(context.permissionRequired).toEqual(expectedPermissionRequired);
     const counters = context.activeCandidate?.counters ?? {};
     const limits = context.supervisionPolicy?.limits ?? {};
     expect(counters).not.toHaveProperty('supervisorInputTokens');
@@ -161,9 +183,9 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
     expect(context.activeCandidate?.waitChains?.audit?.length ?? 0).toBeLessThanOrEqual(1);
     expect(context.activeCandidate?.waitChains?.ci?.length ?? 0).toBeLessThanOrEqual(1);
 
-    const budgetResult = runJson('scripts/checks/budget.mjs', ['--domain', DOMAIN_ID]);
+    const budgetResult = runJson('scripts/checks/budget.mjs', ['--domain', activeDomainId]);
     expect(budgetResult.status).toBe(0);
-    expect(budgetResult.value).toMatchObject({ ok: true, domain: DOMAIN_ID });
+    expect(budgetResult.value).toMatchObject({ ok: true, domain: activeDomainId });
     expect(budgetResult.value.counters).toEqual(counters);
     expect(budgetResult.value.limits).toEqual(limits);
     const advisories = budgetResult.value.advisories as Array<{ counter?: string }> | undefined;

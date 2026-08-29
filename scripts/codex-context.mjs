@@ -55,7 +55,7 @@ export function hashTreeEntries(entries) {
   return hash.digest('hex');
 }
 
-export function computeTreeFingerprint(root, filePaths) {
+export function computeTreeFingerprint(root, filePaths, contentOverrides = {}) {
   let activeAuthorityPath = null;
   if (!filePaths) {
     try {
@@ -76,6 +76,9 @@ export function computeTreeFingerprint(root, filePaths) {
       .split('\0')
       .filter((path) => path && path !== activeAuthorityPath);
   const entries = paths.map((path) => {
+    if (Object.prototype.hasOwnProperty.call(contentOverrides, path)) {
+      return { path, kind: 'file', content: Buffer.from(contentOverrides[path]) };
+    }
     const absolutePath = resolve(root, path);
     if (!existsSync(absolutePath)) return { path, kind: 'deleted' };
     const stat = lstatSync(absolutePath);
@@ -952,7 +955,7 @@ const synthesizeTrackedCandidateLoopState = (candidate) => [
   `activeCandidates: ${JSON.stringify([candidate])}`,
 ].join('\n');
 
-function verifyCleanCheckoutAuthority({ authority, headAuthority, ledger, domainId, completeAutonomy }) {
+export function verifyCleanCheckoutAuthority({ authority, headAuthority, ledger, domainId, completeAutonomy }) {
   const chain = verifySupervisorAuthorityOffline({
     authority,
     headAuthority,
@@ -971,7 +974,8 @@ function verifyCleanCheckoutAuthority({ authority, headAuthority, ledger, domain
   });
   errors.push(...resolvedAuthority.errors);
   const acceptanceFingerprint = computeAcceptanceFingerprint(domain);
-  for (const event of authority?.events ?? []) {
+  const events = authority?.events ?? [];
+  for (const [index, event] of events.entries()) {
     const sequence = event?.sequence ?? null;
     const candidate = event?.candidate;
     const validation = validateCandidateRecord(candidate, policyResult.policy);
@@ -979,13 +983,15 @@ function verifyCleanCheckoutAuthority({ authority, headAuthority, ledger, domain
     if (candidate?.domainId !== domainId) {
       errors.push({ code: 'TRACKED_CANDIDATE_DOMAIN_MISMATCH', sequence });
     }
-    if (candidate?.acceptanceFingerprint !== acceptanceFingerprint) {
+    // Historical events are immutable snapshots. Only the appended current
+    // epoch is required to equal the current ledger authority and acceptance.
+    if (index === events.length - 1 && candidate?.acceptanceFingerprint !== acceptanceFingerprint) {
       errors.push({ code: 'TRACKED_CANDIDATE_ACCEPTANCE_MISMATCH', sequence });
     }
-    if (
+    if (index === events.length - 1 && (
       stableJson(candidate?.authority) !== stableJson(resolvedAuthority.authority) ||
       candidate?.authoritySource !== resolvedAuthority.authoritySource
-    ) errors.push({ code: 'TRACKED_CANDIDATE_AUTHORITY_MISMATCH', sequence });
+    )) errors.push({ code: 'TRACKED_CANDIDATE_AUTHORITY_MISMATCH', sequence });
   }
   return { ...chain, ok: chain.ok && errors.length === 0, errors };
 }

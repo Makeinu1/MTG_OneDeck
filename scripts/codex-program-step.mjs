@@ -9,10 +9,12 @@ import { collectChangedFiles } from './checks/change-detector.mjs';
 import { buildGuardImpact, equivalentGuardAcknowledgement } from './checks/guard-impact.mjs';
 import {
   buildSupervisorProjection,
+  computeAcceptanceFingerprint,
   evaluateCandidateBudget,
   findActiveSupervisedDomainId,
   parseCandidateRecords,
   replaceLoopField,
+  resolveCandidateAuthority,
   resolveSupervisionPolicy,
   validateCandidateRecord,
 } from './lib/supervisor-state.mjs';
@@ -32,6 +34,7 @@ const LOOP_STATE_PATH = '.claude/loop-state.md';
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const RELEASE_REPAIR_REASONS = new Set(['release-full-check', 'ci-environment', 'guard-impact']);
 const POST_SHIP_REPAIR_REASON = 'ci-environment:terminal-metadata';
+const USER_REAUTHORIZE_ACCEPTANCE_KEYS = ['boundary', 'evidence', 'landingState', 'manualBoundary'];
 const GUARD_GATED_ACTIONS = new Set([
   'audit', 'start-audit', 'start-audit-wait', 'mark-audited',
   'full-check', 'start-full-check', 'mark-full-check-passed',
@@ -72,6 +75,93 @@ function requirePermission(candidate, permission) {
 function requireValue(value, code) {
   if (typeof value !== 'string' || value.length === 0) throw failure(code);
   return value;
+}
+
+function acceptanceFields(entry) {
+  return Object.fromEntries(USER_REAUTHORIZE_ACCEPTANCE_KEYS.map((key) => [key, clone(entry?.[key])]));
+}
+
+function validateUserReauthorizeAcceptance(value) {
+  if (
+    !value || typeof value !== 'object' || Array.isArray(value) ||
+    JSON.stringify(Object.keys(value).sort()) !== JSON.stringify([...USER_REAUTHORIZE_ACCEPTANCE_KEYS].sort()) ||
+    typeof value.boundary !== 'string' || value.boundary.length === 0 ||
+    typeof value.manualBoundary !== 'string' || value.manualBoundary.length === 0
+  ) throw failure('INVALID_USER_REAUTHORIZE_ACCEPTANCE');
+  for (const key of ['evidence', 'landingState']) {
+    if (!Array.isArray(value[key]) || value[key].length === 0 ||
+      value[key].some((entry) => typeof entry !== 'string' || entry.length === 0) ||
+      new Set(value[key]).size !== value[key].length) {
+      throw failure('INVALID_USER_REAUTHORIZE_ACCEPTANCE');
+    }
+  }
+}
+
+export function replaceLedgerEntryText(text, {
+  collectionKey,
+  identityKey,
+  identityValue,
+  nextEntry,
+}) {
+  const collectionMarker = JSON.stringify(collectionKey);
+  const collectionIndex = text.indexOf(collectionMarker);
+  if (collectionIndex < 0 || text.indexOf(collectionMarker, collectionIndex + collectionMarker.length) >= 0) {
+    throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+  }
+  const arrayStart = text.indexOf('[', collectionIndex + collectionMarker.length);
+  if (arrayStart < 0) throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+  const matches = [];
+  let objectStart = null;
+  let objectDepth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = arrayStart + 1; index < text.length; index += 1) {
+    const character = text[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === '{') {
+      if (objectDepth === 0) objectStart = index;
+      objectDepth += 1;
+      continue;
+    }
+    if (character === '}') {
+      objectDepth -= 1;
+      if (objectDepth < 0 || objectStart === null) {
+        throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+      }
+      if (objectDepth === 0) {
+        const end = index + 1;
+        let entry;
+        try {
+          entry = JSON.parse(text.slice(objectStart, end));
+        } catch {
+          throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+        }
+        if (entry?.[identityKey] === identityValue) matches.push({ start: objectStart, end });
+        objectStart = null;
+      }
+      continue;
+    }
+    if (character === ']' && objectDepth === 0) break;
+  }
+  if (matches.length !== 1) throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+  const [{ start, end }] = matches;
+  const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+  const indentation = text.slice(lineStart, start);
+  if (!/^\s*$/.test(indentation)) throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+  const rendered = JSON.stringify(nextEntry, null, 2)
+    .split('\n')
+    .map((line, index) => index === 0 ? line : `${indentation}${line}`)
+    .join('\n');
+  return `${text.slice(0, start)}${rendered}${text.slice(end)}`;
 }
 
 function applyUsage(candidate, usage) {
@@ -204,6 +294,41 @@ export function applyProgramAction({ records, action, options = {}, policy }) {
     candidate.state = 'audit-repairable';
     delete candidate.stopReason;
     delete candidate.usageSnapshot;
+    assertStructuralLimits(candidate, policy.limits);
+    return { records: nextRecords, activeCandidate: candidate, advisories: watchdogAdvisories(candidate, policy) };
+  }
+
+  if (action === 'user-reauthorize') {
+    if (candidate.state !== 'audited') throw failure('INVALID_USER_REAUTHORIZE_ORIGIN');
+    if (typeof options.reason !== 'string' || !options.reason.startsWith('user-ruling:')) {
+      throw failure('MISSING_EXACT_USER_REAUTHORIZE_REASON');
+    }
+    const nextAuthority = options.authority;
+    if (!nextAuthority || typeof nextAuthority !== 'object' || Array.isArray(nextAuthority)) {
+      throw failure('INVALID_USER_REAUTHORIZE_AUTHORITY');
+    }
+    const keys = ['commit', 'deploy', 'localWrites', 'push', 'ship'];
+    if (JSON.stringify(Object.keys(nextAuthority).sort()) !== JSON.stringify(keys)) {
+      throw failure('INVALID_USER_REAUTHORIZE_AUTHORITY');
+    }
+    if (keys.some((key) => typeof nextAuthority[key] !== 'boolean' ||
+      (candidate.authority[key] === true && nextAuthority[key] !== true)) ||
+      !keys.some((key) => candidate.authority[key] === false && nextAuthority[key] === true)) {
+      throw failure('NON_MONOTONIC_USER_REAUTHORIZE_AUTHORITY');
+    }
+    if (typeof options.authoritySource !== 'string' || options.authoritySource !== options.reason ||
+      !/^[0-9a-f]{64}$/.test(options.acceptanceFingerprint ?? '') ||
+      options.acceptanceFingerprint === candidate.acceptanceFingerprint ||
+      !/^[0-9a-f]{64}$/.test(options.treeFingerprint ?? '') ||
+      options.treeFingerprint === candidate.treeFingerprint) {
+      throw failure('INVALID_USER_REAUTHORIZE_EPOCH');
+    }
+    candidate.authority = clone(nextAuthority);
+    candidate.authoritySource = options.authoritySource;
+    candidate.acceptanceFingerprint = options.acceptanceFingerprint;
+    candidate.treeFingerprint = options.treeFingerprint;
+    candidate.guardImpact = { reportFingerprint: null, acknowledgement: null };
+    candidate.state = 'implementing';
     assertStructuralLimits(candidate, policy.limits);
     return { records: nextRecords, activeCandidate: candidate, advisories: watchdogAdvisories(candidate, policy) };
   }
@@ -379,7 +504,12 @@ const SUPPORTED_NONTERMINAL_STATES = [
 
 function parseArguments(argv) {
   const options = {};
-  const allowed = new Set(['--domain', '--action', '--lineage', '--wait-chain', '--candidate', '--reason', '--usage', '--base', '--owner', '--receipt', '--receipt-plan', '--sessions-root', '--actor-session', '--actor-role']);
+  const allowed = new Set([
+    '--domain', '--action', '--lineage', '--wait-chain', '--candidate', '--reason',
+    '--usage', '--base', '--owner', '--receipt', '--receipt-plan', '--sessions-root',
+    '--actor-session', '--actor-role', '--authority', '--authority-source',
+    '--acceptance', '--expected-event-hash',
+  ]);
   for (let index = 0; index < argv.length; index += 2) {
     const key = argv[index];
     const value = argv[index + 1];
@@ -396,6 +526,16 @@ function parseArguments(argv) {
       throw failure('INVALID_USAGE_UPDATE');
     }
   }
+  for (const key of ['authority', 'acceptance']) {
+    if (!options[key]) continue;
+    try {
+      options[key] = JSON.parse(options[key]);
+    } catch {
+      throw failure(key === 'authority'
+        ? 'INVALID_USER_REAUTHORIZE_AUTHORITY'
+        : 'INVALID_USER_REAUTHORIZE_ACCEPTANCE');
+    }
+  }
   return options;
 }
 
@@ -408,27 +548,49 @@ function postShipTreeFingerprint(root, authorityPath) {
   return computeTreeFingerprint(root, paths);
 }
 
-function writePostShipTransition({ authorityPath, authorityText, previousAuthorityText, loopPath, loopText }) {
+export function writeAtomicTransition(files, operations = {}) {
+  const writeFile = operations.writeFile ?? writeFileSync;
+  const rename = operations.rename ?? renameSync;
+  const exists = operations.exists ?? existsSync;
+  const unlink = operations.unlink ?? unlinkSync;
   const suffix = `.tmp-${process.pid}-${Date.now()}`;
-  const authorityTemporary = `${authorityPath}${suffix}`;
-  const loopTemporary = `${loopPath}${suffix}`;
-  let authorityReplaced = false;
+  const entries = files.map((entry, index) => ({
+    ...entry,
+    temporaryPath: `${entry.path}${suffix}-${index}`,
+    rollbackPath: `${entry.path}${suffix}-${index}-rollback`,
+  }));
+  const replaced = [];
   try {
-    writeFileSync(authorityTemporary, authorityText);
-    writeFileSync(loopTemporary, loopText);
-    renameSync(authorityTemporary, authorityPath);
-    authorityReplaced = true;
-    renameSync(loopTemporary, loopPath);
+    for (const entry of entries) writeFile(entry.temporaryPath, entry.text);
+    for (const entry of entries) {
+      rename(entry.temporaryPath, entry.path);
+      replaced.push(entry);
+    }
   } catch (error) {
-    if (authorityReplaced) {
-      writeFileSync(authorityTemporary, previousAuthorityText);
-      renameSync(authorityTemporary, authorityPath);
+    let rollbackError = null;
+    for (const entry of [...replaced].reverse()) {
+      try {
+        writeFile(entry.rollbackPath, entry.previousText);
+        rename(entry.rollbackPath, entry.path);
+      } catch (candidate) {
+        rollbackError ??= candidate;
+      }
     }
-    for (const path of [authorityTemporary, loopTemporary]) {
-      if (existsSync(path)) unlinkSync(path);
+    for (const entry of entries) {
+      for (const path of [entry.temporaryPath, entry.rollbackPath]) {
+        if (exists(path)) unlink(path);
+      }
     }
+    if (rollbackError) throw failure('ATOMIC_TRANSITION_ROLLBACK_FAILED', String(rollbackError));
     throw error;
   }
+}
+
+function writePostShipTransition({ authorityPath, authorityText, previousAuthorityText, loopPath, loopText }) {
+  writeAtomicTransition([
+    { path: authorityPath, text: authorityText, previousText: previousAuthorityText },
+    { path: loopPath, text: loopText, previousText: readFileSync(loopPath, 'utf8') },
+  ]);
 }
 
 function sameCandidateScope(left, right) {
@@ -845,6 +1007,139 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
         action: options.action,
         errors: [{ code: error?.code ?? 'REFRESH_FINGERPRINT_FAILED', message: error instanceof Error ? error.message : String(error) }],
       };
+    }
+  }
+  if (options.action === 'user-reauthorize') {
+    try {
+      if (options.base !== currentCandidate?.baseSha) throw failure('USER_REAUTHORIZE_BASE_MISMATCH');
+      const ledgerPath = resolve(root, LEDGER_PATH);
+      const ledgerText = readFileSync(ledgerPath, 'utf8');
+      const ledger = JSON.parse(ledgerText);
+      const domainIndexes = (ledger.domains ?? [])
+        .map((entry, index) => entry?.id === options.domain ? index : -1).filter((index) => index >= 0);
+      const plannedIndexes = (ledger.plannedSequence ?? [])
+        .map((entry, index) => entry?.domainId === options.domain ? index : -1).filter((index) => index >= 0);
+      if (domainIndexes.length !== 1 || plannedIndexes.length !== 1) {
+        throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+      }
+      const domain = ledger.domains[domainIndexes[0]];
+      const planned = ledger.plannedSequence[plannedIndexes[0]];
+      const policyResult = resolveSupervisionPolicy(ledger, options.domain);
+      const currentAuthority = resolveCandidateAuthority({
+        domain, planned, activeProgram: ledger.goalPolicy?.activeProgram,
+      });
+      if (
+        stableJson(acceptanceFields(domain)) !== stableJson(acceptanceFields(planned)) ||
+        computeAcceptanceFingerprint(domain) !== currentCandidate.acceptanceFingerprint ||
+        currentAuthority.errors.length > 0 ||
+        stableJson(currentAuthority.authority) !== stableJson(currentCandidate.authority) ||
+        currentAuthority.authoritySource !== currentCandidate.authoritySource ||
+        !policyResult.policy || policyResult.errors.length
+      ) {
+        throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+      }
+      const reason = options.reason;
+      const authoritySource = options.authoritySource ?? options['authority-source'];
+      const expectedEventHash = options.expectedEventHash ?? options['expected-event-hash'];
+      validateUserReauthorizeAcceptance(options.acceptance);
+      if (typeof reason !== 'string' || !reason.startsWith('user-ruling:') ||
+        authoritySource !== reason || !/^[0-9a-f]{64}$/.test(expectedEventHash ?? '')) {
+        throw failure('INVALID_USER_REAUTHORIZE_EPOCH');
+      }
+      const tracked = readTrackedSupervisorAuthority(root, options.domain);
+      if (!tracked.authority || tracked.authority.events?.at(-1)?.eventHash !== expectedEventHash) {
+        throw failure('USER_REAUTHORIZE_PREDECESSOR_HASH_MISMATCH');
+      }
+      const historical = verifySupervisorAuthority({
+        authority: tracked.authority, headAuthority: tracked.headAuthority, loopCandidate: currentCandidate,
+        sessionsRoot: options['sessions-root'], completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+      });
+      if (!historical.ok) throw failure('INVALID_TRACKED_SUPERVISOR_AUTHORITY', JSON.stringify(historical.errors));
+      const nextLedger = clone(ledger);
+      for (const [collection, index] of [
+        [nextLedger.domains, domainIndexes[0]],
+        [nextLedger.plannedSequence, plannedIndexes[0]],
+      ]) {
+        Object.assign(collection[index], clone(options.acceptance), {
+          authority: clone(options.authority),
+          authoritySource,
+        });
+      }
+      let nextLedgerText = replaceLedgerEntryText(ledgerText, {
+        collectionKey: 'domains',
+        identityKey: 'id',
+        identityValue: options.domain,
+        nextEntry: nextLedger.domains[domainIndexes[0]],
+      });
+      nextLedgerText = replaceLedgerEntryText(nextLedgerText, {
+        collectionKey: 'plannedSequence',
+        identityKey: 'domainId',
+        identityValue: options.domain,
+        nextEntry: nextLedger.plannedSequence[plannedIndexes[0]],
+      });
+      if (stableJson(JSON.parse(nextLedgerText)) !== stableJson(nextLedger)) {
+        throw failure('CANDIDATE_AUTHORITY_COLLECTION_MISMATCH');
+      }
+      const nextAcceptanceFingerprint = computeAcceptanceFingerprint(nextLedger.domains[domainIndexes[0]]);
+      if (nextAcceptanceFingerprint === currentCandidate.acceptanceFingerprint) {
+        throw failure('INVALID_USER_REAUTHORIZE_EPOCH');
+      }
+      const nextTreeFingerprint = computeTreeFingerprint(root, undefined, {
+        [LEDGER_PATH]: nextLedgerText,
+      });
+      const verifiedReceipt = readReceipt(nextTreeFingerprint);
+      const transitioned = applyProgramAction({
+        records: parsed.records, action: options.action,
+        options: {
+          reason, authority: options.authority, authoritySource,
+          acceptanceFingerprint: nextAcceptanceFingerprint,
+          treeFingerprint: nextTreeFingerprint,
+          usage: Object.fromEntries(['supervisorModelCycles', 'supervisorUncachedInputTokens', 'teamModelCycles', 'teamUncachedInputTokens'].map((key) => [key, verifiedReceipt.verified.observed[key]])),
+        }, policy: policyResult.policy,
+      });
+      const nextAuthority = clone(tracked.authority);
+      nextAuthority.events.push(createSupervisorEvent({
+        sequence: nextAuthority.events.length, action: options.action,
+        actorSessionId: options['actor-session'], actorRole: options['actor-role'],
+        candidate: transitioned.activeCandidate, receipt: verifiedReceipt.receipt,
+        previousHash: nextAuthority.events.at(-1)?.eventHash ?? null, reason,
+      }));
+      nextAuthority.candidateId = transitioned.activeCandidate.id;
+      const verified = verifySupervisorAuthority({
+        authority: nextAuthority, headAuthority: tracked.headAuthority, loopCandidate: transitioned.activeCandidate,
+        sessionsRoot: options['sessions-root'], completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+      });
+      if (!verified.ok) throw failure('INVALID_USER_REAUTHORIZE_AUTHORITY', JSON.stringify(verified.errors));
+      let nextLoopText = replaceLoopField(loopStateText, ACTIVE_CANDIDATES_KEY, JSON.stringify(transitioned.records));
+      nextLoopText = replaceLoopField(nextLoopText, 'step', transitioned.activeCandidate.state);
+      nextLoopText = replaceLoopField(nextLoopText, 'treeFingerprint', nextTreeFingerprint);
+      const nextProjection = buildSupervisorProjection({
+        ledger: nextLedger,
+        selectedDomainId: options.domain,
+        loopStateText: nextLoopText,
+        loopState: parseLoopState(nextLoopText, {
+          headSha: transitioned.activeCandidate.baseSha,
+          treeFingerprint: nextTreeFingerprint,
+        }),
+        headSha: transitioned.activeCandidate.baseSha,
+        treeFingerprint: nextTreeFingerprint,
+      });
+      if (nextProjection.errors.length > 0) {
+        throw failure('INVALID_USER_REAUTHORIZE_PROJECTION', JSON.stringify(nextProjection.errors));
+      }
+      const authorityPath = resolve(root, tracked.relativePath);
+      writeAtomicTransition([
+        { path: ledgerPath, text: nextLedgerText, previousText: ledgerText },
+        {
+          path: authorityPath,
+          text: `${JSON.stringify(nextAuthority, null, 2)}\n`,
+          previousText: readFileSync(authorityPath, 'utf8'),
+        },
+        { path: loopPath, text: nextLoopText, previousText: loopStateText },
+      ]);
+      return { ok: true, domain: options.domain, action: options.action, activeCandidate: transitioned.activeCandidate, errors: [] };
+    } catch (error) {
+      return { ok: false, domain: options.domain, action: options.action, errors: [{ code: error?.code ?? 'USER_REAUTHORIZE_FAILED', message: error instanceof Error ? error.message : String(error) }] };
     }
   }
   const projection = createContextProjection(root, options.domain, { sessionsRoot: options['sessions-root'] });

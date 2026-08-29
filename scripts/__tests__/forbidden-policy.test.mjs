@@ -261,6 +261,29 @@ function mutateAcknowledgement(repository, mutate) {
   git(repository.cwd, 'commit', '-m', 'mutated acknowledgement');
 }
 
+test('supervisor-event size never changes guard references or fingerprints', () => {
+  const repository = createGovernedRepository();
+  const activeCandidate = JSON.parse(readFileSync(join(repository.cwd, repository.path), 'utf8')).events.at(-1).candidate;
+  const changedPath = 'src/test/architecture/review.fixture.test.ts';
+  const reportFor = (padding) => {
+    write(repository, repository.path, JSON.stringify({ changedPath, padding }));
+    return buildGuardImpact({
+      root: repository.cwd,
+      base: repository.base,
+      domain: DOMAIN_ID,
+      projection: { activeCandidate },
+    });
+  };
+  const small = reportFor('x');
+  const large = reportFor('x'.repeat(2_000_001));
+  expect(small.guards).toEqual(large.guards);
+  expect(small.predecessorHashes).toEqual(large.predecessorHashes);
+  expect(small.reportFingerprint).toBe(large.reportFingerprint);
+  expect(small.guards).toEqual(expect.arrayContaining([
+    expect.objectContaining({ changedPath, guardPath: 'scripts/guard.mjs' }),
+  ]));
+});
+
 function rehashAuthority(authority) {
   let previousHash = null;
   for (const event of authority.events) {

@@ -1,9 +1,11 @@
 # Document governance workflow
 
-This is the sole operative workflow for DOC-GOV-RESET-2026-08 and later
-OneDeck milestones. `AGENTS.md` owns permanent boundaries; this document owns
-execution order, task lifetime, token economy, and lane selection. Compatibility
-pointers must not restate these rules.
+This is the sole detailed execution workflow for DOC-GOV-RESET-2026-08 and
+later OneDeck milestones. `AGENTS.md` owns permanent boundaries,
+`docs/product-requirements.md` owns product WHY/WHAT, and
+`delivery-policy.md` owns outcome-first delivery and progress judgment. This
+document owns exact execution order, task lifetime, counters, role transitions,
+checks, and lane selection. Compatibility pointers must not restate these rules.
 
 ## Request normalization and authority
 
@@ -54,6 +56,18 @@ authorize a program. If an explicit user program and the
 automatic projection disagree, use `--domain` for the adjudicated milestone and
 schedule a judge-owned active-program ledger update; never substitute the
 automatic result silently.
+
+If a later explicit user ruling changes an audited candidate's acceptance and
+monotonically raises its authority, append one `user-reauthorize` epoch; never
+rewrite the earlier event prefix or edit only one authority collection. The
+executable transition requires the expected predecessor hash, an exact
+`user-ruling:` reason/source, the complete five-bit authority object, and the
+complete acceptance fields. It atomically synchronizes domain,
+`plannedSequence`, loop candidate, and tracked event, invalidates the old guard
+acknowledgement, binds the new tree fingerprint, and returns the same candidate
+to `implementing` for a fresh audit. It may change false to true only, preserves
+base, candidate identity, structural counters, lineages, waits, and release
+head, and grants nothing to the active-program default or later domains.
 
 One worktree owns one active milestone candidate only. A normal user task ends
 when that milestone ships or reaches a true outcome-level STOP. A candidate
@@ -323,7 +337,9 @@ same-root-cause/no-progress outcome rule above. A final green `npm run check` on
 The release full check command is `npm run check`; no narrower command can
 substitute for it.
 
-Ship only with the authority defined in `AGENTS.md` and `.claude/commands/ship.md`.
+Use `../mtg-onedeck-release/SKILL.md` as the thin release operator entry point.
+Ship only with the authority defined in `AGENTS.md`; neither that Skill nor
+`.claude/commands/ship.md` creates authority.
 On ship, record audit and release evidence, archive the completion packet, and
 run the terminal usage measurement. A normal task resets loop-state to
 `milestone: complete` and ends. An explicitly authorized program supervisor may

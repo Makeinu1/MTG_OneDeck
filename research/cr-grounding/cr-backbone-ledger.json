@@ -35,6 +35,7 @@
         "O4P-09D",
         "O4P-09E",
         "GOV-CODEX-58A-2026-08",
+        "GOV-PRODUCT-DELIVERY-2026-08",
         "O4P-09F",
         "O4P-09G",
         "O4P-09H",
@@ -2199,7 +2200,51 @@
       "nextGate": "shipped。GOV-CODEX-58Aは完了。O4P-09Fが次だが、その製品実装と外部authorityは本候補から推論せず、未開始。", "judge": "Codex-judge-2026-08-29", "note": "Outcome contract shipped: the human decides Goal, Done when, scope, acceptance quality, north-star changes, and irreversible or external authority. The supervisor internally allocates model, reasoning effort, parallelism, tools, context, bounded repair, audit depth, and token/call economy. Numeric watchdog crossings remain cumulative telemetry and never become permission questions. Human input recurs only when two bounded attempts on the same root cause make no progress and continuing requires a Goal, scope, or quality change, or when required external authority is absent. Candidate 14 preserved the immutable shipped prefix, closed the clean-checkout terminal lane, and raised only nine measured test timeout arguments plus exact review allowlists; assertions, product behavior, CR, dependencies, and O4P-09F remained unchanged. Final cold audit cleared BLOCKER/HIGH, canonical local check and exact-head CI/Pages passed, and the recorded LOW about stale ledger wording is resolved here."
     },
     {
-      "type": "checkpoint", "domainId": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["GOV-CODEX-58A-2026-08"],
+      "type": "checkpoint",
+      "domainId": "GOV-PRODUCT-DELIVERY-2026-08",
+      "crOrder": 1037.75,
+      "crRefs": [],
+      "lane": "pruned",
+      "edhValue": "meta",
+      "status": "pending",
+      "dependsOn": [
+        "GOV-CODEX-58A-2026-08"
+      ],
+      "landingState": [
+        "productRequirementsAuthority",
+        "deliveryPolicyAuthority",
+        "attentionDirectedTabletop",
+        "singleScreenFirstClass",
+        "riskScopedDelivery",
+        "lateAuthorityEpoch",
+        "releaseWorkflowSkill"
+      ],
+      "deliveryClass": "substrate",
+      "playerOutcome": "No new production action; freeze the product and delivery authorities that directly govern the O4P-09F player outcome.",
+      "journeyEvidence": [],
+      "outcomeDeadlineDomainId": "O4P-09F",
+      "boundary": "Separate approved product WHY/WHAT from delivery HOW, publish one current authority for each, append one hash-linked user-ruling release-authority epoch, and expose the existing release gates through a thin reusable Skill without changing product code, runtime behavior, CR, dependencies, or O4P-09F-J feature semantics.",
+      "evidence": [
+        "research/cr-grounding/gov-product-delivery-2026-08-implementation-brief.draft.md",
+        "user-ruling:2026-08-29:separate-product-and-delivery-canons",
+        "user-ruling:2026-08-29:GOV-PRODUCT-DELIVERY:end-to-end-release",
+        ".agents/skills/mtg-onedeck-release/SKILL.md"
+      ],
+      "manualBoundary": "No O4P-09F product implementation, product source or product-test change, dependency or CR change, authority for later domains, release path outside normal GitHub Pages, rigid cross-mode layout, mandatory second display, or complete-Arena-automation promise.",
+      "nextGate": "After one frozen R3/BROAD document audit and local verification, return directly to O4P-09F; do not insert another substrate milestone.",
+      "judge": "Codex-judge-2026-08-29",
+      "note": "The user approved the product direction and ordered product requirements and development approach to be separated into appropriate canonical documents. Exact UI ratios remain a design variable owned by prototyping.",
+      "authority": {
+        "localWrites": true,
+        "commit": true,
+        "push": true,
+        "deploy": true,
+        "ship": true
+      },
+      "authoritySource": "user-ruling:2026-08-29:GOV-PRODUCT-DELIVERY:end-to-end-release"
+    },
+    {
+      "type": "checkpoint", "domainId": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["GOV-PRODUCT-DELIVERY-2026-08"],
       "landingState": ["assistedPriorityPolicy", "responseWindows", "globalHold", "stackSteward", "stewardAdvanceAuthority"],
       "deliveryClass": "player-outcome", "playerOutcome": "Every player can HOLD while the current steward alone advances or resolves through common response windows.", "journeyEvidence": ["production-browser:hold+six-windows+steward-authority", "replay:priority-preserved+hold-safe"], "outcomeDeadlineDomainId": "O4P-09F",
       "boundary": "Keep CR priority authoritative in Core while adding six common response windows, universal HOLD, empty-stack active-player steward, nonempty-stack last-contributor steward, and steward-only Resolve/Advance/UNDO authority.",
@@ -5350,7 +5395,50 @@
       "nextGate": "shipped。GOV-CODEX-58Aは完了。O4P-09Fが次だが、その製品実装と外部authorityは本候補から推論せず、未開始。", "judge": "Codex-judge-2026-08-29", "note": "Outcome contract shipped: the human decides Goal, Done when, scope, acceptance quality, north-star changes, and irreversible or external authority. The supervisor internally allocates model, reasoning effort, parallelism, tools, context, bounded repair, audit depth, and token/call economy. Numeric watchdog crossings remain cumulative telemetry and never become permission questions. Human input recurs only when two bounded attempts on the same root cause make no progress and continuing requires a Goal, scope, or quality change, or when required external authority is absent. Candidate 14 preserved the immutable shipped prefix, closed the clean-checkout terminal lane, and raised only nine measured test timeout arguments plus exact review allowlists; assertions, product behavior, CR, dependencies, and O4P-09F remained unchanged. Final cold audit cleared BLOCKER/HIGH, canonical local check and exact-head CI/Pages passed, and the recorded LOW about stale ledger wording is resolved here."
     },
     {
-      "id": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["GOV-CODEX-58A-2026-08"],
+      "id": "GOV-PRODUCT-DELIVERY-2026-08",
+      "crOrder": 1037.75,
+      "crRefs": [],
+      "lane": "pruned",
+      "edhValue": "meta",
+      "status": "pending",
+      "dependsOn": [
+        "GOV-CODEX-58A-2026-08"
+      ],
+      "landingState": [
+        "productRequirementsAuthority",
+        "deliveryPolicyAuthority",
+        "attentionDirectedTabletop",
+        "singleScreenFirstClass",
+        "riskScopedDelivery",
+        "lateAuthorityEpoch",
+        "releaseWorkflowSkill"
+      ],
+      "deliveryClass": "substrate",
+      "playerOutcome": "No new production action; freeze the product and delivery authorities that directly govern the O4P-09F player outcome.",
+      "journeyEvidence": [],
+      "outcomeDeadlineDomainId": "O4P-09F",
+      "boundary": "Separate approved product WHY/WHAT from delivery HOW, publish one current authority for each, append one hash-linked user-ruling release-authority epoch, and expose the existing release gates through a thin reusable Skill without changing product code, runtime behavior, CR, dependencies, or O4P-09F-J feature semantics.",
+      "evidence": [
+        "research/cr-grounding/gov-product-delivery-2026-08-implementation-brief.draft.md",
+        "user-ruling:2026-08-29:separate-product-and-delivery-canons",
+        "user-ruling:2026-08-29:GOV-PRODUCT-DELIVERY:end-to-end-release",
+        ".agents/skills/mtg-onedeck-release/SKILL.md"
+      ],
+      "manualBoundary": "No O4P-09F product implementation, product source or product-test change, dependency or CR change, authority for later domains, release path outside normal GitHub Pages, rigid cross-mode layout, mandatory second display, or complete-Arena-automation promise.",
+      "nextGate": "After one frozen R3/BROAD document audit and local verification, return directly to O4P-09F; do not insert another substrate milestone.",
+      "judge": "Codex-judge-2026-08-29",
+      "note": "The user approved the product direction and ordered product requirements and development approach to be separated into appropriate canonical documents. Exact UI ratios remain a design variable owned by prototyping.",
+      "authority": {
+        "localWrites": true,
+        "commit": true,
+        "push": true,
+        "deploy": true,
+        "ship": true
+      },
+      "authoritySource": "user-ruling:2026-08-29:GOV-PRODUCT-DELIVERY:end-to-end-release"
+    },
+    {
+      "id": "O4P-09F", "crOrder": 1038, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["GOV-PRODUCT-DELIVERY-2026-08"],
       "landingState": ["assistedPriorityPolicy", "responseWindows", "globalHold", "stackSteward", "stewardAdvanceAuthority"],
       "deliveryClass": "player-outcome", "playerOutcome": "Every player can HOLD while the current steward alone advances or resolves through common response windows.", "journeyEvidence": ["production-browser:hold+six-windows+steward-authority", "replay:priority-preserved+hold-safe"], "outcomeDeadlineDomainId": "O4P-09F",
       "boundary": "Keep CR priority authoritative in Core while adding six common response windows, universal HOLD, empty-stack active-player steward, nonempty-stack last-contributor steward, and steward-only Resolve/Advance/UNDO authority.",

@@ -17,6 +17,7 @@ const PRODUCT_IDS = [
 const PROGRAM_IDS = [
   ...PRODUCT_IDS.slice(0, 6),
   'GOV-CODEX-58A-2026-08',
+  'GOV-PRODUCT-DELIVERY-2026-08',
   ...PRODUCT_IDS.slice(6),
 ];
 
