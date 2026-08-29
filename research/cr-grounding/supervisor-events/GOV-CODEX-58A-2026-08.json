@@ -85847,6 +85847,2102 @@
         }
       },
       "eventHash": "2f412737a53d25bef4dd6bffc56dfa3782b4e6013e6088c8af80d2da652501c9"
+    },
+    {
+      "sequence": 144,
+      "action": "record-replacement-push",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "2f412737a53d25bef4dd6bffc56dfa3782b4e6013e6088c8af80d2da652501c9",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-14",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "push-ready",
+        "baseSha": "682872b138f00bb3514e6081d601dc2111af61a0",
+        "treeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 10,
+          "fullChecks": 12,
+          "semanticPushes": 0,
+          "replacementPushes": 4,
+          "supervisorModelCycles": 2092,
+          "supervisorUncachedInputTokens": 6237987,
+          "teamModelCycles": 3011,
+          "teamUncachedInputTokens": 11005229
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+          "acknowledgement": {
+            "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-14",
+            "candidateTreeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+            "paths": [
+              {
+                "path": "research/cr-grounding/cr-backbone-ledger.json",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "48acfffd7e8d72642ad739ba3f8214b9bd18dd516fad55c8c22d114c41bdec81"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7012284644bc83e5796e969f81784f2bc523e37f58ea7992c48b775043d14ec7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/forbidden-policy.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "724eab8b37b73d95f1ee90702f1373a5646204201a2408153c155655ba063294"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "f45889e625f5348679e259e163031155cbf41a13b8ecaad5a41d7cb25c046da7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceSupervisor.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "aee97a337b82817cbd94bcad6e9bb963b5577b9e7bdbe6537cbeb5f981401682"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "2bda4787bf1bc9881be1dab29f288e8229b68e1ba03c63b1b6106281a090193a"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "scripts/codex-program-step.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4c30dfa36955223dc917c4775c80605669fccfe69bf6e27a0318c2fed20070b4"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4306b0b898222f989139f9232e6e627e0e423bf50a70d567a68321efb94c1524"
+                }
+              },
+              {
+                "path": "scripts/lib/supervisor-authority.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "82d926d33a0a70d2ba80302b5928b866db181437fd35c42ba48d297dc3c5ff9c"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "8dc3db874cbf28ebfcde84a871ea51007f34b2d72f74be2b363157082a014879"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-02e-local-room-gate.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "6bb1b10fef3346ecfac712182e8fc1259968d2b0bd3c20fc905e49e4a5cea270"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d5584e8653cfad6b668eceb2d60a8c591dfc1d2ccd127efba5c603a9bb85199c"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-05b-four-player-release-scenario.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4727ec135c7bda22f700de4d13bb6a83b3d6a2299069d598deb175a0e6ad2a49"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7b50fca37c4c16bbaf4bbed3e995de5c0a8b37a8ea1c17417636acd559e73e4b"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-06b-playable-table-command-surface.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "8a8a4c8d80a5509b367d2a59b126ad1fd886516103d543efb8551e21506e5b10"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d0eccaf76f5d9e69ab1001f18bde341ef959bfd16a67025a6ae9b25dab34156f"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56-program-orchestration.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "59b03096b2ac1012e458fb94ee01608864b63eaa2117ae28cd0c69bf9cd3bfdc"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4cf85d874a35d492edcf957f2cd5265a43d6e108369284249872cac1b1aa26f7"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "39262dc1537fac848496c7f2821734d71edf7f5b6e6d0ea05610b3ad8a3d526b"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "ae09e5b48c99d5d3cca9a0fa9be7c1efd2961e211734667ea2ffe367b5eedb6c"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "b738942f970c71036179cdb14ec1a696f0e00652fe22c66809cbe87a338806ca"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4deb5191c4520c0f7dcbc2999ae4a5048eb6be9ab5994b0aac9124a3b176bfce"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.o4p-09c-pregame-lifecycle.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "df7482cfeb69f976160d39ce9eb42401676c8802ea1cbce2d3e494a44e8f7181"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "759da1287c6c359499c6304fbb8ea95da413e4c72359f3316600edc881dc4f38"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "000754fa06192e45a5efd0eaed25f6b2246cfc647b847a1c2cca89c82c95a61a",
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "047f330227bbb487c231f755edd75f5a97626339b1f57bbd11e7d66121ddb3eb",
+              "0563bd53724d6b8c2f3883f692f8a2ff882b26f54f728a8414f1a146ab51ba2c",
+              "06986852a5654728b233b4b4666936b8d61195bef6cc907f7e83c704e201ea65",
+              "070b2f34e11aa109972fc71476628336f3158e3a5aeb607f68f6bf5cf4eb4d35",
+              "073b8ecf97a460c5d178843703e1eddf72c47186e49e8dd29f905280e2e97ed1",
+              "074f92ff1180341b9fc3bf7b172c34ed053b34d31542008f3a6f318883fd2f88",
+              "07b2d9e8ed4d829ca7c83cd0286b6c74b7f518d23bb9e183156305c4ba2f9ee9",
+              "082aef0873eae72edddd5af8107f3cd045113307983d7834ed5ab58808a553a8",
+              "087e49676d72b03881c1f359cd1a6aa4f8a93a488706b5622b24989bd3d67d3f",
+              "08bf52a4c66964744e7c7405a5e671e46ebda68e62c8e9c8135d16cf5e6200c4",
+              "09466c15a43c41a6ee82195361e70143c9df2757558a36847785d0927d160c3e",
+              "0d97fecc3ca3ed391d09129992d1ae8dd9ace1a647b7ddab1b4ee262801b0874",
+              "1187cd1156545a4b3603ef2aca6e77062303b46c0cc42233200b49725fa4252a",
+              "1483cc065c745fc9cb0b70a8445d2c49f2a5ff53e9854f08a2e624affb84cc55",
+              "1556ab55bc4c731000c56aaef28f88cdce26a177dbaa76dde5af6b94a9328ef0",
+              "1569778490b9e1cfb3ca3f29e64a388ac7afe100a38b1117a0fb1034092891db",
+              "158b152ae577ab451d093537561f4a121f1dd7490660d6076d2b5caf0c4d2aaa",
+              "15936ba739d46abc5ec160bcfc8ae54f041d3c93904216f00f47f151cac0c039",
+              "176030866f72f4fe6017e8c09179b3772c295fdc9342ad2d26f23b80db81a4af",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "19dd7d80b4c70fa38da3ffcac684571bbc3d29113b943a6ffbb44cb91a5711a1",
+              "1d4b6926759f6bdf32fb5de494dbb244b2f9a68b084e9beb45846b2059bd7b8c",
+              "220d20fc8b488d26c3c3cab55e89b2c74d25ffeb347fdf8f70d872c50e22b9cb",
+              "228bbd073fdb6e4a56e0506d2861cc036145274d1ecf3f3aa91064f585034d69",
+              "23515117b1e4ccf4928c1e3b4cb35992558823f1548e86fdfbd8494c0a99f366",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "28c89410a48d7ea72667ece46ec090f9ebd74c249c57c49fc60812c89b1b5207",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2e0ed0c9ac8788572318683cf6d8363ad28e3f6cbb2448208ccc75883516c1ed",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "305fb198e4ae3be76df61b9c168e9bbaa2b857428f94e5033ab12ace8624de90",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3330582ca671f578c54d07316f9caeae851f3c739ea42d3b141305738ad5f6df",
+              "381f2b9cb612c30de1042708f826fd3b8f6cc17860d2184b19d49702ae88795f",
+              "38c339c426fb580ce5aa7cbd7da771b3eb20cb8b1449a6763e5c3cea95618cae",
+              "3978d8b5e926a9100beedc5c7b624720c7744778933de6a0fa559dff8fa667e2",
+              "3b9ad19fa1f91887ed273cb915276fc5e93c611b0ad003bf192e2851866d09df",
+              "3d619c59c7d90fd58003dc84a7ed04ff80ae29c9fd1abf86df837fdd1e3558bc",
+              "3ee57b0ea224fb66c01ab62235023ad8d12932046d11082a298d39036d6e79d6",
+              "3ff9c4a303e5de4b94bf8a3732b0903707a512af12053544201fe3e93a22ae50",
+              "4006b1ddbdc5160eceb88b2e20ce78fcc67497e4b831742a31cbd8dadb6cebbb",
+              "403bdc90bc5b0d734e994805a004d025e5966071ff5502f880a48acc96ff94a7",
+              "415e66e1ae3e31b933eceadff249d1ae637255fae3b3214fbe25ec350a1337fa",
+              "41ca533a617cfbd9b0f59bbf07f9edacbc3dc0f9f4827e6b6299e4b657d4824a",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "44e39e6fd136d313745cc30fd34e10b6a6d6a4110a63c0d9e4945a8a301791aa",
+              "473c40ffc6f6886f892cf5bf84300d9c82c4b7c61c736dfd82fcc3a338cc9ddb",
+              "4a8af50a0adf11103c4c87ca489038a0f497f31e9f5bcd06eaad6029b9f35646",
+              "4c81b20ec5d5f89842152385216334f986d14088c9e2271b7b6a979fb5fc489b",
+              "4d1b8543b5c1029f74ce0ce46703ad613d6395311cce0f500a5364f0e29e8bd5",
+              "4df4d16a30796e42fb408d73af7782d8a5fddedcd62a3eebcdd88096e1cd09cb",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "51d8f2000bf98aa73a53a2e6edca5d84ce1195cc451c353443378e197e695aaf",
+              "5341e85d302c47ef4fb7724526cadf4c58e8ec5d88f9d918a6406f54c3034248",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5602b850854127b3ad2d39101bfda0e346682d906cba739576d244a667adefc3",
+              "57a4cc22fc8501c469a9d9b824d9ad48f770b3580a154dc22b154aa2c034a64f",
+              "58bbcd8bb5d2c9167571c6ee0b7dd5568f2fd1013c97c599bba7774612c9e608",
+              "591106443563ef678a3a4d23c42e9f6aa174e0b4c05f4ee9c455c750de5ee4f4",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5b8b159e282e2316cc17a16107a84ab719ecfa60202cc60d1f230d8d005b1e0f",
+              "5c0b8bf40fa49721e026e08b97a0c599576a1ea61d2cda39f2d44009d65d30e1",
+              "5dbdea60714a8030f71e401d67c4e00d36227f754d58348df0f39b8513b687d4",
+              "6198a2065a433b44743ef2c1203ea5e9382f1e15a9c05016ebd414ad9a988454",
+              "61f03c22bd56f62b76cd495dec16f80447ef7138bce33af9c5bda9f264cb4eaa",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "64455336d919cc8516fc2014f6165b25cf1c54c4c4a9d668339dd977ac2160ee",
+              "64dd4c9826fde86d0a4a6031c12d1454c4344c4e2b30e651369307e8efce91a1",
+              "66478c540454d0e7f086d21846610735449f678717fe8c069880924c9ac167ef",
+              "67333c30be78fd814a51bef1384b56cd080479ebbde4ea49e0d925c1e5df8a5c",
+              "68c1146fb6471017e7741614620eefefe16d7abff87e8943b4667301804f4064",
+              "6998ab47d7e6e71022544dce8fc02b486915f043915989bca89f925e01fccce1",
+              "6a02cc9d78024b3eb9de80550a77bd3c65eba31d88825ff7cae40c58352f2552",
+              "6a9f5c26fa64fe243d90860730beb08a6b7774c6313e95c573c422e02f2c2871",
+              "6c145b9a90558d569e7033a8d96a5abfb2892299ae32d9c009a0b5da0a880876",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "6d090ea440d25782c42ea2468176562d533b3b7704a46c11ea1d780bd5a435ab",
+              "6dd1bf3e4993a24f175ea69a91f6af3aae7e796629bbdb8f1104fbfebd6a6db0",
+              "6f4b8c6374535b27fbecd69983efada6f0285fe2e99522ba37895daecd05ff91",
+              "7378c8d7bfd9d438aae76375c02d3dfc9c44bd0d7a04f0a87a83af6058682c90",
+              "75a73d1030c7bfc637774d2441617aa556fd725005be96b68508ece425b3c8d7",
+              "76d191d45a69586277c040fca2d307ae67139314f7a0d590b7e943194650c25a",
+              "77861595ffe08af1348304b7c6c4698b5b0a590bfe6863db3b397ee3000ffe3f",
+              "7907a85d5d001992ec10835b58d5cb93369b494e5e039af45fbd5f4fe0e6cf01",
+              "7a745c90bf2378fae5d1230e2f31733e79a4f4eb829a0f83285e97db23ff79bf",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8102e7f39f5e569ceac575f3d8d6dc91792d84e0727e490e0f97e3fd389d00ac",
+              "8491ada447a4074462e37eda705e47a4581eb9775d0a838651f0d44c805c67d3",
+              "8642ec63342e1a6c8762d915949b01be6664b355cd62077fa4419615e6d03962",
+              "8654d3dd8b2298cce24f0bc8c0ed0839e68fe76512389e5a5a0589a835828d2f",
+              "879ddb6bea9f3b6598067614ef313672fb9c46e4302fc228236c198a8d319d91",
+              "8863566c75f972f031c9e22f93e3a10035f0b94abe7216b5c7e8d35759f7bf87",
+              "89f21e2f202ea787ee6dae57185d0d7b889690b98a584ff5cfab31691580d26a",
+              "8ac99ca3c4740cf72991b4b9ffc2e9dd44fad1caa68456ae0f4528e59e2b6fd4",
+              "8b7e88583ffb28c9f3f85ed852b1647ab1f0af004d8d77449dd6dfb8e531067d",
+              "8c14c5917753e9d4043fa33d33d23dc0f15c08c9181f2300c2325e45ea08f268",
+              "8c5e3dad53e25c5c22ea19117ca9041bc7286d2e25b23f9501df3db17985ede3",
+              "8c606471d4655ee9f39f4c754a6becf2d8a8d567959810a26889e4a3c5cea93c",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "8e375892adcbfde1b34f03dfaa38e54ce8f71440cd918c00ff537d6d902042e4",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "93f242a251fdf5375be9ee4ae1f10eeccffda8c45faea595b77a2e09233a8333",
+              "9424fc5dbc07252827d6830724ba4e081a274a29e50ce543e4974a18f497ccd7",
+              "94975f3e545eef6874d0647da85cdcd95cd3fc7054adc483a4b72de0cedaffcd",
+              "957a8bb35f3565f8c2a78c157ce35f5696ef7472b2b4df4b83bc630cdba63cfd",
+              "95f8e92b1ef54d60264afd302cfbf9d5e3ecfe44d2359e843b6eff6fe1b2efb4",
+              "969899451675204fd7cd9109fe720b26eb15f1084151ec5a75c35d4101ce2491",
+              "96c0516bc935120f40a0bb3d9524ca51f3e360859ae1325dc9e733f37647b1f6",
+              "97c34e61009b7b1938667b6e19b80b56ee8dc9668974aab6b82e6322724f648d",
+              "99480816dcd53f71fd23adf9f27174fae3e3687f9123b504b8818cf831bf1845",
+              "99ec0b072e469d0b427c9ca0ab1febb30d90a505a56885ba66ffb68824995350",
+              "9ba77797ccc6373d9e326160c28191d550887e4ce688dfbe2d3be1bd8cbbc4bb",
+              "9d288d0965e2f76728b9946d765059849523d9f782e7bfdb7cfc52c6835299e2",
+              "9d39ff0fda01ed0c0d45f8f65a118e0b122eca719808d2047da7a4fd49b02412",
+              "9e3b7074187f7455698ed0bb5e3a3b0638806a11a579df1d61acb45c41f8e88f",
+              "9e71cc682fffd67773fc560e30569b535cf22ccd125f1455cca405a64e9d2c4a",
+              "9f46940105d4b06e624e7888309b37ad7d122d6c39b49cd96c6475898770cbb0",
+              "9fad6e961fc724d3b3c7ed5552cdba058ad8edc6cd88ae9dbb8da8d8da7930c6",
+              "a084f267352f29bc271fc8a209da5bf4b4803ec91c8c7a6c196ac486354d34ae",
+              "a0b3bf35982081ed434a445142a4f529e34eebeec51a322a7043d2283c5b2f76",
+              "a161424ccd744a02a6303090e307f2170a2ab7a75626f16ac67cb98f40ef5835",
+              "a2673b1ea4e3f60ae4218943b153f3a283053fdb7d56a29b6602c6ca9977933b",
+              "a2e27ccaa48527545ae63b1602c3f148b6028a29ced7aca75dca27823f0c9b7c",
+              "a32d239426220eb2a01ed5f4bdce26dcd54f566953ada67d2dbe3e7e3cbba1d3",
+              "a3837205bada3c8dbdb230097e7cf031566449a10730198f288f782063655cc3",
+              "a3ed90d7d1f7ffd77bf61a96225b391a0b14746df8efe5227dfab894c109417c",
+              "a48a3d616e001923fb1be721eb2fec0d45bb3a2199241025f3ad6357df2caa81",
+              "a6bd9e1f34298641e725425a358c3bcd8aeff3f6a58e023ad0ed55bebcb6fb40",
+              "a7b0a1da5d4edb25065d15c7fd13f0c102cdec5acc28993fd12ce1428d439a0c",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "abf5a43beadde43ce746ec835d2d5840a6d1e7abd101df5b0f14632142f44a4b",
+              "ad2447ac312ef3c6a5ebb96856efd1c891fa710888e5b9a766d34966126ab8e3",
+              "b15ea40dbb17bb77aed46f1eb50a08095cf52e288d81684f963a1965b14711a3",
+              "b1911b21cd5070aeba49dffdcf83891a2d157cf205edb1c271908a6d03d10e99",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b281de4cb91248e6a4e91153fef51a9e351f75d62a6743bc5b5c322831736f1b",
+              "b3946ec8082f61980a9af3fb97137b8fd81b826c3e48e359168a940e71170e05",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b4e2269c8c899d8d2f33bc3babc06d392969e784f5af0112b80452cc00a400f6",
+              "b616226e1da957e4ab94acf9c38ec9d38e5219c3ac635eff7ca4c973545e7134",
+              "b6f1ff2e48187d6cfe5361c055624758a8d446d558d3e3c18e63b5b319219006",
+              "b91eeca21550dcbf9ef7c5c6365b90698b719dcfa79cef1fe91470f0f2bfd4d6",
+              "b97676042eb5093ac911b9f98a1b8db292b863944006bd3f8898dd76ad49ede2",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "ba5e5214dd30e4bba967a838f0353026889730ef9345e663f19be7e11a2e14c9",
+              "bb6ab320c2e745ee1e6adfc138f595c983a8c30df07c438ceda642c0ac1f1ae6",
+              "bb7a0404bf3709750f803f1dc842fe1ba251b3987cec9941029b268505a5a93e",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bc6a2de31001efc41054c2f01fc08b9585cd2b031ca4fbab65ccb7be4b67b8b6",
+              "bc830bc0ca2398066169c556f373893a0358764a6ca171c7c281ec0d848819a5",
+              "be50244aface1297877a8d85752a1dd1437c37cabb0e81c746c37788761db378",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "bf5c967f896b08b75e900f6e6f0b889e51d438613a7f4a6d87a6cec8a83b17cc",
+              "c073d6b7b001867f2379931cebcde76cd9f98003d279826ceb2aa2f3c7503e40",
+              "c12d05811d2ac31b82dae5383e005628d6e08c5ab3762aedd84d94607732a088",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "c658d3f6b868fd3b87c1ea20720146a047a70ca37d71f093afb6dd0191042005",
+              "c959847bb6b125b0366e181d1be6889689e6e092d2e2aed1920dd26753e927c9",
+              "c9fe96e6583b2cc6dae94972e8a889c44242a4d0eac6a07f6f9ddc19cb214e6c",
+              "ca469f3987a9a91d2df0d3112c4e8c3260f32a5d3527301cc865e17af61c6cd8",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "cd19ea7438537c5c1a6f98003f62609e3dc39d38e509d5a5f604fdbfa31a4a4e",
+              "cd2f4c9c59d3da24a4696c2d7edb742f4cb956f77879da6625f193738badbfe9",
+              "cd3bf1e45a7fc3464ef86953206f3078e3f4cf890549eceb5e319b477be943d4",
+              "cd46286e17317e1de5ced5d4db674c824aafa78b91b0157b53d3836cc2bfe4c7",
+              "cd88e1698d57ec289bc1d72d22750734a15d1394aab3e77103e2290b5a624b46",
+              "d07fac217f430b49602bcaca924ad918fab8e8d66b88b4d34f30d2ca6e1341b7",
+              "d133e3f18c8223ad6be4bed52a98fc3b03dc68623cc474f2b4823afa360b9dd0",
+              "d3153779f0d9cd23dbd9c3e00fcf9c01a132f684d769e24e8117a8cbf49d5e5e",
+              "d375166e4cdd610d1ce032a871c4136956093c891184a1666f2bd1928704bc5f",
+              "d4d2ed4b5f795fda05876336a56a6073654fd10c520ebeb88403b91a20893d55",
+              "d6c576260c1ecf420d77258255da44fa1d223459ac0c64781283eefa695c4255",
+              "d763d785283313278cc37a6c46c3a731400d4bc502b371013f240209c7198907",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "db7b61f47829f06e2aa67dbdb5e75ad652f406098dba878f7d75b72b5dc56b19",
+              "deafa9b7afe7a275a1bb67bbeabc6f481578c960bc1e01ee0c2fc717dfed223b",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "df22c6808f9187eb5eb9a4f526184e0a37a5bc0dbce615fdd642f5272023c920",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e1e5ad14e01ac42db69487ba17b96266fd96999215d4ed02a913be01e1c4e7c1",
+              "e21dbb722ef8f618a468267761606846dda13c4c77eaeb85e16bb8aad62550ef",
+              "e335e6c12514dda2fdbdca4af7c0b90ba15cc4d5b4318974aa827164c6e00657",
+              "e529d39a18467a78e6109cfdfdba8d18baaf6870f01f59862071e6a18a00cede",
+              "e54cdaf35fd96e0190345d77d3877e9fe60ebf3b2ff336af6b72590b21f54321",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "e78053ac35799316c64631e8b20d6049f9bbeb46b50fcf744d7269028fe53e74",
+              "e7def5c061447c0e781a610261e657b43f41de6dfba658d3c9175d615c457652",
+              "e9bf6161e8913ea97d34b4aca7fc9beb128b7198d7f74b13a17dfed3c23e9968",
+              "ea2691e876f6f6d84dc9a3e1e319fb194d7b287be0688078d5e25880ea5b823f",
+              "ecaf7c9d1fbc8229e8d168739b9c31d80ad0d7c4f3e834a5b6170c288ae22240",
+              "efdd6cd81eb2b73c98101b033a134e21009e9831c886f03e39e9ab50da13aab8",
+              "f24b4c14ea96dcf2832cdebd8c02ab05f7363f472d9f650e481903feb5235fec",
+              "f5a524cdbe0f5802c0243f1387ef569e210a9df5a9032818403c11ec2a2adbea",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "f6b696d41f72afa99d3e52ada796fb9ad32e574d002914eb97817164e15791b1",
+              "fa8c1737d7c552271def13523cb76b0ba784a9f470116c96feffa66dddbb870e",
+              "faba15d874f05450277357f98494a4008525a5a0dae2eff78410447fd86784df",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fc589eb0086456f20ee448702c7187133b4981c870408a1fd7e84dc8e2f7a3ba",
+              "fcb98cbec99305fee7225e04b324da7bcf828fa6b242d6833d5c1cd54c09c1a8",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac",
+              "ff3ab45491026989f9ef9c2a08bd9fa349cd0ef8bb7b5590d61c65bf4a9f91ef",
+              "ffa02d8fde2968b58a3ecb5e3bf6e44e294b9bf8003b6703f90402b1a9f5e902"
+            ],
+            "predecessorHashReferenceIds": [
+              "02093cdc11e303b53dd9ed632947de558a7d050a0151321a59e8fb93ea93cdcc",
+              "11386a5060aea2f3b3354b79fd312aaf8fe4485c04be9b3d572da9ef89b7eb67",
+              "2cb8633d8a7a37ddf2bc24a025470269ba8777085eeaa5548b8fdd91ab5caa50",
+              "2f886bf8321776aea189f1b1079a056395d3003729c08d6dd67b0f71d8c5b19f",
+              "6d42f23bbc40ca4f9f3e2c88a3d7ab590b2f9b1c18535f50f5c7949960462278",
+              "98c213f43ddd3fe92e5ef2ddb3643e0f72fec97610c471f634a831368bbab4b7",
+              "a632ace8baba55e34c608cbb5455bb5f9d2dd5b74b681948f39aeb95a3da8f1f",
+              "c419a9d2abef2b586ba36d44db71ea7dbd0aee34170e6f4c16fff65e00fde763",
+              "dfebbbccc7cf3d96dfc17e7039a66c966352f22027dfba8149f4f3b0c9d7e5b0",
+              "f1c7dbe77a8d5ad1e9332e65b98e4d8bba4df4394b8dbc9181f2a50e369e621e"
+            ]
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-13",
+        "releaseHeadSha": "6c983efc8bb1b8a82a9882f6fc4841546f9ca9ee"
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 105132159,
+          "prefixSha256": "21242fd1b0f89ee807536d4ee732861797e74e7dfc4283309411c3500de27643"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 20018583,
+            "prefixSha256": "17ee3eeadc78be5fb2a7f45acb02e448ce0bf9e7486f7a951d3d5ba18d856842"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 26452651,
+            "prefixSha256": "fa3b771fb138dbe837ed2880a60819b9aa96fc2a10e0c55211b7c41370f00927"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 2092,
+          "supervisorUncachedInputTokens": 6237987,
+          "teamModelCycles": 3011,
+          "teamUncachedInputTokens": 11005229,
+          "cachedInputTokens": 609559040,
+          "totalInputTokens": 622238049
+        }
+      },
+      "eventHash": "cf0041ebc8cf752f49ece01e831c5864c8048cca69f1fed2ea30461c3828bcb2"
+    },
+    {
+      "sequence": 145,
+      "action": "mark-ci-passed",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "cf0041ebc8cf752f49ece01e831c5864c8048cca69f1fed2ea30461c3828bcb2",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-14",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "ci-passed",
+        "baseSha": "682872b138f00bb3514e6081d601dc2111af61a0",
+        "treeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 10,
+          "fullChecks": 12,
+          "semanticPushes": 0,
+          "replacementPushes": 4,
+          "supervisorModelCycles": 2130,
+          "supervisorUncachedInputTokens": 6339774,
+          "teamModelCycles": 3049,
+          "teamUncachedInputTokens": 11107016
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+          "acknowledgement": {
+            "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-14",
+            "candidateTreeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+            "paths": [
+              {
+                "path": "research/cr-grounding/cr-backbone-ledger.json",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "48acfffd7e8d72642ad739ba3f8214b9bd18dd516fad55c8c22d114c41bdec81"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7012284644bc83e5796e969f81784f2bc523e37f58ea7992c48b775043d14ec7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/forbidden-policy.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "724eab8b37b73d95f1ee90702f1373a5646204201a2408153c155655ba063294"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "f45889e625f5348679e259e163031155cbf41a13b8ecaad5a41d7cb25c046da7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceSupervisor.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "aee97a337b82817cbd94bcad6e9bb963b5577b9e7bdbe6537cbeb5f981401682"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "2bda4787bf1bc9881be1dab29f288e8229b68e1ba03c63b1b6106281a090193a"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "scripts/codex-program-step.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4c30dfa36955223dc917c4775c80605669fccfe69bf6e27a0318c2fed20070b4"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4306b0b898222f989139f9232e6e627e0e423bf50a70d567a68321efb94c1524"
+                }
+              },
+              {
+                "path": "scripts/lib/supervisor-authority.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "82d926d33a0a70d2ba80302b5928b866db181437fd35c42ba48d297dc3c5ff9c"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "8dc3db874cbf28ebfcde84a871ea51007f34b2d72f74be2b363157082a014879"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-02e-local-room-gate.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "6bb1b10fef3346ecfac712182e8fc1259968d2b0bd3c20fc905e49e4a5cea270"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d5584e8653cfad6b668eceb2d60a8c591dfc1d2ccd127efba5c603a9bb85199c"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-05b-four-player-release-scenario.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4727ec135c7bda22f700de4d13bb6a83b3d6a2299069d598deb175a0e6ad2a49"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7b50fca37c4c16bbaf4bbed3e995de5c0a8b37a8ea1c17417636acd559e73e4b"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-06b-playable-table-command-surface.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "8a8a4c8d80a5509b367d2a59b126ad1fd886516103d543efb8551e21506e5b10"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d0eccaf76f5d9e69ab1001f18bde341ef959bfd16a67025a6ae9b25dab34156f"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56-program-orchestration.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "59b03096b2ac1012e458fb94ee01608864b63eaa2117ae28cd0c69bf9cd3bfdc"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4cf85d874a35d492edcf957f2cd5265a43d6e108369284249872cac1b1aa26f7"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "39262dc1537fac848496c7f2821734d71edf7f5b6e6d0ea05610b3ad8a3d526b"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "ae09e5b48c99d5d3cca9a0fa9be7c1efd2961e211734667ea2ffe367b5eedb6c"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "b738942f970c71036179cdb14ec1a696f0e00652fe22c66809cbe87a338806ca"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4deb5191c4520c0f7dcbc2999ae4a5048eb6be9ab5994b0aac9124a3b176bfce"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.o4p-09c-pregame-lifecycle.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "df7482cfeb69f976160d39ce9eb42401676c8802ea1cbce2d3e494a44e8f7181"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "759da1287c6c359499c6304fbb8ea95da413e4c72359f3316600edc881dc4f38"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "000754fa06192e45a5efd0eaed25f6b2246cfc647b847a1c2cca89c82c95a61a",
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "047f330227bbb487c231f755edd75f5a97626339b1f57bbd11e7d66121ddb3eb",
+              "0563bd53724d6b8c2f3883f692f8a2ff882b26f54f728a8414f1a146ab51ba2c",
+              "06986852a5654728b233b4b4666936b8d61195bef6cc907f7e83c704e201ea65",
+              "070b2f34e11aa109972fc71476628336f3158e3a5aeb607f68f6bf5cf4eb4d35",
+              "073b8ecf97a460c5d178843703e1eddf72c47186e49e8dd29f905280e2e97ed1",
+              "074f92ff1180341b9fc3bf7b172c34ed053b34d31542008f3a6f318883fd2f88",
+              "07b2d9e8ed4d829ca7c83cd0286b6c74b7f518d23bb9e183156305c4ba2f9ee9",
+              "082aef0873eae72edddd5af8107f3cd045113307983d7834ed5ab58808a553a8",
+              "087e49676d72b03881c1f359cd1a6aa4f8a93a488706b5622b24989bd3d67d3f",
+              "08bf52a4c66964744e7c7405a5e671e46ebda68e62c8e9c8135d16cf5e6200c4",
+              "09466c15a43c41a6ee82195361e70143c9df2757558a36847785d0927d160c3e",
+              "0d97fecc3ca3ed391d09129992d1ae8dd9ace1a647b7ddab1b4ee262801b0874",
+              "1187cd1156545a4b3603ef2aca6e77062303b46c0cc42233200b49725fa4252a",
+              "1483cc065c745fc9cb0b70a8445d2c49f2a5ff53e9854f08a2e624affb84cc55",
+              "1556ab55bc4c731000c56aaef28f88cdce26a177dbaa76dde5af6b94a9328ef0",
+              "1569778490b9e1cfb3ca3f29e64a388ac7afe100a38b1117a0fb1034092891db",
+              "158b152ae577ab451d093537561f4a121f1dd7490660d6076d2b5caf0c4d2aaa",
+              "15936ba739d46abc5ec160bcfc8ae54f041d3c93904216f00f47f151cac0c039",
+              "176030866f72f4fe6017e8c09179b3772c295fdc9342ad2d26f23b80db81a4af",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "19dd7d80b4c70fa38da3ffcac684571bbc3d29113b943a6ffbb44cb91a5711a1",
+              "1d4b6926759f6bdf32fb5de494dbb244b2f9a68b084e9beb45846b2059bd7b8c",
+              "220d20fc8b488d26c3c3cab55e89b2c74d25ffeb347fdf8f70d872c50e22b9cb",
+              "228bbd073fdb6e4a56e0506d2861cc036145274d1ecf3f3aa91064f585034d69",
+              "23515117b1e4ccf4928c1e3b4cb35992558823f1548e86fdfbd8494c0a99f366",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "28c89410a48d7ea72667ece46ec090f9ebd74c249c57c49fc60812c89b1b5207",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2e0ed0c9ac8788572318683cf6d8363ad28e3f6cbb2448208ccc75883516c1ed",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "305fb198e4ae3be76df61b9c168e9bbaa2b857428f94e5033ab12ace8624de90",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3330582ca671f578c54d07316f9caeae851f3c739ea42d3b141305738ad5f6df",
+              "381f2b9cb612c30de1042708f826fd3b8f6cc17860d2184b19d49702ae88795f",
+              "38c339c426fb580ce5aa7cbd7da771b3eb20cb8b1449a6763e5c3cea95618cae",
+              "3978d8b5e926a9100beedc5c7b624720c7744778933de6a0fa559dff8fa667e2",
+              "3b9ad19fa1f91887ed273cb915276fc5e93c611b0ad003bf192e2851866d09df",
+              "3d619c59c7d90fd58003dc84a7ed04ff80ae29c9fd1abf86df837fdd1e3558bc",
+              "3ee57b0ea224fb66c01ab62235023ad8d12932046d11082a298d39036d6e79d6",
+              "3ff9c4a303e5de4b94bf8a3732b0903707a512af12053544201fe3e93a22ae50",
+              "4006b1ddbdc5160eceb88b2e20ce78fcc67497e4b831742a31cbd8dadb6cebbb",
+              "403bdc90bc5b0d734e994805a004d025e5966071ff5502f880a48acc96ff94a7",
+              "415e66e1ae3e31b933eceadff249d1ae637255fae3b3214fbe25ec350a1337fa",
+              "41ca533a617cfbd9b0f59bbf07f9edacbc3dc0f9f4827e6b6299e4b657d4824a",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "44e39e6fd136d313745cc30fd34e10b6a6d6a4110a63c0d9e4945a8a301791aa",
+              "473c40ffc6f6886f892cf5bf84300d9c82c4b7c61c736dfd82fcc3a338cc9ddb",
+              "4a8af50a0adf11103c4c87ca489038a0f497f31e9f5bcd06eaad6029b9f35646",
+              "4c81b20ec5d5f89842152385216334f986d14088c9e2271b7b6a979fb5fc489b",
+              "4d1b8543b5c1029f74ce0ce46703ad613d6395311cce0f500a5364f0e29e8bd5",
+              "4df4d16a30796e42fb408d73af7782d8a5fddedcd62a3eebcdd88096e1cd09cb",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "51d8f2000bf98aa73a53a2e6edca5d84ce1195cc451c353443378e197e695aaf",
+              "5341e85d302c47ef4fb7724526cadf4c58e8ec5d88f9d918a6406f54c3034248",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5602b850854127b3ad2d39101bfda0e346682d906cba739576d244a667adefc3",
+              "57a4cc22fc8501c469a9d9b824d9ad48f770b3580a154dc22b154aa2c034a64f",
+              "58bbcd8bb5d2c9167571c6ee0b7dd5568f2fd1013c97c599bba7774612c9e608",
+              "591106443563ef678a3a4d23c42e9f6aa174e0b4c05f4ee9c455c750de5ee4f4",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5b8b159e282e2316cc17a16107a84ab719ecfa60202cc60d1f230d8d005b1e0f",
+              "5c0b8bf40fa49721e026e08b97a0c599576a1ea61d2cda39f2d44009d65d30e1",
+              "5dbdea60714a8030f71e401d67c4e00d36227f754d58348df0f39b8513b687d4",
+              "6198a2065a433b44743ef2c1203ea5e9382f1e15a9c05016ebd414ad9a988454",
+              "61f03c22bd56f62b76cd495dec16f80447ef7138bce33af9c5bda9f264cb4eaa",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "64455336d919cc8516fc2014f6165b25cf1c54c4c4a9d668339dd977ac2160ee",
+              "64dd4c9826fde86d0a4a6031c12d1454c4344c4e2b30e651369307e8efce91a1",
+              "66478c540454d0e7f086d21846610735449f678717fe8c069880924c9ac167ef",
+              "67333c30be78fd814a51bef1384b56cd080479ebbde4ea49e0d925c1e5df8a5c",
+              "68c1146fb6471017e7741614620eefefe16d7abff87e8943b4667301804f4064",
+              "6998ab47d7e6e71022544dce8fc02b486915f043915989bca89f925e01fccce1",
+              "6a02cc9d78024b3eb9de80550a77bd3c65eba31d88825ff7cae40c58352f2552",
+              "6a9f5c26fa64fe243d90860730beb08a6b7774c6313e95c573c422e02f2c2871",
+              "6c145b9a90558d569e7033a8d96a5abfb2892299ae32d9c009a0b5da0a880876",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "6d090ea440d25782c42ea2468176562d533b3b7704a46c11ea1d780bd5a435ab",
+              "6dd1bf3e4993a24f175ea69a91f6af3aae7e796629bbdb8f1104fbfebd6a6db0",
+              "6f4b8c6374535b27fbecd69983efada6f0285fe2e99522ba37895daecd05ff91",
+              "7378c8d7bfd9d438aae76375c02d3dfc9c44bd0d7a04f0a87a83af6058682c90",
+              "75a73d1030c7bfc637774d2441617aa556fd725005be96b68508ece425b3c8d7",
+              "76d191d45a69586277c040fca2d307ae67139314f7a0d590b7e943194650c25a",
+              "77861595ffe08af1348304b7c6c4698b5b0a590bfe6863db3b397ee3000ffe3f",
+              "7907a85d5d001992ec10835b58d5cb93369b494e5e039af45fbd5f4fe0e6cf01",
+              "7a745c90bf2378fae5d1230e2f31733e79a4f4eb829a0f83285e97db23ff79bf",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8102e7f39f5e569ceac575f3d8d6dc91792d84e0727e490e0f97e3fd389d00ac",
+              "8491ada447a4074462e37eda705e47a4581eb9775d0a838651f0d44c805c67d3",
+              "8642ec63342e1a6c8762d915949b01be6664b355cd62077fa4419615e6d03962",
+              "8654d3dd8b2298cce24f0bc8c0ed0839e68fe76512389e5a5a0589a835828d2f",
+              "879ddb6bea9f3b6598067614ef313672fb9c46e4302fc228236c198a8d319d91",
+              "8863566c75f972f031c9e22f93e3a10035f0b94abe7216b5c7e8d35759f7bf87",
+              "89f21e2f202ea787ee6dae57185d0d7b889690b98a584ff5cfab31691580d26a",
+              "8ac99ca3c4740cf72991b4b9ffc2e9dd44fad1caa68456ae0f4528e59e2b6fd4",
+              "8b7e88583ffb28c9f3f85ed852b1647ab1f0af004d8d77449dd6dfb8e531067d",
+              "8c14c5917753e9d4043fa33d33d23dc0f15c08c9181f2300c2325e45ea08f268",
+              "8c5e3dad53e25c5c22ea19117ca9041bc7286d2e25b23f9501df3db17985ede3",
+              "8c606471d4655ee9f39f4c754a6becf2d8a8d567959810a26889e4a3c5cea93c",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "8e375892adcbfde1b34f03dfaa38e54ce8f71440cd918c00ff537d6d902042e4",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "93f242a251fdf5375be9ee4ae1f10eeccffda8c45faea595b77a2e09233a8333",
+              "9424fc5dbc07252827d6830724ba4e081a274a29e50ce543e4974a18f497ccd7",
+              "94975f3e545eef6874d0647da85cdcd95cd3fc7054adc483a4b72de0cedaffcd",
+              "957a8bb35f3565f8c2a78c157ce35f5696ef7472b2b4df4b83bc630cdba63cfd",
+              "95f8e92b1ef54d60264afd302cfbf9d5e3ecfe44d2359e843b6eff6fe1b2efb4",
+              "969899451675204fd7cd9109fe720b26eb15f1084151ec5a75c35d4101ce2491",
+              "96c0516bc935120f40a0bb3d9524ca51f3e360859ae1325dc9e733f37647b1f6",
+              "97c34e61009b7b1938667b6e19b80b56ee8dc9668974aab6b82e6322724f648d",
+              "99480816dcd53f71fd23adf9f27174fae3e3687f9123b504b8818cf831bf1845",
+              "99ec0b072e469d0b427c9ca0ab1febb30d90a505a56885ba66ffb68824995350",
+              "9ba77797ccc6373d9e326160c28191d550887e4ce688dfbe2d3be1bd8cbbc4bb",
+              "9d288d0965e2f76728b9946d765059849523d9f782e7bfdb7cfc52c6835299e2",
+              "9d39ff0fda01ed0c0d45f8f65a118e0b122eca719808d2047da7a4fd49b02412",
+              "9e3b7074187f7455698ed0bb5e3a3b0638806a11a579df1d61acb45c41f8e88f",
+              "9e71cc682fffd67773fc560e30569b535cf22ccd125f1455cca405a64e9d2c4a",
+              "9f46940105d4b06e624e7888309b37ad7d122d6c39b49cd96c6475898770cbb0",
+              "9fad6e961fc724d3b3c7ed5552cdba058ad8edc6cd88ae9dbb8da8d8da7930c6",
+              "a084f267352f29bc271fc8a209da5bf4b4803ec91c8c7a6c196ac486354d34ae",
+              "a0b3bf35982081ed434a445142a4f529e34eebeec51a322a7043d2283c5b2f76",
+              "a161424ccd744a02a6303090e307f2170a2ab7a75626f16ac67cb98f40ef5835",
+              "a2673b1ea4e3f60ae4218943b153f3a283053fdb7d56a29b6602c6ca9977933b",
+              "a2e27ccaa48527545ae63b1602c3f148b6028a29ced7aca75dca27823f0c9b7c",
+              "a32d239426220eb2a01ed5f4bdce26dcd54f566953ada67d2dbe3e7e3cbba1d3",
+              "a3837205bada3c8dbdb230097e7cf031566449a10730198f288f782063655cc3",
+              "a3ed90d7d1f7ffd77bf61a96225b391a0b14746df8efe5227dfab894c109417c",
+              "a48a3d616e001923fb1be721eb2fec0d45bb3a2199241025f3ad6357df2caa81",
+              "a6bd9e1f34298641e725425a358c3bcd8aeff3f6a58e023ad0ed55bebcb6fb40",
+              "a7b0a1da5d4edb25065d15c7fd13f0c102cdec5acc28993fd12ce1428d439a0c",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "abf5a43beadde43ce746ec835d2d5840a6d1e7abd101df5b0f14632142f44a4b",
+              "ad2447ac312ef3c6a5ebb96856efd1c891fa710888e5b9a766d34966126ab8e3",
+              "b15ea40dbb17bb77aed46f1eb50a08095cf52e288d81684f963a1965b14711a3",
+              "b1911b21cd5070aeba49dffdcf83891a2d157cf205edb1c271908a6d03d10e99",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b281de4cb91248e6a4e91153fef51a9e351f75d62a6743bc5b5c322831736f1b",
+              "b3946ec8082f61980a9af3fb97137b8fd81b826c3e48e359168a940e71170e05",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b4e2269c8c899d8d2f33bc3babc06d392969e784f5af0112b80452cc00a400f6",
+              "b616226e1da957e4ab94acf9c38ec9d38e5219c3ac635eff7ca4c973545e7134",
+              "b6f1ff2e48187d6cfe5361c055624758a8d446d558d3e3c18e63b5b319219006",
+              "b91eeca21550dcbf9ef7c5c6365b90698b719dcfa79cef1fe91470f0f2bfd4d6",
+              "b97676042eb5093ac911b9f98a1b8db292b863944006bd3f8898dd76ad49ede2",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "ba5e5214dd30e4bba967a838f0353026889730ef9345e663f19be7e11a2e14c9",
+              "bb6ab320c2e745ee1e6adfc138f595c983a8c30df07c438ceda642c0ac1f1ae6",
+              "bb7a0404bf3709750f803f1dc842fe1ba251b3987cec9941029b268505a5a93e",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bc6a2de31001efc41054c2f01fc08b9585cd2b031ca4fbab65ccb7be4b67b8b6",
+              "bc830bc0ca2398066169c556f373893a0358764a6ca171c7c281ec0d848819a5",
+              "be50244aface1297877a8d85752a1dd1437c37cabb0e81c746c37788761db378",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "bf5c967f896b08b75e900f6e6f0b889e51d438613a7f4a6d87a6cec8a83b17cc",
+              "c073d6b7b001867f2379931cebcde76cd9f98003d279826ceb2aa2f3c7503e40",
+              "c12d05811d2ac31b82dae5383e005628d6e08c5ab3762aedd84d94607732a088",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "c658d3f6b868fd3b87c1ea20720146a047a70ca37d71f093afb6dd0191042005",
+              "c959847bb6b125b0366e181d1be6889689e6e092d2e2aed1920dd26753e927c9",
+              "c9fe96e6583b2cc6dae94972e8a889c44242a4d0eac6a07f6f9ddc19cb214e6c",
+              "ca469f3987a9a91d2df0d3112c4e8c3260f32a5d3527301cc865e17af61c6cd8",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "cd19ea7438537c5c1a6f98003f62609e3dc39d38e509d5a5f604fdbfa31a4a4e",
+              "cd2f4c9c59d3da24a4696c2d7edb742f4cb956f77879da6625f193738badbfe9",
+              "cd3bf1e45a7fc3464ef86953206f3078e3f4cf890549eceb5e319b477be943d4",
+              "cd46286e17317e1de5ced5d4db674c824aafa78b91b0157b53d3836cc2bfe4c7",
+              "cd88e1698d57ec289bc1d72d22750734a15d1394aab3e77103e2290b5a624b46",
+              "d07fac217f430b49602bcaca924ad918fab8e8d66b88b4d34f30d2ca6e1341b7",
+              "d133e3f18c8223ad6be4bed52a98fc3b03dc68623cc474f2b4823afa360b9dd0",
+              "d3153779f0d9cd23dbd9c3e00fcf9c01a132f684d769e24e8117a8cbf49d5e5e",
+              "d375166e4cdd610d1ce032a871c4136956093c891184a1666f2bd1928704bc5f",
+              "d4d2ed4b5f795fda05876336a56a6073654fd10c520ebeb88403b91a20893d55",
+              "d6c576260c1ecf420d77258255da44fa1d223459ac0c64781283eefa695c4255",
+              "d763d785283313278cc37a6c46c3a731400d4bc502b371013f240209c7198907",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "db7b61f47829f06e2aa67dbdb5e75ad652f406098dba878f7d75b72b5dc56b19",
+              "deafa9b7afe7a275a1bb67bbeabc6f481578c960bc1e01ee0c2fc717dfed223b",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "df22c6808f9187eb5eb9a4f526184e0a37a5bc0dbce615fdd642f5272023c920",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e1e5ad14e01ac42db69487ba17b96266fd96999215d4ed02a913be01e1c4e7c1",
+              "e21dbb722ef8f618a468267761606846dda13c4c77eaeb85e16bb8aad62550ef",
+              "e335e6c12514dda2fdbdca4af7c0b90ba15cc4d5b4318974aa827164c6e00657",
+              "e529d39a18467a78e6109cfdfdba8d18baaf6870f01f59862071e6a18a00cede",
+              "e54cdaf35fd96e0190345d77d3877e9fe60ebf3b2ff336af6b72590b21f54321",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "e78053ac35799316c64631e8b20d6049f9bbeb46b50fcf744d7269028fe53e74",
+              "e7def5c061447c0e781a610261e657b43f41de6dfba658d3c9175d615c457652",
+              "e9bf6161e8913ea97d34b4aca7fc9beb128b7198d7f74b13a17dfed3c23e9968",
+              "ea2691e876f6f6d84dc9a3e1e319fb194d7b287be0688078d5e25880ea5b823f",
+              "ecaf7c9d1fbc8229e8d168739b9c31d80ad0d7c4f3e834a5b6170c288ae22240",
+              "efdd6cd81eb2b73c98101b033a134e21009e9831c886f03e39e9ab50da13aab8",
+              "f24b4c14ea96dcf2832cdebd8c02ab05f7363f472d9f650e481903feb5235fec",
+              "f5a524cdbe0f5802c0243f1387ef569e210a9df5a9032818403c11ec2a2adbea",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "f6b696d41f72afa99d3e52ada796fb9ad32e574d002914eb97817164e15791b1",
+              "fa8c1737d7c552271def13523cb76b0ba784a9f470116c96feffa66dddbb870e",
+              "faba15d874f05450277357f98494a4008525a5a0dae2eff78410447fd86784df",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fc589eb0086456f20ee448702c7187133b4981c870408a1fd7e84dc8e2f7a3ba",
+              "fcb98cbec99305fee7225e04b324da7bcf828fa6b242d6833d5c1cd54c09c1a8",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac",
+              "ff3ab45491026989f9ef9c2a08bd9fa349cd0ef8bb7b5590d61c65bf4a9f91ef",
+              "ffa02d8fde2968b58a3ecb5e3bf6e44e294b9bf8003b6703f90402b1a9f5e902"
+            ],
+            "predecessorHashReferenceIds": [
+              "02093cdc11e303b53dd9ed632947de558a7d050a0151321a59e8fb93ea93cdcc",
+              "11386a5060aea2f3b3354b79fd312aaf8fe4485c04be9b3d572da9ef89b7eb67",
+              "2cb8633d8a7a37ddf2bc24a025470269ba8777085eeaa5548b8fdd91ab5caa50",
+              "2f886bf8321776aea189f1b1079a056395d3003729c08d6dd67b0f71d8c5b19f",
+              "6d42f23bbc40ca4f9f3e2c88a3d7ab590b2f9b1c18535f50f5c7949960462278",
+              "98c213f43ddd3fe92e5ef2ddb3643e0f72fec97610c471f634a831368bbab4b7",
+              "a632ace8baba55e34c608cbb5455bb5f9d2dd5b74b681948f39aeb95a3da8f1f",
+              "c419a9d2abef2b586ba36d44db71ea7dbd0aee34170e6f4c16fff65e00fde763",
+              "dfebbbccc7cf3d96dfc17e7039a66c966352f22027dfba8149f4f3b0c9d7e5b0",
+              "f1c7dbe77a8d5ad1e9332e65b98e4d8bba4df4394b8dbc9181f2a50e369e621e"
+            ]
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-13",
+        "releaseHeadSha": "6c983efc8bb1b8a82a9882f6fc4841546f9ca9ee"
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 106124989,
+          "prefixSha256": "ef2ae381187384e8bde52c3a39d65e66214adc1712060cdf1bb44f997be19675"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 20018583,
+            "prefixSha256": "17ee3eeadc78be5fb2a7f45acb02e448ce0bf9e7486f7a951d3d5ba18d856842"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 26452651,
+            "prefixSha256": "fa3b771fb138dbe837ed2880a60819b9aa96fc2a10e0c55211b7c41370f00927"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 2130,
+          "supervisorUncachedInputTokens": 6339774,
+          "teamModelCycles": 3049,
+          "teamUncachedInputTokens": 11107016,
+          "cachedInputTokens": 618226688,
+          "totalInputTokens": 631007484
+        }
+      },
+      "eventHash": "ddf0178296e0ff8d484d66b9337b887a37dae40c56e6829d0f765400d2befca1"
+    },
+    {
+      "sequence": 146,
+      "action": "record-deploy",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "ddf0178296e0ff8d484d66b9337b887a37dae40c56e6829d0f765400d2befca1",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-14",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "ci-passed",
+        "baseSha": "682872b138f00bb3514e6081d601dc2111af61a0",
+        "treeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 10,
+          "fullChecks": 12,
+          "semanticPushes": 0,
+          "replacementPushes": 4,
+          "supervisorModelCycles": 2134,
+          "supervisorUncachedInputTokens": 6351129,
+          "teamModelCycles": 3053,
+          "teamUncachedInputTokens": 11118371
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+          "acknowledgement": {
+            "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-14",
+            "candidateTreeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+            "paths": [
+              {
+                "path": "research/cr-grounding/cr-backbone-ledger.json",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "48acfffd7e8d72642ad739ba3f8214b9bd18dd516fad55c8c22d114c41bdec81"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7012284644bc83e5796e969f81784f2bc523e37f58ea7992c48b775043d14ec7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/forbidden-policy.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "724eab8b37b73d95f1ee90702f1373a5646204201a2408153c155655ba063294"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "f45889e625f5348679e259e163031155cbf41a13b8ecaad5a41d7cb25c046da7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceSupervisor.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "aee97a337b82817cbd94bcad6e9bb963b5577b9e7bdbe6537cbeb5f981401682"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "2bda4787bf1bc9881be1dab29f288e8229b68e1ba03c63b1b6106281a090193a"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "scripts/codex-program-step.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4c30dfa36955223dc917c4775c80605669fccfe69bf6e27a0318c2fed20070b4"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4306b0b898222f989139f9232e6e627e0e423bf50a70d567a68321efb94c1524"
+                }
+              },
+              {
+                "path": "scripts/lib/supervisor-authority.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "82d926d33a0a70d2ba80302b5928b866db181437fd35c42ba48d297dc3c5ff9c"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "8dc3db874cbf28ebfcde84a871ea51007f34b2d72f74be2b363157082a014879"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-02e-local-room-gate.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "6bb1b10fef3346ecfac712182e8fc1259968d2b0bd3c20fc905e49e4a5cea270"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d5584e8653cfad6b668eceb2d60a8c591dfc1d2ccd127efba5c603a9bb85199c"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-05b-four-player-release-scenario.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4727ec135c7bda22f700de4d13bb6a83b3d6a2299069d598deb175a0e6ad2a49"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7b50fca37c4c16bbaf4bbed3e995de5c0a8b37a8ea1c17417636acd559e73e4b"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-06b-playable-table-command-surface.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "8a8a4c8d80a5509b367d2a59b126ad1fd886516103d543efb8551e21506e5b10"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d0eccaf76f5d9e69ab1001f18bde341ef959bfd16a67025a6ae9b25dab34156f"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56-program-orchestration.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "59b03096b2ac1012e458fb94ee01608864b63eaa2117ae28cd0c69bf9cd3bfdc"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4cf85d874a35d492edcf957f2cd5265a43d6e108369284249872cac1b1aa26f7"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "39262dc1537fac848496c7f2821734d71edf7f5b6e6d0ea05610b3ad8a3d526b"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "ae09e5b48c99d5d3cca9a0fa9be7c1efd2961e211734667ea2ffe367b5eedb6c"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "b738942f970c71036179cdb14ec1a696f0e00652fe22c66809cbe87a338806ca"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4deb5191c4520c0f7dcbc2999ae4a5048eb6be9ab5994b0aac9124a3b176bfce"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.o4p-09c-pregame-lifecycle.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "df7482cfeb69f976160d39ce9eb42401676c8802ea1cbce2d3e494a44e8f7181"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "759da1287c6c359499c6304fbb8ea95da413e4c72359f3316600edc881dc4f38"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "000754fa06192e45a5efd0eaed25f6b2246cfc647b847a1c2cca89c82c95a61a",
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "047f330227bbb487c231f755edd75f5a97626339b1f57bbd11e7d66121ddb3eb",
+              "0563bd53724d6b8c2f3883f692f8a2ff882b26f54f728a8414f1a146ab51ba2c",
+              "06986852a5654728b233b4b4666936b8d61195bef6cc907f7e83c704e201ea65",
+              "070b2f34e11aa109972fc71476628336f3158e3a5aeb607f68f6bf5cf4eb4d35",
+              "073b8ecf97a460c5d178843703e1eddf72c47186e49e8dd29f905280e2e97ed1",
+              "074f92ff1180341b9fc3bf7b172c34ed053b34d31542008f3a6f318883fd2f88",
+              "07b2d9e8ed4d829ca7c83cd0286b6c74b7f518d23bb9e183156305c4ba2f9ee9",
+              "082aef0873eae72edddd5af8107f3cd045113307983d7834ed5ab58808a553a8",
+              "087e49676d72b03881c1f359cd1a6aa4f8a93a488706b5622b24989bd3d67d3f",
+              "08bf52a4c66964744e7c7405a5e671e46ebda68e62c8e9c8135d16cf5e6200c4",
+              "09466c15a43c41a6ee82195361e70143c9df2757558a36847785d0927d160c3e",
+              "0d97fecc3ca3ed391d09129992d1ae8dd9ace1a647b7ddab1b4ee262801b0874",
+              "1187cd1156545a4b3603ef2aca6e77062303b46c0cc42233200b49725fa4252a",
+              "1483cc065c745fc9cb0b70a8445d2c49f2a5ff53e9854f08a2e624affb84cc55",
+              "1556ab55bc4c731000c56aaef28f88cdce26a177dbaa76dde5af6b94a9328ef0",
+              "1569778490b9e1cfb3ca3f29e64a388ac7afe100a38b1117a0fb1034092891db",
+              "158b152ae577ab451d093537561f4a121f1dd7490660d6076d2b5caf0c4d2aaa",
+              "15936ba739d46abc5ec160bcfc8ae54f041d3c93904216f00f47f151cac0c039",
+              "176030866f72f4fe6017e8c09179b3772c295fdc9342ad2d26f23b80db81a4af",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "19dd7d80b4c70fa38da3ffcac684571bbc3d29113b943a6ffbb44cb91a5711a1",
+              "1d4b6926759f6bdf32fb5de494dbb244b2f9a68b084e9beb45846b2059bd7b8c",
+              "220d20fc8b488d26c3c3cab55e89b2c74d25ffeb347fdf8f70d872c50e22b9cb",
+              "228bbd073fdb6e4a56e0506d2861cc036145274d1ecf3f3aa91064f585034d69",
+              "23515117b1e4ccf4928c1e3b4cb35992558823f1548e86fdfbd8494c0a99f366",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "28c89410a48d7ea72667ece46ec090f9ebd74c249c57c49fc60812c89b1b5207",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2e0ed0c9ac8788572318683cf6d8363ad28e3f6cbb2448208ccc75883516c1ed",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "305fb198e4ae3be76df61b9c168e9bbaa2b857428f94e5033ab12ace8624de90",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3330582ca671f578c54d07316f9caeae851f3c739ea42d3b141305738ad5f6df",
+              "381f2b9cb612c30de1042708f826fd3b8f6cc17860d2184b19d49702ae88795f",
+              "38c339c426fb580ce5aa7cbd7da771b3eb20cb8b1449a6763e5c3cea95618cae",
+              "3978d8b5e926a9100beedc5c7b624720c7744778933de6a0fa559dff8fa667e2",
+              "3b9ad19fa1f91887ed273cb915276fc5e93c611b0ad003bf192e2851866d09df",
+              "3d619c59c7d90fd58003dc84a7ed04ff80ae29c9fd1abf86df837fdd1e3558bc",
+              "3ee57b0ea224fb66c01ab62235023ad8d12932046d11082a298d39036d6e79d6",
+              "3ff9c4a303e5de4b94bf8a3732b0903707a512af12053544201fe3e93a22ae50",
+              "4006b1ddbdc5160eceb88b2e20ce78fcc67497e4b831742a31cbd8dadb6cebbb",
+              "403bdc90bc5b0d734e994805a004d025e5966071ff5502f880a48acc96ff94a7",
+              "415e66e1ae3e31b933eceadff249d1ae637255fae3b3214fbe25ec350a1337fa",
+              "41ca533a617cfbd9b0f59bbf07f9edacbc3dc0f9f4827e6b6299e4b657d4824a",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "44e39e6fd136d313745cc30fd34e10b6a6d6a4110a63c0d9e4945a8a301791aa",
+              "473c40ffc6f6886f892cf5bf84300d9c82c4b7c61c736dfd82fcc3a338cc9ddb",
+              "4a8af50a0adf11103c4c87ca489038a0f497f31e9f5bcd06eaad6029b9f35646",
+              "4c81b20ec5d5f89842152385216334f986d14088c9e2271b7b6a979fb5fc489b",
+              "4d1b8543b5c1029f74ce0ce46703ad613d6395311cce0f500a5364f0e29e8bd5",
+              "4df4d16a30796e42fb408d73af7782d8a5fddedcd62a3eebcdd88096e1cd09cb",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "51d8f2000bf98aa73a53a2e6edca5d84ce1195cc451c353443378e197e695aaf",
+              "5341e85d302c47ef4fb7724526cadf4c58e8ec5d88f9d918a6406f54c3034248",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5602b850854127b3ad2d39101bfda0e346682d906cba739576d244a667adefc3",
+              "57a4cc22fc8501c469a9d9b824d9ad48f770b3580a154dc22b154aa2c034a64f",
+              "58bbcd8bb5d2c9167571c6ee0b7dd5568f2fd1013c97c599bba7774612c9e608",
+              "591106443563ef678a3a4d23c42e9f6aa174e0b4c05f4ee9c455c750de5ee4f4",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5b8b159e282e2316cc17a16107a84ab719ecfa60202cc60d1f230d8d005b1e0f",
+              "5c0b8bf40fa49721e026e08b97a0c599576a1ea61d2cda39f2d44009d65d30e1",
+              "5dbdea60714a8030f71e401d67c4e00d36227f754d58348df0f39b8513b687d4",
+              "6198a2065a433b44743ef2c1203ea5e9382f1e15a9c05016ebd414ad9a988454",
+              "61f03c22bd56f62b76cd495dec16f80447ef7138bce33af9c5bda9f264cb4eaa",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "64455336d919cc8516fc2014f6165b25cf1c54c4c4a9d668339dd977ac2160ee",
+              "64dd4c9826fde86d0a4a6031c12d1454c4344c4e2b30e651369307e8efce91a1",
+              "66478c540454d0e7f086d21846610735449f678717fe8c069880924c9ac167ef",
+              "67333c30be78fd814a51bef1384b56cd080479ebbde4ea49e0d925c1e5df8a5c",
+              "68c1146fb6471017e7741614620eefefe16d7abff87e8943b4667301804f4064",
+              "6998ab47d7e6e71022544dce8fc02b486915f043915989bca89f925e01fccce1",
+              "6a02cc9d78024b3eb9de80550a77bd3c65eba31d88825ff7cae40c58352f2552",
+              "6a9f5c26fa64fe243d90860730beb08a6b7774c6313e95c573c422e02f2c2871",
+              "6c145b9a90558d569e7033a8d96a5abfb2892299ae32d9c009a0b5da0a880876",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "6d090ea440d25782c42ea2468176562d533b3b7704a46c11ea1d780bd5a435ab",
+              "6dd1bf3e4993a24f175ea69a91f6af3aae7e796629bbdb8f1104fbfebd6a6db0",
+              "6f4b8c6374535b27fbecd69983efada6f0285fe2e99522ba37895daecd05ff91",
+              "7378c8d7bfd9d438aae76375c02d3dfc9c44bd0d7a04f0a87a83af6058682c90",
+              "75a73d1030c7bfc637774d2441617aa556fd725005be96b68508ece425b3c8d7",
+              "76d191d45a69586277c040fca2d307ae67139314f7a0d590b7e943194650c25a",
+              "77861595ffe08af1348304b7c6c4698b5b0a590bfe6863db3b397ee3000ffe3f",
+              "7907a85d5d001992ec10835b58d5cb93369b494e5e039af45fbd5f4fe0e6cf01",
+              "7a745c90bf2378fae5d1230e2f31733e79a4f4eb829a0f83285e97db23ff79bf",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8102e7f39f5e569ceac575f3d8d6dc91792d84e0727e490e0f97e3fd389d00ac",
+              "8491ada447a4074462e37eda705e47a4581eb9775d0a838651f0d44c805c67d3",
+              "8642ec63342e1a6c8762d915949b01be6664b355cd62077fa4419615e6d03962",
+              "8654d3dd8b2298cce24f0bc8c0ed0839e68fe76512389e5a5a0589a835828d2f",
+              "879ddb6bea9f3b6598067614ef313672fb9c46e4302fc228236c198a8d319d91",
+              "8863566c75f972f031c9e22f93e3a10035f0b94abe7216b5c7e8d35759f7bf87",
+              "89f21e2f202ea787ee6dae57185d0d7b889690b98a584ff5cfab31691580d26a",
+              "8ac99ca3c4740cf72991b4b9ffc2e9dd44fad1caa68456ae0f4528e59e2b6fd4",
+              "8b7e88583ffb28c9f3f85ed852b1647ab1f0af004d8d77449dd6dfb8e531067d",
+              "8c14c5917753e9d4043fa33d33d23dc0f15c08c9181f2300c2325e45ea08f268",
+              "8c5e3dad53e25c5c22ea19117ca9041bc7286d2e25b23f9501df3db17985ede3",
+              "8c606471d4655ee9f39f4c754a6becf2d8a8d567959810a26889e4a3c5cea93c",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "8e375892adcbfde1b34f03dfaa38e54ce8f71440cd918c00ff537d6d902042e4",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "93f242a251fdf5375be9ee4ae1f10eeccffda8c45faea595b77a2e09233a8333",
+              "9424fc5dbc07252827d6830724ba4e081a274a29e50ce543e4974a18f497ccd7",
+              "94975f3e545eef6874d0647da85cdcd95cd3fc7054adc483a4b72de0cedaffcd",
+              "957a8bb35f3565f8c2a78c157ce35f5696ef7472b2b4df4b83bc630cdba63cfd",
+              "95f8e92b1ef54d60264afd302cfbf9d5e3ecfe44d2359e843b6eff6fe1b2efb4",
+              "969899451675204fd7cd9109fe720b26eb15f1084151ec5a75c35d4101ce2491",
+              "96c0516bc935120f40a0bb3d9524ca51f3e360859ae1325dc9e733f37647b1f6",
+              "97c34e61009b7b1938667b6e19b80b56ee8dc9668974aab6b82e6322724f648d",
+              "99480816dcd53f71fd23adf9f27174fae3e3687f9123b504b8818cf831bf1845",
+              "99ec0b072e469d0b427c9ca0ab1febb30d90a505a56885ba66ffb68824995350",
+              "9ba77797ccc6373d9e326160c28191d550887e4ce688dfbe2d3be1bd8cbbc4bb",
+              "9d288d0965e2f76728b9946d765059849523d9f782e7bfdb7cfc52c6835299e2",
+              "9d39ff0fda01ed0c0d45f8f65a118e0b122eca719808d2047da7a4fd49b02412",
+              "9e3b7074187f7455698ed0bb5e3a3b0638806a11a579df1d61acb45c41f8e88f",
+              "9e71cc682fffd67773fc560e30569b535cf22ccd125f1455cca405a64e9d2c4a",
+              "9f46940105d4b06e624e7888309b37ad7d122d6c39b49cd96c6475898770cbb0",
+              "9fad6e961fc724d3b3c7ed5552cdba058ad8edc6cd88ae9dbb8da8d8da7930c6",
+              "a084f267352f29bc271fc8a209da5bf4b4803ec91c8c7a6c196ac486354d34ae",
+              "a0b3bf35982081ed434a445142a4f529e34eebeec51a322a7043d2283c5b2f76",
+              "a161424ccd744a02a6303090e307f2170a2ab7a75626f16ac67cb98f40ef5835",
+              "a2673b1ea4e3f60ae4218943b153f3a283053fdb7d56a29b6602c6ca9977933b",
+              "a2e27ccaa48527545ae63b1602c3f148b6028a29ced7aca75dca27823f0c9b7c",
+              "a32d239426220eb2a01ed5f4bdce26dcd54f566953ada67d2dbe3e7e3cbba1d3",
+              "a3837205bada3c8dbdb230097e7cf031566449a10730198f288f782063655cc3",
+              "a3ed90d7d1f7ffd77bf61a96225b391a0b14746df8efe5227dfab894c109417c",
+              "a48a3d616e001923fb1be721eb2fec0d45bb3a2199241025f3ad6357df2caa81",
+              "a6bd9e1f34298641e725425a358c3bcd8aeff3f6a58e023ad0ed55bebcb6fb40",
+              "a7b0a1da5d4edb25065d15c7fd13f0c102cdec5acc28993fd12ce1428d439a0c",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "abf5a43beadde43ce746ec835d2d5840a6d1e7abd101df5b0f14632142f44a4b",
+              "ad2447ac312ef3c6a5ebb96856efd1c891fa710888e5b9a766d34966126ab8e3",
+              "b15ea40dbb17bb77aed46f1eb50a08095cf52e288d81684f963a1965b14711a3",
+              "b1911b21cd5070aeba49dffdcf83891a2d157cf205edb1c271908a6d03d10e99",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b281de4cb91248e6a4e91153fef51a9e351f75d62a6743bc5b5c322831736f1b",
+              "b3946ec8082f61980a9af3fb97137b8fd81b826c3e48e359168a940e71170e05",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b4e2269c8c899d8d2f33bc3babc06d392969e784f5af0112b80452cc00a400f6",
+              "b616226e1da957e4ab94acf9c38ec9d38e5219c3ac635eff7ca4c973545e7134",
+              "b6f1ff2e48187d6cfe5361c055624758a8d446d558d3e3c18e63b5b319219006",
+              "b91eeca21550dcbf9ef7c5c6365b90698b719dcfa79cef1fe91470f0f2bfd4d6",
+              "b97676042eb5093ac911b9f98a1b8db292b863944006bd3f8898dd76ad49ede2",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "ba5e5214dd30e4bba967a838f0353026889730ef9345e663f19be7e11a2e14c9",
+              "bb6ab320c2e745ee1e6adfc138f595c983a8c30df07c438ceda642c0ac1f1ae6",
+              "bb7a0404bf3709750f803f1dc842fe1ba251b3987cec9941029b268505a5a93e",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bc6a2de31001efc41054c2f01fc08b9585cd2b031ca4fbab65ccb7be4b67b8b6",
+              "bc830bc0ca2398066169c556f373893a0358764a6ca171c7c281ec0d848819a5",
+              "be50244aface1297877a8d85752a1dd1437c37cabb0e81c746c37788761db378",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "bf5c967f896b08b75e900f6e6f0b889e51d438613a7f4a6d87a6cec8a83b17cc",
+              "c073d6b7b001867f2379931cebcde76cd9f98003d279826ceb2aa2f3c7503e40",
+              "c12d05811d2ac31b82dae5383e005628d6e08c5ab3762aedd84d94607732a088",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "c658d3f6b868fd3b87c1ea20720146a047a70ca37d71f093afb6dd0191042005",
+              "c959847bb6b125b0366e181d1be6889689e6e092d2e2aed1920dd26753e927c9",
+              "c9fe96e6583b2cc6dae94972e8a889c44242a4d0eac6a07f6f9ddc19cb214e6c",
+              "ca469f3987a9a91d2df0d3112c4e8c3260f32a5d3527301cc865e17af61c6cd8",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "cd19ea7438537c5c1a6f98003f62609e3dc39d38e509d5a5f604fdbfa31a4a4e",
+              "cd2f4c9c59d3da24a4696c2d7edb742f4cb956f77879da6625f193738badbfe9",
+              "cd3bf1e45a7fc3464ef86953206f3078e3f4cf890549eceb5e319b477be943d4",
+              "cd46286e17317e1de5ced5d4db674c824aafa78b91b0157b53d3836cc2bfe4c7",
+              "cd88e1698d57ec289bc1d72d22750734a15d1394aab3e77103e2290b5a624b46",
+              "d07fac217f430b49602bcaca924ad918fab8e8d66b88b4d34f30d2ca6e1341b7",
+              "d133e3f18c8223ad6be4bed52a98fc3b03dc68623cc474f2b4823afa360b9dd0",
+              "d3153779f0d9cd23dbd9c3e00fcf9c01a132f684d769e24e8117a8cbf49d5e5e",
+              "d375166e4cdd610d1ce032a871c4136956093c891184a1666f2bd1928704bc5f",
+              "d4d2ed4b5f795fda05876336a56a6073654fd10c520ebeb88403b91a20893d55",
+              "d6c576260c1ecf420d77258255da44fa1d223459ac0c64781283eefa695c4255",
+              "d763d785283313278cc37a6c46c3a731400d4bc502b371013f240209c7198907",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "db7b61f47829f06e2aa67dbdb5e75ad652f406098dba878f7d75b72b5dc56b19",
+              "deafa9b7afe7a275a1bb67bbeabc6f481578c960bc1e01ee0c2fc717dfed223b",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "df22c6808f9187eb5eb9a4f526184e0a37a5bc0dbce615fdd642f5272023c920",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e1e5ad14e01ac42db69487ba17b96266fd96999215d4ed02a913be01e1c4e7c1",
+              "e21dbb722ef8f618a468267761606846dda13c4c77eaeb85e16bb8aad62550ef",
+              "e335e6c12514dda2fdbdca4af7c0b90ba15cc4d5b4318974aa827164c6e00657",
+              "e529d39a18467a78e6109cfdfdba8d18baaf6870f01f59862071e6a18a00cede",
+              "e54cdaf35fd96e0190345d77d3877e9fe60ebf3b2ff336af6b72590b21f54321",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "e78053ac35799316c64631e8b20d6049f9bbeb46b50fcf744d7269028fe53e74",
+              "e7def5c061447c0e781a610261e657b43f41de6dfba658d3c9175d615c457652",
+              "e9bf6161e8913ea97d34b4aca7fc9beb128b7198d7f74b13a17dfed3c23e9968",
+              "ea2691e876f6f6d84dc9a3e1e319fb194d7b287be0688078d5e25880ea5b823f",
+              "ecaf7c9d1fbc8229e8d168739b9c31d80ad0d7c4f3e834a5b6170c288ae22240",
+              "efdd6cd81eb2b73c98101b033a134e21009e9831c886f03e39e9ab50da13aab8",
+              "f24b4c14ea96dcf2832cdebd8c02ab05f7363f472d9f650e481903feb5235fec",
+              "f5a524cdbe0f5802c0243f1387ef569e210a9df5a9032818403c11ec2a2adbea",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "f6b696d41f72afa99d3e52ada796fb9ad32e574d002914eb97817164e15791b1",
+              "fa8c1737d7c552271def13523cb76b0ba784a9f470116c96feffa66dddbb870e",
+              "faba15d874f05450277357f98494a4008525a5a0dae2eff78410447fd86784df",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fc589eb0086456f20ee448702c7187133b4981c870408a1fd7e84dc8e2f7a3ba",
+              "fcb98cbec99305fee7225e04b324da7bcf828fa6b242d6833d5c1cd54c09c1a8",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac",
+              "ff3ab45491026989f9ef9c2a08bd9fa349cd0ef8bb7b5590d61c65bf4a9f91ef",
+              "ffa02d8fde2968b58a3ecb5e3bf6e44e294b9bf8003b6703f90402b1a9f5e902"
+            ],
+            "predecessorHashReferenceIds": [
+              "02093cdc11e303b53dd9ed632947de558a7d050a0151321a59e8fb93ea93cdcc",
+              "11386a5060aea2f3b3354b79fd312aaf8fe4485c04be9b3d572da9ef89b7eb67",
+              "2cb8633d8a7a37ddf2bc24a025470269ba8777085eeaa5548b8fdd91ab5caa50",
+              "2f886bf8321776aea189f1b1079a056395d3003729c08d6dd67b0f71d8c5b19f",
+              "6d42f23bbc40ca4f9f3e2c88a3d7ab590b2f9b1c18535f50f5c7949960462278",
+              "98c213f43ddd3fe92e5ef2ddb3643e0f72fec97610c471f634a831368bbab4b7",
+              "a632ace8baba55e34c608cbb5455bb5f9d2dd5b74b681948f39aeb95a3da8f1f",
+              "c419a9d2abef2b586ba36d44db71ea7dbd0aee34170e6f4c16fff65e00fde763",
+              "dfebbbccc7cf3d96dfc17e7039a66c966352f22027dfba8149f4f3b0c9d7e5b0",
+              "f1c7dbe77a8d5ad1e9332e65b98e4d8bba4df4394b8dbc9181f2a50e369e621e"
+            ]
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-13",
+        "releaseHeadSha": "6c983efc8bb1b8a82a9882f6fc4841546f9ca9ee"
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 106260804,
+          "prefixSha256": "9c6bb984583309dee7309254519207401e18193d1dc796d12dcd50e93437fafa"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 20018583,
+            "prefixSha256": "17ee3eeadc78be5fb2a7f45acb02e448ce0bf9e7486f7a951d3d5ba18d856842"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 26452651,
+            "prefixSha256": "fa3b771fb138dbe837ed2880a60819b9aa96fc2a10e0c55211b7c41370f00927"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 2134,
+          "supervisorUncachedInputTokens": 6351129,
+          "teamModelCycles": 3053,
+          "teamUncachedInputTokens": 11118371,
+          "cachedInputTokens": 619331584,
+          "totalInputTokens": 632123735
+        }
+      },
+      "eventHash": "da766e425eeb9444d47ae1e3822b983521326fcb3c24df296bd31b0e820f7382"
+    },
+    {
+      "sequence": 147,
+      "action": "mark-shipped",
+      "actorSessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+      "actorRole": "supervisor",
+      "reason": null,
+      "previousHash": "da766e425eeb9444d47ae1e3822b983521326fcb3c24df296bd31b0e820f7382",
+      "candidate": {
+        "version": 1,
+        "id": "GOV-CODEX-58A-2026-08-candidate-14",
+        "domainId": "GOV-CODEX-58A-2026-08",
+        "state": "shipped",
+        "baseSha": "682872b138f00bb3514e6081d601dc2111af61a0",
+        "treeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "acceptanceFingerprint": "80b5bb5987c239fe8603a8083b87c73bd331d93eac90cb4b454c96a3a0b69097",
+        "authority": {
+          "localWrites": true,
+          "commit": true,
+          "push": true,
+          "deploy": true,
+          "ship": true
+        },
+        "authoritySource": "user-ruling:2026-08-28:GOV-CODEX-58A:end-to-end-release",
+        "counters": {
+          "implementerLineages": 1,
+          "coldAuditorLineages": 1,
+          "auditWaitChains": 1,
+          "ciWaitChains": 1,
+          "correctionWaves": 10,
+          "fullChecks": 12,
+          "semanticPushes": 0,
+          "replacementPushes": 4,
+          "supervisorModelCycles": 2136,
+          "supervisorUncachedInputTokens": 6354328,
+          "teamModelCycles": 3055,
+          "teamUncachedInputTokens": 11121570
+        },
+        "lineages": {
+          "implementer": [
+            {
+              "id": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+              "compactions": 1,
+              "freshContinuations": 6
+            }
+          ],
+          "coldAuditor": [
+            {
+              "id": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+              "compactions": 0,
+              "freshContinuations": 11
+            }
+          ]
+        },
+        "waitChains": {
+          "audit": [
+            "01a04655-6087-7f03-9ef2-6b7e2feff3e7"
+          ],
+          "ci": [
+            "01a04295-3df4-7583-80fd-c9d33a5c4a3a"
+          ]
+        },
+        "guardImpact": {
+          "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+          "acknowledgement": {
+            "reportFingerprint": "7dbef808413e3108b2286df131c1a1751344ace0515049f5e1d18bf6e111307a",
+            "candidateId": "GOV-CODEX-58A-2026-08-candidate-14",
+            "candidateTreeFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+            "paths": [
+              {
+                "path": "research/cr-grounding/cr-backbone-ledger.json",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "48acfffd7e8d72642ad739ba3f8214b9bd18dd516fad55c8c22d114c41bdec81"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7012284644bc83e5796e969f81784f2bc523e37f58ea7992c48b775043d14ec7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/forbidden-policy.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "724eab8b37b73d95f1ee90702f1373a5646204201a2408153c155655ba063294"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "f45889e625f5348679e259e163031155cbf41a13b8ecaad5a41d7cb25c046da7"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceReleaseTools.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "cc2c4256df6f3f9246fbaa2a6e177eb1bc628c750cde85662edc4646182cc168"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "63c483b117a18deaddc05b762836df5caa62b4d8f056e9535924fc30e1a234f5"
+                }
+              },
+              {
+                "path": "scripts/__tests__/governanceSupervisor.test.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "aee97a337b82817cbd94bcad6e9bb963b5577b9e7bdbe6537cbeb5f981401682"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "2bda4787bf1bc9881be1dab29f288e8229b68e1ba03c63b1b6106281a090193a"
+                }
+              },
+              {
+                "path": "scripts/checks/terminal-metadata.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "deadbda9663139dc98b7e756444be54e26fb654e5b3f3a92e1cbfff8da6ed9fa"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "3c358341126dca3b0fb34095e76dd4936bb32353064ff566f22070bba66b2967"
+                }
+              },
+              {
+                "path": "scripts/codex-program-step.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4c30dfa36955223dc917c4775c80605669fccfe69bf6e27a0318c2fed20070b4"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4306b0b898222f989139f9232e6e627e0e423bf50a70d567a68321efb94c1524"
+                }
+              },
+              {
+                "path": "scripts/lib/supervisor-authority.mjs",
+                "owner": "implementer",
+                "base": {
+                  "kind": "present",
+                  "sha256": "82d926d33a0a70d2ba80302b5928b866db181437fd35c42ba48d297dc3c5ff9c"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "8dc3db874cbf28ebfcde84a871ea51007f34b2d72f74be2b363157082a014879"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-02e-local-room-gate.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "6bb1b10fef3346ecfac712182e8fc1259968d2b0bd3c20fc905e49e4a5cea270"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d5584e8653cfad6b668eceb2d60a8c591dfc1d2ccd127efba5c603a9bb85199c"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-05b-four-player-release-scenario.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "4727ec135c7bda22f700de4d13bb6a83b3d6a2299069d598deb175a0e6ad2a49"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "7b50fca37c4c16bbaf4bbed3e995de5c0a8b37a8ea1c17417636acd559e73e4b"
+                }
+              },
+              {
+                "path": "src/online/headless/__tests__/review.o4p-06b-playable-table-command-surface.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "8a8a4c8d80a5509b367d2a59b126ad1fd886516103d543efb8551e21506e5b10"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "d0eccaf76f5d9e69ab1001f18bde341ef959bfd16a67025a6ae9b25dab34156f"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56-program-orchestration.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "59b03096b2ac1012e458fb94ee01608864b63eaa2117ae28cd0c69bf9cd3bfdc"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4cf85d874a35d492edcf957f2cd5265a43d6e108369284249872cac1b1aa26f7"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-56r2-request-normalization.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "39262dc1537fac848496c7f2821734d71edf7f5b6e6d0ea05610b3ad8a3d526b"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "ae09e5b48c99d5d3cca9a0fa9be7c1efd2961e211734667ea2ffe367b5eedb6c"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-57-autonomy-player-journey.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "a73c0e8bc229c038a3ea197241e714ee3f3bfc185cf350773b650d1db4085d40"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "b738942f970c71036179cdb14ec1a696f0e00652fe22c66809cbe87a338806ca"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.gov-codex-58a-supervisor-enforcement.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "27cf6c0122f4c1dac685a14a024d48864b56bb219ca6e4687b8337f0142ece06"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "4deb5191c4520c0f7dcbc2999ae4a5048eb6be9ab5994b0aac9124a3b176bfce"
+                }
+              },
+              {
+                "path": "src/test/architecture/review.o4p-09c-pregame-lifecycle.test.ts",
+                "owner": "judge",
+                "base": {
+                  "kind": "present",
+                  "sha256": "df7482cfeb69f976160d39ce9eb42401676c8802ea1cbce2d3e494a44e8f7181"
+                },
+                "current": {
+                  "kind": "file",
+                  "sha256": "759da1287c6c359499c6304fbb8ea95da413e4c72359f3316600edc881dc4f38"
+                }
+              }
+            ],
+            "guardReferenceIds": [
+              "000754fa06192e45a5efd0eaed25f6b2246cfc647b847a1c2cca89c82c95a61a",
+              "01282cfa386d0b43c4cfe23ab22fd2de6c15d508fc26503f87cc820ed7007b43",
+              "047f330227bbb487c231f755edd75f5a97626339b1f57bbd11e7d66121ddb3eb",
+              "0563bd53724d6b8c2f3883f692f8a2ff882b26f54f728a8414f1a146ab51ba2c",
+              "06986852a5654728b233b4b4666936b8d61195bef6cc907f7e83c704e201ea65",
+              "070b2f34e11aa109972fc71476628336f3158e3a5aeb607f68f6bf5cf4eb4d35",
+              "073b8ecf97a460c5d178843703e1eddf72c47186e49e8dd29f905280e2e97ed1",
+              "074f92ff1180341b9fc3bf7b172c34ed053b34d31542008f3a6f318883fd2f88",
+              "07b2d9e8ed4d829ca7c83cd0286b6c74b7f518d23bb9e183156305c4ba2f9ee9",
+              "082aef0873eae72edddd5af8107f3cd045113307983d7834ed5ab58808a553a8",
+              "087e49676d72b03881c1f359cd1a6aa4f8a93a488706b5622b24989bd3d67d3f",
+              "08bf52a4c66964744e7c7405a5e671e46ebda68e62c8e9c8135d16cf5e6200c4",
+              "09466c15a43c41a6ee82195361e70143c9df2757558a36847785d0927d160c3e",
+              "0d97fecc3ca3ed391d09129992d1ae8dd9ace1a647b7ddab1b4ee262801b0874",
+              "1187cd1156545a4b3603ef2aca6e77062303b46c0cc42233200b49725fa4252a",
+              "1483cc065c745fc9cb0b70a8445d2c49f2a5ff53e9854f08a2e624affb84cc55",
+              "1556ab55bc4c731000c56aaef28f88cdce26a177dbaa76dde5af6b94a9328ef0",
+              "1569778490b9e1cfb3ca3f29e64a388ac7afe100a38b1117a0fb1034092891db",
+              "158b152ae577ab451d093537561f4a121f1dd7490660d6076d2b5caf0c4d2aaa",
+              "15936ba739d46abc5ec160bcfc8ae54f041d3c93904216f00f47f151cac0c039",
+              "176030866f72f4fe6017e8c09179b3772c295fdc9342ad2d26f23b80db81a4af",
+              "180f4f0c5aece18ee917f4caf18dddb813e5ec954b32be6c6fc6ca989078638f",
+              "18ace237cd639fc4cd98fa9e3181b1c40bb53093e0e0b08bccff0b7e4efe0321",
+              "19dd7d80b4c70fa38da3ffcac684571bbc3d29113b943a6ffbb44cb91a5711a1",
+              "1d4b6926759f6bdf32fb5de494dbb244b2f9a68b084e9beb45846b2059bd7b8c",
+              "220d20fc8b488d26c3c3cab55e89b2c74d25ffeb347fdf8f70d872c50e22b9cb",
+              "228bbd073fdb6e4a56e0506d2861cc036145274d1ecf3f3aa91064f585034d69",
+              "23515117b1e4ccf4928c1e3b4cb35992558823f1548e86fdfbd8494c0a99f366",
+              "2659f160efd9b12b3a93445083cb9e89b1050ba53fa4de9d32a197f1e445a825",
+              "270b15f406a32cb3dae8d1f7438969afef4c4a23d261c9fcf17e98d1d5ee98d4",
+              "28c89410a48d7ea72667ece46ec090f9ebd74c249c57c49fc60812c89b1b5207",
+              "2a21e79cfb5ca077639b642f05806fc7e9e2c71024db6b7f0afe73c23e2881f0",
+              "2e0ed0c9ac8788572318683cf6d8363ad28e3f6cbb2448208ccc75883516c1ed",
+              "2ec04c1058a53668023598b13260653a8281cb5855c8ff3c8553db1b78e2a123",
+              "305fb198e4ae3be76df61b9c168e9bbaa2b857428f94e5033ab12ace8624de90",
+              "32d898fb26d12ebb1f986cfd118682d2db70531c9cb706c492da4250e92d4567",
+              "3330582ca671f578c54d07316f9caeae851f3c739ea42d3b141305738ad5f6df",
+              "381f2b9cb612c30de1042708f826fd3b8f6cc17860d2184b19d49702ae88795f",
+              "38c339c426fb580ce5aa7cbd7da771b3eb20cb8b1449a6763e5c3cea95618cae",
+              "3978d8b5e926a9100beedc5c7b624720c7744778933de6a0fa559dff8fa667e2",
+              "3b9ad19fa1f91887ed273cb915276fc5e93c611b0ad003bf192e2851866d09df",
+              "3d619c59c7d90fd58003dc84a7ed04ff80ae29c9fd1abf86df837fdd1e3558bc",
+              "3ee57b0ea224fb66c01ab62235023ad8d12932046d11082a298d39036d6e79d6",
+              "3ff9c4a303e5de4b94bf8a3732b0903707a512af12053544201fe3e93a22ae50",
+              "4006b1ddbdc5160eceb88b2e20ce78fcc67497e4b831742a31cbd8dadb6cebbb",
+              "403bdc90bc5b0d734e994805a004d025e5966071ff5502f880a48acc96ff94a7",
+              "415e66e1ae3e31b933eceadff249d1ae637255fae3b3214fbe25ec350a1337fa",
+              "41ca533a617cfbd9b0f59bbf07f9edacbc3dc0f9f4827e6b6299e4b657d4824a",
+              "42e110eb40d9483481c17b86907c4b548dbf0b1d138f78c498408e27c67bbfca",
+              "44e39e6fd136d313745cc30fd34e10b6a6d6a4110a63c0d9e4945a8a301791aa",
+              "473c40ffc6f6886f892cf5bf84300d9c82c4b7c61c736dfd82fcc3a338cc9ddb",
+              "4a8af50a0adf11103c4c87ca489038a0f497f31e9f5bcd06eaad6029b9f35646",
+              "4c81b20ec5d5f89842152385216334f986d14088c9e2271b7b6a979fb5fc489b",
+              "4d1b8543b5c1029f74ce0ce46703ad613d6395311cce0f500a5364f0e29e8bd5",
+              "4df4d16a30796e42fb408d73af7782d8a5fddedcd62a3eebcdd88096e1cd09cb",
+              "4ecff1244e2847d336420a6083b74d3f64640ff7fde6569d318f09a0a3c82811",
+              "51d8f2000bf98aa73a53a2e6edca5d84ce1195cc451c353443378e197e695aaf",
+              "5341e85d302c47ef4fb7724526cadf4c58e8ec5d88f9d918a6406f54c3034248",
+              "55f9f6511ea5dfd9d2eac74cf3806927e9deab7fc90c2df834ff37aa32ea1680",
+              "5602b850854127b3ad2d39101bfda0e346682d906cba739576d244a667adefc3",
+              "57a4cc22fc8501c469a9d9b824d9ad48f770b3580a154dc22b154aa2c034a64f",
+              "58bbcd8bb5d2c9167571c6ee0b7dd5568f2fd1013c97c599bba7774612c9e608",
+              "591106443563ef678a3a4d23c42e9f6aa174e0b4c05f4ee9c455c750de5ee4f4",
+              "5b3d4344fec0c48f1e9345ce99ee3a7faac0ec60129bec9a369c4a29e3f73a71",
+              "5b8b159e282e2316cc17a16107a84ab719ecfa60202cc60d1f230d8d005b1e0f",
+              "5c0b8bf40fa49721e026e08b97a0c599576a1ea61d2cda39f2d44009d65d30e1",
+              "5dbdea60714a8030f71e401d67c4e00d36227f754d58348df0f39b8513b687d4",
+              "6198a2065a433b44743ef2c1203ea5e9382f1e15a9c05016ebd414ad9a988454",
+              "61f03c22bd56f62b76cd495dec16f80447ef7138bce33af9c5bda9f264cb4eaa",
+              "63ec3da3df39e3bff49ccbc66ca0063c2fe262dd880f08b76b0c76b2445a551e",
+              "64455336d919cc8516fc2014f6165b25cf1c54c4c4a9d668339dd977ac2160ee",
+              "64dd4c9826fde86d0a4a6031c12d1454c4344c4e2b30e651369307e8efce91a1",
+              "66478c540454d0e7f086d21846610735449f678717fe8c069880924c9ac167ef",
+              "67333c30be78fd814a51bef1384b56cd080479ebbde4ea49e0d925c1e5df8a5c",
+              "68c1146fb6471017e7741614620eefefe16d7abff87e8943b4667301804f4064",
+              "6998ab47d7e6e71022544dce8fc02b486915f043915989bca89f925e01fccce1",
+              "6a02cc9d78024b3eb9de80550a77bd3c65eba31d88825ff7cae40c58352f2552",
+              "6a9f5c26fa64fe243d90860730beb08a6b7774c6313e95c573c422e02f2c2871",
+              "6c145b9a90558d569e7033a8d96a5abfb2892299ae32d9c009a0b5da0a880876",
+              "6ce541d301aef83b93905d70d1978c6b493fbe1a86206a199ccfc0a74f8aa383",
+              "6d090ea440d25782c42ea2468176562d533b3b7704a46c11ea1d780bd5a435ab",
+              "6dd1bf3e4993a24f175ea69a91f6af3aae7e796629bbdb8f1104fbfebd6a6db0",
+              "6f4b8c6374535b27fbecd69983efada6f0285fe2e99522ba37895daecd05ff91",
+              "7378c8d7bfd9d438aae76375c02d3dfc9c44bd0d7a04f0a87a83af6058682c90",
+              "75a73d1030c7bfc637774d2441617aa556fd725005be96b68508ece425b3c8d7",
+              "76d191d45a69586277c040fca2d307ae67139314f7a0d590b7e943194650c25a",
+              "77861595ffe08af1348304b7c6c4698b5b0a590bfe6863db3b397ee3000ffe3f",
+              "7907a85d5d001992ec10835b58d5cb93369b494e5e039af45fbd5f4fe0e6cf01",
+              "7a745c90bf2378fae5d1230e2f31733e79a4f4eb829a0f83285e97db23ff79bf",
+              "7ab8f64d27517bd94ef58ec787f073304f67052ded384c61cabde0b7fed74ff8",
+              "7d57883c99988b0ace8ae579b257bfcffe066d8f5eff23bfef87cf9d362b1b7e",
+              "8102e7f39f5e569ceac575f3d8d6dc91792d84e0727e490e0f97e3fd389d00ac",
+              "8491ada447a4074462e37eda705e47a4581eb9775d0a838651f0d44c805c67d3",
+              "8642ec63342e1a6c8762d915949b01be6664b355cd62077fa4419615e6d03962",
+              "8654d3dd8b2298cce24f0bc8c0ed0839e68fe76512389e5a5a0589a835828d2f",
+              "879ddb6bea9f3b6598067614ef313672fb9c46e4302fc228236c198a8d319d91",
+              "8863566c75f972f031c9e22f93e3a10035f0b94abe7216b5c7e8d35759f7bf87",
+              "89f21e2f202ea787ee6dae57185d0d7b889690b98a584ff5cfab31691580d26a",
+              "8ac99ca3c4740cf72991b4b9ffc2e9dd44fad1caa68456ae0f4528e59e2b6fd4",
+              "8b7e88583ffb28c9f3f85ed852b1647ab1f0af004d8d77449dd6dfb8e531067d",
+              "8c14c5917753e9d4043fa33d33d23dc0f15c08c9181f2300c2325e45ea08f268",
+              "8c5e3dad53e25c5c22ea19117ca9041bc7286d2e25b23f9501df3db17985ede3",
+              "8c606471d4655ee9f39f4c754a6becf2d8a8d567959810a26889e4a3c5cea93c",
+              "8dbfe03eb3eb1592196bb1c3d8180ce940f9744868d7faa9a0a1541db62847f9",
+              "8e375892adcbfde1b34f03dfaa38e54ce8f71440cd918c00ff537d6d902042e4",
+              "904eaf8e861905caa4b848d703acd3e16572020041c8c3b885b662ebb4f3da64",
+              "93f242a251fdf5375be9ee4ae1f10eeccffda8c45faea595b77a2e09233a8333",
+              "9424fc5dbc07252827d6830724ba4e081a274a29e50ce543e4974a18f497ccd7",
+              "94975f3e545eef6874d0647da85cdcd95cd3fc7054adc483a4b72de0cedaffcd",
+              "957a8bb35f3565f8c2a78c157ce35f5696ef7472b2b4df4b83bc630cdba63cfd",
+              "95f8e92b1ef54d60264afd302cfbf9d5e3ecfe44d2359e843b6eff6fe1b2efb4",
+              "969899451675204fd7cd9109fe720b26eb15f1084151ec5a75c35d4101ce2491",
+              "96c0516bc935120f40a0bb3d9524ca51f3e360859ae1325dc9e733f37647b1f6",
+              "97c34e61009b7b1938667b6e19b80b56ee8dc9668974aab6b82e6322724f648d",
+              "99480816dcd53f71fd23adf9f27174fae3e3687f9123b504b8818cf831bf1845",
+              "99ec0b072e469d0b427c9ca0ab1febb30d90a505a56885ba66ffb68824995350",
+              "9ba77797ccc6373d9e326160c28191d550887e4ce688dfbe2d3be1bd8cbbc4bb",
+              "9d288d0965e2f76728b9946d765059849523d9f782e7bfdb7cfc52c6835299e2",
+              "9d39ff0fda01ed0c0d45f8f65a118e0b122eca719808d2047da7a4fd49b02412",
+              "9e3b7074187f7455698ed0bb5e3a3b0638806a11a579df1d61acb45c41f8e88f",
+              "9e71cc682fffd67773fc560e30569b535cf22ccd125f1455cca405a64e9d2c4a",
+              "9f46940105d4b06e624e7888309b37ad7d122d6c39b49cd96c6475898770cbb0",
+              "9fad6e961fc724d3b3c7ed5552cdba058ad8edc6cd88ae9dbb8da8d8da7930c6",
+              "a084f267352f29bc271fc8a209da5bf4b4803ec91c8c7a6c196ac486354d34ae",
+              "a0b3bf35982081ed434a445142a4f529e34eebeec51a322a7043d2283c5b2f76",
+              "a161424ccd744a02a6303090e307f2170a2ab7a75626f16ac67cb98f40ef5835",
+              "a2673b1ea4e3f60ae4218943b153f3a283053fdb7d56a29b6602c6ca9977933b",
+              "a2e27ccaa48527545ae63b1602c3f148b6028a29ced7aca75dca27823f0c9b7c",
+              "a32d239426220eb2a01ed5f4bdce26dcd54f566953ada67d2dbe3e7e3cbba1d3",
+              "a3837205bada3c8dbdb230097e7cf031566449a10730198f288f782063655cc3",
+              "a3ed90d7d1f7ffd77bf61a96225b391a0b14746df8efe5227dfab894c109417c",
+              "a48a3d616e001923fb1be721eb2fec0d45bb3a2199241025f3ad6357df2caa81",
+              "a6bd9e1f34298641e725425a358c3bcd8aeff3f6a58e023ad0ed55bebcb6fb40",
+              "a7b0a1da5d4edb25065d15c7fd13f0c102cdec5acc28993fd12ce1428d439a0c",
+              "ab2118b06a63f60c354e6c76a5b00483ab2ccc2d70ad399e8e56ae941b2e8a91",
+              "abf5a43beadde43ce746ec835d2d5840a6d1e7abd101df5b0f14632142f44a4b",
+              "ad2447ac312ef3c6a5ebb96856efd1c891fa710888e5b9a766d34966126ab8e3",
+              "b15ea40dbb17bb77aed46f1eb50a08095cf52e288d81684f963a1965b14711a3",
+              "b1911b21cd5070aeba49dffdcf83891a2d157cf205edb1c271908a6d03d10e99",
+              "b225f166bebde402d92824fb906dd68c24fe56a9998eda31525c31ddc47ec440",
+              "b281de4cb91248e6a4e91153fef51a9e351f75d62a6743bc5b5c322831736f1b",
+              "b3946ec8082f61980a9af3fb97137b8fd81b826c3e48e359168a940e71170e05",
+              "b421f0915cb10d9a23d063b5be7f018adcf6d72e3d96ac92f5da3df906363e99",
+              "b4e2269c8c899d8d2f33bc3babc06d392969e784f5af0112b80452cc00a400f6",
+              "b616226e1da957e4ab94acf9c38ec9d38e5219c3ac635eff7ca4c973545e7134",
+              "b6f1ff2e48187d6cfe5361c055624758a8d446d558d3e3c18e63b5b319219006",
+              "b91eeca21550dcbf9ef7c5c6365b90698b719dcfa79cef1fe91470f0f2bfd4d6",
+              "b97676042eb5093ac911b9f98a1b8db292b863944006bd3f8898dd76ad49ede2",
+              "b9840a610c3abe376b5fe5a5068cddf70c52d94633619ce974fb21b99d0f7e2f",
+              "ba5e5214dd30e4bba967a838f0353026889730ef9345e663f19be7e11a2e14c9",
+              "bb6ab320c2e745ee1e6adfc138f595c983a8c30df07c438ceda642c0ac1f1ae6",
+              "bb7a0404bf3709750f803f1dc842fe1ba251b3987cec9941029b268505a5a93e",
+              "bc24f16e0c8d6dfbeb4872dbb1067490c7bd6e6040b4f52d67ffc65b2ea891d9",
+              "bc6a2de31001efc41054c2f01fc08b9585cd2b031ca4fbab65ccb7be4b67b8b6",
+              "bc830bc0ca2398066169c556f373893a0358764a6ca171c7c281ec0d848819a5",
+              "be50244aface1297877a8d85752a1dd1437c37cabb0e81c746c37788761db378",
+              "beb73463843829299854ef210499d271ad74cfc23962df141b5294fb17d74831",
+              "bf04c363e226c8e5a59ad03db834a22a653aeaf0d973e6a4978efa43fb04d1e4",
+              "bf5c967f896b08b75e900f6e6f0b889e51d438613a7f4a6d87a6cec8a83b17cc",
+              "c073d6b7b001867f2379931cebcde76cd9f98003d279826ceb2aa2f3c7503e40",
+              "c12d05811d2ac31b82dae5383e005628d6e08c5ab3762aedd84d94607732a088",
+              "c302b13d78d110eaabb6ea8be88ebac1164954a2a745b9e94251a4771eeda107",
+              "c52788ab6836843b9679afb3cb0d2d94147ea8f34ed9b177d7cd1107eff28520",
+              "c5ba130553bdd4fb2e9e6df5499d63f80a55971b44c5b54e3e73e66cdb9ea48e",
+              "c61aacf4d304d06e2d3629bc1dbcd4ef71dcc1290629351ce41ada8f6879397a",
+              "c658d3f6b868fd3b87c1ea20720146a047a70ca37d71f093afb6dd0191042005",
+              "c959847bb6b125b0366e181d1be6889689e6e092d2e2aed1920dd26753e927c9",
+              "c9fe96e6583b2cc6dae94972e8a889c44242a4d0eac6a07f6f9ddc19cb214e6c",
+              "ca469f3987a9a91d2df0d3112c4e8c3260f32a5d3527301cc865e17af61c6cd8",
+              "cad225666c67e70708670d9124104595cd28f5d4486cea38c3c4b5880d5fc7d9",
+              "cd19ea7438537c5c1a6f98003f62609e3dc39d38e509d5a5f604fdbfa31a4a4e",
+              "cd2f4c9c59d3da24a4696c2d7edb742f4cb956f77879da6625f193738badbfe9",
+              "cd3bf1e45a7fc3464ef86953206f3078e3f4cf890549eceb5e319b477be943d4",
+              "cd46286e17317e1de5ced5d4db674c824aafa78b91b0157b53d3836cc2bfe4c7",
+              "cd88e1698d57ec289bc1d72d22750734a15d1394aab3e77103e2290b5a624b46",
+              "d07fac217f430b49602bcaca924ad918fab8e8d66b88b4d34f30d2ca6e1341b7",
+              "d133e3f18c8223ad6be4bed52a98fc3b03dc68623cc474f2b4823afa360b9dd0",
+              "d3153779f0d9cd23dbd9c3e00fcf9c01a132f684d769e24e8117a8cbf49d5e5e",
+              "d375166e4cdd610d1ce032a871c4136956093c891184a1666f2bd1928704bc5f",
+              "d4d2ed4b5f795fda05876336a56a6073654fd10c520ebeb88403b91a20893d55",
+              "d6c576260c1ecf420d77258255da44fa1d223459ac0c64781283eefa695c4255",
+              "d763d785283313278cc37a6c46c3a731400d4bc502b371013f240209c7198907",
+              "dabb11d74446eb7eaed4c5d193d615b9a8e30c53981cd40e17a2b907ff848709",
+              "db7b61f47829f06e2aa67dbdb5e75ad652f406098dba878f7d75b72b5dc56b19",
+              "deafa9b7afe7a275a1bb67bbeabc6f481578c960bc1e01ee0c2fc717dfed223b",
+              "df086a43eb62f1c84185e596d6c91dca223110c67805a35a9c6b432d2a8c9967",
+              "df22c6808f9187eb5eb9a4f526184e0a37a5bc0dbce615fdd642f5272023c920",
+              "e074899f9d880d501c483e65726f840002ef9b7a290d8e8b7d2cffd4cb7679ee",
+              "e1e5ad14e01ac42db69487ba17b96266fd96999215d4ed02a913be01e1c4e7c1",
+              "e21dbb722ef8f618a468267761606846dda13c4c77eaeb85e16bb8aad62550ef",
+              "e335e6c12514dda2fdbdca4af7c0b90ba15cc4d5b4318974aa827164c6e00657",
+              "e529d39a18467a78e6109cfdfdba8d18baaf6870f01f59862071e6a18a00cede",
+              "e54cdaf35fd96e0190345d77d3877e9fe60ebf3b2ff336af6b72590b21f54321",
+              "e5e960e910e7488d9d99a61d978a53a8223d36ab6627d592eb8029d90f346458",
+              "e78053ac35799316c64631e8b20d6049f9bbeb46b50fcf744d7269028fe53e74",
+              "e7def5c061447c0e781a610261e657b43f41de6dfba658d3c9175d615c457652",
+              "e9bf6161e8913ea97d34b4aca7fc9beb128b7198d7f74b13a17dfed3c23e9968",
+              "ea2691e876f6f6d84dc9a3e1e319fb194d7b287be0688078d5e25880ea5b823f",
+              "ecaf7c9d1fbc8229e8d168739b9c31d80ad0d7c4f3e834a5b6170c288ae22240",
+              "efdd6cd81eb2b73c98101b033a134e21009e9831c886f03e39e9ab50da13aab8",
+              "f24b4c14ea96dcf2832cdebd8c02ab05f7363f472d9f650e481903feb5235fec",
+              "f5a524cdbe0f5802c0243f1387ef569e210a9df5a9032818403c11ec2a2adbea",
+              "f62a8335ec9e6d9b4686626bed74d1ef98fc6aa5e8ca49e1419a2626dd54d102",
+              "f6b696d41f72afa99d3e52ada796fb9ad32e574d002914eb97817164e15791b1",
+              "fa8c1737d7c552271def13523cb76b0ba784a9f470116c96feffa66dddbb870e",
+              "faba15d874f05450277357f98494a4008525a5a0dae2eff78410447fd86784df",
+              "fb92b667f116371df6e8c85ce6dda9d4ba9d49bc94c7667386b960c859f4acd6",
+              "fc589eb0086456f20ee448702c7187133b4981c870408a1fd7e84dc8e2f7a3ba",
+              "fcb98cbec99305fee7225e04b324da7bcf828fa6b242d6833d5c1cd54c09c1a8",
+              "fdb81778a47bda62608a05907338cd982904853279d03265d29c4742b4d2afac",
+              "ff3ab45491026989f9ef9c2a08bd9fa349cd0ef8bb7b5590d61c65bf4a9f91ef",
+              "ffa02d8fde2968b58a3ecb5e3bf6e44e294b9bf8003b6703f90402b1a9f5e902"
+            ],
+            "predecessorHashReferenceIds": [
+              "02093cdc11e303b53dd9ed632947de558a7d050a0151321a59e8fb93ea93cdcc",
+              "11386a5060aea2f3b3354b79fd312aaf8fe4485c04be9b3d572da9ef89b7eb67",
+              "2cb8633d8a7a37ddf2bc24a025470269ba8777085eeaa5548b8fdd91ab5caa50",
+              "2f886bf8321776aea189f1b1079a056395d3003729c08d6dd67b0f71d8c5b19f",
+              "6d42f23bbc40ca4f9f3e2c88a3d7ab590b2f9b1c18535f50f5c7949960462278",
+              "98c213f43ddd3fe92e5ef2ddb3643e0f72fec97610c471f634a831368bbab4b7",
+              "a632ace8baba55e34c608cbb5455bb5f9d2dd5b74b681948f39aeb95a3da8f1f",
+              "c419a9d2abef2b586ba36d44db71ea7dbd0aee34170e6f4c16fff65e00fde763",
+              "dfebbbccc7cf3d96dfc17e7039a66c966352f22027dfba8149f4f3b0c9d7e5b0",
+              "f1c7dbe77a8d5ad1e9332e65b98e4d8bba4df4394b8dbc9181f2a50e369e621e"
+            ]
+          }
+        },
+        "repairOf": "GOV-CODEX-58A-2026-08-candidate-13",
+        "releaseHeadSha": "6c983efc8bb1b8a82a9882f6fc4841546f9ca9ee"
+      },
+      "receipt": {
+        "version": 1,
+        "contextFingerprint": "290117f2d5dbf451006a98cbd18620869bda8ba2b094cb1558687f943e7bbe55",
+        "baseline": {
+          "modelCycles": 429,
+          "uncachedInputTokens": 1673780
+        },
+        "supervisor": {
+          "sessionId": "01a04295-3df4-7583-80fd-c9d33a5c4a3a",
+          "role": "supervisor",
+          "byteLength": 106366483,
+          "prefixSha256": "96e87ad967f31cf9c55f3f19cf377cc09eb9bad39aaee8ef7486a9e97c536e96"
+        },
+        "participants": [
+          {
+            "sessionId": "01a0440a-f5f0-7403-aef1-b1624b0baaf5",
+            "role": "implementer",
+            "byteLength": 20018583,
+            "prefixSha256": "17ee3eeadc78be5fb2a7f45acb02e448ce0bf9e7486f7a951d3d5ba18d856842"
+          },
+          {
+            "sessionId": "01a04655-6087-7f03-9ef2-6b7e2feff3e7",
+            "role": "cold-auditor",
+            "byteLength": 26452651,
+            "prefixSha256": "fa3b771fb138dbe837ed2880a60819b9aa96fc2a10e0c55211b7c41370f00927"
+          },
+          {
+            "sessionId": "01a04403-8f48-77b2-a125-0eab5a9a10ed",
+            "role": "team",
+            "byteLength": 2065638,
+            "prefixSha256": "6113ab0372772f68adef024f10d1f846eedd5e5d802f673c847ac398851dbc0b"
+          }
+        ],
+        "observed": {
+          "supervisorModelCycles": 2136,
+          "supervisorUncachedInputTokens": 6354328,
+          "teamModelCycles": 3055,
+          "teamUncachedInputTokens": 11121570,
+          "cachedInputTokens": 619893248,
+          "totalInputTokens": 632688598
+        }
+      },
+      "eventHash": "2d4028bebda7c5ba0e41f46eb62804853269f9a1b40240b361518b4e1e900897"
     }
   ]
 }
