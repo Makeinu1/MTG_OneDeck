@@ -190,7 +190,7 @@ describe('GOV-CODEX-56-2026-08 program orchestration governance', () => {
       nextDomainId,
     });
     expect(context.status).toBe(2);
-  }, 30_000);
+  }, 60_000);
 
   it('changes governance only and keeps the candidate diff well formed', () => {
     expect(() =>

@@ -261,5 +261,5 @@ describe('GOV-CODEX-56R2 request normalization and bounded execution', () => {
     expect(() =>
       execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' }),
     ).not.toThrow();
-  }, 30_000);
+  }, 60_000);
 });

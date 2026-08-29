@@ -295,6 +295,29 @@ export function createSupervisorBootstrap({ candidate, receipt, actorSessionId, 
 function compareCandidateHistory(previousEvent, event, errors) {
   const previous = previousEvent.candidate;
   const current = event.candidate;
+  const postShipAcknowledgement = current.guardImpact?.acknowledgement;
+  const exactPostShipRepair =
+    event.action === 'derive-post-ship-repair' &&
+    event.reason === 'ci-environment:terminal-metadata' &&
+    previous.state === 'shipped' && current.state === 'implementing' &&
+    current.id !== previous.id && current.repairOf === previous.id &&
+    /^[0-9a-f]{40}$/.test(current.baseSha ?? '') &&
+    /^[0-9a-f]{64}$/.test(current.treeFingerprint ?? '') &&
+    (current.releaseHeadSha ?? null) === null && current.repairReason === undefined &&
+    /^[0-9a-f]{64}$/.test(current.guardImpact?.reportFingerprint ?? '') &&
+    exactKeys(postShipAcknowledgement, [
+      'candidateId', 'candidateTreeFingerprint', 'guardReferenceIds', 'paths',
+      'predecessorHashReferenceIds', 'reportFingerprint',
+    ]) &&
+    postShipAcknowledgement.reportFingerprint === current.guardImpact.reportFingerprint &&
+    postShipAcknowledgement.candidateId === current.id &&
+    postShipAcknowledgement.candidateTreeFingerprint === current.treeFingerprint &&
+    Array.isArray(postShipAcknowledgement.paths) &&
+    Array.isArray(postShipAcknowledgement.guardReferenceIds) &&
+    Array.isArray(postShipAcknowledgement.predecessorHashReferenceIds);
+  if (event.action === 'derive-post-ship-repair' && !exactPostShipRepair) {
+    errors.push({ code: 'TRACKED_INVALID_POST_SHIP_REPAIR', sequence: event.sequence });
+  }
   for (const key of COUNTER_KEYS) {
     if (current.counters?.[key] < previous.counters?.[key]) {
       errors.push({ code: 'TRACKED_COUNTER_DECREASE', counter: key });
@@ -317,7 +340,9 @@ function compareCandidateHistory(previousEvent, event, errors) {
     ) errors.push({ code: 'TRACKED_INVALID_REPAIR_ORIGIN' });
   }
   if (current.id !== previous.id) {
-    if (event.action !== 'derive-repair' || previous.state !== 'repair-required' || current.repairOf !== previous.id) {
+    const exactRepairDerivation =
+      event.action === 'derive-repair' && previous.state === 'repair-required' && current.repairOf === previous.id;
+    if (!exactRepairDerivation && !exactPostShipRepair) {
       errors.push({ code: 'TRACKED_CANDIDATE_ID_RESET' });
     }
   }
@@ -326,10 +351,13 @@ function compareCandidateHistory(previousEvent, event, errors) {
     stableJson(current.authority) !== stableJson(previous.authority) ||
     current.authoritySource !== previous.authoritySource
   ) errors.push({ code: 'TRACKED_CANDIDATE_SCOPE_CHANGED' });
-  if (current.baseSha !== previous.baseSha && event.action !== 'derive-repair') {
+  if (current.baseSha !== previous.baseSha && event.action !== 'derive-repair' && !exactPostShipRepair) {
     errors.push({ code: 'TRACKED_CANDIDATE_BASE_CHANGED' });
   }
-  if (current.treeFingerprint !== previous.treeFingerprint && event.action !== 'refresh-fingerprint') {
+  if (
+    current.treeFingerprint !== previous.treeFingerprint &&
+    event.action !== 'refresh-fingerprint' && !exactPostShipRepair
+  ) {
     errors.push({ code: 'TRACKED_CANDIDATE_TREE_CHANGED', sequence: event.sequence });
   }
   const previousReleaseHead = previous.releaseHeadSha ?? null;
@@ -338,7 +366,7 @@ function compareCandidateHistory(previousEvent, event, errors) {
     const releaseBound = previousReleaseHead === null && currentReleaseHead !== null &&
       ['push', 'record-semantic-push', 'record-replacement-push'].includes(event.action);
     const releaseClearedForRepair = previousReleaseHead !== null && currentReleaseHead === null &&
-      event.action === 'derive-repair';
+      (event.action === 'derive-repair' || exactPostShipRepair);
     if (!releaseBound && !releaseClearedForRepair) errors.push({ code: 'TRACKED_RELEASE_HEAD_CHANGED' });
   }
   const usageCounters = new Set([
@@ -410,6 +438,7 @@ function compareCandidateHistory(previousEvent, event, errors) {
     ship: [['ci-passed', 'shipped']],
     'mark-shipped': [['ci-passed', 'shipped']],
     'derive-repair': [['repair-required', 'implementing']],
+    'derive-post-ship-repair': [['shipped', 'implementing']],
     'repair-resume': [['audit-failed-stop', 'audit-repairable']],
     'user-reopen': [['audit-failed-stop', 'audit-repairable']],
     'acknowledge-guard-impact': null,
@@ -606,8 +635,12 @@ export function verifySupervisorAuthorityOffline({
   }
   const receiptPlanAnchor = authority.events[0]?.receipt;
   let previousEvent = null;
+  let postShipRepairEvents = 0;
   for (let index = 0; index < authority.events.length; index += 1) {
     const event = authority.events[index];
+    if (event.action === 'derive-post-ship-repair' && ++postShipRepairEvents > 1) {
+      errors.push({ code: 'TRACKED_DUPLICATE_POST_SHIP_REPAIR', sequence: index });
+    }
     if (
       !exactKeys(event, ['action', 'actorRole', 'actorSessionId', 'candidate', 'eventHash', 'previousHash', 'reason', 'receipt', 'sequence']) ||
       event.sequence !== index || event.previousHash !== (previousEvent?.eventHash ?? null) ||
@@ -652,9 +685,13 @@ export function verifySupervisorAuthority({
   }
   let previousEvent = null;
   let latestReceipt = null;
+  let postShipRepairEvents = 0;
   const receiptPlanAnchor = authority.events[0]?.receipt;
   for (let index = 0; index < authority.events.length; index += 1) {
     const event = authority.events[index];
+    if (event.action === 'derive-post-ship-repair' && ++postShipRepairEvents > 1) {
+      errors.push({ code: 'TRACKED_DUPLICATE_POST_SHIP_REPAIR', sequence: index });
+    }
     if (!exactKeys(event, ['action', 'actorRole', 'actorSessionId', 'candidate', 'eventHash', 'previousHash', 'reason', 'receipt', 'sequence']) ||
         event.sequence !== index || event.previousHash !== (previousEvent?.eventHash ?? null) ||
         event.eventHash !== hashSupervisorEvent(event) || !UUID.test(event.actorSessionId)) {

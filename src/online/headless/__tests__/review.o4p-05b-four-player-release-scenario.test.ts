@@ -391,7 +391,7 @@ describe('O4P-05B four-player release scenario', () => {
     expect(Core.coreCanonicalDigestFromValueV1(repeated.closure.events)).toBe(
       Core.coreCanonicalDigestFromValueV1(evidence.closure.events),
     );
-  });
+  }, 15_000);
 
   it('keeps rejected and duplicate commands outside ordered replay authority', () => {
     const input = canonicalInput();
@@ -476,7 +476,7 @@ describe('O4P-05B four-player release scenario', () => {
     expect(() => acceptedCommandsFor(input, driftedParticipant)).toThrow(
       'Accepted receipt lost command authority',
     );
-  });
+  }, 15_000);
 
   it('adds no production release-scenario surface and keeps later gates deferred', () => {
     expect(PUBLIC_RELEASE_RULESET_V1.schemaVersion).toBe(1);

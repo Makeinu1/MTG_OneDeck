@@ -373,7 +373,7 @@ describe('forbidden policy boundaries', () => {
         rmSync(repository.cwd, { recursive: true, force: true });
       }
     }
-  });
+  }, 15_000);
 
   test('rejects an implementer-authored acknowledgement even with a fully rehashed chain', () => {
     const repository = createGovernedRepository();

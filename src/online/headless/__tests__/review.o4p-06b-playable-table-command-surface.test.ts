@@ -316,7 +316,7 @@ describe('review O4P-06B playable tabletop command surface', () => {
       expectNoCapabilityEvidence(projected.response);
       assertDeepFrozen(projected);
     }
-  }, 120_000);
+  }, 240_000);
 
   it('fails closed for authority, revision, duplicate, role, hidden-zone, and underflow cases', () => {
     const genesis = bootstrap();

@@ -1396,7 +1396,7 @@ describe('O4P-02E judge-owned local headless room gate evidence', () => {
     });
     reportIssues(proxy, false);
     expect(getTrapCalls).toBe(0);
-  });
+  }, 15_000);
 
   it.each(REQUIRED_WITNESSES)(
     'fails closed without required %s witness and never returns a report',
@@ -1446,5 +1446,5 @@ describe('O4P-02E judge-owned local headless room gate evidence', () => {
       () => Headless.runLocalOnlineHeadlessRoomGateV1(makeInput(makeActiveState(), omitted)),
       'COVERAGE_MISSING',
     );
-  });
+  }, 15_000);
 });

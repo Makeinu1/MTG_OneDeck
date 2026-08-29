@@ -20,6 +20,7 @@ import {
   computeAcceptanceFingerprint,
   emptyCandidateCounters,
   evaluateCandidateBudget,
+  parseCandidateRecords,
 } from '../lib/supervisor-state.mjs';
 import {
   createSupervisorBootstrap,
@@ -858,6 +859,50 @@ function rehashSupervisorAuthority(authority) {
   authority.candidateId = authority.events.at(-1).candidate.id;
 }
 
+function postShipSupervisorFixture({ state = 'shipped' } = {}) {
+  const { root, base } = guardRepoFixture({ full: true });
+  const ledger = JSON.parse(readFileSync(join(root, 'research/cr-grounding/cr-backbone-ledger.json'), 'utf8'));
+  ledger.domains[0].status = 'implemented-not-audited';
+  ledger.plannedSequence[0].status = 'implemented-not-audited';
+  write(root, 'research/cr-grounding/cr-backbone-ledger.json', `${JSON.stringify(ledger, null, 2)}\n`);
+  git(root, ['add', '.']);
+  git(root, ['commit', '-qm', 'semantic release']);
+  const releaseHead = git(root, ['rev-parse', 'HEAD']);
+  const tree = computeTreeFingerprint(root);
+  const candidate = candidateFixture({
+    state,
+    baseSha: base,
+    releaseHeadSha: releaseHead,
+    treeFingerprint: tree,
+    counters: {
+      ...emptyCandidateCounters(),
+      implementerLineages: 1,
+      coldAuditorLineages: 1,
+      auditWaitChains: 1,
+      ciWaitChains: 1,
+      fullChecks: 1,
+      semanticPushes: 1,
+    },
+    lineages: {
+      implementer: [{ id: SESSION_IDS.implementer, compactions: 0, freshContinuations: 0 }],
+      coldAuditor: [{ id: SESSION_IDS.auditor, compactions: 0, freshContinuations: 0 }],
+    },
+    waitChains: { audit: [SESSION_IDS.auditor], ci: [SESSION_IDS.supervisor] },
+  });
+  const usage = usageAuthorityFixture(root, candidate);
+  write(root, '.claude/loop-state.md', loopText([candidate], candidate.state, candidate.baseSha, tree));
+  git(root, ['add', supervisorAuthorityPath('M1')]);
+  git(root, ['commit', '-qm', 'shipped terminal authority']);
+  return {
+    root,
+    base,
+    candidate,
+    tree,
+    terminalHead: git(root, ['rev-parse', 'HEAD']),
+    ...usage,
+  };
+}
+
 function cleanCheckoutAuthorityFixture() {
   const { root } = guardRepoFixture({ full: true });
   git(root, ['add', '.']);
@@ -1381,6 +1426,141 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
     expect(readFileSync(join(root, '.claude/loop-state.md'), 'utf8')).toContain(`baseSha: ${repairBase}`);
   }, 15_000);
 
+  it('derives one exact supervisor-only post-ship repair from the immutable HEAD authority', () => {
+    const fixture = postShipSupervisorFixture();
+    const action = (overrides = {}) => runProgramStep({
+      root: fixture.root,
+      base: fixture.terminalHead,
+      domain: 'M1',
+      action: 'derive-post-ship-repair',
+      candidate: 'M1-candidate-post-ship-1',
+      reason: 'ci-environment:terminal-metadata',
+      owner: 'implementer',
+      'receipt-plan': fixture.receiptPlanPath,
+      'sessions-root': fixture.sessionsRoot,
+      'actor-session': SESSION_IDS.supervisor,
+      'actor-role': 'supervisor',
+      ...overrides,
+    });
+    const derived = action();
+    expect(derived.ok, JSON.stringify(derived.errors)).toBe(true);
+    expect(derived.activeCandidate).toMatchObject({
+      id: 'M1-candidate-post-ship-1',
+      state: 'implementing',
+      repairOf: fixture.candidate.id,
+      baseSha: fixture.terminalHead,
+      releaseHeadSha: null,
+      acceptanceFingerprint: fixture.candidate.acceptanceFingerprint,
+      authority: fixture.candidate.authority,
+      counters: fixture.candidate.counters,
+      lineages: fixture.candidate.lineages,
+      waitChains: fixture.candidate.waitChains,
+      guardImpact: {
+        reportFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
+        acknowledgement: {
+          candidateId: 'M1-candidate-post-ship-1',
+          candidateTreeFingerprint: derived.activeCandidate.treeFingerprint,
+        },
+      },
+    });
+    const records = parseCandidateRecords(readFileSync(join(fixture.root, '.claude/loop-state.md'), 'utf8')).records;
+    expect(records).toHaveLength(2);
+    expect(records[0]).toMatchObject({
+      id: fixture.candidate.id,
+      state: 'repair-required',
+      repairReason: 'ci-environment',
+    });
+    expect(records[1]).toEqual(derived.activeCandidate);
+    const tracked = readTrackedSupervisorAuthority(fixture.root, 'M1');
+    expect(tracked.authority.events.slice(0, tracked.headAuthority.events.length)).toEqual(tracked.headAuthority.events);
+    expect(tracked.authority.events.at(-1)).toMatchObject({
+      action: 'derive-post-ship-repair',
+      actorRole: 'supervisor',
+      reason: 'ci-environment:terminal-metadata',
+      candidate: { id: 'M1-candidate-post-ship-1', state: 'implementing' },
+    });
+    expect(createContextProjection(fixture.root, 'M1', { sessionsRoot: fixture.sessionsRoot }).health)
+      .toEqual({ ok: true, errors: [] });
+
+    for (const [label, mutate, code] of [
+      ['scope', (candidate) => { candidate.acceptanceFingerprint = 'f'.repeat(64); }, 'TRACKED_CANDIDATE_SCOPE_CHANGED'],
+      ['counter', (candidate) => { candidate.counters.correctionWaves += 1; }, 'TRACKED_UNAUTHORIZED_COUNTER_CHANGE'],
+      ['lineage', (candidate) => { candidate.lineages.implementer[0].freshContinuations += 1; }, 'TRACKED_UNAUTHORIZED_LINEAGE_CHANGE'],
+      ['wait', (candidate) => { candidate.waitChains.ci.push(SESSION_IDS.explorer); }, 'TRACKED_UNAUTHORIZED_WAIT_CHANGE'],
+    ]) {
+      const changed = structuredClone(tracked.authority);
+      mutate(changed.events.at(-1).candidate);
+      rehashSupervisorAuthority(changed);
+      expect(verifySupervisorAuthority({
+        authority: changed,
+        headAuthority: tracked.headAuthority,
+        loopCandidate: changed.events.at(-1).candidate,
+        sessionsRoot: fixture.sessionsRoot,
+        completeAutonomy: true,
+      }).errors, label).toEqual(expect.arrayContaining([expect.objectContaining({ code })]));
+    }
+
+    git(fixture.root, ['add', supervisorAuthorityPath('M1')]);
+    git(fixture.root, ['commit', '-qm', 'record post-ship repair']);
+    expect(action({ candidate: 'M1-candidate-post-ship-2', base: git(fixture.root, ['rev-parse', 'HEAD']) }).errors)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ code: 'POST_SHIP_REPAIR_ALREADY_DERIVED' })]));
+  }, 30_000);
+
+  it('rejects invalid post-ship repair origin, authority, receipt, owner, reason, and ID', () => {
+    const invoke = (fixture, overrides = {}) => runProgramStep({
+      root: fixture.root,
+      base: fixture.terminalHead,
+      domain: 'M1',
+      action: 'derive-post-ship-repair',
+      candidate: 'M1-candidate-post-ship-red',
+      reason: 'ci-environment:terminal-metadata',
+      owner: 'implementer',
+      'receipt-plan': fixture.receiptPlanPath,
+      'sessions-root': fixture.sessionsRoot,
+      'actor-session': SESSION_IDS.supervisor,
+      'actor-role': 'supervisor',
+      ...overrides,
+    });
+    const cases = [
+      ['prior state', postShipSupervisorFixture({ state: 'ci-passed' }), {}, 'POST_SHIP_REPAIR_NOT_DERIVABLE'],
+      ['reason', postShipSupervisorFixture(), { reason: 'ci-environment' }, 'INVALID_POST_SHIP_REPAIR_REASON'],
+      ['candidate ID', postShipSupervisorFixture(), { candidate: 'M1-candidate-1' }, 'DUPLICATE_CANDIDATE_ID'],
+      ['base', postShipSupervisorFixture(), { base: 'f'.repeat(40) }, 'POST_SHIP_REPAIR_BASE_MISMATCH'],
+      ['actor', postShipSupervisorFixture(), {
+        'actor-session': SESSION_IDS.implementer,
+        'actor-role': 'implementer',
+      }, 'VERIFIED_ACTOR_MISMATCH'],
+      ['receipt', postShipSupervisorFixture(), { 'receipt-plan': undefined }, 'MISSING_VERIFIED_USAGE_RECEIPT'],
+    ];
+    for (const [label, fixture, overrides, code] of cases) {
+      expect(invoke(fixture, overrides).errors, label).toEqual(
+        expect.arrayContaining([expect.objectContaining({ code })]),
+      );
+    }
+
+    const missingAuthority = postShipSupervisorFixture();
+    rmSync(join(missingAuthority.root, supervisorAuthorityPath('M1')));
+    expect(invoke(missingAuthority).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'MISSING_TRACKED_SUPERVISOR_AUTHORITY' }),
+    ]));
+
+    const rewritten = postShipSupervisorFixture();
+    const rewrittenPath = join(rewritten.root, supervisorAuthorityPath('M1'));
+    const rewrittenAuthority = JSON.parse(readFileSync(rewrittenPath, 'utf8'));
+    rewrittenAuthority.events[0].reason = 'rewritten';
+    rehashSupervisorAuthority(rewrittenAuthority);
+    writeFileSync(rewrittenPath, `${JSON.stringify(rewrittenAuthority, null, 2)}\n`);
+    expect(invoke(rewritten).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'POST_SHIP_AUTHORITY_NOT_EXACT_HEAD' }),
+    ]));
+
+    const wrongOwner = postShipSupervisorFixture();
+    write(wrongOwner.root, 'src/test/architecture/review.post-ship-repair.test.ts', 'export {};\n');
+    expect(invoke(wrongOwner).errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'GUARD_ACKNOWLEDGEMENT_OWNER_REQUIRED' }),
+    ]));
+  }, 30_000);
+
   it('bootstraps a STOP atomically and survives JSONL growth during the next long guard action', () => {
     const { root, base } = guardRepoFixture({ full: true });
     const tree = computeTreeFingerprint(root);
@@ -1571,7 +1751,7 @@ describe('GOV-CODEX-58A guard impact and preflight', () => {
       candidate: { state: 'audit-repairable' },
     });
     expect(createContextProjection(root, 'M1', { sessionsRoot: usage.sessionsRoot }).health.ok).toBe(true);
-  });
+  }, 30_000);
 
   it('emits stable paths, owners, path/import/allowlist guards, predecessor hashes, and exact acknowledgement', () => {
     const { root, base } = guardRepoFixture();

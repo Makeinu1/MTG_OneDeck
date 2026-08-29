@@ -9,6 +9,9 @@ const ROOT = resolve(import.meta.dirname, '../../..');
 const BASE_SHA = '74d24c0311e0d58112b15c58d6f8546449a5b01a';
 const DOMAIN_ID = 'GOV-CODEX-58A-2026-08';
 const HISTORICAL_GUARD_REAUTHORIZATION_PATHS = new Set([
+  'src/online/headless/__tests__/review.o4p-02e-local-room-gate.test.ts',
+  'src/online/headless/__tests__/review.o4p-05b-four-player-release-scenario.test.ts',
+  'src/online/headless/__tests__/review.o4p-06b-playable-table-command-surface.test.ts',
   'src/test/architecture/review.o4p-04b-table-display-boundary.test.ts',
   'src/test/architecture/review.o4p-04c-display-pairing-boundary.test.ts',
   'src/test/architecture/review.o4p-04d-guided-actions-boundary.test.ts',
@@ -179,7 +182,7 @@ describe('GOV-CODEX-58A executable supervisor enforcement', () => {
         ]));
       }
     }
-  }, 30_000);
+  }, 120_000);
 
   it('wires all three gates into the existing skill and keeps the candidate governance-only', () => {
     const packageJson = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };

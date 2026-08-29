@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -12,6 +13,8 @@ import {
   findActiveSupervisedDomainId,
   parseCandidateRecords,
   replaceLoopField,
+  resolveSupervisionPolicy,
+  validateCandidateRecord,
 } from './lib/supervisor-state.mjs';
 import {
   createSupervisorBootstrap,
@@ -19,6 +22,7 @@ import {
   deriveUsageReceipt,
   readTrackedSupervisorAuthority,
   receiptPlanMatchesAnchor,
+  stableJson,
   supervisorAuthorityPath,
   verifySupervisorAuthority,
   verifyUsageReceipt,
@@ -27,6 +31,7 @@ import {
 const LOOP_STATE_PATH = '.claude/loop-state.md';
 const LEDGER_PATH = 'research/cr-grounding/cr-backbone-ledger.json';
 const RELEASE_REPAIR_REASONS = new Set(['release-full-check', 'ci-environment', 'guard-impact']);
+const POST_SHIP_REPAIR_REASON = 'ci-environment:terminal-metadata';
 const GUARD_GATED_ACTIONS = new Set([
   'audit', 'start-audit', 'start-audit-wait', 'mark-audited',
   'full-check', 'start-full-check', 'mark-full-check-passed',
@@ -156,6 +161,32 @@ export function applyProgramAction({ records, action, options = {}, policy }) {
     delete candidate.stopReason;
     delete candidate.usageSnapshot;
     candidate.guardImpact = { reportFingerprint: null, acknowledgement: null };
+    applyUsage(candidate, options.usage);
+    nextRecords.push(candidate);
+    assertStructuralLimits(candidate, policy.limits);
+    return { records: nextRecords, activeCandidate: candidate, advisories: watchdogAdvisories(candidate, policy) };
+  }
+  if (action === 'derive-post-ship-repair') {
+    if (!candidate || candidate.state !== 'shipped') throw failure('POST_SHIP_REPAIR_NOT_DERIVABLE');
+    if (options.reason !== POST_SHIP_REPAIR_REASON) throw failure('INVALID_POST_SHIP_REPAIR_REASON');
+    const candidateId = requireValue(options.candidate, 'MISSING_REPAIR_CANDIDATE_ID');
+    if (nextRecords.some((entry) => entry.id === candidateId)) throw failure('DUPLICATE_CANDIDATE_ID');
+    const priorIndex = nextRecords.indexOf(candidate);
+    const previous = clone(candidate);
+    previous.state = 'repair-required';
+    previous.repairReason = 'ci-environment';
+    nextRecords[priorIndex] = previous;
+    candidate = clone(candidate);
+    candidate.id = candidateId;
+    candidate.state = 'implementing';
+    candidate.repairOf = previous.id;
+    candidate.baseSha = requireValue(options.baseSha, 'MISSING_REPAIR_BASE_SHA');
+    candidate.treeFingerprint = requireValue(options.treeFingerprint, 'MISSING_REPAIR_TREE_FINGERPRINT');
+    candidate.releaseHeadSha = null;
+    delete candidate.repairReason;
+    delete candidate.stopReason;
+    delete candidate.usageSnapshot;
+    candidate.guardImpact = clone(options.guardImpact);
     applyUsage(candidate, options.usage);
     nextRecords.push(candidate);
     assertStructuralLimits(candidate, policy.limits);
@@ -368,6 +399,45 @@ function parseArguments(argv) {
   return options;
 }
 
+function postShipTreeFingerprint(root, authorityPath) {
+  const paths = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).split('\0').filter((path) => path && path !== authorityPath && path !== LOOP_STATE_PATH);
+  return computeTreeFingerprint(root, paths);
+}
+
+function writePostShipTransition({ authorityPath, authorityText, previousAuthorityText, loopPath, loopText }) {
+  const suffix = `.tmp-${process.pid}-${Date.now()}`;
+  const authorityTemporary = `${authorityPath}${suffix}`;
+  const loopTemporary = `${loopPath}${suffix}`;
+  let authorityReplaced = false;
+  try {
+    writeFileSync(authorityTemporary, authorityText);
+    writeFileSync(loopTemporary, loopText);
+    renameSync(authorityTemporary, authorityPath);
+    authorityReplaced = true;
+    renameSync(loopTemporary, loopPath);
+  } catch (error) {
+    if (authorityReplaced) {
+      writeFileSync(authorityTemporary, previousAuthorityText);
+      renameSync(authorityTemporary, authorityPath);
+    }
+    for (const path of [authorityTemporary, loopTemporary]) {
+      if (existsSync(path)) unlinkSync(path);
+    }
+    throw error;
+  }
+}
+
+function sameCandidateScope(left, right) {
+  return left?.domainId === right?.domainId &&
+    left?.acceptanceFingerprint === right?.acceptanceFingerprint &&
+    stableJson(left?.authority) === stableJson(right?.authority) &&
+    left?.authoritySource === right?.authoritySource;
+}
+
 export function runProgramStep({ root = process.cwd(), ...options } = {}) {
   const loopPath = resolve(root, LOOP_STATE_PATH);
   const loopStateText = readFileSync(loopPath, 'utf8');
@@ -514,6 +584,149 @@ export function runProgramStep({ root = process.cwd(), ...options } = {}) {
       };
     } catch (error) {
       return { ok: false, domain: options.domain, action: options.action, errors: [{ code: error?.code ?? 'BOOTSTRAP_FAILED', message: error instanceof Error ? error.message : String(error) }] };
+    }
+  }
+  if (options.action === 'derive-post-ship-repair') {
+    try {
+      if (options.reason !== POST_SHIP_REPAIR_REASON) throw failure('INVALID_POST_SHIP_REPAIR_REASON');
+      if (!['judge', 'implementer'].includes(options.owner)) {
+        throw failure('MISSING_GUARD_ACKNOWLEDGEMENT_OWNER');
+      }
+      const ledger = JSON.parse(readFileSync(resolve(root, LEDGER_PATH), 'utf8'));
+      const domainIds = ledger.goalPolicy?.activeProgram?.domainIds;
+      const enforcementIndex = domainIds?.indexOf(ledger.goalPolicy?.supervisionPolicy?.enforceFromDomainId);
+      const domainIndex = domainIds?.indexOf(options.domain);
+      const domain = ledger.domains?.find((entry) => entry?.id === options.domain);
+      const planned = ledger.plannedSequence?.find((entry) => entry?.domainId === options.domain);
+      const activeDomainId = findActiveSupervisedDomainId(ledger);
+      const synchronizedShipped = domain?.status === 'shipped' && planned?.status === 'shipped';
+      if (
+        !Array.isArray(domainIds) || enforcementIndex < 0 || domainIndex < enforcementIndex ||
+        !domain || !planned || domain.status !== planned.status ||
+        (activeDomainId !== options.domain && !synchronizedShipped)
+      ) throw failure('ACTIVE_SUPERVISED_CANDIDATE_DOMAIN_MISMATCH');
+      if (parsed.records.some((entry) => entry.domainId !== options.domain)) {
+        throw failure('ACTIVE_SUPERVISED_CANDIDATE_DOMAIN_MISMATCH');
+      }
+      const tracked = readTrackedSupervisorAuthority(root, options.domain);
+      if (tracked.errors?.length) throw failure('INVALID_HEAD_SUPERVISOR_AUTHORITY', JSON.stringify(tracked.errors));
+      if (!tracked.authority || !tracked.headAuthority) throw failure('MISSING_TRACKED_SUPERVISOR_AUTHORITY');
+      if (stableJson(tracked.authority) !== stableJson(tracked.headAuthority)) {
+        throw failure('POST_SHIP_AUTHORITY_NOT_EXACT_HEAD');
+      }
+      if (tracked.authority.events.some((event) => event.action === 'derive-post-ship-repair')) {
+        throw failure('POST_SHIP_REPAIR_ALREADY_DERIVED');
+      }
+      const shippedCandidate = tracked.authority.events.at(-1)?.candidate;
+      if (!shippedCandidate || shippedCandidate.state !== 'shipped' || shippedCandidate.domainId !== options.domain) {
+        throw failure('POST_SHIP_REPAIR_NOT_DERIVABLE');
+      }
+      const loopCandidate = parsed.records.find((entry) => entry.state !== 'repair-required') ?? parsed.records.at(-1);
+      if (loopCandidate && !sameCandidateScope(loopCandidate, shippedCandidate)) {
+        throw failure('POST_SHIP_LOOP_SCOPE_MISMATCH');
+      }
+      const historical = verifySupervisorAuthority({
+        authority: tracked.authority,
+        headAuthority: tracked.headAuthority,
+        loopCandidate: shippedCandidate,
+        sessionsRoot: options['sessions-root'],
+        completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+      });
+      if (!historical.ok) throw failure('INVALID_TRACKED_SUPERVISOR_AUTHORITY', JSON.stringify(historical.errors));
+      const candidateId = requireValue(options.candidate, 'MISSING_REPAIR_CANDIDATE_ID');
+      if (
+        parsed.records.some((entry) => entry.id === candidateId) ||
+        tracked.authority.events.some((event) => event.candidate?.id === candidateId)
+      ) throw failure('DUPLICATE_CANDIDATE_ID');
+      const head = collectChangedFiles({ cwd: root, base: 'HEAD' }).head;
+      if (options.base !== head) throw failure('POST_SHIP_REPAIR_BASE_MISMATCH');
+      const treeFingerprint = postShipTreeFingerprint(root, tracked.relativePath);
+      const verifiedReceipt = readReceipt(treeFingerprint);
+      const policyResult = resolveSupervisionPolicy(ledger, options.domain);
+      if (!policyResult.enforced || !policyResult.policy || policyResult.errors.length > 0) {
+        throw failure('INVALID_SUPERVISION_POLICY', JSON.stringify(policyResult.errors));
+      }
+      const transitioned = applyProgramAction({
+        records: [shippedCandidate],
+        action: options.action,
+        options: {
+          candidate: candidateId,
+          reason: options.reason,
+          baseSha: head,
+          treeFingerprint,
+          guardImpact: { reportFingerprint: null, acknowledgement: null },
+          usage: Object.fromEntries(
+            ['supervisorModelCycles', 'supervisorUncachedInputTokens', 'teamModelCycles', 'teamUncachedInputTokens']
+              .map((key) => [key, verifiedReceipt.verified.observed[key]]),
+          ),
+        },
+        policy: policyResult.policy,
+      });
+      const guardReport = buildGuardImpact({
+        root,
+        base: head,
+        domain: options.domain,
+        projection: { activeCandidate: transitioned.activeCandidate },
+      });
+      if (
+        options.owner !== 'judge' &&
+        guardReport.acknowledgementRequired.paths.some((entry) => entry.owner === 'judge')
+      ) throw failure('GUARD_ACKNOWLEDGEMENT_OWNER_REQUIRED');
+      transitioned.activeCandidate.guardImpact = {
+        reportFingerprint: guardReport.reportFingerprint,
+        acknowledgement: guardReport.acknowledgementRequired,
+      };
+      const candidateValidation = validateCandidateRecord(transitioned.activeCandidate, policyResult.policy);
+      if (!candidateValidation.ok) {
+        throw failure('INVALID_POST_SHIP_REPAIR_CANDIDATE', JSON.stringify(candidateValidation.errors));
+      }
+      const nextAuthority = clone(tracked.authority);
+      nextAuthority.events.push(createSupervisorEvent({
+        sequence: nextAuthority.events.length,
+        action: options.action,
+        actorSessionId: options['actor-session'],
+        actorRole: options['actor-role'],
+        candidate: transitioned.activeCandidate,
+        receipt: verifiedReceipt.receipt,
+        previousHash: nextAuthority.events.at(-1)?.eventHash ?? null,
+        reason: options.reason,
+      }));
+      nextAuthority.candidateId = transitioned.activeCandidate.id;
+      const verifiedNext = verifySupervisorAuthority({
+        authority: nextAuthority,
+        headAuthority: tracked.headAuthority,
+        loopCandidate: transitioned.activeCandidate,
+        sessionsRoot: options['sessions-root'],
+        completeAutonomy: ledger.goalPolicy?.activeProgram?.autonomy?.mode === 'complete',
+      });
+      if (!verifiedNext.ok) throw failure('INVALID_POST_SHIP_REPAIR_AUTHORITY', JSON.stringify(verifiedNext.errors));
+      let nextLoopText = replaceLoopField(loopStateText, ACTIVE_CANDIDATES_KEY, JSON.stringify(transitioned.records));
+      nextLoopText = replaceLoopField(nextLoopText, 'step', transitioned.activeCandidate.state);
+      nextLoopText = replaceLoopField(nextLoopText, 'baseSha', head);
+      nextLoopText = replaceLoopField(nextLoopText, 'treeFingerprint', treeFingerprint);
+      const authorityPath = resolve(root, tracked.relativePath);
+      writePostShipTransition({
+        authorityPath,
+        authorityText: `${JSON.stringify(nextAuthority, null, 2)}\n`,
+        previousAuthorityText: readFileSync(authorityPath, 'utf8'),
+        loopPath,
+        loopText: nextLoopText,
+      });
+      return {
+        ok: true,
+        domain: options.domain,
+        action: options.action,
+        activeCandidate: transitioned.activeCandidate,
+        errors: [],
+        advisories: transitioned.advisories ?? watchdogAdvisories(transitioned.activeCandidate, policyResult.policy),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        domain: options.domain,
+        action: options.action,
+        errors: [{ code: error?.code ?? 'POST_SHIP_REPAIR_FAILED', message: error instanceof Error ? error.message : String(error) }],
+      };
     }
   }
   if (options.action === 'refresh-fingerprint') {
