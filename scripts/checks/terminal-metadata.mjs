@@ -340,25 +340,16 @@ function validateTerminalAuthority({ root, baseSha, baseLedger, candidateLedger,
   if (!domain || !planned || domain.status !== planned.status) {
     reasons.push({ code: 'TERMINAL_AUTHORITY_LEDGER_MISMATCH', domainId: baseDomainId });
   }
-  const loopStateExists = existsSync(resolve(root, LOOP_STATE_PATH));
-  const loopText = loopStateExists
+  const loopText = existsSync(resolve(root, LOOP_STATE_PATH))
     ? readFileSync(resolve(root, LOOP_STATE_PATH), 'utf8')
     : '';
   const loopRecords = parseCandidateRecords(loopText).records;
   const loopCandidate = loopRecords?.find((entry) => entry?.state !== 'repair-required') ?? loopRecords?.at(-1) ?? null;
   const loopComplete = /^milestone:\s*complete\s*$/m.test(loopText);
-  if (loopStateExists) {
-    if (
-      loopCandidate && stableStringify(loopCandidate) !== stableStringify(latestCandidate) ||
-      (!loopCandidate && !(loopComplete && latestCandidate?.state === 'shipped'))
-    ) reasons.push({ code: 'TERMINAL_AUTHORITY_LOOP_MISMATCH', domainId: baseDomainId });
-  } else if (
-    latestCandidate?.state !== 'shipped' ||
-    domain?.status !== 'shipped' ||
-    planned?.status !== 'shipped'
-  ) {
-    reasons.push({ code: 'TERMINAL_AUTHORITY_LOOP_MISMATCH', domainId: baseDomainId });
-  }
+  if (
+    loopCandidate && stableStringify(loopCandidate) !== stableStringify(latestCandidate) ||
+    (!loopCandidate && !(loopComplete && latestCandidate?.state === 'shipped'))
+  ) reasons.push({ code: 'TERMINAL_AUTHORITY_LOOP_MISMATCH', domainId: baseDomainId });
   if (reasons.length > validationReasonStart || parseErrors.length > parseErrorStart) return null;
   return {
     path: expectedPath,
