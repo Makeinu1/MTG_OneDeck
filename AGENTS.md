@@ -6,6 +6,18 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
 体験品質は [`docs/product-requirements.md`](docs/product-requirements.md) を正本とする。
 作業は文書の手続ではなく、そこに記された成果を安全に届けるために行う。
 
+## 最小十分の原則
+
+- 現在の要求を満たす最小の方法で終える。必要性を説明できない設計、抽象化、設定層、
+  互換層、テスト、文書は追加しない。
+- 要求整理と計画には必要なだけ強い推論を使ってよいが、実行は原則として軽量な
+  model / medium-low相当で単線に進める。session全体を最大推論にせず、複数agentを
+  既定にしない。まず一人で完遂可能か判断し、独立して並行できる仕事だけを分ける。
+- Skillは現在のtaskに直接必要なものだけを使う。手続を増やすSkillや新しいframeworkを、
+  手続を守るためだけに導入しない。
+- 前提が誤っていれば正しい推論を重ねても成果にならない。検索や推測で代用せず、
+  関連する要求・code・既存testを直接読んでから変更する。
+
 ## 権限と安全
 
 - 依頼の範囲を越える変更をしない。通常の編集・テストはローカルだけで行う。
@@ -18,20 +30,35 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
   担当する。独立レビューは、認証/セキュリティ、共有マルチプレイヤー状態や protocol、
   永続化/移行/データ損失、主要な CR 意味論、release/deploy 基盤の変更に限って行う。
   レビューは読み取り専用で、実装者と別の文脈から findings を返す。
+- read-only分析、diff確認、test実行、plan作成、branch切替、restore/revert、repo内backupは
+  それ自体を不可逆操作として再確認しない。ただし既存の未保存作業を失う操作は先に退避する。
 
-## 実装と検証
+## 作業の進め方
 
-1. `AGENTS.md`、該当契約、`docs/judge-protocol.md`、必要なら台帳を読み、Goal と
-   Done when を短く定める。変更は一つの成果に絞る。
-2. 編集中は変更に直接関係するテストを実行する。受入シナリオを壊したら、その
-   シナリオを最初から再実行する。
-3. 実装が安定したら `npm run check` を一度実行する。失敗時は原因を直し、影響を
-   受けた主張・テストだけを再確認してから同じ最終チェックを行う。無関係な証拠を
-   やり直して緑を水増ししない。
-4. UI 変更は同じ browser session で 375×812、812×375、1440×900 と console error
-   0 を確認する。根拠のない自動化を表示せず、未対応の複合効果は guided/manual と明示する。
-5. 中断後は `git status`、`HEAD`、必要な CI 状態を確認して現在の作業を再構成する。
-   過去の会話や一時ファイルを状態の正本にしない。
+1. codeへ触る前に、ユーザーが実際に欲しいもの、今回のscope、明示的な非目標、
+   完了条件を数行で言い直す。表面的な症状を直してから意図を推測しない。
+2. 最小planに `Goal / Non-goals / Acceptance criteria / What stays untouched` を含める。
+   `AGENTS.md`、最小の該当契約、関連code/testを読み、CR裁定や真の曖昧がある場合だけ
+   `docs/judge-protocol.md`や台帳を追加で読む。
+3. 一つのroot causeへ一つの修正を優先する。patchの積み上げ、旧実装を残す第二実装、
+   rare caseの先回り、将来用framework、多数の無関係file変更を始めたら停止し、planを縮める。
+4. UI変更は同じbrowser sessionで375×812、812×375、1440×900とconsole error 0を
+   確認する。根拠のない自動化を表示せず、未対応の複合効果はguided/manualと明示する。
+5. 中断後は`git status`、`HEAD`、必要なCI状態から再構成する。過去の会話や一時fileを
+   状態の正本にしない。
+
+## テスト
+
+- testは今回のacceptanceだけを証明する。まず関連する既存testを実行し、それで十分なら
+  新しいtestを追加しない。
+- 新規testは、今回変えたbehaviorを既存testが検出できない場合、またはユーザーが明示的に
+  求めた場合だけ許す。原則としてmain path 1件とcritical failure path 1件を上限とする。
+- 網羅感のためのsnapshot matrix、parameter grid、大量E2E、無関係moduleのbackfill、
+  新test frameworkやtest infrastructureを作らない。要求されていない境界をtestしない。
+- 追加前に「どのacceptanceを証明するか」「既存testが見逃すregressionか」「実装より単純か」
+  を答える。test codeが実装より長い・複雑なら過剰設計として、より小さい証明を選ぶ。
+- 実装が安定したら`npm run check`を一度実行する。失敗時はroot causeを直し、無効になった
+  主張だけを再確認してから必要な最終checkを行う。無関係な証拠をやり直して緑を水増ししない。
 
 ## エンジンと CR
 
@@ -50,4 +77,7 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
 
 プレイヤー成果が契約どおりに得られ、必要な targeted tests と一度の `npm run check` が
 緑で、該当する独立レビューが HIGH/BLOCKER なしで、権限のない外部書込みを行っていない
-こと。変更・検証・defer・未解決点を簡潔に報告する。
+こと。完了前に、意図とacceptanceを満たす最小解であること、変更fileが必要最小限であること、
+新規testが現在のbehaviorだけを固定していること、依存・余分なdirectory・debug code・第二実装が
+残っていないことを確認する。作業を大きく見せるための追加作業はせず、変更・検証・defer・
+未解決点を簡潔に報告する。
