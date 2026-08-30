@@ -181,7 +181,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
       domainIds: LIVE_IDS,
     });
     expect(LIVE_IDS).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09F');
+    expect(nextDomainId).toBe('O4P-09G');
   });
 
   it('changes only Judge-owned registration and exact historical guards', () => {
