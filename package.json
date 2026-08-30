@@ -55,6 +55,7 @@
     "verify:online-cloudflare-production-gate": "tsx scripts/checks/verify-online-cloudflare-production-gate.ts",
     "verify:o4p-07c-production-runtime": "tsx scripts/checks/verify-o4p-07c-production-runtime.ts",
     "evidence:o4p-06f": "tsx scripts/online/o4p-06f-four-browser-evidence.ts",
+    "evidence:o4p-09i": "tsx scripts/online/o4p-09i-full-match-evidence.ts",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",
     "check": "node scripts/checks/machine-checks.mjs",

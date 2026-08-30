@@ -2,6 +2,9 @@
   position: absolute;
   z-index: 8;
   inset: auto 1rem calc(var(--game-hand-height, 170px) + 1rem) 1rem;
+  max-height: min(46dvh, 30rem);
+  overflow: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: .45rem;
   padding: .65rem .8rem;
@@ -26,11 +29,32 @@
   font-size: .84rem;
 }
 
+.online-remote-rail__header h2 {
+  margin: 0;
+  color: var(--color-text, #fff);
+  font-size: .9rem;
+}
+
 .online-remote-rail__header span,
 .online-remote-rail__causal,
 .online-remote-rail__manual {
   color: var(--color-muted, #a9b4c9);
   font-size: .74rem;
+}
+
+.online-remote-rail__state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem .7rem;
+  color: var(--color-text, #fff);
+  font-size: .74rem;
+}
+
+.online-remote-rail__state span {
+  padding: .14rem .35rem;
+  border-radius: .3rem;
+  background: color-mix(in srgb, var(--color-panel-raised, #202a3e) 78%, transparent);
 }
 
 .online-remote-rail__causal {
@@ -60,6 +84,12 @@
 .online-remote-rail__exposure-warning {
   margin: 0;
   color: var(--color-warning, #f4c56b);
+  font-size: .72rem;
+}
+
+.online-remote-rail__checkpoint {
+  margin: 0;
+  color: var(--color-muted, #a9b4c9);
   font-size: .72rem;
 }
 
@@ -159,6 +189,18 @@
   opacity: .48;
 }
 
+.online-remote-rail__actions button:focus-visible,
+.online-remote-rail__seat:focus-visible,
+.online-remote-rail__manual-link:focus-visible {
+  outline: 2px solid var(--color-accent, #7dd3fc);
+  outline-offset: 2px;
+}
+
+.online-remote-rail__actions .online-remote-rail__primary-action {
+  border-color: var(--color-accent, #7dd3fc);
+  color: var(--color-text, #fff);
+}
+
 .online-remote-rail__manual {
   margin: 0;
 }
@@ -167,6 +209,27 @@
   color: var(--color-accent, #7dd3fc);
   font-size: .72rem;
   text-decoration: underline;
+}
+
+.online-remote-rail__manual-fallback {
+  display: grid;
+  gap: .25rem;
+  padding: .35rem .45rem;
+  border: 1px dashed color-mix(in srgb, var(--color-warning, #f4c56b) 42%, transparent);
+  border-radius: .45rem;
+  color: var(--color-muted, #a9b4c9);
+  font-size: .72rem;
+}
+
+.online-remote-rail__manual-fallback strong {
+  color: var(--color-warning, #f4c56b);
+  font-size: .75rem;
+}
+
+.online-remote-rail__manual-fallback nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem .7rem;
 }
 
 .online-remote-guided-overlay {
@@ -181,6 +244,51 @@
   background: color-mix(in srgb, var(--color-panel, #121827) 96%, transparent);
   box-shadow: 0 12px 30px rgb(0 0 0 / 26%);
   pointer-events: auto;
+}
+
+.online-remote-manual-overlay {
+  position: absolute;
+  z-index: 9;
+  inset: .75rem auto auto .75rem;
+  width: min(36rem, calc(100% - 1.5rem));
+  max-height: min(70dvh, 42rem);
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 44%, transparent);
+  border-radius: .65rem;
+  background: color-mix(in srgb, var(--color-panel, #121827) 96%, transparent);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 26%);
+  pointer-events: auto;
+}
+
+.online-remote-manual-overlay > summary {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  padding: .45rem .6rem;
+  color: var(--color-text, #fff);
+  background: var(--color-panel, #121827);
+  cursor: pointer;
+  font-size: .78rem;
+}
+
+.online-remote-manual-overlay__body {
+  padding: .55rem;
+}
+
+.online-remote-manual-overlay__lead {
+  margin: 0 0 .55rem;
+  color: var(--color-muted, #a9b4c9);
+  font-size: .75rem;
+}
+
+.online-remote-manual-overlay .public-online-app__secondary-tools {
+  display: grid;
+  gap: .7rem;
+}
+
+.online-remote-manual-overlay .online-tabletop-manual,
+.online-remote-manual-overlay .online-visibility-decisions {
+  margin: 0;
 }
 
 .online-remote-guided-overlay > summary {
@@ -203,6 +311,7 @@
   .online-remote-rail {
     inset: auto .45rem calc(var(--game-hand-height, 150px) + .45rem) .45rem;
     padding: .5rem;
+    max-height: min(40dvh, 24rem);
   }
 
   .online-remote-rail__actions {
@@ -214,5 +323,11 @@
     grid-template-columns: 1fr;
     max-height: 9rem;
     overflow: auto;
+  }
+
+  .online-remote-guided-overlay,
+  .online-remote-manual-overlay {
+    width: calc(100% - .9rem);
+    max-height: min(58dvh, 34rem);
   }
 }

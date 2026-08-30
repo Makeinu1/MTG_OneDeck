@@ -88,7 +88,9 @@ export type O4p06fSocketV1 = Readonly<{
 
 export type O4p06fPageV1 = Readonly<{
   readonly navigate: (url: string) => Promise<void>;
+  readonly navigateForUiEvidence?: (url: string) => Promise<void>;
   readonly evaluate: <T>(expression: string, argument?: unknown) => Promise<T>;
+  readonly setViewport?: (viewport: Readonly<{ readonly width: number; readonly height: number }>) => Promise<void>;
   readonly fetch: (url: string, init?: Readonly<{ readonly method?: string; readonly headers?: Readonly<Record<string, string>>; readonly body?: string }>) => Promise<O4p06fResponseV1>;
   readonly openWebSocket: (url: string) => Promise<O4p06fSocketV1>;
   readonly close: () => Promise<void> | void;
@@ -748,7 +750,7 @@ class CdpPageV1 implements O4p06fPageV1 {
 
   setSecretFragments(fragments: readonly string[]): void { this.secretFragments = fragments; }
 
-  async navigate(url: string): Promise<void> {
+  private async navigateBase(url: string): Promise<void> {
     await this.connection.command('Page.enable', {}, this.sessionId);
     await this.connection.command('Runtime.enable', {}, this.sessionId);
     await this.connection.command('Page.navigate', { url }, this.sessionId);
@@ -770,6 +772,14 @@ class CdpPageV1 implements O4p06fPageV1 {
         return true;
       })()`);
     } catch { throw new Error('public Online entry activation failed'); }
+  }
+
+  async navigateForUiEvidence(url: string): Promise<void> {
+    await this.navigateBase(url);
+  }
+
+  async navigate(url: string): Promise<void> {
+    await this.navigateBase(url);
     let controls: Readonly<{ readonly online: boolean; readonly lobby: boolean; readonly create: boolean; readonly join: boolean; readonly deck: boolean; readonly ready: boolean; readonly start: boolean; readonly href: string; readonly origin: string }>;
     try { controls = await this.evaluate(`new Promise((resolve) => {
       const deadline = Date.now() + 5_000;
@@ -803,6 +813,11 @@ class CdpPageV1 implements O4p06fPageV1 {
     if (exception !== undefined) throw new Error('browser evaluation failed');
     const remote = asRecord(own(result, 'result'), 'CDP remote result missing');
     return own(remote, 'value') as T;
+  }
+
+  async setViewport(viewport: Readonly<{ readonly width: number; readonly height: number }>): Promise<void> {
+    if (!Number.isSafeInteger(viewport.width) || viewport.width < 1 || !Number.isSafeInteger(viewport.height) || viewport.height < 1) throw new Error('viewport dimensions invalid');
+    await this.connection.command('Emulation.setDeviceMetricsOverride', { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: false }, this.sessionId);
   }
 
   async fetch(url: string, init?: Readonly<{ readonly method?: string; readonly headers?: Readonly<Record<string, string>>; readonly body?: string }>): Promise<O4p06fResponseV1> {
@@ -935,6 +950,17 @@ class CdpBrowserV1 implements O4p06fBrowserV1 {
     const browserContextId = own(result, 'browserContextId');
     if (typeof browserContextId !== 'string' || browserContextId.length === 0 || this.contextIds.has(browserContextId)) throw new Error('browser context id missing or duplicate');
     this.contextIds.add(browserContextId);
+    const createPage = async (): Promise<O4p06fPageV1> => {
+      try { return await this.createAttachedPage(browserContextId); }
+      catch (error: unknown) {
+        try { await this.connection.command('Target.disposeBrowserContext', { browserContextId }); } finally { this.contextIds.delete(browserContextId); }
+        throw error;
+      }
+    };
+    return Object.freeze({ browserContextId, createPage, close: async () => { await this.connection.command('Target.disposeBrowserContext', { browserContextId }); this.contextIds.delete(browserContextId); } });
+  }
+
+  private async createAttachedPage(browserContextId: string): Promise<O4p06fPageV1> {
     let targetId: string | null = null;
     let sessionId: string | null = null;
     try {
@@ -948,15 +974,13 @@ class CdpBrowserV1 implements O4p06fBrowserV1 {
       if (typeof rawSessionId !== 'string' || rawSessionId.length === 0 || this.sessionIds.has(rawSessionId)) throw new Error('session id missing or duplicate');
       sessionId = rawSessionId;
       this.sessionIds.add(sessionId);
-      const page = new CdpPageV1(this.connection, sessionId, targetId, this.timeoutMs, () => { this.targetIds.delete(targetId as string); this.sessionIds.delete(sessionId as string); });
-      return Object.freeze({ browserContextId, createPage: () => Promise.resolve(page), close: async () => { await this.connection.command('Target.disposeBrowserContext', { browserContextId }); this.contextIds.delete(browserContextId); } });
+      return new CdpPageV1(this.connection, sessionId, targetId, this.timeoutMs, () => { this.targetIds.delete(targetId as string); this.sessionIds.delete(sessionId as string); });
     } catch (error: unknown) {
       if (targetId !== null) {
         try { await this.connection.command('Target.closeTarget', { targetId }); } catch { /* context disposal remains authoritative cleanup */ }
         this.targetIds.delete(targetId);
       }
       if (sessionId !== null) this.sessionIds.delete(sessionId);
-      try { await this.connection.command('Target.disposeBrowserContext', { browserContextId }); } finally { this.contextIds.delete(browserContextId); }
       throw error;
     }
   }
@@ -969,6 +993,11 @@ class CdpBrowserV1 implements O4p06fBrowserV1 {
     }
     rmSync(this.profilePath, { recursive: true, force: true });
   }
+}
+
+/** Low-level transport launcher for UI-only harnesses. Legacy 06F navigation checks remain on `navigate`; callers may use the additive raw navigation method. */
+export function launchO4p06fCdpBrowserV1(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<O4p06fBrowserV1> {
+  return CdpBrowserV1.launch(timeoutMs);
 }
 
 function defaultDeps(input: O4p06fEvidenceDepsV1): O4p06fEvidenceDepsV1 {

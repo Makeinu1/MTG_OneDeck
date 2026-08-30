@@ -76,6 +76,10 @@ describe('O4P-05D production-release closure boundary', () => {
       ['src/test/architecture/review.o4p-09-roadmap-registration.test.ts'],
       ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
       [
+        'src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts',
+        'src/test/architecture/review.o4p-09i-full-match.test.ts',
+      ],
+      [
         'src/components/online/__tests__/remoteGameScreen.test.tsx',
         'src/components/online/remoteGameScreen.css',
         'src/components/online/remoteGameScreen.tsx',

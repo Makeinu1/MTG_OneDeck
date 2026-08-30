@@ -69,7 +69,7 @@ describe('review O4P-06F four-browser production release', () => {
     expect(workflow).not.toContain('change-lane');
 
     const onlineTsconfig = JSON.parse(text('scripts/online/tsconfig.json')) as { include?: unknown };
-    expect(onlineTsconfig.include).toEqual(['./o4p-03d-evidence.ts', './o4p-06f-four-browser-evidence.ts']);
+    expect(onlineTsconfig.include).toEqual(['./o4p-03d-evidence.ts', './o4p-06f-four-browser-evidence.ts', './o4p-09i-full-match-evidence.ts']);
   });
 
   it('requires four isolated Chrome contexts and browser-owned production traffic', () => {

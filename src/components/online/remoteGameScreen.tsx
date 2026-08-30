@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import type { GameScreenInteractionPort } from '../game/gameScreenInteractionPort';
 import { GameCard } from '../game/GameCard';
 import type { DropIntent } from '../game/dragIntent';
@@ -494,6 +494,20 @@ function nextCommandId(revision?: number): string {
   return `remote-surface-${remoteSessionPrefix}-${revision ?? 0}-${commandSequence}`;
 }
 
+/** Open a collapsed in-surface panel before following its semantic anchor. */
+function openRemotePanel(event: ReactMouseEvent<HTMLAnchorElement>, detailsId: string): void {
+  event.preventDefault();
+  const target = document.getElementById(detailsId);
+  if (!(target instanceof HTMLDetailsElement)) return;
+  const surface = target.parentElement;
+  for (const panelId of ['online-remote-guided-overlay', 'online-remote-manual-overlay']) {
+    const panel = surface?.querySelector<HTMLDetailsElement>(`#${panelId}`) ?? document.getElementById(panelId);
+    if (panel instanceof HTMLDetailsElement && panel !== target) panel.open = false;
+  }
+  target.open = true;
+  target.querySelector<HTMLElement>('summary')?.focus();
+}
+
 function buildIntent(projection: OnlineParticipantProjectionV1, primitive: OnlineTabletopPrimitiveV1): OnlineTabletopIntentEnvelopeV1 {
   return {
     kind: 'online-tabletop-intent-envelope-v1',
@@ -762,12 +776,33 @@ export function RemoteGameScreenActionRail({
   const seatOutcomes = projection.room.seats.map((seat) => ({ playerId: seat.corePlayerId, outcome: seat.outcome }));
   const outcomeLabel = (outcome: string): string => outcome === 'conceded' ? '投了' : outcome === 'defeated' ? '敗北' : '進行中';
   const connectionLabel = interactionState === 'ready' ? '接続済み' : interactionState === 'updating' ? '再同期中' : 'オフライン';
+  const phaseLabel = projection.game.turn.position.phase === 'precombat-main'
+    ? 'メイン1'
+    : projection.game.turn.position.phase === 'postcombat-main'
+      ? 'メイン2'
+      : projection.game.turn.position.phase === 'beginning'
+        ? '開始フェイズ'
+        : projection.game.turn.position.phase === 'combat'
+          ? '戦闘'
+          : '終了フェイズ';
+  const priorityLabel = priority?.holderPlayerId === local
+    ? 'あなた'
+    : priority?.holderPlayerId ?? '—';
+  const holdLabel = anyHold
+    ? ownHeld ? 'あなたがHOLD中' : '他プレイヤーがHOLD中'
+    : 'HOLDなし';
   return (
     <section className="online-remote-rail" data-testid="online-remote-game-rail" aria-label="共有ゲーム操作">
       <header className="online-remote-rail__header">
-        <strong>共有テーブル</strong>
-        <span data-testid="online-remote-connection">{connectionLabel} / 更新 {projection.revision} / {priority?.holderPlayerId === local ? 'あなたが優先権' : `手番 ${projection.game.turn.activePlayerId}`}</span>
+        <h2 id="online-remote-rail-title">共有テーブル</h2>
+        <span data-testid="online-remote-connection" role="status" aria-live="polite">{connectionLabel} / 更新 {projection.revision}</span>
       </header>
+      <div className="online-remote-rail__state" data-testid="online-remote-state" aria-live="polite">
+        <span>手番: {projection.game.turn.activePlayerId} / {phaseLabel}</span>
+        <span>優先権: {priorityLabel}</span>
+        <span data-testid="online-remote-hold-status">{holdLabel}</span>
+        {priority?.stewardPlayerId && <span>steward: {priority.stewardPlayerId}</span>}
+      </div>
       <div className="online-remote-rail__causal" data-testid="online-remote-causal">
         <span>スタック {projection.game.zones.stack.count}件</span>
         {sourceLabel && <span>発生源: {sourceLabel}</span>}
@@ -804,6 +839,9 @@ export function RemoteGameScreenActionRail({
       {facts.checkpointAvailable && facts.informationExposureWarning && (
         <p className="online-remote-rail__exposure-warning" data-testid="online-remote-exposure-warning">公開情報は記憶から消せないため、UNDO後も忘れられません。</p>
       )}
+      {facts.checkpointAvailable && !facts.informationExposureWarning && (
+        <p className="online-remote-rail__checkpoint" data-testid="online-remote-checkpoint">共有チェックポイント: 利用可能（stewardのみ）</p>
+      )}
       <div className="online-remote-rail__seats" aria-label="対戦相手の公開情報">
         {opponentSeats.map(({ player, handCount, graveyardCount, battlefieldCount }) => (
           <button key={player.playerId} type="button" className="online-remote-rail__seat" data-testid="online-remote-opponent" aria-pressed={effectiveFocus === player.playerId} onClick={() => setFocusedPlayerId((current) => current === player.playerId ? null : player.playerId)}>
@@ -831,17 +869,24 @@ export function RemoteGameScreenActionRail({
             {entry.action === 'play-land' ? '土地' : '唱える'} 《{entry.label}》
           </button>
         ))}
-        <button type="button" data-testid="online-remote-hold" aria-pressed={ownHeld} disabled={disabled} onClick={() => {
+        <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-hold" aria-pressed={ownHeld} disabled={disabled} onClick={() => {
           const intent = { kind: 'online-tabletop-intent-envelope-v1' as const, schemaVersion: 1 as const, commandId: nextCommandId(projection.revision), baseRevision: projection.revision, mode: 'structured' as const, primitive: { kind: 'priority-hold' as const, held: !ownHeld } };
           void onSubmitTabletopIntent(intent);
         }}>{ownHeld ? 'HOLD解除' : 'HOLD'}</button>
-        <button type="button" data-testid="online-remote-pass" disabled={disabled || !canPass} onClick={() => onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: local, baseRevision: projection.revision })}>優先権をパス</button>
-        <button type="button" data-testid="online-remote-advance" disabled={disabled || anyHold || (!canAdvance && !canPass)} onClick={() => port.advancePhase()}>次の判断へ</button>
-        <button type="button" data-testid="online-remote-resolve" disabled={disabled || !canResolve} onClick={() => port.requestResolveTop()}>スタックを解決</button>
-        <button type="button" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled={!port.canUndo} onClick={() => port.undo()} aria-label={port.canUndo ? '共有チェックポイントへ1手戻す' : undoAuthorized ? 'UNDO unavailable (checkpoint unavailable or HOLD active)' : 'UNDO unavailable (steward only)'}>{port.canUndo ? 'UNDO（1手戻す）' : 'UNDO unavailable (checkpoint/steward)'}</button>
+        <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-pass" disabled={disabled || !canPass} onClick={() => onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: local, baseRevision: projection.revision })}>優先権をパス</button>
+        <button type="button" className="online-remote-rail__primary-action" data-testid="online-remote-advance" disabled={disabled || anyHold || (!canAdvance && !canPass)} onClick={() => port.advancePhase()}>次の判断へ</button>
+        <button type="button" className="online-remote-rail__primary-action" data-testid="online-remote-resolve" disabled={disabled || !canResolve} onClick={() => port.requestResolveTop()}>スタックを解決</button>
+        <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled={!port.canUndo} onClick={() => port.undo()} aria-label={port.canUndo ? '共有チェックポイントへ1手戻す' : undoAuthorized ? 'UNDO unavailable (checkpoint unavailable or HOLD active)' : 'UNDO unavailable (steward only)'}>{port.canUndo ? 'UNDO（1手戻す）' : 'UNDO unavailable (checkpoint/steward)'}</button>
       </div>
-      <a className="online-remote-rail__manual-link" data-testid="online-remote-manual-damage-link" href="#online-tabletop-manual-title">Manual Damage を開く</a>
-      <p className="online-remote-rail__manual">複合効果・対象選択・秘密情報はガイド/手動パネルで処理します。</p>
+      <section className="online-remote-rail__manual-fallback" data-testid="online-remote-manual-fallback" aria-labelledby="online-remote-manual-fallback-title">
+        <strong id="online-remote-manual-fallback-title">未対応の複合効果 → Manual Resolve</strong>
+        <span>自動解決せず、公開事実を確認してから手動で記録します。</span>
+        <nav aria-label="ガイドと手動操作">
+          <a className="online-remote-rail__manual-link" data-testid="online-remote-manual-damage-link" href="#online-remote-guided-overlay" onClick={(event) => openRemotePanel(event, 'online-remote-guided-overlay')}>戦闘 / Manual Damage</a>
+          <a className="online-remote-rail__manual-link" href="#online-remote-manual-overlay" onClick={(event) => openRemotePanel(event, 'online-remote-manual-overlay')}>Structured / Freeform Manual Resolve</a>
+          <a className="online-remote-rail__manual-link" href="#online-remote-manual-overlay" onClick={(event) => openRemotePanel(event, 'online-remote-manual-overlay')}>Visibility / Choose</a>
+        </nav>
+      </section>
     </section>
   );
 }

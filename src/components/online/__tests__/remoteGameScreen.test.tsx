@@ -71,6 +71,70 @@ describe('remote GameScreen adapter', () => {
     container.remove();
   });
 
+  it('keeps the remote cockpit status and manual fallback discoverable while a participant holds priority', () => {
+    const projected = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: {
+          holderPlayerId: 'P1',
+          stewardPlayerId: 'P1',
+          windowKind: 'position-advance-ready',
+          holds: ['P2'],
+          responseWindow: 'after-stack-addition',
+          topStackObjectId: null,
+        },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={projected}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        onSubmitPersonalAction={vi.fn()}
+        port={portFor(projectionToGameState(projected))}
+      />,
+    ));
+    expect(container.querySelector('[data-testid="online-remote-state"]')?.textContent).toContain('優先権: あなた');
+    expect(container.querySelector('[data-testid="online-remote-hold-status"]')?.textContent).toContain('他プレイヤーがHOLD中');
+    expect(container.querySelector('[data-testid="online-remote-manual-fallback"]')?.textContent).toContain('Manual Resolve');
+    expect(container.querySelector('a[href="#online-remote-manual-overlay"]')).not.toBeNull();
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('opens and focuses the guided/manual panels from cockpit links, closing the other panel', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const guided = document.createElement('details');
+    guided.id = 'online-remote-guided-overlay';
+    const guidedSummary = document.createElement('summary');
+    guidedSummary.textContent = 'guided';
+    guided.append(guidedSummary);
+    const manual = document.createElement('details');
+    manual.id = 'online-remote-manual-overlay';
+    const manualSummary = document.createElement('summary');
+    manualSummary.textContent = 'manual';
+    manual.append(manualSummary);
+    act(() => root.render(<RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(projection))} />));
+    container.append(guided, manual);
+    const links = container.querySelectorAll<HTMLAnchorElement>('.online-remote-rail__manual-link');
+    act(() => links[0]?.click());
+    expect(guided.open).toBe(true);
+    expect(document.activeElement).toBe(guidedSummary);
+    act(() => links[1]?.click());
+    expect(manual.open).toBe(true);
+    expect(guided.open).toBe(false);
+    expect(document.activeElement).toBe(manualSummary);
+    act(() => root.unmount());
+    container.remove();
+  });
+
   it('mounts the production GameScreenSurface with the remote interaction port', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

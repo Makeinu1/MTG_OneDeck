@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { SyntheticEvent } from 'react';
 import { DEFAULT_KEYBINDINGS, type KeybindingsMap } from '../../data/keybindings';
 import { GameScreen } from '../game/GameScreen';
 import {
@@ -35,6 +36,15 @@ function allReady(snapshot: PublicOnlineSnapshotV3): boolean {
       (seat) => seat.participantId !== null && seat.acceptedDeck && seat.ready,
     ) === true
   );
+}
+
+function keepRemotePanelsExclusive(event: SyntheticEvent<HTMLDetailsElement>): void {
+  const current = event.currentTarget;
+  if (!current.open) return;
+  for (const panelId of ['online-remote-guided-overlay', 'online-remote-manual-overlay']) {
+    const panel = current.parentElement?.querySelector<HTMLDetailsElement>(`#${panelId}`);
+    if (panel instanceof HTMLDetailsElement && panel !== current) panel.open = false;
+  }
 }
 
 export function PublicOnlineApp({
@@ -654,7 +664,7 @@ export function PublicOnlineApp({
                 onSubmitSharedUndo={() => { void controller.submitSharedUndo(snapshot.player?.projection?.revision); }}
                 port={remoteInteractionPort}
               />
-              <details className="online-remote-guided-overlay" data-testid="online-remote-guided-overlay">
+              <details id="online-remote-guided-overlay" className="online-remote-guided-overlay" data-testid="online-remote-guided-overlay" onToggle={keepRemotePanelsExclusive}>
                 <summary>ガイド付き操作（戦闘・手動）</summary>
                 <OnlineGuidedActions
                   projection={snapshot.player.projection}
@@ -664,26 +674,36 @@ export function PublicOnlineApp({
                   onSubmitManualCombatDamage={(input) => { void controller.submitManualCombatDamage({ ...input, baseRevision: snapshot.player?.projection?.revision }); }}
                 />
               </details>
+              <details id="online-remote-manual-overlay" className="online-remote-manual-overlay" data-testid="online-remote-manual-overlay" onToggle={keepRemotePanelsExclusive}>
+                <summary>公開情報・Manual Resolve</summary>
+                <div className="online-remote-manual-overlay__body">
+                  <p className="online-remote-manual-overlay__lead">
+                    ガイドで扱えない複合効果や非公開情報は、自動解決せずに手動で確認します。
+                  </p>
+                  <div className="public-online-app__secondary-tools" data-testid="online-secondary-tools">
+                    <div id="online-tabletop-manual-panel">
+                      <OnlineTabletopManual
+                        projection={snapshot.player.projection}
+                        interactionState={interactionState}
+                        busy={tabletopBusy}
+                        error={snapshot.error}
+                        onSubmit={controller.submitTabletopIntent}
+                      />
+                    </div>
+                    <div id="online-visibility-decisions">
+                      <OnlineVisibilityDecisions
+                        projection={snapshot.player.projection}
+                        interactionState={interactionState}
+                        busy={tabletopBusy}
+                        onSubmit={(intent) => { void controller.submitVisibilityIntent(intent); }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </details>
             </>
           )}
         />
-      )}
-      {started && !pregamePending && snapshot.player?.projection && (
-        <div className="public-online-app__secondary-tools" data-testid="online-secondary-tools">
-          <OnlineTabletopManual
-            projection={snapshot.player.projection}
-            interactionState={interactionState}
-            busy={tabletopBusy}
-            error={snapshot.error}
-            onSubmit={controller.submitTabletopIntent}
-          />
-          <OnlineVisibilityDecisions
-            projection={snapshot.player.projection}
-            interactionState={interactionState}
-            busy={tabletopBusy}
-            onSubmit={(intent) => { void controller.submitVisibilityIntent(intent); }}
-          />
-        </div>
       )}
       {started && actionError('盤面を確認')}
     </main>
