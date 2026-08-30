@@ -103,6 +103,7 @@ export function HandRibbon({
     [],
   );
   const handCount = state?.zones.hand.length ?? 0;
+  const libraryCount = controller.libraryCount ?? state?.zones.library.length ?? 0;
   const openingHand = controller.mulliganDecisionPending;
   const largeHandCollapsed = handCount > 15 && !workspaceOpen && !flatControl;
   const handLayout = flatControl
@@ -328,21 +329,21 @@ export function HandRibbon({
             title="ライブラリー操作を開く"
             aria-haspopup="menu"
             aria-expanded={controller.libraryActionsOpen}
-            aria-label={`ライブラリー${state.zones.library.length}枚。操作メニューを開く`}
+            aria-label={`ライブラリー${libraryCount}枚。操作メニューを開く`}
           >
             <span>ライブラリー</span>
-            <strong data-testid="library-count">{state.zones.library.length}</strong>
+            <strong data-testid="library-count">{libraryCount}</strong>
             <small>操作…</small>
           </button>
           <button
             type="button"
             className="hand-ribbon__draw-one"
             data-testid="library-draw-one"
-            data-empty={state.zones.library.length === 0}
-            aria-label={state.zones.library.length === 0
+            data-empty={libraryCount === 0}
+            aria-label={libraryCount === 0
               ? '1枚引く。ライブラリーが空のため敗北判定が発生します'
               : 'ライブラリーから1枚引く'}
-            title={state.zones.library.length === 0
+            title={libraryCount === 0
               ? '空のライブラリーから引く（敗北判定）'
               : 'ライブラリーから1枚引く'}
             onClick={drawOne}

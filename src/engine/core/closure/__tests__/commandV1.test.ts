@@ -88,4 +88,17 @@ describe('O4P-01N command boundary', () => {
       issues: [expect.objectContaining({ code: 'INVALID_ID', path: '/payload/input/sourceObjectId' })],
     });
   });
+
+  it('accepts the dedicated land-play command shape', () => {
+    const result = validateCoreCommandV1({
+      kind: 'mode-neutral-core-command-v1',
+      schemaVersion: 1,
+      sequence: 1,
+      actorPlayerId: 'P1',
+      decisionMakerPlayerId: 'P1',
+      decisionContext: { kind: 'decision', decisionKey: 'play-land' },
+      payload: { kind: 'table-land-play', objectId: 'PC1:0' },
+    });
+    expect(result).toMatchObject({ ok: true, value: { payload: { kind: 'table-land-play', objectId: 'PC1:0' } } });
+  });
 });

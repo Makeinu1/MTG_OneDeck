@@ -1,0 +1,157 @@
+.online-remote-rail {
+  position: absolute;
+  z-index: 8;
+  inset: auto 1rem calc(var(--game-hand-height, 170px) + 1rem) 1rem;
+  display: grid;
+  gap: .45rem;
+  padding: .65rem .8rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 44%, transparent);
+  border-radius: .8rem;
+  background: color-mix(in srgb, var(--color-panel, #121827) 92%, transparent);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  pointer-events: auto;
+}
+
+.online-remote-rail__header,
+.online-remote-rail__causal,
+.online-remote-rail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem .7rem;
+}
+
+.online-remote-rail__header {
+  justify-content: space-between;
+  font-size: .84rem;
+}
+
+.online-remote-rail__header span,
+.online-remote-rail__causal,
+.online-remote-rail__manual {
+  color: var(--color-muted, #a9b4c9);
+  font-size: .74rem;
+}
+
+.online-remote-rail__causal {
+  overflow: auto hidden;
+  white-space: nowrap;
+}
+
+.online-remote-rail__seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: .35rem;
+  color: var(--color-muted, #a9b4c9);
+  font-size: .72rem;
+}
+
+.online-remote-rail__seats span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.online-remote-rail__seat {
+  overflow: hidden;
+  min-width: 0;
+  padding: .3rem .45rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 26%, transparent);
+  border-radius: .4rem;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .72rem;
+}
+
+.online-remote-rail__seat[aria-pressed="true"] {
+  border-color: var(--color-accent, #7dd3fc);
+  color: var(--color-text, #fff);
+}
+
+.online-remote-rail__opponent-lanes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .4rem;
+}
+
+.online-remote-rail__opponent-lanes[data-opponent-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.online-remote-rail__opponent-lane {
+  min-width: 0;
+  padding: .35rem;
+  border: 1px solid color-mix(in srgb, var(--color-muted, #a9b4c9) 18%, transparent);
+  border-radius: .45rem;
+  opacity: .82;
+}
+
+.online-remote-rail__opponent-lane[data-focused="true"] {
+  border-color: var(--color-accent, #7dd3fc);
+  opacity: 1;
+}
+
+.online-remote-rail__opponent-lane header {
+  display: flex;
+  justify-content: space-between;
+  gap: .3rem;
+  font-size: .68rem;
+}
+
+.online-remote-rail__opponent-lane header span,
+.online-remote-rail__empty {
+  color: var(--color-muted, #a9b4c9);
+  font-size: .65rem;
+}
+
+.online-remote-rail__opponent-cards {
+  display: flex;
+  min-height: 3.5rem;
+  gap: .25rem;
+  align-items: center;
+  overflow: auto hidden;
+}
+
+.online-remote-rail__opponent-cards .game-card {
+  flex: 0 0 2.65rem;
+}
+
+.online-remote-rail__actions button {
+  min-height: 2rem;
+  padding: .35rem .6rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 36%, transparent);
+  border-radius: .45rem;
+  color: inherit;
+  background: color-mix(in srgb, var(--color-panel-raised, #202a3e) 92%, transparent);
+  font-size: .76rem;
+}
+
+.online-remote-rail__actions button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
+.online-remote-rail__manual {
+  margin: 0;
+}
+
+@media (max-width: 899px) {
+  .online-remote-rail {
+    inset: auto .45rem calc(var(--game-hand-height, 150px) + .45rem) .45rem;
+    padding: .5rem;
+  }
+
+  .online-remote-rail__actions {
+    max-height: 5.6rem;
+    overflow: auto;
+  }
+
+  .online-remote-rail__opponent-lanes {
+    grid-template-columns: 1fr;
+    max-height: 9rem;
+    overflow: auto;
+  }
+}

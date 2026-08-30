@@ -19,8 +19,11 @@ import { CURRENT_CONTRACT_VERSIONS } from '../../versioning/index';
 import { deepFreezeCopy } from './support';
 import {
   ONLINE_PROJECTION_SCHEMA_VERSION_V1,
+  ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2,
   type OnlineParticipantProjectionV1,
+  type OnlineParticipantProjectionAssistedV2,
   type OnlineProjectedDurationV1,
+  type OnlineProjectedCommonResponseWindowV1,
   type OnlineProjectedGameV1,
   type OnlineProjectedObjectRuntimeV1,
   type OnlineProjectedPlayPermissionV1,
@@ -400,7 +403,7 @@ function playPermissions(ctx: ProjectionContext): readonly OnlineProjectedPlayPe
   return Object.freeze(output);
 }
 
-function game(ctx: ProjectionContext): OnlineProjectedGameV1 {
+function game(ctx: ProjectionContext, includeAssistedPriority = false): OnlineProjectedGameV1 {
   const registry = ctx.registry;
   const allPublic = new Set<CoreObjectId>([
     ...registry.zones.shared.battlefield,
@@ -417,6 +420,29 @@ function game(ctx: ProjectionContext): OnlineProjectedGameV1 {
   const publicHandles = allPublic as ReadonlySet<CoreObjectId>;
   const lifecycle = ctx.state.coreRoot.playerLifecycle;
   const manual = ctx.state.coreRoot.tabletopManual;
+  const priorityWindow = ctx.state.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
+  const topStackObjectId = registry.zones.shared.stack.at(-1) ?? null;
+  const topStackObject = topStackObjectId === null ? undefined : registry.objects[topStackObjectId];
+  const stewardPlayerId = topStackObjectId === null
+    ? registry.activePlayerId
+    : topStackObject?.kind === 'activated-ability' || topStackObject?.kind === 'triggered-ability'
+      ? topStackObject.controllerPlayerId
+      : topStackObject?.kind === 'spell-copy'
+        ? topStackObject.controllerPlayerId
+        : topStackObject?.kind === 'card'
+          ? topStackObject.baseControllerPlayerId
+          : null;
+  const responseWindow: OnlineProjectedCommonResponseWindowV1 | null = (() => {
+    if (priorityWindow.kind === 'priority' && topStackObjectId !== null) return 'after-stack-addition';
+    if (priorityWindow.kind === 'turn-advance-ready') return 'before-passing-turn';
+    const { phase, step } = ctx.state.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.position;
+    if (phase === 'precombat-main') return 'before-combat';
+    if (phase === 'combat' && step === 'declare-blockers') return 'after-attackers';
+    if (phase === 'combat' && step === 'combat-damage') return 'after-blockers';
+    if (phase === 'postcombat-main' || (phase === 'ending' && step === 'end')) return 'before-end-step';
+    if (phase === 'ending' && step === 'cleanup') return 'before-passing-turn';
+    return null;
+  })();
   return Object.freeze({
     turnOrder: Object.freeze(registry.turnOrder.slice()),
     turn: Object.freeze({
@@ -458,6 +484,17 @@ function game(ctx: ProjectionContext): OnlineProjectedGameV1 {
       notes: Object.freeze(manual.noteOrder.map((id) => manual.notes[id]).filter((entry): entry is NonNullable<typeof entry> => entry !== undefined).map((entry) => Object.freeze({ ...entry }))),
       manualStack: Object.freeze(manual.stackEntries.map((entry) => Object.freeze({ ...entry }))),
     }),
+    ...(includeAssistedPriority ? {
+      priorityHolds: Object.freeze((manual?.priorityHolds ?? []).map((hold) => Object.freeze({ ...hold }))),
+      assistedPriority: Object.freeze({
+        holderPlayerId: priorityWindow.kind === 'priority' ? priorityWindow.holderPlayerId : null,
+        stewardPlayerId,
+        windowKind: priorityWindow.kind,
+        holds: Object.freeze((manual?.priorityHolds ?? []).map((hold) => hold.playerId)),
+        responseWindow,
+        topStackObjectId,
+      }),
+    } : {}),
   });
 }
 
@@ -504,4 +541,29 @@ export function constructParticipantProjectionV1(
     }),
     game: game(ctx),
   });
+}
+
+export function constructParticipantProjectionV2(
+  state: OnlineProtocolStateV1,
+  request: OnlineProjectionRequestV1,
+  participant: OnlineRoomParticipantV1,
+): OnlineParticipantProjectionAssistedV2 {
+  const legacy = constructParticipantProjectionV1(state, request, participant);
+  const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+  const runtime = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRuntime;
+  const playerId = participant.role === 'player'
+    ? state.room.seats[participant.seatIndex]?.corePlayerId ?? null
+    : null;
+  if (participant.role === 'player' && playerId === null) throw new ProjectionConstructionError();
+  const ctx: ProjectionContext = Object.freeze({
+    state,
+    request,
+    participant,
+    registry,
+    runtime,
+    playerId,
+    effectiveViewerIds: effectiveViewers(state, request, participant),
+  });
+  const enrichedGame = game(ctx, true) as OnlineParticipantProjectionAssistedV2['game'];
+  return Object.freeze({ ...legacy, kind: 'online-participant-projection-v2', schemaVersion: ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2, game: enrichedGame });
 }

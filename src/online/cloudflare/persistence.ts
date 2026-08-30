@@ -546,7 +546,7 @@ export class OnlineCloudflareRepository {
         kind: 'online-command-envelope-v1', protocolVersion: replayReady.value.protocolVersion, roomId: replayReady.value.room.roomId,
         participantId: entry.participant_id, participantCapability: seat.seatCapability,
         commandId: entry.command_id, baseRevision: entry.base_revision, command,
-      });
+      }, true);
       if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.state.revision !== index + 1) throw new Error('Recovery replay rejected');
       rebuilt = transition.state;
     }
@@ -820,7 +820,7 @@ export class OnlineCloudflareRepository {
       let command: unknown; try { command = JSON.parse(entry.command_json); } catch { throw new Error('Invalid variable journal command JSON'); }
       const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: replay.protocolVersion, roomId, participantId: entry.participant_id, participantCapability: seat.seatCapability, commandId: entry.command_id, baseRevision: index, command };
       const validation = validateOnlineCommandEnvelopeV1(envelope); if (!validation.ok || JSON.stringify(validation.value.command) !== entry.command_json) throw new Error('Invalid variable journal command');
-      const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
+      const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value, true); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
     }
     if (JSON.stringify(replay) !== row.state_json) throw new Error('Variable journal replay mismatch');
     return checked.value;

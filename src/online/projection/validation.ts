@@ -20,14 +20,17 @@ import {
 } from './support';
 import {
   ONLINE_PROJECTION_SCHEMA_VERSION_V1,
+  ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2,
   type OnlineParticipantProjectionV1,
+  type OnlineParticipantProjectionAssistedV2,
+  type OnlineParticipantProjectionValidationResultV2,
   type OnlineParticipantProjectionValidationResultV1,
   type OnlineProjectedObjectRuntimeV1,
   type OnlineProjectedZoneEntryV1,
   type OnlineProjectionIssueV1,
 } from './types';
-import { ONLINE_PROJECTION_SCHEMA_VERSION_V3 } from './variable';
-import type { OnlineVariableParticipantProjectionV3 } from './variable';
+import { ONLINE_PROJECTION_SCHEMA_VERSION_V3, ONLINE_PROJECTION_SCHEMA_VERSION_V4 } from './variable';
+import type { OnlineVariableParticipantProjectionV3, OnlineVariableParticipantProjectionV4 } from './variable';
 
 const LOWER_CASE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const TOKEN_DEFINITION_MAX_SERIALIZED_BYTES_V1 = 8_192;
@@ -36,6 +39,7 @@ const TOKEN_DEFINITION_MAX_KEYWORDS_V1 = 16;
 const TOKEN_DEFINITION_MAX_FACES_V1 = 2;
 const TOKEN_DEFINITION_MAX_COLORS_V1 = 5;
 const TOKEN_DEFINITION_MAX_PRODUCED_MANA_V1 = 6;
+
 const MANUAL_NOTES_MAX_COUNT_V1 = 128;
 const MANUAL_STACK_MAX_COUNT_V1 = 128;
 const MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1 = 24_576;
@@ -467,6 +471,38 @@ function publicManualFacts(
       normalizedStack.push({ id: entry.id, label: entry.label, provenance: entry.provenance, sourceObjectId: entry.sourceObjectId, authorPlayerId: entry.authorPlayerId, creationRevision: entry.creationRevision });
     });
   }
+  if (Object.prototype.hasOwnProperty.call(game, 'priorityHolds')) {
+    const holds = arrayValues(game.priorityHolds, `${path}/priorityHolds`, issues, 4);
+    const holdIds = new Set<string>();
+    holds.forEach((value, index) => {
+      const hold = readExactRecord(value, ['playerId', 'setRevision'], `${path}/priorityHolds/${index}`, issues);
+      if (hold === null) return;
+      if (player(hold.playerId, `${path}/priorityHolds/${index}/playerId`, issues)) {
+        playerRefs.push({ value: hold.playerId, path: `${path}/priorityHolds/${index}/playerId` });
+        if (!order.includes(hold.playerId) || holdIds.has(hold.playerId)) invalid(issues, 'INVALID_RELATION', `${path}/priorityHolds/${index}/playerId`, 'HOLD player must be seated and unique');
+        holdIds.add(hold.playerId);
+      }
+      if (!positiveInteger(hold.setRevision, `${path}/priorityHolds/${index}/setRevision`, issues) || typeof revision !== 'number' || typeof hold.setRevision !== 'number' || hold.setRevision > revision) invalid(issues, 'INVALID_RELATION', `${path}/priorityHolds/${index}/setRevision`, 'HOLD revision must be within projection revision');
+    });
+  }
+  if (Object.prototype.hasOwnProperty.call(game, 'assistedPriority')) {
+    const priority = readExactRecord(game.assistedPriority, ['holderPlayerId', 'stewardPlayerId', 'windowKind', 'holds', 'responseWindow', 'topStackObjectId'], `${path}/assistedPriority`, issues, ['responseWindow', 'topStackObjectId']);
+    if (priority !== null) {
+      if (priority.holderPlayerId !== null) player(priority.holderPlayerId, `${path}/assistedPriority/holderPlayerId`, issues);
+      if (priority.stewardPlayerId !== null) player(priority.stewardPlayerId, `${path}/assistedPriority/stewardPlayerId`, issues);
+      if (typeof priority.windowKind !== 'string' || priority.windowKind.length === 0) invalid(issues, 'INVALID_TYPE', `${path}/assistedPriority/windowKind`, 'Invalid priority window kind');
+      if (priority.responseWindow !== undefined && priority.responseWindow !== null && (typeof priority.responseWindow !== 'string' || !['after-stack-addition', 'before-combat', 'after-attackers', 'after-blockers', 'before-end-step', 'before-passing-turn'].includes(priority.responseWindow))) invalid(issues, 'INVALID_LITERAL', `${path}/assistedPriority/responseWindow`, 'Invalid common response window');
+      if (priority.topStackObjectId !== undefined && priority.topStackObjectId !== null && !isCanonicalCoreObjectIdV2(priority.topStackObjectId)) invalid(issues, 'INVALID_ID', `${path}/assistedPriority/topStackObjectId`, 'Invalid stack object ID');
+      const holds = arrayValues(priority.holds, `${path}/assistedPriority/holds`, issues, 4);
+      const holdIds = new Set<string>();
+      holds.forEach((value, index) => {
+        if (player(value, `${path}/assistedPriority/holds/${index}`, issues)) {
+          if (holdIds.has(value)) invalid(issues, 'DUPLICATE_VALUE', `${path}/assistedPriority/holds/${index}`, 'Duplicate HOLD player');
+          holdIds.add(value);
+        }
+      });
+    }
+  }
   if (issues.length === issueCount) {
     const serializedBytes = (value: unknown): number | null => {
       try {
@@ -480,7 +516,7 @@ function publicManualFacts(
     if (notesBytes === null || notesBytes > MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1) invalid(issues, 'INVALID_TYPE', `${path}/notes`, 'Manual notes exceed the bounded serialized size');
     const stackBytes = serializedBytes(normalizedStack);
     if (stackBytes === null || stackBytes > MANUAL_STACK_MAX_SERIALIZED_BYTES_V1) invalid(issues, 'INVALID_TYPE', `${path}/manualStack`, 'Manual stack exceeds the bounded serialized size');
-    const aggregateBytes = serializedBytes({ notes: normalizedNotes, manualStack: normalizedStack });
+    const aggregateBytes = serializedBytes({ notes: normalizedNotes, manualStack: normalizedStack, priorityHolds: game.priorityHolds ?? [] });
     if (aggregateBytes === null || aggregateBytes > MANUAL_STATE_MAX_SERIALIZED_BYTES_V1) invalid(issues, 'INVALID_TYPE', path, 'Manual state exceeds the bounded serialized size');
   }
 }
@@ -557,7 +593,11 @@ export function validateOnlineParticipantProjectionV1(
         if (typeof seatIndex !== 'number' || seatPlayers[seatIndex] !== root.corePlayerId) invalid(issues, 'INVALID_RELATION', '/corePlayerId', 'Audience Core player must match its seat');
       }
     }
-    const game = readExactRecord(root.game, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'searchResults', 'playPermissions', 'notes', 'manualStack'], '/game', issues, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions']);
+    const game = readExactRecord(root.game, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'searchResults', 'playPermissions', 'notes', 'manualStack', 'priorityHolds', 'assistedPriority'], '/game', issues, ['turnOrder', 'turn', 'players', 'zones', 'visibilityGrants', 'searchSessions', 'playPermissions']);
+    if (root.schemaVersion === ONLINE_PROJECTION_SCHEMA_VERSION_V1 && game !== null) {
+      if (Object.prototype.hasOwnProperty.call(game, 'priorityHolds')) invalid(issues, 'INVALID_VERSION', '/game/priorityHolds', 'Priority HOLD fields require projection schema version 2');
+      if (Object.prototype.hasOwnProperty.call(game, 'assistedPriority')) invalid(issues, 'INVALID_VERSION', '/game/assistedPriority', 'Assisted priority fields require projection schema version 2');
+    }
     const handles = new Set<string>();
     const attachmentTargets = new Set<string>();
     const entriesByHandle = new Map<string, OnlineProjectedZoneEntryV1>();
@@ -734,6 +774,111 @@ export function validateOnlineParticipantProjectionV1(
   }
 }
 
+function validateAssistedPriorityFields(
+  game: Record<string, unknown>,
+  revision: unknown,
+  turnOrder: readonly unknown[],
+  path: string,
+  issues: OnlineProjectionIssueV1[],
+  includeCausalContext = false,
+  publicHandles: ReadonlySet<string> | null = null,
+): boolean {
+  let valid = true;
+  const holds = game.priorityHolds;
+  if (!Array.isArray(holds)) { invalid(issues, 'INVALID_TYPE', `${path}/priorityHolds`, 'Priority HOLDs must be an array'); valid = false; }
+  const holdIds = new Set<string>();
+  if (Array.isArray(holds)) holds.forEach((value, index) => {
+    const hold = readExactRecord(value, ['playerId', 'setRevision'], `${path}/priorityHolds/${index}`, issues);
+    if (hold === null) { valid = false; return; }
+    if (!isCoreBaseId(hold.playerId) || !turnOrder.includes(hold.playerId) || holdIds.has(hold.playerId)) { invalid(issues, 'INVALID_RELATION', `${path}/priorityHolds/${index}/playerId`, 'HOLD player must be seated and unique'); valid = false; }
+    holdIds.add(String(hold.playerId));
+    if (!Number.isSafeInteger(hold.setRevision) || (hold.setRevision as number) < 1 || typeof revision !== 'number' || (hold.setRevision as number) > revision) { invalid(issues, 'INVALID_RELATION', `${path}/priorityHolds/${index}/setRevision`, 'HOLD revision is invalid'); valid = false; }
+  });
+  const priorityFields = includeCausalContext
+    ? ['holderPlayerId', 'stewardPlayerId', 'windowKind', 'holds', 'responseWindow', 'topStackObjectId', 'sourceObjectId', 'targetObjectIds', 'targetPlayerIds', 'recentResolution', 'undoAuthorizedPlayerId']
+    : ['holderPlayerId', 'stewardPlayerId', 'windowKind', 'holds', 'responseWindow', 'topStackObjectId'];
+  const priority = readExactRecord(game.assistedPriority, priorityFields, `${path}/assistedPriority`, issues);
+  if (priority === null) return false;
+  for (const [key, field] of [['holderPlayerId', 'holderPlayerId'], ['stewardPlayerId', 'stewardPlayerId']] as const) {
+    if (priority[key] !== null && (!isCoreBaseId(priority[key]) || !turnOrder.includes(priority[key]))) { invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/${field}`, 'Priority player must be seated or null'); valid = false; }
+  }
+  if (includeCausalContext && priority.undoAuthorizedPlayerId !== null && (!isCoreBaseId(priority.undoAuthorizedPlayerId) || !turnOrder.includes(priority.undoAuthorizedPlayerId))) {
+    invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/undoAuthorizedPlayerId`, 'Undo authority must be seated or null'); valid = false;
+  }
+  if (typeof priority.windowKind !== 'string' || priority.windowKind.length === 0) { invalid(issues, 'INVALID_TYPE', `${path}/assistedPriority/windowKind`, 'Priority window kind is invalid'); valid = false; }
+  const responseWindows = ['after-stack-addition', 'before-combat', 'after-attackers', 'after-blockers', 'before-end-step', 'before-passing-turn'];
+  if (priority.responseWindow !== null && (typeof priority.responseWindow !== 'string' || !responseWindows.includes(priority.responseWindow))) { invalid(issues, 'INVALID_LITERAL', `${path}/assistedPriority/responseWindow`, 'Common response window is invalid'); valid = false; }
+  if (priority.topStackObjectId !== null && !isCanonicalCoreObjectIdV2(priority.topStackObjectId)) { invalid(issues, 'INVALID_ID', `${path}/assistedPriority/topStackObjectId`, 'Stack object ID is invalid'); valid = false; }
+  if (!Array.isArray(priority.holds)) { invalid(issues, 'INVALID_TYPE', `${path}/assistedPriority/holds`, 'Priority HOLD list is invalid'); valid = false; }
+  else {
+    const seen = new Set<string>();
+    priority.holds.forEach((value, index) => {
+      if (!isCoreBaseId(value) || !holdIds.has(value) || seen.has(value)) { invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/holds/${index}`, 'Assisted HOLD list must match priorityHolds'); valid = false; }
+      seen.add(String(value));
+    });
+    if (seen.size !== holdIds.size) { invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/holds`, 'Assisted HOLD list must match priorityHolds'); valid = false; }
+  }
+  if (includeCausalContext) {
+    if (priority.sourceObjectId !== null && (!isCanonicalCoreObjectIdV2(priority.sourceObjectId) || (publicHandles !== null && !publicHandles.has(String(priority.sourceObjectId))))) {
+      invalid(issues, 'INVALID_ID', `${path}/assistedPriority/sourceObjectId`, 'Source object ID is invalid'); valid = false;
+    }
+    const targetObjects = arrayValues(priority.targetObjectIds, `${path}/assistedPriority/targetObjectIds`, issues, 8);
+    const objectSeen = new Set<string>();
+    targetObjects.forEach((value, index) => {
+      if (!isCanonicalCoreObjectIdV2(value) || (publicHandles !== null && !publicHandles.has(String(value))) || objectSeen.has(String(value))) {
+        invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/targetObjectIds/${index}`, 'Target object IDs must be canonical and unique'); valid = false;
+      }
+      objectSeen.add(String(value));
+    });
+    const targetPlayers = arrayValues(priority.targetPlayerIds, `${path}/assistedPriority/targetPlayerIds`, issues, 4);
+    const playerSeen = new Set<string>();
+    targetPlayers.forEach((value, index) => {
+      if (!isCoreBaseId(value) || !turnOrder.includes(value) || playerSeen.has(String(value))) {
+        invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/targetPlayerIds/${index}`, 'Target player IDs must be seated and unique'); valid = false;
+      }
+      playerSeen.add(String(value));
+    });
+    if (priority.recentResolution !== null) {
+      const resolution = readExactRecord(priority.recentResolution, ['objectId', 'destination', 'acceptedRevision'], `${path}/assistedPriority/recentResolution`, issues);
+      if (resolution !== null) {
+        if (resolution.objectId !== null && !isCanonicalCoreObjectIdV2(resolution.objectId)) { invalid(issues, 'INVALID_ID', `${path}/assistedPriority/recentResolution/objectId`, 'Recent resolution object ID is invalid'); valid = false; }
+        if (typeof resolution.destination !== 'string' || !['battlefield', 'owner-graveyard', 'cease', 'manual'].includes(resolution.destination)) { invalid(issues, 'INVALID_LITERAL', `${path}/assistedPriority/recentResolution/destination`, 'Recent resolution destination is invalid'); valid = false; }
+        if (typeof resolution.acceptedRevision !== 'number' || !Number.isSafeInteger(resolution.acceptedRevision) || typeof revision !== 'number' || resolution.acceptedRevision < 1 || resolution.acceptedRevision > revision) { invalid(issues, 'INVALID_RELATION', `${path}/assistedPriority/recentResolution/acceptedRevision`, 'Recent resolution revision is invalid'); valid = false; }
+      }
+    }
+  }
+  return valid;
+}
+
+export function validateOnlineParticipantProjectionV2(
+  input: unknown,
+): OnlineParticipantProjectionValidationResultV2 {
+  const issues: OnlineProjectionIssueV1[] = [];
+  try {
+    if (input === null || typeof input !== 'object' || Array.isArray(input)) return Object.freeze({ ok: false, issues: freezeProjectionIssues([projectionIssue('INVALID_ROOT', '', 'Projection root must be an object')]) });
+    const root = input as Record<string, unknown>;
+    if (root.kind !== 'online-participant-projection-v2') invalid(issues, 'INVALID_LITERAL', '/kind', 'Invalid projection kind');
+    if (root.schemaVersion !== ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2) invalid(issues, 'INVALID_VERSION', '/schemaVersion', 'Invalid projection schema version');
+    const rawGame = root.game;
+    if (rawGame === null || typeof rawGame !== 'object' || Array.isArray(rawGame)) invalid(issues, 'INVALID_TYPE', '/game', 'Invalid game projection');
+    else {
+      const game = rawGame as Record<string, unknown>;
+      if (!Object.prototype.hasOwnProperty.call(game, 'priorityHolds') || !Object.prototype.hasOwnProperty.call(game, 'assistedPriority')) invalid(issues, 'MISSING_FIELD', '/game', 'Projection v2 requires assisted priority fields');
+      const turnOrder = Array.isArray(game.turnOrder) ? game.turnOrder : [];
+      validateAssistedPriorityFields(game, game.revision ?? root.revision, turnOrder, '/game', issues);
+      const legacyGame = { ...game };
+      delete legacyGame.priorityHolds;
+      delete legacyGame.assistedPriority;
+      const legacy = validateOnlineParticipantProjectionV1({ ...root, kind: 'online-participant-projection-v1', schemaVersion: ONLINE_PROJECTION_SCHEMA_VERSION_V1, game: legacyGame });
+      if (!legacy.ok) issues.push(...legacy.issues);
+    }
+    if (issues.length > 0) return Object.freeze({ ok: false, issues: freezeProjectionIssues(issues) });
+    return Object.freeze({ ok: true, value: deepFreezeCopy(input) as OnlineParticipantProjectionAssistedV2 });
+  } catch {
+    return Object.freeze({ ok: false, issues: freezeProjectionIssues([projectionIssue('INVALID_ROOT', '', 'Projection is invalid')]) });
+  }
+}
+
 /**
  * Validator for the additive full variable projection.  The v3 envelope is
  * deliberately checked independently so the fixed four-seat v1 contract is
@@ -867,9 +1012,11 @@ export function validateOnlineParticipantProjectionV3(
     else {
       const g = game as Record<string, unknown>;
       const required = ['playPermissions', 'players', 'searchSessions', 'turn', 'turnOrder', 'visibilityGrants', 'zones'];
-      const optional = ['manualStack', 'notes', 'searchResults'];
+      const optional = ['manualStack', 'notes', 'searchResults', 'priorityHolds', 'assistedPriority'];
       const keys = Object.keys(g);
       if (keys.some((key) => !required.includes(key) && !optional.includes(key)) || required.some((key) => !keys.includes(key))) invalid('/game', 'Game has unknown or missing fields');
+      if (root.schemaVersion === ONLINE_PROJECTION_SCHEMA_VERSION_V3 && Object.prototype.hasOwnProperty.call(g, 'priorityHolds')) invalid('/game/priorityHolds', 'Priority HOLD fields require projection schema version 4');
+      if (root.schemaVersion === ONLINE_PROJECTION_SCHEMA_VERSION_V3 && Object.prototype.hasOwnProperty.call(g, 'assistedPriority')) invalid('/game/assistedPriority', 'Assisted priority fields require projection schema version 4');
       if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || new Set(g.turnOrder).size !== playerCount || g.turnOrder.some((id) => typeof id !== 'string' || !/^P[1-4]$/u.test(id)) || Array.from({ length: playerCount }, (_, i) => `P${i + 1}`).some((id) => !(g.turnOrder as readonly unknown[]).includes(id))) invalid('/game/turnOrder', 'Turn order must be an exact seated-player permutation');
       if (!Array.isArray(g.players) || g.players.length !== playerCount) invalid('/game/players', 'Player coverage must match exact roster');
       if (!Array.isArray(g.visibilityGrants) || !Array.isArray(g.searchSessions) || !Array.isArray(g.playPermissions)) invalid('/game', 'Invalid game authority arrays');
@@ -965,6 +1112,116 @@ export function validateOnlineParticipantProjectionV3(
   }
 }
 
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function validateV4ConcealedControllers(
+  game: Record<string, unknown>,
+  turnOrder: readonly unknown[],
+  issues: OnlineProjectionIssueV1[],
+): void {
+  const zones = game.zones;
+  if (!isRecordValue(zones)) return;
+  const inspectZone = (zone: unknown, path: string, battlefield: boolean): void => {
+    if (!isRecordValue(zone) || !Array.isArray(zone.entries)) return;
+    zone.entries.forEach((entry, index) => {
+      if (!isRecordValue(entry) || entry.kind !== 'concealed-object') return;
+      const fieldPath = `${path}/entries/${index}/controllerPlayerId`;
+      const hasController = Object.prototype.hasOwnProperty.call(entry, 'controllerPlayerId');
+      if (!battlefield) {
+        if (hasController) invalid(issues, 'UNKNOWN_FIELD', fieldPath, 'Concealed controller is valid only on battlefield entries');
+        return;
+      }
+      if (!hasController) {
+        invalid(issues, 'MISSING_FIELD', fieldPath, 'Concealed battlefield object requires a controller seat');
+      } else if (entry.controllerPlayerId !== null && (!isCoreBaseId(entry.controllerPlayerId) || !turnOrder.includes(entry.controllerPlayerId))) {
+        invalid(issues, 'INVALID_RELATION', fieldPath, 'Concealed controller must be seated or null');
+      }
+    });
+  };
+  inspectZone(zones.battlefield, '/game/zones/battlefield', true);
+  inspectZone(zones.stack, '/game/zones/stack', false);
+  inspectZone(zones.exile, '/game/zones/exile', false);
+  inspectZone(zones.command, '/game/zones/command', false);
+  if (Array.isArray(zones.byPlayer)) zones.byPlayer.forEach((group, groupIndex) => {
+    if (!isRecordValue(group) || !isRecordValue(group.zones)) return;
+    const groupZones = group.zones;
+    inspectZone(groupZones.library, `/game/zones/byPlayer/${groupIndex}/zones/library`, false);
+    inspectZone(groupZones.hand, `/game/zones/byPlayer/${groupIndex}/zones/hand`, false);
+    inspectZone(groupZones.graveyard, `/game/zones/byPlayer/${groupIndex}/zones/graveyard`, false);
+  });
+}
+
+function projectedPublicHandles(game: Record<string, unknown>): ReadonlySet<string> {
+  const handles = new Set<string>();
+  const zones = game.zones;
+  const inspect = (zone: unknown): void => {
+    if (!isRecordValue(zone) || !Array.isArray(zone.entries)) return;
+    for (const entry of zone.entries) {
+      if (isRecordValue(entry) && (entry.kind === 'visible-object' || entry.kind === 'concealed-object') && typeof entry.objectId === 'string') handles.add(entry.objectId);
+    }
+  };
+  if (!isRecordValue(zones)) return handles;
+  inspect(zones.battlefield); inspect(zones.stack); inspect(zones.exile); inspect(zones.command);
+  if (Array.isArray(zones.byPlayer)) for (const group of zones.byPlayer) {
+    if (!isRecordValue(group) || !isRecordValue(group.zones)) continue;
+    inspect(group.zones.library); inspect(group.zones.hand); inspect(group.zones.graveyard);
+  }
+  return handles;
+}
+
+function stripV4ConcealedControllers(game: Record<string, unknown>): Record<string, unknown> {
+  const zones = game.zones;
+  if (!isRecordValue(zones) || !isRecordValue(zones.battlefield) || !Array.isArray(zones.battlefield.entries)) return { ...game };
+  const battlefield = zones.battlefield;
+  const battlefieldEntries = battlefield.entries;
+  if (!Array.isArray(battlefieldEntries)) return { ...game };
+  const entries = battlefieldEntries.map((entry: unknown) => {
+    if (!isRecordValue(entry) || entry.kind !== 'concealed-object' || !Object.prototype.hasOwnProperty.call(entry, 'controllerPlayerId')) return entry;
+    const stripped = { ...entry };
+    delete stripped.controllerPlayerId;
+    return stripped;
+  });
+  return {
+    ...game,
+    zones: {
+      ...zones,
+      battlefield: { ...battlefield, entries },
+    },
+  };
+}
+
+export function validateOnlineParticipantProjectionV4(
+  input: unknown,
+): Readonly<{ readonly ok: true; readonly value: OnlineVariableParticipantProjectionV4 } | { readonly ok: false; readonly issues: readonly OnlineProjectionIssueV1[] }> {
+  const issues: OnlineProjectionIssueV1[] = [];
+  try {
+    if (input === null || typeof input !== 'object' || Array.isArray(input)) return Object.freeze({ ok: false, issues: freezeProjectionIssues([projectionIssue('INVALID_ROOT', '', 'Projection root must be an object')]) });
+    const root = input as Record<string, unknown>;
+    if (root.kind !== 'online-participant-projection-v4') invalid(issues, 'INVALID_LITERAL', '/kind', 'Invalid projection kind');
+    if (root.schemaVersion !== ONLINE_PROJECTION_SCHEMA_VERSION_V4) invalid(issues, 'INVALID_VERSION', '/schemaVersion', 'Invalid projection schema version');
+    const rawGame = root.game;
+    if (rawGame === null || typeof rawGame !== 'object' || Array.isArray(rawGame)) invalid(issues, 'INVALID_TYPE', '/game', 'Invalid game projection');
+    else {
+      const game = rawGame as Record<string, unknown>;
+      if (!Object.prototype.hasOwnProperty.call(game, 'priorityHolds') || !Object.prototype.hasOwnProperty.call(game, 'assistedPriority')) invalid(issues, 'MISSING_FIELD', '/game', 'Projection v4 requires assisted priority fields');
+      const turnOrder = Array.isArray(game.turnOrder) ? game.turnOrder : [];
+      validateV4ConcealedControllers(game, turnOrder, issues);
+      const legacyGame = stripV4ConcealedControllers(game);
+      delete legacyGame.priorityHolds;
+      delete legacyGame.assistedPriority;
+      const legacy = validateOnlineParticipantProjectionV3({ ...root, kind: 'online-participant-projection-v3', schemaVersion: ONLINE_PROJECTION_SCHEMA_VERSION_V3, game: legacyGame });
+      if (!legacy.ok) issues.push(...legacy.issues);
+      validateAssistedPriorityFields(game, root.revision, turnOrder, '/game', issues, true, projectedPublicHandles(game));
+    }
+    if (issues.length > 0) return Object.freeze({ ok: false, issues: freezeProjectionIssues(issues) });
+    return Object.freeze({ ok: true, value: deepFreezeCopy(input) as OnlineVariableParticipantProjectionV4 });
+  } catch {
+    return Object.freeze({ ok: false, issues: freezeProjectionIssues([projectionIssue('INVALID_ROOT', '', 'Projection is invalid')]) });
+  }
+}
+
 /** Validate either the legacy full projection or the additive variable one. */
 export function validateOnlineParticipantProjectionAny(
   input: unknown,
@@ -973,5 +1230,9 @@ export function validateOnlineParticipantProjectionAny(
   if (legacy.ok) return legacy;
   const variable = validateOnlineParticipantProjectionV3(input);
   if (variable.ok) return Object.freeze({ ok: true, value: variable.value as unknown as OnlineParticipantProjectionV1 });
+  const assistedLegacy = validateOnlineParticipantProjectionV2(input);
+  if (assistedLegacy.ok) return Object.freeze({ ok: true, value: assistedLegacy.value as unknown as OnlineParticipantProjectionV1 });
+  const assistedVariable = validateOnlineParticipantProjectionV4(input);
+  if (assistedVariable.ok) return Object.freeze({ ok: true, value: assistedVariable.value as unknown as OnlineParticipantProjectionV1 });
   return variable;
 }

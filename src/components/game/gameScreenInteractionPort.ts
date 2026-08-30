@@ -35,6 +35,8 @@ export interface ResolutionSessionPresentation {
  */
 export interface GameScreenInteractionPort {
   state: GameState | null;
+  /** Remote projections may expose a private library count without card IDs. */
+  libraryCount?: number;
   warnings: readonly string[];
   triggerCandidates: readonly TriggerCandidate[];
   resolutionSession: ResolutionSessionPresentation | null;

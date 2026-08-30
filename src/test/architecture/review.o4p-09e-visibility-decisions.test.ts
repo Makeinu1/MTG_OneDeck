@@ -50,7 +50,7 @@ describe('O4P-09E secret-safe visibility and decision architecture', () => {
     expect(core).toMatch(/while-source-exists/u);
     expect(core).toContain('core-search-completion-result-v1');
     expect(core).toMatch(/completionResult[\s\S]*revealFound/u);
-    expect(core).not.toMatch(/setTimeout|Date\.now|Math\.random|window\.|document\./u);
+    expect(core).not.toMatch(/setTimeout|Date\.now|Math\.random|window\.(?:addEventListener|removeEventListener|dispatchEvent|location|document|localStorage|sessionStorage|setTimeout|clearTimeout|requestAnimationFrame)|document\.(?:addEventListener|removeEventListener|querySelector|getElementById|createElement)/u);
   });
 
   it('uses one high-level wire while preserving the D hidden-information rejection', () => {

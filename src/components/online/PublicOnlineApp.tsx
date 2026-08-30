@@ -10,12 +10,10 @@ import {
   type PublicOnlineConfigurationV3,
 } from '../../online/publicApp';
 import './publicOnlineApp.css';
-import { OnlineDisplayPairing } from './OnlineDisplayPairing';
-import { OnlineGuidedActions } from './OnlineGuidedActions';
-import { PersonalWorkbench } from './PersonalWorkbench';
 import { PregameLayer } from './OnlinePregameLayer';
 import { OnlineTabletopManual } from './OnlineTabletopManual';
 import { OnlineVisibilityDecisions } from './OnlineVisibilityDecisions';
+import { RemoteGameScreenActionRail, useRemoteGameScreenInteractionPort } from './remoteGameScreen';
 
 export type PublicOnlineAppProps = Readonly<{
   decks: readonly PublicOnlineDeckOptionV2[];
@@ -166,6 +164,14 @@ export function PublicOnlineApp({
       </div>
     );
   };
+  const remoteProjection = snapshot.player?.projection ?? null;
+  const remoteInteractionPort = useRemoteGameScreenInteractionPort({
+    projection: remoteProjection,
+    interactionState,
+    busy: tabletopBusy,
+    onSubmitTabletopIntent: controller.submitTabletopIntent,
+    onSubmitPersonalAction: controller.submitPersonalAction,
+  });
   const chooseDeck = (id: string) => {
     setSelectedDeckId(id);
     onDeckSelect?.(id);
@@ -633,50 +639,36 @@ export function PublicOnlineApp({
       )}
       {started && !pregamePending && snapshot.player?.projection && (
         <GameScreen
-          key={`online-game-${snapshot.player.projection.revision}`}
           keybindings={keybindings}
-          presentation={(
-            <div className="public-online-app__active-table" data-testid="online-active-table">
-              {snapshot.table?.projection ? (
-                <OnlineDisplayPairing
-                  personalProjection={snapshot.player.projection}
-                  tableProjection={snapshot.table.projection}
-                  interactionState={interactionState}
-                  focusedPlayerId={null}
-                  onFocus={() => undefined}
-                  onAction={controller.submitPersonalAction}
-                  onGuidedAction={controller.submitGuidedAction}
-                />
-              ) : (
-                <div className="public-online-app__player-surfaces">
-                  <PersonalWorkbench
-                    projection={snapshot.player.projection}
-                    interactionState={interactionState}
-                    onAction={controller.submitPersonalAction}
-                  />
-                  <OnlineGuidedActions
-                    projection={snapshot.player.projection}
-                    interactionState={interactionState}
-                    onAction={controller.submitGuidedAction}
-                  />
-                </div>
-              )}
-              <OnlineTabletopManual
-                projection={snapshot.player.projection}
-                interactionState={interactionState}
-                busy={tabletopBusy}
-                error={snapshot.error}
-                onSubmit={controller.submitTabletopIntent}
-              />
-              <OnlineVisibilityDecisions
-                projection={snapshot.player.projection}
-                interactionState={interactionState}
-                busy={tabletopBusy}
-                onSubmit={(intent) => { void controller.submitVisibilityIntent(intent); }}
-              />
-            </div>
+          interactionPort={remoteInteractionPort}
+          surfaceOverlay={(
+            <RemoteGameScreenActionRail
+              projection={snapshot.player.projection}
+              interactionState={interactionState}
+              busy={tabletopBusy}
+              onSubmitTabletopIntent={controller.submitTabletopIntent}
+              onSubmitPersonalAction={controller.submitPersonalAction}
+              port={remoteInteractionPort}
+            />
           )}
         />
+      )}
+      {started && !pregamePending && snapshot.player?.projection && (
+        <div className="public-online-app__secondary-tools" data-testid="online-secondary-tools">
+          <OnlineTabletopManual
+            projection={snapshot.player.projection}
+            interactionState={interactionState}
+            busy={tabletopBusy}
+            error={snapshot.error}
+            onSubmit={controller.submitTabletopIntent}
+          />
+          <OnlineVisibilityDecisions
+            projection={snapshot.player.projection}
+            interactionState={interactionState}
+            busy={tabletopBusy}
+            onSubmit={(intent) => { void controller.submitVisibilityIntent(intent); }}
+          />
+        </div>
       )}
       {started && actionError('盤面を確認')}
     </main>

@@ -1,6 +1,7 @@
-export { ONLINE_PROJECTION_SCHEMA_VERSION_V1 } from './types';
+export { ONLINE_PROJECTION_SCHEMA_VERSION_V1, ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2 } from './types';
 export type {
   OnlineParticipantProjectionV1,
+  OnlineParticipantProjectionAssistedV2,
   OnlineParticipantProjectionValidationResultV1,
   OnlineProjectedAttachmentV1,
   OnlineProjectedConcealedObjectV1,
@@ -39,9 +40,12 @@ export type {
 export { validateOnlineProjectionRequestV1 } from './request';
 export {
   validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionV2,
   validateOnlineParticipantProjectionV3,
+  validateOnlineParticipantProjectionV4,
   validateOnlineParticipantProjectionAny,
 } from './validation';
+export { constructParticipantProjectionV1, constructParticipantProjectionV2 } from './project';
 export {
   handleOnlineProjectedSnapshotRequestV1,
   OnlineProjectionOperationErrorV1,
@@ -64,4 +68,15 @@ export {
 export type {
   OnlineVariableParticipantProjectionV3,
   OnlineParticipantProjectionV3,
+} from './variable';
+export {
+  ONLINE_PROJECTION_SCHEMA_VERSION_V4,
+  projectOnlineVariableProtocolV4,
+  projectOnlineVariableRoomV4,
+} from './variable';
+export type {
+  OnlineVariableParticipantProjectionV4,
+  OnlineParticipantProjectionV4,
+  OnlineProjectedAssistedPriorityV4,
+  OnlineProjectedConcealedBattlefieldObjectV4,
 } from './variable';

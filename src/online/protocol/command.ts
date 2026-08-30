@@ -71,6 +71,13 @@ function requestDigest(message: OnlineCommandEnvelopeV1): string {
   });
 }
 
+function requiresTrustedTabletopBinder(command: OnlineCommandEnvelopeV1['command']): boolean {
+  const kind = command.payload.kind;
+  return kind === 'stack-remove-object'
+    || kind === 'table-turn-progress'
+    || kind === 'table-manual-resolve';
+}
+
 function appendReceipt(
   state: OnlineProtocolStateV1,
   receipt: OnlineProtocolCommandReceiptV1,
@@ -160,6 +167,7 @@ function storedReject(
 export function handleOnlineCommandEnvelopeV1(
   stateInput: unknown,
   messageInput: unknown,
+  trustedTabletopBinder = false,
 ): OnlineCommandTransitionV1 {
   const state = requireProtocolState(stateInput);
   const messageResult = validateOnlineCommandEnvelopeV1(messageInput);
@@ -292,6 +300,16 @@ export function handleOnlineCommandEnvelopeV1(
       digest,
       protocolIssue('STALE_REVISION', '/baseRevision', 'Command revision is stale'),
       true,
+    );
+  }
+
+  if (!trustedTabletopBinder && requiresTrustedTabletopBinder(message.command)) {
+    return storedReject(
+      state,
+      message,
+      digest,
+      protocolIssue('AUTHORIZATION_REJECTED', '/command', 'Steward-owned tabletop commands require the server tabletop binder'),
+      false,
     );
   }
 

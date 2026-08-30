@@ -6,6 +6,7 @@ import type {
   CorePlayerId,
 } from '../../engine/core';
 import type { CoreCardZoneDestinationV1 } from '../../engine/core/transition/zoneDestination';
+import type { OnlineProjectedCommonResponseWindowV1 } from '../../online/projection/types';
 
 export type OnlineTabletopManualInteractionStateV1 = 'ready' | 'updating' | 'offline';
 export type OnlineTabletopManualModeV1 = 'structured' | 'freeform';
@@ -65,6 +66,8 @@ export type OnlineTabletopManualProjectionV1 = Readonly<{
     }>;
     readonly notes?: readonly Readonly<{ readonly id: string; readonly authorPlayerId: CorePlayerId; readonly text: string; readonly creationRevision: number }>[];
     readonly manualStack?: readonly Readonly<{ readonly id: string; readonly label: string; readonly provenance: OnlineTabletopManualModeV1; readonly sourceObjectId: CoreObjectId | null; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number }>[];
+    readonly priorityHolds?: readonly Readonly<{ readonly playerId: CorePlayerId; readonly setRevision: number }>[];
+    readonly assistedPriority?: Readonly<{ readonly holderPlayerId: CorePlayerId | null; readonly stewardPlayerId: CorePlayerId | null; readonly windowKind: string; readonly holds: readonly CorePlayerId[]; readonly responseWindow?: OnlineProjectedCommonResponseWindowV1 | null; readonly topStackObjectId?: CoreObjectId | null }>;
   }>;
 }>;
 
@@ -85,7 +88,12 @@ export type OnlineTabletopManualPrimitiveV1 =
   | Readonly<{ readonly kind: 'note-set'; readonly noteId: string; readonly text: string }>
   | Readonly<{ readonly kind: 'note-clear'; readonly noteId: string }>
   | Readonly<{ readonly kind: 'stack-entry'; readonly entryId: string; readonly label: string; readonly sourceObjectId: CoreObjectId | null }>
-  | Readonly<{ readonly kind: 'manual-resolve'; readonly entryId: string }>;
+  | Readonly<{ readonly kind: 'manual-resolve'; readonly entryId: string }>
+  | Readonly<{ readonly kind: 'priority-hold'; readonly held: boolean }>
+  | Readonly<{ readonly kind: 'priority-advance' }>
+  | Readonly<{ readonly kind: 'priority-resolve' }>
+  | Readonly<{ readonly kind: 'play-land'; readonly objectId: CoreObjectId }>
+  | Readonly<{ readonly kind: 'cast-spell'; readonly objectId: CoreObjectId }>;
 
 export type OnlineTabletopManualIntentEnvelopeV1 = Readonly<{
   readonly kind: 'online-tabletop-intent-envelope-v1';

@@ -18,7 +18,7 @@ import type { CoreClosureVersionVectorV1 } from './versionsV1';
 import { isCoreClosureVersionVectorV1 } from './versionsV1';
 import type { ModeNeutralCoreRootV1 } from './rootV1';
 import { createCoreTabletopManualStateV1, type CoreTabletopManualStateV1 } from '../tabletop/manualStateV1';
-import { isCoreBaseId, isCoreUnsafeRecordKey } from '../ids';
+import { isCoreBaseId, isCoreUnsafeRecordKey, type CoreObjectId, type CorePlayerId } from '../ids';
 import { isCanonicalCoreObjectIdV2 } from '../object/objectIdV2';
 
 export type CoreRootValidationIssueV1 = Readonly<{
@@ -154,7 +154,7 @@ function validateTabletopManualState(
   path: string,
   issues: CoreRootValidationIssueV1[],
 ): CoreTabletopManualStateV1 | undefined {
-  const record = readExact(input, ['kind', 'notes', 'noteOrder', 'stackEntries'], path, issues);
+  const record = readExact(input, ['kind', 'notes', 'noteOrder', 'stackEntries', 'priorityHolds', 'recentResolution'], path, issues, ['priorityHolds', 'recentResolution']);
   if (record === null) return undefined;
   if (record.kind !== 'core-tabletop-manual-state-v1') issues.push(issue('INVALID_LITERAL', `${path}/kind`, 'Invalid tabletop manual state kind'));
   const notes = plain(record.notes) ? record.notes : null;
@@ -209,15 +209,40 @@ function validateTabletopManualState(
     if (typeof entry.creationRevision !== 'number' || !Number.isSafeInteger(entry.creationRevision) || entry.creationRevision < 1 || typeof acceptedCommandCount !== 'number' || entry.creationRevision > acceptedCommandCount) issues.push(issue('INVALID_INTEGER', `${path}/stackEntries/${index}/creationRevision`, 'Invalid stack creation revision'));
     stackEntries.push(Object.freeze({ id: entry.id as string, label: entry.label as string, provenance: entry.provenance as 'structured' | 'freeform', sourceObjectId: entry.sourceObjectId as CoreTabletopManualStateV1['stackEntries'][number]['sourceObjectId'], authorPlayerId: entry.authorPlayerId as CoreTabletopManualStateV1['stackEntries'][number]['authorPlayerId'], creationRevision: entry.creationRevision as number }));
   }
+  const holdValues = record.priorityHolds === undefined
+    ? []
+    : dense(record.priorityHolds, `${path}/priorityHolds`, issues, 4) ?? [];
+  const priorityHolds: CoreTabletopManualStateV1['priorityHolds'][number][] = [];
+  const holdIds = new Set<string>();
+  for (let index = 0; index < holdValues.length; index += 1) {
+    const hold = readExact(holdValues[index], ['playerId', 'setRevision'], `${path}/priorityHolds/${index}`, issues);
+    if (hold === null) continue;
+    if (!isCoreBaseId(hold.playerId) || holdIds.has(hold.playerId) || (registry !== null && !Object.prototype.hasOwnProperty.call(registry.players, hold.playerId))) issues.push(issue('INVALID_ID', `${path}/priorityHolds/${index}/playerId`, 'HOLD player must be a seated player'));
+    if (typeof hold.setRevision !== 'number' || !Number.isSafeInteger(hold.setRevision) || hold.setRevision < 1 || typeof acceptedCommandCount !== 'number' || hold.setRevision > acceptedCommandCount) issues.push(issue('INVALID_INTEGER', `${path}/priorityHolds/${index}/setRevision`, 'Invalid HOLD revision'));
+    if (isCoreBaseId(hold.playerId) && !holdIds.has(hold.playerId)) {
+      holdIds.add(hold.playerId);
+      priorityHolds.push(Object.freeze({ playerId: hold.playerId as CorePlayerId, setRevision: hold.setRevision as number }));
+    }
+  }
+  let recentResolution: CoreTabletopManualStateV1['recentResolution'] = null;
+  if (record.recentResolution !== undefined && record.recentResolution !== null) {
+    const resolution = readExact(record.recentResolution, ['objectId', 'destination', 'acceptedRevision'], `${path}/recentResolution`, issues);
+    if (resolution !== null) {
+      if (resolution.objectId !== null && !isCanonicalCoreObjectIdV2(resolution.objectId)) issues.push(issue('INVALID_ID', `${path}/recentResolution/objectId`, 'Recent resolution object ID is invalid'));
+      if (!['battlefield', 'owner-graveyard', 'cease', 'manual'].includes(String(resolution.destination))) issues.push(issue('INVALID_LITERAL', `${path}/recentResolution/destination`, 'Recent resolution destination is invalid'));
+      if (typeof resolution.acceptedRevision !== 'number' || !Number.isSafeInteger(resolution.acceptedRevision) || resolution.acceptedRevision < 1 || typeof acceptedCommandCount !== 'number' || resolution.acceptedRevision > acceptedCommandCount) issues.push(issue('INVALID_INTEGER', `${path}/recentResolution/acceptedRevision`, 'Recent resolution revision is invalid'));
+      recentResolution = Object.freeze({ objectId: resolution.objectId as CoreObjectId | null, destination: resolution.destination as 'battlefield' | 'owner-graveyard' | 'cease' | 'manual', acceptedRevision: resolution.acceptedRevision as number });
+    }
+  }
   if (issues.some((entry) => entry.path.startsWith(path))) return undefined;
   const notesBytes = serializedBytes({ notes: noteValues, noteOrder });
   if (notesBytes === null || notesBytes > MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1) issues.push(issue('INVALID_TYPE', `${path}/notes`, 'Manual notes exceed the bounded serialized size'));
   const stackBytes = serializedBytes({ stackEntries });
   if (stackBytes === null || stackBytes > MANUAL_STACK_MAX_SERIALIZED_BYTES_V1) issues.push(issue('INVALID_TYPE', `${path}/stackEntries`, 'Manual stack exceeds the bounded serialized size'));
-  const aggregateBytes = serializedBytes({ notes: noteValues, noteOrder, stackEntries });
+  const aggregateBytes = serializedBytes({ notes: noteValues, noteOrder, stackEntries, priorityHolds, recentResolution });
   if (aggregateBytes === null || aggregateBytes > MANUAL_STATE_MAX_SERIALIZED_BYTES_V1) issues.push(issue('INVALID_TYPE', path, 'Manual state exceeds the bounded serialized size'));
   if (issues.some((entry) => entry.path.startsWith(path))) return undefined;
-  return createCoreTabletopManualStateV1({ notes: noteValues, noteOrder, stackEntries });
+  return createCoreTabletopManualStateV1({ notes: noteValues, noteOrder, stackEntries, priorityHolds, recentResolution });
 }
 
 export function validateModeNeutralCoreRootV1(input: unknown): CoreRootValidationResultV1 {

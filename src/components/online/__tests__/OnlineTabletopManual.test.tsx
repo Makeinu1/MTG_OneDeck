@@ -218,4 +218,25 @@ describe('OnlineTabletopManual', () => {
     expect(mounted.container.querySelector<HTMLButtonElement>('[data-testid="online-tabletop-submit-manual-resolve"]')?.disabled).toBe(true);
     unmount(mounted.root);
   });
+
+  it('blocks manual resolve while any player has an assisted HOLD', () => {
+    const heldProjection = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: { holderPlayerId: 'P1', stewardPlayerId: 'P1', windowKind: 'resolution-ready', holds: ['P2'], responseWindow: null, topStackObjectId: null },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const mounted = mount({ projection: heldProjection });
+    expect(mounted.container.querySelector<HTMLButtonElement>('[data-testid="online-tabletop-submit-manual-resolve"]')?.disabled).toBe(true);
+    unmount(mounted.root);
+  });
+
+  it('requires an active empty-stack checkpoint for source-less manual stack entries', () => {
+    const mounted = mount();
+    expect(mounted.container.querySelector<HTMLButtonElement>('[data-testid="online-tabletop-submit-stack-entry"]')?.disabled).toBe(true);
+    change(mounted.container, 'online-tabletop-stack-source', 'ST1:0');
+    expect(mounted.container.querySelector<HTMLButtonElement>('[data-testid="online-tabletop-submit-stack-entry"]')?.disabled).toBe(false);
+    unmount(mounted.root);
+  });
 });

@@ -33,6 +33,7 @@ type ObjectOption = Readonly<{
   readonly controllerPlayerId: CorePlayerId | null;
   readonly objectKind: string;
   readonly zone: string;
+  readonly typeLine: string | null;
 }>;
 
 let nextManualCommandSequence = 0;
@@ -55,6 +56,14 @@ const MANA_COLORS: readonly [CoreManaColorV1, string][] = [
 ];
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 const SAFE_TOKEN_SEED = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
+const RESPONSE_WINDOW_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  'after-stack-addition': 'スタック追加後',
+  'before-combat': '戦闘前',
+  'after-attackers': '攻撃クリーチャー指定後',
+  'after-blockers': 'ブロック指定後',
+  'before-end-step': '終了ステップ前',
+  'before-passing-turn': 'ターンを渡す前',
+});
 
 function visibleObject(entry: OnlineTabletopManualZoneEntryV1, zone: string): ObjectOption | null {
   if (entry.kind === 'hidden-card') return null;
@@ -67,6 +76,7 @@ function visibleObject(entry: OnlineTabletopManualZoneEntryV1, zone: string): Ob
     controllerPlayerId: entry.kind === 'visible-object' ? entry.controllerPlayerId : null,
     objectKind: entry.objectKind,
     zone,
+    typeLine: entry.kind === 'visible-object' ? entry.definition?.typeLine ?? null : null,
   });
 }
 
@@ -230,8 +240,13 @@ export function OnlineTabletopManual({
   const [stackEntryId, setStackEntryId] = useState('stack-1');
   const [stackLabel, setStackLabel] = useState('手動スタック項目');
   const [stackSource, setStackSource] = useState('');
+  const [journeyLand, setJourneyLand] = useState('');
+  const [journeySpell, setJourneySpell] = useState('');
 
   const objects = useMemo(() => projection === null ? Object.freeze([]) : objectOptions(projection), [projection]);
+  const handObjects = useMemo(() => objects.filter((option) => option.zone === '手札'), [objects]);
+  const landObjects = useMemo(() => handObjects.filter((option) => option.typeLine?.toLowerCase().includes('land') === true), [handObjects]);
+  const spellObjects = useMemo(() => handObjects.filter((option) => option.typeLine?.toLowerCase().includes('land') !== true), [handObjects]);
   const publicObjects = useMemo(() => projection === null ? Object.freeze([]) : battlefieldOptions(projection), [projection]);
   const players = projection?.game.players ?? [];
   const actor = projection?.corePlayerId ?? null;
@@ -244,6 +259,19 @@ export function OnlineTabletopManual({
   const tokenObjects = controlledBattlefieldObjects.filter((option) => option.objectKind === 'token');
   const authoredNotes = (projection.game.notes ?? []).filter((note) => note.authorPlayerId === actor);
   const manualStackTop = (projection.game.manualStack ?? []).at(-1) ?? null;
+  const priority = projection.game.assistedPriority;
+  // Older projections predate assistedPriority; retain the existing manual-stack
+  // author gate until the next server projection arrives. Current production
+  // projections always carry the Core-derived steward field.
+  const isSteward = priority === undefined
+    ? manualStackTop?.authorPlayerId === actor
+    : priority.stewardPlayerId === actor;
+  const ownHeld = (projection.game.priorityHolds ?? []).some((hold) => hold.playerId === actor);
+  const hasAnyHold = (projection.game.priorityHolds ?? []).length > 0 || (priority?.holds?.length ?? 0) > 0;
+  const stackTop = projection.game.zones.stack.entries.at(-1) ?? null;
+  const stackTopLabel = stackTop?.kind === 'visible-object' && stackTop.definition?.name
+    ? `《${stackTop.definition.name}》`
+    : stackTop === null ? 'ありません' : '公開スタック項目';
 
   const emit = (primitive: OnlineTabletopManualPrimitiveV1): void => {
     if (disabled) return;
@@ -289,6 +317,12 @@ export function OnlineTabletopManual({
   const byId = (id: string): ObjectOption | undefined => objects.find((candidate) => candidate.objectId === id);
   const sourceObject = stackSource === '' ? null : byId(stackSource)?.objectId ?? null;
   const publicReordered = publicObjects.length < 2 ? [] : publicObjects.slice().reverse();
+  const projectedTurn = (projection.game as unknown as Readonly<{ readonly turn?: Readonly<{ readonly activePlayerId: CorePlayerId }> }>).turn;
+  const sourceLessStackEntryBlocked = sourceObject === null && (
+    hasAnyHold
+    || projectedTurn?.activePlayerId !== actor
+    || projection.game.zones.stack.count > 0
+  );
   const currentStatus = disabled
     ? interactionState === 'offline' ? '接続を確認してください。再接続後に再試行できます。' : 'サーバーで処理中です。完了までお待ちください。'
     : 'サーバーへ送信できます。';
@@ -318,6 +352,39 @@ export function OnlineTabletopManual({
         </label>
       </fieldset>
       <p className="online-tabletop-manual__mode-note" data-testid="online-tabletop-mode-label">現在: {modeLabel(mode)}</p>
+
+      <section className="online-tabletop-manual__priority" data-testid="online-assisted-priority" aria-labelledby="online-assisted-priority-title">
+        <h3 id="online-assisted-priority-title">優先権 / HOLD / スタック</h3>
+        <p>{priority?.holderPlayerId === null ? '優先権の処理待ち' : `優先権: ${priority?.holderPlayerId ?? '—'}`} / {isSteward ? 'あなたが steward' : `steward: ${priority?.stewardPlayerId ?? '未定'}`}</p>
+        <p data-testid="online-assisted-response-window">応答窓: {priority?.responseWindow === null || priority?.responseWindow === undefined ? 'その他のCR窓' : RESPONSE_WINDOW_LABELS[priority.responseWindow] ?? priority.responseWindow}</p>
+        <p data-testid="online-assisted-stack-causality">スタック最上段: {stackTopLabel}（{projection.game.zones.stack.count}件）</p>
+        <p>HOLD: {ownHeld ? '設定中' : '未設定'}（全員が設定・解除できます）</p>
+        <div className="online-tabletop-manual__priority-actions">
+          <ActionButton testId="online-priority-hold" disabled={disabled} onClick={() => emit({ kind: 'priority-hold', held: !ownHeld })}>{ownHeld ? 'HOLDを解除' : 'HOLDを設定'}</ActionButton>
+          <ActionButton testId="online-priority-advance" disabled={disabled || !isSteward || hasAnyHold} onClick={() => emit({ kind: 'priority-advance' })}>Advance（steward）</ActionButton>
+          <ActionButton testId="online-priority-resolve" disabled={disabled || !isSteward || hasAnyHold || priority?.windowKind !== 'resolution-ready'} onClick={() => emit({ kind: 'priority-resolve' })}>Resolve（steward）</ActionButton>
+        </div>
+        <p className="online-tabletop-manual__hint">HOLDは共有checkpointです。CRの優先権はCoreで保持され、Resolve/Advanceだけstewardに許可されます。</p>
+      </section>
+
+      <section className="online-tabletop-manual__journey" data-testid="online-land-cast-journey" aria-labelledby="online-land-cast-title">
+        <h3 id="online-land-cast-title">土地 / cast（共有卓の基本旅程）</h3>
+        <p>手札から公開されたカードを選び、土地はCoreのplay-land、呪文はCoreのstack castへ送ります。適法性と効果の未対応部分は手動確認です。</p>
+        <div className="online-tabletop-manual__priority-actions">
+          <select aria-label="土地を選択" data-testid="online-journey-land" value={journeyLand} onChange={(event) => setJourneyLand(event.target.value)} disabled={disabled}>
+            <option value="">土地を選択</option>
+            {landObjects.map((option) => <option key={option.objectId} value={option.objectId}>{option.label}</option>)}
+          </select>
+          <ActionButton testId="online-journey-play-land" disabled={disabled || journeyLand === ''} onClick={() => emit({ kind: 'play-land', objectId: journeyLand as CoreObjectId })}>土地をプレイ</ActionButton>
+        </div>
+        <div className="online-tabletop-manual__priority-actions">
+          <select aria-label="唱える呪文を選択" data-testid="online-journey-spell" value={journeySpell} onChange={(event) => setJourneySpell(event.target.value)} disabled={disabled}>
+            <option value="">呪文を選択</option>
+            {spellObjects.map((option) => <option key={option.objectId} value={option.objectId}>{option.label}</option>)}
+          </select>
+          <ActionButton testId="online-journey-cast-spell" disabled={disabled || journeySpell === ''} onClick={() => emit({ kind: 'cast-spell', objectId: journeySpell as CoreObjectId })}>呪文を唱える（手動確認）</ActionButton>
+        </div>
+      </section>
 
       {hasError && <div className="online-tabletop-manual__error" data-testid="online-tabletop-manual-error" role="alert">操作を受け付けられませんでした。表示を確認して、もう一度お試しください。</div>}
 
@@ -423,11 +490,11 @@ export function OnlineTabletopManual({
             <label>項目ID<input data-testid="online-tabletop-stack-entry-id" maxLength={128} value={stackEntryId} onChange={(event) => setStackEntryId(event.target.value)} disabled={disabled} /></label>
             <label>公開ラベル<input data-testid="online-tabletop-stack-label" maxLength={160} value={stackLabel} onChange={(event) => setStackLabel(event.target.value)} disabled={disabled} /></label>
             <label>発生源（任意）<select data-testid="online-tabletop-stack-source" value={stackSource} onChange={(event) => setStackSource(event.target.value)} disabled={disabled}><option value="">指定しない</option>{objects.filter((option) => option.zone === 'スタック').map((option) => <option key={option.objectId} value={option.objectId}>{option.label}</option>)}</select></label>
-            <button className="online-tabletop-manual__button" data-testid="online-tabletop-submit-stack-entry" type="submit" disabled={disabled || !stackValid}>Manual Stack を追加</button>
+            <button className="online-tabletop-manual__button" data-testid="online-tabletop-submit-stack-entry" type="submit" disabled={disabled || !stackValid || sourceLessStackEntryBlocked}>Manual Stack を追加</button>
           </form>
           <form onSubmit={(event) => submitForm(event, manualStackTop === null ? null : { kind: 'manual-resolve', entryId: manualStackTop.id })}>
             <p className="online-tabletop-manual__hint">現在の最上段: {manualStackTop?.label ?? 'ありません'}</p>
-            <button className="online-tabletop-manual__button" data-testid="online-tabletop-submit-manual-resolve" type="submit" disabled={disabled || manualStackTop === null || manualStackTop.authorPlayerId !== actor}>Manual Resolve（最上段）</button>
+            <button className="online-tabletop-manual__button" data-testid="online-tabletop-submit-manual-resolve" type="submit" disabled={disabled || hasAnyHold || !isSteward || manualStackTop === null || manualStackTop.authorPlayerId !== actor}>Manual Resolve（最上段）</button>
           </form>
         </section>
       </div>

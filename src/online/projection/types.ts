@@ -27,6 +27,10 @@ import type {
 import type { BuildId } from '../../versioning/index';
 
 export const ONLINE_PROJECTION_SCHEMA_VERSION_V1 = 1 as const;
+/** Version 2 is the first projection wire carrying authoritative assisted
+ * priority/HOLD facts. Version 1 remains a legacy decoder and rejects these
+ * fields rather than silently accepting a widened shape. */
+export const ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2 = 2 as const;
 
 export type OnlineProjectionIssueCodeV1 =
   | 'INVALID_ROOT'
@@ -196,6 +200,15 @@ export type OnlineProjectedSearchResultV1 = Readonly<{
   readonly selectedObjectIds?: readonly CoreObjectId[];
 }>;
 
+/** Common assisted response checkpoints surfaced by the shared table. */
+export type OnlineProjectedCommonResponseWindowV1 =
+  | 'after-stack-addition'
+  | 'before-combat'
+  | 'after-attackers'
+  | 'after-blockers'
+  | 'before-end-step'
+  | 'before-passing-turn';
+
 export type OnlineProjectedPlayPermissionSubjectV1 =
   | Readonly<{
       readonly kind: 'object';
@@ -246,6 +259,16 @@ export type OnlineProjectedGameV1 = Readonly<{
   readonly playPermissions: readonly OnlineProjectedPlayPermissionV1[];
   readonly notes?: readonly Readonly<{ readonly id: string; readonly authorPlayerId: CorePlayerId; readonly text: string; readonly creationRevision: number }>[];
   readonly manualStack?: readonly Readonly<{ readonly id: string; readonly label: string; readonly provenance: 'structured' | 'freeform'; readonly sourceObjectId: CoreObjectId | null; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number }>[];
+  /** Shared assisted-priority HOLD assertions. */
+  readonly priorityHolds?: readonly Readonly<{ readonly playerId: CorePlayerId; readonly setRevision: number }>[];
+  readonly assistedPriority?: Readonly<{
+    readonly holderPlayerId: CorePlayerId | null;
+    readonly stewardPlayerId: CorePlayerId | null;
+    readonly windowKind: string;
+    readonly holds: readonly CorePlayerId[];
+    readonly responseWindow?: OnlineProjectedCommonResponseWindowV1 | null;
+    readonly topStackObjectId?: CoreObjectId | null;
+  }>;
 }>;
 
 export type OnlineParticipantProjectionV1 = Readonly<{
@@ -260,6 +283,16 @@ export type OnlineParticipantProjectionV1 = Readonly<{
   readonly room: OnlineProjectedRoomV1;
   readonly game: OnlineProjectedGameV1;
 }>;
+export type OnlineParticipantProjectionAssistedV2 = Readonly<Omit<OnlineParticipantProjectionV1, 'kind' | 'schemaVersion' | 'game'> & {
+  readonly kind: 'online-participant-projection-v2';
+  readonly schemaVersion: typeof ONLINE_PARTICIPANT_PROJECTION_SCHEMA_VERSION_V2;
+  readonly game: OnlineProjectedGameV1 & {
+    readonly priorityHolds: readonly Readonly<{ readonly playerId: CorePlayerId; readonly setRevision: number }>[];
+    readonly assistedPriority: NonNullable<OnlineProjectedGameV1['assistedPriority']>;
+  };
+}>;
+export type OnlineParticipantProjectionValidationResultV2 =
+  OnlineProjectionValidationResultV1<OnlineParticipantProjectionAssistedV2>;
 export type OnlineParticipantProjectionValidationResultV1 =
   OnlineProjectionValidationResultV1<OnlineParticipantProjectionV1>;
 

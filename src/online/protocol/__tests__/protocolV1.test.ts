@@ -102,6 +102,21 @@ function assertDeepFrozen(value: unknown, seen = new Set<object>()): void {
 }
 
 describe('O4P-02C in-memory protocol', () => {
+  it('rejects steward-owned turn progress on the ordinary command envelope', () => {
+    const state = protocolState();
+    const forged = createCoreCommandV1({
+      schemaVersion: 1,
+      sequence: state.revision + 1,
+      actorPlayerId: 'P1' as never,
+      decisionMakerPlayerId: 'P1' as never,
+      decisionContext: { kind: 'decision', decisionKey: 'forged-turn' },
+      payload: { kind: 'table-turn-progress', transition: { kind: 'next-turn' } },
+    });
+    const transition = handleOnlineCommandEnvelopeV1(state, envelope(state, 'forged-turn', state.revision, forged));
+    expect(transition.response).toMatchObject({ kind: 'online-command-reject-v1', issues: [{ code: 'AUTHORIZATION_REJECTED' }] });
+    expect(transition.state.revision).toBe(state.revision);
+  });
+
   it('exports fixed versions and validates hostile hello input without capability disclosure', () => {
     expect(ONLINE_PROTOCOL_SCHEMA_VERSION_V1).toBe(1);
     expect(isOnlineProtocolCommandIdV1('command-1')).toBe(true);

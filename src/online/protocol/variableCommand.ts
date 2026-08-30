@@ -39,6 +39,13 @@ function requestDigest(message: OnlineCommandEnvelopeV1): string {
   });
 }
 
+function requiresTrustedTabletopBinder(command: OnlineCommandEnvelopeV1['command']): boolean {
+  const kind = command.payload.kind;
+  return kind === 'stack-remove-object'
+    || kind === 'table-turn-progress'
+    || kind === 'table-manual-resolve';
+}
+
 function reject(
   state: OnlineVariableProtocolStateV2,
   code: OnlineProtocolIssueCodeV1,
@@ -89,6 +96,7 @@ function completionForAcceptedSearch(
 export function handleOnlineVariableCommandEnvelopeV2(
   stateInput: unknown,
   messageInput: unknown,
+  trustedTabletopBinder = false,
 ): OnlineVariableCommandTransitionV2 {
   const checked = validateOnlineVariableProtocolStateV2(stateInput);
   if (!checked.ok) throw new Error('Invalid variable protocol state');
@@ -120,6 +128,7 @@ export function handleOnlineVariableCommandEnvelopeV2(
   if (delegatedSearch !== undefined && (delegatedSearch.selectorPlayerId !== seat.corePlayerId || delegatedSearch.rulesActorPlayerId !== message.command.actorPlayerId || message.command.decisionMakerPlayerId !== seat.corePlayerId)) return reject(state, 'ACTOR_MISMATCH', 'Delegated search authority does not match seat', message);
   if (message.command.sequence !== message.baseRevision + 1) return reject(state, 'COMMAND_SEQUENCE_MISMATCH', 'Command sequence mismatch', message);
   if (message.baseRevision !== state.revision) return reject(state, 'STALE_REVISION', 'Stale revision', message, true);
+  if (!trustedTabletopBinder && requiresTrustedTabletopBinder(message.command)) return reject(state, 'AUTHORIZATION_REJECTED', 'Steward-owned tabletop commands require the server tabletop binder', message);
   const coreResult = applyCoreCommandV1(state.coreRoot, message.command);
   if (coreResult.status === 'rejected') return reject(state, 'CORE_COMMAND_REJECTED', 'Core command rejected', message);
   const lifecycle = coreResult.root.playerLifecycle.players;

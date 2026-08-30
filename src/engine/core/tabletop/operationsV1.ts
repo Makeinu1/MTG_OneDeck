@@ -43,8 +43,9 @@ import { createCoreCombatContextV1 } from '../combat/combatContextV1';
 import type { CoreCardZoneDestinationV1 } from '../transition/zoneDestination';
 import { nextCoreCardIncarnationV1 } from '../transition/cardReincarnation';
 import { removeCoreStackObjectV1 } from '../stack/transaction/stackRemovalV1';
+import { completeCoreResolutionAfterRemovalV1 } from '../turn/resolutionBoundaryV1';
 import type { CoreTabletopCommandPayloadV1 } from './commandV1';
-import { createCoreTabletopManualStateV1, type CoreTabletopManualModeV1, type CoreTabletopManualStateV1 } from './manualStateV1';
+import { createCoreTabletopManualStateV1, type CoreTabletopManualModeV1, type CoreTabletopManualStateV1, type CoreTabletopRecentResolutionV1 } from './manualStateV1';
 
 type ObjectRecord = Record<CoreObjectId, CoreGameObjectIdentityV2>;
 type RuntimeRecord = Record<CoreObjectId, CoreCardObjectRuntimeStateV1>;
@@ -100,7 +101,7 @@ function assertManualStateBudget(state: CoreTabletopManualStateV1): void {
   if (notesBytes === null || notesBytes > MANUAL_NOTES_MAX_SERIALIZED_BYTES_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual/notes', 'Manual notes exceed the bounded serialized size');
   const stackBytes = serializedBytes({ stackEntries: state.stackEntries });
   if (stackBytes === null || stackBytes > MANUAL_STACK_MAX_SERIALIZED_BYTES_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual/stackEntries', 'Manual stack exceeds the bounded serialized size');
-  const aggregateBytes = serializedBytes({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: state.stackEntries });
+  const aggregateBytes = serializedBytes({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: state.stackEntries, priorityHolds: state.priorityHolds });
   if (aggregateBytes === null || aggregateBytes > MANUAL_STATE_MAX_SERIALIZED_BYTES_V1) fail('MANUAL_STATE_TOO_LARGE', '/tabletopManual', 'Manual state exceeds the bounded serialized size');
 }
 
@@ -320,6 +321,13 @@ function controllerOf(root: ModeNeutralCoreRootV1, objectId: CoreObjectId): Core
   return controller;
 }
 
+function stackStewardOf(root: ModeNeutralCoreRootV1, objectId: CoreObjectId): CorePlayerId | null {
+  const object = stackBundle(root).objectRegistry.objects[objectId];
+  if (object === undefined) return null;
+  if (object.kind === 'card' || object.kind === 'token') return object.baseControllerPlayerId;
+  return object.controllerPlayerId;
+}
+
 function destinationLocation(
   registry: ModeNeutralCoreObjectRegistryStateV2,
   cardObjectId: CoreObjectId,
@@ -335,6 +343,18 @@ function destinationLocation(
   return { scope: 'shared', zone: destination.kind, index: 0 };
 }
 
+function cardResolutionDestination(
+  registry: ModeNeutralCoreObjectRegistryStateV2,
+  object: Extract<CoreGameObjectIdentityV2, { readonly kind: 'card' }>,
+): CoreCardZoneDestinationV1 {
+  const physical = registry.physicalCards[object.physicalCardId];
+  const definition = physical === undefined ? undefined : registry.cardDefinitions[physical.definitionId];
+  const typeLine = definition?.faces[0]?.typeLine ?? definition?.typeLine ?? '';
+  if (/\b(?:Instant|Sorcery)\b/u.test(typeLine)) return { kind: 'owner-graveyard' };
+  if (object.baseControllerPlayerId === null) fail('STEWARD_REQUIRED', '/payload/sourceObjectId', 'Permanent resolution requires immutable stack controller provenance');
+  return { kind: 'battlefield', baseControllerPlayerId: object.baseControllerPlayerId };
+}
+
 function sameLocation(left: Location, right: Location): boolean {
   return left.scope === right.scope && left.zone === right.zone
     && (left.scope === 'shared' || right.scope === 'shared' || left.playerId === right.playerId);
@@ -342,7 +362,7 @@ function sameLocation(left: Location, right: Location): boolean {
 
 function playerWith(
   player: CorePlayerStateV1,
-  changes: Readonly<{ readonly manaPool?: CoreManaPoolV1; readonly drawnThisTurn?: number }>,
+  changes: Readonly<{ readonly manaPool?: CoreManaPoolV1; readonly drawnThisTurn?: number; readonly landsPlayedThisTurn?: number; readonly spellsCastThisTurn?: number }>,
 ): CorePlayerStateV1 {
   return {
     life: player.life,
@@ -351,8 +371,8 @@ function playerWith(
     experience: player.experience,
     manaPool: changes.manaPool ?? player.manaPool,
     mulliganCount: player.mulliganCount,
-    landsPlayedThisTurn: player.landsPlayedThisTurn,
-    spellsCastThisTurn: player.spellsCastThisTurn,
+    landsPlayedThisTurn: changes.landsPlayedThisTurn ?? player.landsPlayedThisTurn,
+    spellsCastThisTurn: changes.spellsCastThisTurn ?? player.spellsCastThisTurn,
     drawnThisTurn: changes.drawnThisTurn ?? player.drawnThisTurn,
     maximumHandSizeOverride: player.maximumHandSizeOverride,
   };
@@ -360,6 +380,14 @@ function playerWith(
 
 function manualStateOf(root: ModeNeutralCoreRootV1): CoreTabletopManualStateV1 {
   return root.tabletopManual ?? createCoreTabletopManualStateV1();
+}
+
+function recentResolution(
+  objectId: CoreObjectId | null,
+  destination: CoreTabletopRecentResolutionV1['destination'],
+  acceptedRevision: number,
+): CoreTabletopRecentResolutionV1 {
+  return Object.freeze({ objectId, destination, acceptedRevision });
 }
 
 function withManualState(root: ModeNeutralCoreRootV1, state: CoreTabletopManualStateV1): ModeNeutralCoreRootV1 {
@@ -426,6 +454,7 @@ function moveCard(
   objectId: CoreObjectId,
   destination: CoreCardZoneDestinationV1,
   requireAuthority = false,
+  countLandPlay = false,
 ): CoreTabletopOperationResultV1 {
   const registry = stackBundle(root).objectRegistry;
   const object = registry.objects[objectId];
@@ -482,11 +511,55 @@ function moveCard(
   delete runtimeEntries[objectId];
   clearAttachmentReferences(runtimeEntries, new Set([objectId]));
   runtimeEntries[nextId] = createDefaultCoreCardRuntimeAfterZoneChangeV1();
+  const nextPlayer = nextRegistry.players[actorPlayerId];
+  if (countLandPlay && nextPlayer !== undefined) {
+    const players = { ...nextRegistry.players, [actorPlayerId]: playerWith(nextPlayer, { landsPlayedThisTurn: nextPlayer.landsPlayedThisTurn + 1 }) };
+    const registryWithPlayer = replaceRegistry(nextRegistry, { players });
+    const nextRuntime = replaceRuntime(registryWithPlayer, createModeNeutralCoreObjectRuntimeStateV2(registryWithPlayer, { byObject: runtimeEntries }));
+    return {
+      root: rebuildRoot(root, registryWithPlayer, nextRuntime, root.ruleAuthority.turnPriorityBundle.lifecycle, new Set([objectId])),
+      payloads: [{ kind: 'table-zone-moved', objectId, newObjectId: nextId, destination: destination.kind }],
+    };
+  }
   const nextRuntime = replaceRuntime(nextRegistry, createModeNeutralCoreObjectRuntimeStateV2(nextRegistry, { byObject: runtimeEntries }));
   return {
     root: rebuildRoot(root, nextRegistry, nextRuntime, root.ruleAuthority.turnPriorityBundle.lifecycle, new Set([objectId])),
     payloads: [{ kind: 'table-zone-moved', objectId, newObjectId: nextId, destination: destination.kind }],
   };
+}
+
+function playLand(
+  root: ModeNeutralCoreRootV1,
+  actorPlayerId: CorePlayerId,
+  objectId: CoreObjectId,
+): CoreTabletopOperationResultV1 {
+  const turn = root.ruleAuthority.turnPriorityBundle;
+  const registry = turn.stackBundle.objectRegistry;
+  if (registry.activePlayerId !== actorPlayerId) fail('INACTIVE_ACTOR', '/actorPlayerId', 'Only the active player may play a land');
+  if (turn.lifecycle.window.kind !== 'priority' || turn.lifecycle.window.holderPlayerId !== actorPlayerId) {
+    fail('PRIORITY_REQUIRED', '/actorPlayerId', 'The actor must hold priority to play a land');
+  }
+  if (registry.zones.shared.stack.length !== 0) fail('STACK_NOT_EMPTY', '/payload/objectId', 'A land may only be played with an empty stack');
+  if (turn.lifecycle.position.phase !== 'precombat-main' && turn.lifecycle.position.phase !== 'postcombat-main') {
+    fail('LAND_TIMING', '/payload/objectId', 'A land may only be played during a main phase');
+  }
+  const object = registry.objects[objectId];
+  if (object === undefined || object.kind !== 'card') fail('INVALID_TARGET', '/payload/objectId', 'Land target must be a card');
+  const hand = registry.zones.byPlayer[actorPlayerId]?.hand ?? [];
+  if (!hand.includes(objectId)) fail('INVALID_SOURCE', '/payload/objectId', 'Land must be played from the actor hand');
+  const physical = registry.physicalCards[object.physicalCardId];
+  const definition = physical === undefined ? undefined : registry.cardDefinitions[physical.definitionId];
+  const typeLine = definition?.faces[0]?.typeLine ?? definition?.typeLine ?? '';
+  if (!/\bLand\b/u.test(typeLine)) fail('NOT_A_LAND', '/payload/objectId', 'Only land cards may use the land-play command');
+  if ((registry.players[actorPlayerId]?.landsPlayedThisTurn ?? 0) >= 1) fail('LAND_LIMIT', '/payload/objectId', 'The actor has already played a land this turn');
+  return moveCard(
+    root,
+    actorPlayerId,
+    objectId,
+    { kind: 'battlefield', baseControllerPlayerId: actorPlayerId },
+    true,
+    true,
+  );
 }
 
 function tapPermanent(
@@ -703,7 +776,7 @@ function setNote(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, paylo
   const creationRevision = existing?.creationRevision ?? root.acceptedCommandCount + 1;
   const notes = { ...state.notes, [payload.noteId]: Object.freeze({ id: payload.noteId, authorPlayerId: existing?.authorPlayerId ?? actorPlayerId, text: payload.text, creationRevision }) };
   const noteOrder = state.noteOrder.includes(payload.noteId) ? state.noteOrder : [...state.noteOrder, payload.noteId];
-  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes, noteOrder, stackEntries: state.stackEntries })), payloads: [{ kind: 'table-note-set', noteId: payload.noteId, authorPlayerId: existing?.authorPlayerId ?? actorPlayerId, creationRevision }] };
+  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes, noteOrder, stackEntries: state.stackEntries, priorityHolds: state.priorityHolds, recentResolution: state.recentResolution })), payloads: [{ kind: 'table-note-set', noteId: payload.noteId, authorPlayerId: existing?.authorPlayerId ?? actorPlayerId, creationRevision }] };
 }
 
 function clearNote(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-note-clear' }>): CoreTabletopOperationResultV1 {
@@ -712,7 +785,7 @@ function clearNote(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, pay
   if (note === undefined) fail('NOTE_NOT_FOUND', '/payload/noteId', 'Note does not exist');
   if (note.authorPlayerId !== actorPlayerId) fail('UNAUTHORIZED_NOTE', '/payload/noteId', 'Only note author may clear it');
   const notes = { ...state.notes }; delete notes[payload.noteId];
-  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes, noteOrder: state.noteOrder.filter((id) => id !== payload.noteId), stackEntries: state.stackEntries })), payloads: [{ kind: 'table-note-cleared', noteId: payload.noteId, authorPlayerId: actorPlayerId }] };
+  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes, noteOrder: state.noteOrder.filter((id) => id !== payload.noteId), stackEntries: state.stackEntries, priorityHolds: state.priorityHolds, recentResolution: state.recentResolution })), payloads: [{ kind: 'table-note-cleared', noteId: payload.noteId, authorPlayerId: actorPlayerId }] };
 }
 
 function addStackEntry(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-stack-entry' }>): CoreTabletopOperationResultV1 {
@@ -724,10 +797,14 @@ function addStackEntry(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId,
     const source = registry.objects[payload.sourceObjectId];
     if (source === undefined || !registry.zones.shared.stack.includes(payload.sourceObjectId)) fail('INVALID_TARGET', '/payload/sourceObjectId', 'Manual stack source must be a public stack object');
     if (controllerOf(root, payload.sourceObjectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload/sourceObjectId', 'Actor does not control manual stack source');
+  } else {
+    const turn = root.ruleAuthority.turnPriorityBundle;
+    if (state.priorityHolds.length > 0) fail('PRIORITY_HOLD_ACTIVE', '/payload', 'Active priority HOLD blocks source-less manual entries');
+    if (turn.stackBundle.objectRegistry.activePlayerId !== actorPlayerId || turn.stackBundle.objectRegistry.zones.shared.stack.length !== 0) fail('MANUAL_BOUNDARY_REQUIRED', '/payload/sourceObjectId', 'Source-less manual entries require the active player and an empty Core stack');
   }
   const provenance: CoreTabletopManualModeV1 = payload.manualMode === 'structured' ? 'structured' : 'freeform';
   const entry = Object.freeze({ id: payload.entryId, label: payload.label, provenance, sourceObjectId: payload.sourceObjectId ?? null, authorPlayerId: actorPlayerId, creationRevision: root.acceptedCommandCount + 1 });
-  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: [...state.stackEntries, entry] })), payloads: [{ kind: 'table-stack-entry-added', entryId: entry.id, authorPlayerId: actorPlayerId, creationRevision: entry.creationRevision }] };
+  return { root: withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: [...state.stackEntries, entry], priorityHolds: state.priorityHolds, recentResolution: state.recentResolution })), payloads: [{ kind: 'table-stack-entry-added', entryId: entry.id, authorPlayerId: actorPlayerId, creationRevision: entry.creationRevision }] };
 }
 
 function resolveManual(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-manual-resolve' }>): CoreTabletopOperationResultV1 {
@@ -735,26 +812,78 @@ function resolveManual(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId,
   const state = manualStateOf(root); const top = state.stackEntries[state.stackEntries.length - 1];
   if (top === undefined || (payload.entryId !== undefined && payload.entryId !== top.id)) fail('STACK_TOP_ONLY', '/payload/entryId', 'Only the current manual stack top may resolve');
   if (top.authorPlayerId !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload', 'Only the entry author may resolve this manual entry');
+  if (state.priorityHolds.length > 0) fail('PRIORITY_HOLD_ACTIVE', '/payload', 'Active priority HOLD blocks manual resolve');
+  const lifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle;
+  const registry = stackBundle(root).objectRegistry;
+  const coreTop = registry.zones.shared.stack.at(-1) ?? null;
+  if (top.sourceObjectId === null) {
+    if (registry.activePlayerId !== actorPlayerId || coreTop !== null) fail('MANUAL_BOUNDARY_REQUIRED', '/payload', 'Manual resolution without a Core object requires the active steward and an empty Core stack');
+  } else {
+    if (lifecycle.window.kind !== 'resolution-ready' || lifecycle.window.objectId !== top.sourceObjectId || coreTop !== top.sourceObjectId) fail('TOP_STACK_MISMATCH', '/payload/sourceObjectId', 'Manual source must be the current Core stack top in a resolution-ready window');
+    if (stackStewardOf(root, top.sourceObjectId) !== actorPlayerId) fail('STEWARD_REQUIRED', '/actorPlayerId', 'Only the current stack steward may resolve this manual entry');
+  }
   const entries = state.stackEntries.slice(0, -1);
+  let resolution = recentResolution(null, 'manual', root.acceptedCommandCount + 1);
+  if (top.sourceObjectId !== null) {
+    const source = registry.objects[top.sourceObjectId];
+    if (source?.kind === 'card') {
+      const destination = cardResolutionDestination(registry, source);
+      const destinationKind: CoreTabletopRecentResolutionV1['destination'] = destination.kind === 'battlefield'
+        ? 'battlefield'
+        : destination.kind === 'owner-graveyard'
+          ? 'owner-graveyard'
+          : 'manual';
+      resolution = recentResolution(top.sourceObjectId, destinationKind, root.acceptedCommandCount + 1);
+    } else if (source !== undefined) {
+      resolution = recentResolution(top.sourceObjectId, 'cease', root.acceptedCommandCount + 1);
+    }
+  }
   // Remove the metadata entry before moving its represented stack object so
   // the intermediate root remains internally consistent at every boundary.
-  let workingRoot = withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: entries }));
+  let workingRoot = withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: entries, priorityHolds: state.priorityHolds, recentResolution: resolution }));
   if (top.sourceObjectId !== null) {
-    if (controllerOf(workingRoot, top.sourceObjectId) !== actorPlayerId) fail('UNAUTHORIZED_OBJECT', '/payload', 'Actor does not control manual stack source');
     const source = stackBundle(workingRoot).objectRegistry.objects[top.sourceObjectId];
     if (source === undefined) fail('INVALID_TARGET', '/payload', 'Manual stack source is missing');
     if (source.kind === 'card') {
-      const destination = { kind: 'owner-graveyard' as const };
-      const moved = moveCard(workingRoot, actorPlayerId, top.sourceObjectId, destination, true);
-      workingRoot = moved.root;
+      const destination = cardResolutionDestination(stackBundle(workingRoot).objectRegistry, source);
+      const removed = removeCoreStackObjectV1(stackBundle(workingRoot), { kind: 'card-to-zone', objectId: top.sourceObjectId, destination });
+      const completed = completeCoreResolutionAfterRemovalV1({
+        stackBundle: stackBundle(workingRoot),
+        lifecycle: workingRoot.ruleAuthority.turnPriorityBundle.lifecycle,
+      }, removed);
+      workingRoot = rebuildRoot(workingRoot, completed.stackBundle.objectRegistry, completed.stackBundle.objectRuntime, completed.lifecycle, new Set([top.sourceObjectId]));
     } else if (source.kind === 'spell-copy' || source.kind === 'activated-ability' || source.kind === 'triggered-ability') {
       const removed = removeCoreStackObjectV1(stackBundle(workingRoot), { kind: 'cease', objectId: top.sourceObjectId });
-      workingRoot = rebuildRoot(workingRoot, removed.bundle.objectRegistry, removed.bundle.objectRuntime, workingRoot.ruleAuthority.turnPriorityBundle.lifecycle, new Set([top.sourceObjectId]));
+      const completed = completeCoreResolutionAfterRemovalV1({
+        stackBundle: stackBundle(workingRoot),
+        lifecycle: workingRoot.ruleAuthority.turnPriorityBundle.lifecycle,
+      }, removed);
+      workingRoot = rebuildRoot(workingRoot, completed.stackBundle.objectRegistry, completed.stackBundle.objectRuntime, completed.lifecycle, new Set([top.sourceObjectId]));
     } else {
       fail('INVALID_TARGET', '/payload', 'Manual stack source is not resolvable');
     }
   }
   return { root: workingRoot, payloads: [{ kind: 'table-manual-resolved', entryId: top.id, objectId: top.sourceObjectId }] };
+}
+
+function setPriorityHold(
+  root: ModeNeutralCoreRootV1,
+  actorPlayerId: CorePlayerId,
+  payload: Extract<CoreTabletopCommandPayloadV1, { readonly kind: 'table-priority-hold' }>,
+): CoreTabletopOperationResultV1 {
+  const registry = stackBundle(root).objectRegistry;
+  if (!registry.turnOrder.includes(actorPlayerId)) fail('PLAYER_NOT_SEATED', '/actorPlayerId', 'HOLD actor must be seated');
+  if (!root.playerLifecycle.players.some((player) => player.playerId === actorPlayerId && player.status === 'active')) fail('PLAYER_INACTIVE', '/actorPlayerId', 'HOLD actor must be active');
+  const state = manualStateOf(root);
+  const existing = state.priorityHolds.some((hold) => hold.playerId === actorPlayerId);
+  if (existing === payload.held) return { root, payloads: [] };
+  const priorityHolds = payload.held
+    ? [...state.priorityHolds, Object.freeze({ playerId: actorPlayerId, setRevision: root.acceptedCommandCount + 1 })]
+    : state.priorityHolds.filter((hold) => hold.playerId !== actorPlayerId);
+  return {
+    root: withManualState(root, createCoreTabletopManualStateV1({ notes: state.notes, noteOrder: state.noteOrder, stackEntries: state.stackEntries, priorityHolds, recentResolution: state.recentResolution })),
+    payloads: [{ kind: 'table-priority-hold-changed', playerId: actorPlayerId, held: payload.held }],
+  };
 }
 
 export function untapCoreTabletopPermanentsV1(
@@ -787,6 +916,7 @@ export function applyCoreTabletopPayloadV1(
   switch (payload.kind) {
     case 'table-draw': result = drawCoreTabletopCardsV1(root, actorPlayerId, payload.count); break;
     case 'table-zone-move': result = moveCard(root, actorPlayerId, payload.objectId, payload.destination, requireAuthority); break;
+    case 'table-land-play': result = playLand(root, actorPlayerId, payload.objectId); break;
     case 'table-tap': result = tapPermanent(root, actorPlayerId, payload.objectId, payload.tapped, requireAuthority); break;
     case 'table-mana-adjust': result = adjustMana(root, actorPlayerId, payload.color, payload.delta); break;
     case 'table-counter-adjust': result = adjustCounter(root, actorPlayerId, payload.objectId, payload.counterKind, payload.delta, requireAuthority); break;
@@ -798,6 +928,7 @@ export function applyCoreTabletopPayloadV1(
     case 'table-controller-change': result = changeController(root, actorPlayerId, payload.objectId, payload.gainingControllerPlayerId); break;
     case 'table-attach': result = changeAttachment(root, actorPlayerId, payload.objectId, payload.targetObjectId); break;
     case 'table-damage-mark': result = markDamage(root, actorPlayerId, payload.objectId, payload.amount); break;
+    case 'table-priority-hold': result = setPriorityHold(root, actorPlayerId, payload); break;
     case 'table-note-set': result = setNote(root, actorPlayerId, payload); break;
     case 'table-note-clear': result = clearNote(root, actorPlayerId, payload); break;
     case 'table-stack-entry': result = addStackEntry(root, actorPlayerId, payload); break;

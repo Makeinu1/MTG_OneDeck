@@ -6,7 +6,7 @@ import {
   validateOnlineProtocolStateV1,
   type OnlineVariableProtocolStateV2,
 } from '../protocol/index';
-import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3 } from '../projection/index';
+import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, projectOnlineVariableProtocolV4 } from '../projection/index';
 import { projectOnlinePregameV1, validateOnlinePregameCommandEnvelopeV1 } from '../pregame/index';
 import { disconnectOnlineRoomParticipantV1 } from '../room/index';
 import { ConflictError, OnlineCloudflareRepository } from './persistence';
@@ -168,6 +168,10 @@ function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
     return commandRecord !== null && commandRecord.actorPlayerId !== commandRecord.decisionMakerPlayerId;
   }
   if (payload.kind === 'random-zone-order' || payload.kind === 'table-shuffle') return true;
+  // Resolution/turn-progress commands are steward-owned assisted intents;
+  // accepting them on the legacy command envelope would bypass the shared
+  // tabletop binder's HOLD and steward checks.
+  if (payload.kind === 'stack-remove-object' || payload.kind === 'table-turn-progress' || payload.kind === 'table-manual-resolve') return true;
   if (
     payload.kind === 'table-zone-move'
     || payload.kind === 'table-tap'
@@ -927,8 +931,8 @@ export class OnlineRoomDurableObject {
         if (!tabletopIntent && !visibilityIntent && rejectsClientTabletopAuthorityBypass(internalMessage.command)) return genericError(400);
         const validation = validateOnlineCommandEnvelopeV1(internalMessage);
         const transition = state.kind === 'online-protocol-state-v2'
-          ? handleOnlineVariableCommandEnvelopeV2(state, internalMessage)
-          : handleOnlineCommandEnvelopeV1(state, internalMessage);
+          ? handleOnlineVariableCommandEnvelopeV2(state, internalMessage, tabletopIntent || visibilityIntent)
+          : handleOnlineCommandEnvelopeV1(state, internalMessage, tabletopIntent || visibilityIntent);
         if (validation.ok && state.kind === 'online-protocol-state-v2' && transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate && !isOnlineVariableProjectionWithinFrameBudgetV1(transition.state as OnlineVariableProtocolStateV2)) return genericError(413);
         if (validation.ok) {
           const acquired = this.security.acquireControllerLease(
@@ -1121,7 +1125,7 @@ export class OnlineRoomDurableObject {
       if (state.kind === 'online-protocol-state-v2') {
         if (kind === 'online-client-hello-v1') this.handleVariableHello(socket, internalMessage, currentAttachment, state, admission.authorization);
         else if (kind === 'online-projection-request-v1') this.handleVariableProjection(socket, internalMessage, state);
-        else this.handleVariableCommand(socket, internalMessage, state, admission.authorization, now);
+        else this.handleVariableCommand(socket, internalMessage, state, admission.authorization, now, tabletopIntent || visibilityIntent);
       } else if (kind === 'online-client-hello-v1') {
         this.handleHello(socket, internalMessage, currentAttachment, state, admission.authorization);
       } else if (kind === 'online-projection-request-v1') {
@@ -1334,8 +1338,10 @@ export class OnlineRoomDurableObject {
     // Existing O4P-08C clients remain on the compact v2 wire; the shipped v3
     // browser identifies itself with the D client build and receives the full
     // exact-roster projection. Both generations are validated client-side.
-    const projection = clientBuildId === 'o4p-08d-client'
-      ? projectOnlineVariableProtocolV3(state, participantId)
+    const projection = clientBuildId === 'o4p-09f-client'
+      ? projectOnlineVariableProtocolV4(state, participantId)
+      : clientBuildId === 'o4p-08d-client'
+        ? projectOnlineVariableProtocolV3(state, participantId)
       : projectOnlineVariableProtocolV2(state, participantId);
     this.sendApplicationValue(socket, Object.freeze({ kind: 'online-projected-snapshot-v1', protocolVersion: state.protocolVersion, status: 'accepted', roomId: state.room.roomId, participantId, role, knownRevision, revision: state.revision, serverBuildId: state.serverBuildId, clientBuildIdMatch: clientBuildId === state.serverBuildId, reason: knownRevision === state.revision ? 'synchronized' : 'snapshot-required', projection, issues: Object.freeze([]) }));
   }
@@ -1346,8 +1352,10 @@ export class OnlineRoomDurableObject {
     state: OnlineVariableProtocolStateV2,
     authorization: { readonly participantId: string; readonly authority: 'host' | 'seat' | 'table' | 'spectator'; readonly generation: number; readonly expiresAt: number },
     now: number,
+    trustedServerBinder = false,
   ): void {
-    const validation = validateOnlineCommandEnvelopeV1(frame); const transition = handleOnlineVariableCommandEnvelopeV2(state, frame);
+    if (!trustedServerBinder && rejectsClientTabletopAuthorityBypass(frame.command)) { this.sendError(socket, 'INVALID_MESSAGE'); return; }
+    const validation = validateOnlineCommandEnvelopeV1(frame); const transition = handleOnlineVariableCommandEnvelopeV2(state, frame, trustedServerBinder);
     if (!validation.ok) { this.sendApplicationValue(socket, transition.response); return; }
     if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate && !isOnlineVariableProjectionWithinFrameBudgetV1(transition.state)) {
       this.sendError(socket, 'INVALID_MESSAGE');

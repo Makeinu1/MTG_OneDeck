@@ -12,6 +12,8 @@ import { commitCoreCardSpellToStackV1 } from '../stack/transaction/cardSpellComm
 import { removeCoreStackObjectV1 } from '../stack/transaction/stackRemovalV1';
 import type { CoreStackTransactionBundleV1 } from '../stack/transaction/stackTransactionBundleV1';
 import { passCorePriorityV1 } from '../turn/priorityPassV1';
+import { startCorePriorityCycleV1 } from '../turn/priorityPassV1';
+import { completeCoreResolutionAfterRemovalV1 } from '../turn/resolutionBoundaryV1';
 import { createCoreTurnPriorityBundleV1 } from '../turn/turnPriorityBundleV1';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turn/turnLifecycleV1';
 import { reconcileCorePlayerExitV1, type CorePlayerExitReferenceBundleV1 } from '../player-lifecycle/playerExitReconciliationV1';
@@ -26,7 +28,7 @@ import { coreCanonicalDigestFromValueV1 } from './canonicalV1';
 import { createCoreDomainEventV1, type CoreDomainEventPayloadV1 } from './domainEventV1';
 import { validateCoreCommandV1, type CoreCommandPayloadV1, type CoreCommandV1 } from './commandV1';
 import type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';
-import { createCoreTabletopManualStateV1, type CoreTabletopManualStateV1 } from '../tabletop/manualStateV1';
+import { createCoreTabletopManualStateV1, type CoreTabletopManualStateV1, type CoreTabletopRecentResolutionV1 } from '../tabletop/manualStateV1';
 import { createCoreCorrectionWarningV1, validateCoreCorrectionReasonV1 } from './correctionV1';
 import { createModeNeutralCoreRootV1, validateModeNeutralCoreRootV1 } from './rootValidationV1';
 import type { ModeNeutralCoreRootV1 } from './rootV1';
@@ -58,6 +60,38 @@ function safeIssue(error: unknown, fallbackPath = ''): CoreCommandIssueV1 {
     }
   }
   return Object.freeze({ code: 'OPERATION_FAILED', path: fallbackPath, message: 'Core operation failed' });
+}
+
+function currentStackSteward(root: ModeNeutralCoreRootV1, objectId: CoreObjectId | null): CorePlayerId | null {
+  if (objectId === null) return stackBundle(root).objectRegistry.activePlayerId;
+  const registry = stackBundle(root).objectRegistry;
+  const object = registry.objects[objectId];
+  if (object === undefined) return null;
+  if (object.kind === 'activated-ability' || object.kind === 'triggered-ability') return object.controllerPlayerId;
+  if (object.kind === 'spell-copy') return object.controllerPlayerId;
+  // The steward is the player who added the object to the stack.  For cards
+  // this immutable provenance is the card incarnation's base controller;
+  // current control effects must not rewrite the response authority.
+  return object.baseControllerPlayerId;
+}
+
+/** The only player permitted to undo a shared assisted-table shortcut. */
+export function coreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1): CorePlayerId | null {
+  if ((root.tabletopManual?.priorityHolds ?? []).length > 0) return null;
+  const top = stackBundle(root).objectRegistry.zones.shared.stack.at(-1) ?? null;
+  return currentStackSteward(root, top);
+}
+
+export function isCoreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1, playerId: CorePlayerId): boolean {
+  return coreUndoAuthorizedPlayerV1(root) === playerId;
+}
+
+function requireSteward(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, path: string): void {
+  const lifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle;
+  const top = stackBundle(root).objectRegistry.zones.shared.stack.at(-1) ?? null;
+  if (currentStackSteward(root, top) !== actorPlayerId) adapterFailure('STEWARD_REQUIRED', path, 'Only the current stack steward may advance or resolve');
+  if ((root.tabletopManual?.priorityHolds ?? []).length > 0) adapterFailure('PRIORITY_HOLD_ACTIVE', path, 'Active priority HOLD blocks advance or resolve');
+  if (lifecycle.window.kind === 'resolution-ready' && top !== lifecycle.window.objectId) adapterFailure('TOP_STACK_MISMATCH', path, 'Resolution-ready object is not the current stack top');
 }
 function adapterFailure(code: string, path: string, message: string): never {
   throw new CoreCommandAdapterError(code, path, message);
@@ -132,7 +166,7 @@ function reconcileTabletopManualStateForPlayerExit(
     entry.authorPlayerId !== exitingPlayerId
       && (entry.sourceObjectId === null || survivingSources.has(entry.sourceObjectId))
   ));
-  return createCoreTabletopManualStateV1({ notes, noteOrder, stackEntries });
+  return createCoreTabletopManualStateV1({ notes, noteOrder, stackEntries, priorityHolds: state.priorityHolds.filter((hold) => hold.playerId !== exitingPlayerId), recentResolution: state.recentResolution });
 }
 function zoneIds(registry: ModeNeutralCoreObjectRegistryStateV2, zone: CoreRuleZoneRefV1Like): readonly CoreObjectId[] { return zone.kind === 'player-zone' ? registry.zones.byPlayer[zone.playerId][zone.zone] : registry.zones.shared[zone.zone]; }
 function objectOwner(registry: ModeNeutralCoreObjectRegistryStateV2, objectId: CoreObjectId): CorePlayerId | null {
@@ -369,6 +403,7 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
   if (payloadBinding.kind === 'correct-player-life' && (payloadBinding.playerId !== checked.actorPlayerId || payloadBinding.playerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/playerId', message: 'Life correction actor and decision maker must equal the corrected player' }], before);
   if (payloadBinding.kind === 'correct-commander-damage' && (payloadBinding.defendingPlayerId !== checked.actorPlayerId || payloadBinding.defendingPlayerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/defendingPlayerId', message: 'Commander-damage correction actor and decision maker must equal the defending player' }], before);
   if (isTabletopPayload(payloadBinding) && checked.actorPlayerId !== checked.decisionMakerPlayerId) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/decisionMakerId', message: 'This ordinary tabletop command requires actor and decision maker to match' }], before);
+  if (payloadBinding.kind === 'table-zone-move' && payloadBinding.destination.kind === 'stack') return reject(root, [{ code: 'STACK_MOVE_REQUIRES_CAST', path: '/payload/destination', message: 'Cards enter the stack through the Core cast command' }], before);
   if (payloadBinding.kind === 'search-complete') {
     const session = current.ruleAuthority.searchSessions.bySession[payloadBinding.sessionKey];
     if (session && (session.rulesActorPlayerId !== checked.actorPlayerId || session.selectorPlayerId !== checked.decisionMakerPlayerId)) return reject(root, [{ code: 'ACTOR_PAYLOAD_MISMATCH', path: '/payload/sessionKey', message: 'Search completion authority does not match the session actors' }], before);
@@ -384,10 +419,107 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
       // The handler below owns operation failures and converts them atomically.
     }
   }
+  let recentResolutionSummary: CoreTabletopRecentResolutionV1 | null = null;
   try {
     const payload = checked.payload; let handled: HandlerResult;
-    if (payload.kind === 'stack-commit-card-spell') { const result = commitCoreCardSpellToStackV1(stackBundle(current), payload.input); handled = { root: replaceStackBundle(current, result.bundle), payloads: [{ kind: 'stack-changed', operation: 'commit', objectId: result.committedObjectId }], warnings: [] }; }
-    else if (payload.kind === 'stack-remove-object') { const result = removeCoreStackObjectV1(stackBundle(current), payload.input); handled = { root: replaceStackBundle(current, result.bundle), payloads: [{ kind: 'stack-changed', operation: 'remove', objectId: result.removedObjectId }], warnings: [] }; }
+    if (payload.kind === 'stack-commit-card-spell') {
+      const priorityWindow = current.ruleAuthority.turnPriorityBundle.lifecycle.window;
+      if (priorityWindow.kind !== 'priority' || priorityWindow.holderPlayerId !== checked.actorPlayerId) {
+        adapterFailure('PRIORITY_REQUIRED', '/actorPlayerId', 'The actor must hold priority to cast a spell');
+      }
+      const sourceLocation = objectLocation(stackBundle(current).objectRegistry, payload.input.sourceObjectId);
+      if (sourceLocation?.kind !== 'player-zone' || sourceLocation.zone !== 'hand' || sourceLocation.playerId !== checked.actorPlayerId) {
+        adapterFailure('CAST_SOURCE_REQUIRED', '/payload/input/sourceObjectId', 'Spells must be cast from the actor hand');
+      }
+      const sourceObject = stackBundle(current).objectRegistry.objects[payload.input.sourceObjectId];
+      if (sourceObject?.kind === 'card') {
+        const physical = stackBundle(current).objectRegistry.physicalCards[sourceObject.physicalCardId];
+        const definition = physical === undefined ? undefined : stackBundle(current).objectRegistry.cardDefinitions[physical.definitionId];
+        const typeLine = definition?.faces[0]?.typeLine ?? definition?.typeLine ?? '';
+        if (/\bLand\b/u.test(typeLine)) adapterFailure('LAND_USES_PLAY_LAND', '/payload/input/sourceObjectId', 'Land cards use the dedicated land-play command');
+        const isInstant = /\bInstant\b/u.test(typeLine);
+        const hasFlash = (definition?.keywords ?? []).some((keyword) => keyword.toLowerCase() === 'flash');
+        const turn = current.ruleAuthority.turnPriorityBundle;
+        if (!isInstant && !hasFlash && (stackBundle(current).objectRegistry.activePlayerId !== checked.actorPlayerId
+          || (turn.lifecycle.position.phase !== 'precombat-main' && turn.lifecycle.position.phase !== 'postcombat-main')
+          || stackBundle(current).objectRegistry.zones.shared.stack.length !== 0)) {
+          adapterFailure('CAST_TIMING', '/payload/input/sourceObjectId', 'Non-Flash spells require the active player during an empty main-phase stack');
+        }
+      }
+      const result = commitCoreCardSpellToStackV1(stackBundle(current), payload.input);
+      const committedRegistry = result.bundle.objectRegistry;
+      const caster = committedRegistry.players[checked.actorPlayerId];
+      const withSpellCount = caster === undefined
+        ? committedRegistry
+        : registryWith(committedRegistry, {
+          players: {
+            ...committedRegistry.players,
+            [checked.actorPlayerId]: {
+              ...caster,
+              spellsCastThisTurn: caster.spellsCastThisTurn + 1,
+            },
+          },
+        });
+      const committedBundle = withSpellCount === committedRegistry
+        ? result.bundle
+        : { ...result.bundle, objectRegistry: withSpellCount };
+      let nextRoot = replaceStackBundle(current, committedBundle);
+      const turn = nextRoot.ruleAuthority.turnPriorityBundle;
+      const started = startCorePriorityCycleV1({ stackBundle: turn.stackBundle, lifecycle: turn.lifecycle });
+      const lifecycle = started.lifecycle.window.kind === 'priority'
+        ? createModeNeutralCoreTurnLifecycleSliceV1({
+          turnNumber: started.lifecycle.turnNumber,
+          positionSequence: started.lifecycle.positionSequence,
+          position: started.lifecycle.position,
+          window: {
+            ...started.lifecycle.window,
+            cycleStartPlayerId: checked.actorPlayerId,
+            holderPlayerId: checked.actorPlayerId,
+            passedPlayerIds: [],
+          },
+        })
+        : started.lifecycle;
+      nextRoot = replaceStackBundle(nextRoot, started.stackBundle, lifecycle);
+      handled = {
+        root: nextRoot,
+        payloads: [
+          { kind: 'stack-changed', operation: 'commit', objectId: result.committedObjectId },
+          { kind: 'priority-changed', holderPlayerId: lifecycle.window.kind === 'priority' ? lifecycle.window.holderPlayerId : null, windowKind: lifecycle.window.kind },
+        ],
+        warnings: [],
+      };
+    }
+    else if (payload.kind === 'stack-remove-object') {
+      if (current.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'resolution-ready') requireSteward(current, checked.actorPlayerId, '/actorPlayerId');
+      const result = removeCoreStackObjectV1(stackBundle(current), payload.input);
+      let nextRoot = replaceStackBundle(current, result.bundle);
+      const payloads: CoreDomainEventPayloadV1[] = [{ kind: 'stack-changed', operation: 'remove', objectId: result.removedObjectId }];
+      if (current.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'resolution-ready') {
+        const completed = completeCoreResolutionAfterRemovalV1({
+          stackBundle: stackBundle(current),
+          lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle,
+        }, result);
+        nextRoot = replaceStackBundle(current, completed.stackBundle, completed.lifecycle);
+        payloads.push({
+          kind: 'priority-changed',
+          holderPlayerId: null,
+          windowKind: completed.lifecycle.window.kind,
+        });
+        const resolutionDestination: CoreTabletopRecentResolutionV1['destination'] = payload.input.kind === 'cease'
+          ? 'cease'
+          : payload.input.destination.kind === 'battlefield'
+            ? 'battlefield'
+            : payload.input.destination.kind === 'owner-graveyard'
+              ? 'owner-graveyard'
+              : 'manual';
+        recentResolutionSummary = Object.freeze({
+          objectId: result.removedObjectId,
+          destination: resolutionDestination,
+          acceptedRevision: checked.sequence,
+        });
+      }
+      handled = { root: nextRoot, payloads, warnings: [] };
+    }
     else if (payload.kind === 'priority-pass') { const result = passCorePriorityV1({ stackBundle: stackBundle(current), lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle }, payload.playerId); handled = { root: replaceStackBundle(current, result.stackBundle, result.lifecycle), payloads: [{ kind: 'priority-changed', holderPlayerId: result.lifecycle['window'].kind === 'priority' ? result.lifecycle['window'].holderPlayerId : null, windowKind: result.lifecycle['window'].kind }], warnings: [] }; }
     else if (payload.kind === 'search-open') { const result = preOpenedSearch === null ? openCoreSearchSessionV1(current.ruleAuthority, payload.sessionKey, payload.input) : { value: preOpenedSearch }; handled = { root: replaceAuthority(current, { searchSessions: (result.value as typeof current.ruleAuthority).searchSessions }), payloads: [{ kind: 'search-session-changed', sessionKey: payload.sessionKey, operation: 'open', selectedCount: 0 }], warnings: [] }; }
     else if (payload.kind === 'search-complete') {
@@ -453,11 +585,23 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     else if (payload.kind === 'player-exit') handled = handlePlayerExit(current, payload);
     else if (payload.kind === 'random-zone-order') { const registry = stackBundle(current).objectRegistry; const order = zoneIds(registry, payload.zone); const issues = validateCoreRandomZoneOrderV1(payload, order); if (issues.length) adapterFailure(issues[0]?.code ?? 'INVALID_RANDOM_ORDER', issues[0]?.path ?? '/payload', issues[0]?.message ?? 'Invalid random zone order'); const nextOrder = applyCoreRecordedZoneOrderV1(order, payload); const nextRegistry = registryWith(registry, { zones: zonesWith(registry, payload.zone, nextOrder) }); const manualMode = payload.manualMode === 'structured' || payload.manualMode === 'freeform' ? payload.manualMode : undefined; handled = { root: updateRegistryInRoot(current, nextRegistry), payloads: [{ kind: 'zone-randomized', randomDecisionId: payload.randomDecisionId, zoneKind: payload.zone.zone, count: payload.afterOrder.length, ...(manualMode === undefined ? {} : { manualMode }) }], warnings: [] }; }
     else if (payload.kind === 'correct-player-life') { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); const registry = stackBundle(current).objectRegistry; const player = registry.players[payload.playerId]; if (!player) throw new Error('Correction player is not registered'); const players = { ...registry.players, [payload.playerId]: { ...player, life: payload.replacementLifeTotal } }; handled = { root: updateRegistryInRoot(current, registryWith(registry, { players })), payloads: [{ kind: 'manual-correction-applied', correction: 'player-life' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
-    else if (payload.kind === 'table-turn-progress') handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload);
+    else if (payload.kind === 'table-turn-progress') { requireSteward(current, checked.actorPlayerId, '/actorPlayerId'); handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload); }
     else if (payload.kind === 'table-shuffle') adapterFailure('SHUFFLE_REQUIRES_SERVER_RANDOM', '/payload', 'Shuffle must be bound to a server-authoritative random order');
     else if (isTabletopPayload(payload)) {
       const result = applyCoreTabletopPayloadV1(current, checked.actorPlayerId, payload);
-      handled = { root: result.root, payloads: result.payloads, warnings: [] };
+      let nextRoot = result.root;
+      const payloads = result.payloads.slice();
+      if (payload.kind === 'table-zone-move' && payload.destination.kind === 'stack') {
+        const turn = nextRoot.ruleAuthority.turnPriorityBundle;
+        const started = startCorePriorityCycleV1({ stackBundle: turn.stackBundle, lifecycle: turn.lifecycle });
+        nextRoot = replaceStackBundle(nextRoot, started.stackBundle, started.lifecycle);
+        payloads.push({
+          kind: 'priority-changed',
+          holderPlayerId: started.lifecycle.window.kind === 'priority' ? started.lifecycle.window.holderPlayerId : null,
+          windowKind: started.lifecycle.window.kind,
+        });
+      }
+      handled = { root: nextRoot, payloads, warnings: [] };
     }
     else { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); if (validateCoreCorrectionReasonV1(payload.reason).length) throw new Error('Correction reason is invalid'); const state = current.commanderDamage; const entries = state.entries.filter((entry) => !(entry.commanderPhysicalCardId === payload.physicalCardId && entry.defendingPlayerId === payload.defendingPlayerId)); if (payload.replacementDamageTotal > 0) entries.push({ commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.replacementDamageTotal }); const damage = createCoreCommanderDamageStateV1({ commanders: state.commanders, defendingPlayerIds: state.defendingPlayerIds, entries }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderDamage: damage }), payloads: [{ kind: 'manual-correction-applied', correction: 'commander-damage' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
     // Manual note/stack operations validate their intermediate root against
@@ -503,7 +647,20 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
       closureKeys.push(grantKey);
     }
     const closurePayloads = closureKeys.map((grantKey) => ({ kind: 'visibility-closed' as const, grantKey, reason: 'automatic' as const }));
-    const acceptedRoot = createModeNeutralCoreRootV1({ ...reconciledRoot, acceptedCommandCount });
+    let acceptedRoot = createModeNeutralCoreRootV1({ ...reconciledRoot, acceptedCommandCount });
+    if (recentResolutionSummary !== null) {
+      const previous = acceptedRoot.tabletopManual;
+      acceptedRoot = createModeNeutralCoreRootV1({
+        ...acceptedRoot,
+        tabletopManual: createCoreTabletopManualStateV1({
+          notes: previous?.notes,
+          noteOrder: previous?.noteOrder,
+          stackEntries: previous?.stackEntries,
+          priorityHolds: previous?.priorityHolds,
+          recentResolution: recentResolutionSummary,
+        }),
+      });
+    }
     return eventRoot(acceptedRoot, checked, [...handled.payloads, ...closurePayloads], handled.warnings, before);
   } catch (error: unknown) { return reject(root, [safeIssue(error)], before); }
 }

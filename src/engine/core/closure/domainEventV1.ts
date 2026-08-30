@@ -42,6 +42,7 @@ export type CoreDomainEventPayloadV1 =
   | Readonly<{ readonly kind: 'table-controller-changed'; readonly objectId: CoreObjectId; readonly gainingControllerPlayerId: CorePlayerId; readonly manualMode?: CoreTabletopManualModeV1 }>
   | Readonly<{ readonly kind: 'table-attachment-changed'; readonly objectId: CoreObjectId; readonly targetObjectId: CoreObjectId | null; readonly manualMode?: CoreTabletopManualModeV1 }>
   | Readonly<{ readonly kind: 'table-damage-marked'; readonly objectId: CoreObjectId; readonly amount: number; readonly resultingAmount: number; readonly manualMode?: CoreTabletopManualModeV1 }>
+  | Readonly<{ readonly kind: 'table-priority-hold-changed'; readonly playerId: CorePlayerId; readonly held: boolean }>
   | Readonly<{ readonly kind: 'table-note-set'; readonly noteId: string; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number; readonly manualMode?: CoreTabletopManualModeV1 }>
   | Readonly<{ readonly kind: 'table-note-cleared'; readonly noteId: string; readonly authorPlayerId: CorePlayerId; readonly manualMode?: CoreTabletopManualModeV1 }>
   | Readonly<{ readonly kind: 'table-stack-entry-added'; readonly entryId: string; readonly authorPlayerId: CorePlayerId; readonly creationRevision: number; readonly manualMode?: CoreTabletopManualModeV1 }>

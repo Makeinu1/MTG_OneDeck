@@ -313,7 +313,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
   const startBrowsers = (): void => {
     if (secrets === null || snapshot.roomId === null || snapshot.lifecycle !== 'started' || (snapshot.pregame !== null && snapshot.pregame.phase !== 'complete')) return;
     const webSocketUrl = `${PUBLIC_ONLINE_ENDPOINT_V1.replace(/^http/u, 'ws')}/api/online/rooms/${encodeURIComponent(snapshot.roomId)}/websocket`;
-    const common = { webSocketUrl, protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion, roomId: snapshot.roomId as never, clientBuildId: 'o4p-08d-client' as never };
+    const common = { webSocketUrl, protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion, roomId: snapshot.roomId as never, clientBuildId: 'o4p-09f-client' as never };
     playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null;
     playerClient?.disconnect(); tableClient?.disconnect();
     playerClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.participantId as never, participantCapability: secrets.seatCapability as never });
@@ -582,7 +582,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       roomId: snapshot.roomId,
       participantId: secrets.participantId,
       participantCapability: secrets.seatCapability as never,
-      clientBuildId: 'o4p-08d-client',
+      clientBuildId: 'o4p-09f-client',
       corePlayerId: personal.corePlayerId,
       personalProjection: personal,
     };

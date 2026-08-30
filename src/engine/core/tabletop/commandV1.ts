@@ -33,6 +33,13 @@ export type CoreTabletopZoneMovePayloadV1 = Readonly<{
   readonly manualMode?: unknown;
 }>;
 
+/** A legal land play is distinct from a manual zone move so land counters
+ * cannot be forged by moving an arbitrary card to the battlefield. */
+export type CoreTabletopLandPlayPayloadV1 = Readonly<{
+  readonly kind: 'table-land-play';
+  readonly objectId: CoreObjectId;
+}>;
+
 export type CoreTabletopTapPayloadV1 = Readonly<{
   readonly kind: 'table-tap';
   readonly objectId: CoreObjectId;
@@ -137,10 +144,15 @@ export type CoreTabletopManualResolvePayloadV1 = Readonly<{
   readonly entryId?: string;
   readonly manualMode?: unknown;
 }>;
+export type CoreTabletopPriorityHoldPayloadV1 = Readonly<{
+  readonly kind: 'table-priority-hold';
+  readonly held: boolean;
+}>;
 
 export type CoreTabletopCommandPayloadV1 =
   | CoreTabletopDrawPayloadV1
   | CoreTabletopZoneMovePayloadV1
+  | CoreTabletopLandPlayPayloadV1
   | CoreTabletopTapPayloadV1
   | CoreTabletopManaPayloadV1
   | CoreTabletopCounterPayloadV1
@@ -156,6 +168,7 @@ export type CoreTabletopCommandPayloadV1 =
   | CoreTabletopNoteClearPayloadV1
   | CoreTabletopStackEntryPayloadV1
   | CoreTabletopManualResolvePayloadV1
+  | CoreTabletopPriorityHoldPayloadV1
   | CoreTabletopTurnPayloadV1;
 
 export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];

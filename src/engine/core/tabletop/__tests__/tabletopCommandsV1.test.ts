@@ -2,6 +2,43 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as Core from '../../index';
 import * as Closure from '../../closure/index';
+import { removeCoreStackObjectV1 } from '../../stack/transaction/stackRemovalV1';
+
+function resolutionRoot(base: Closure.ModeNeutralCoreRootV1, permanent: boolean): Closure.ModeNeutralCoreRootV1 {
+  let current = base;
+  for (const objectId of ['@triggered-ability:fixture-trigger', '@activated-ability:fixture-activation'] as const) {
+    const turn = current.ruleAuthority.turnPriorityBundle;
+    const removed = removeCoreStackObjectV1(turn.stackBundle, { kind: 'cease', objectId });
+    const nextTurn = Core.createCoreTurnPriorityBundleV1({ ...turn, stackBundle: removed.bundle });
+    current = Closure.createModeNeutralCoreRootV1({ ...current, ruleAuthority: Core.createCoreRuleAuthorityBundleV1({ ...current.ruleAuthority, turnPriorityBundle: nextTurn }) });
+  }
+  const turn = current.ruleAuthority.turnPriorityBundle;
+  const registry = turn.stackBundle.objectRegistry;
+  const definition = registry.cardDefinitions['def.fixture-card' as never];
+  const nextDefinition = permanent
+    ? { ...definition, typeLine: 'Artifact', faces: definition.faces.map((face) => ({ ...face, typeLine: 'Artifact' })) }
+    : definition;
+  const nextRegistry = permanent
+    ? Core.createModeNeutralCoreObjectRegistryStateV2({
+      players: registry.players,
+      turnOrder: registry.turnOrder,
+      activePlayerId: registry.activePlayerId,
+      cardDefinitions: { ...registry.cardDefinitions, ['def.fixture-card' as never]: nextDefinition },
+      physicalCards: registry.physicalCards,
+      objects: registry.objects,
+      zones: registry.zones,
+    })
+    : registry;
+  const nextStack = Core.createCoreStackTransactionBundleV1({ objectRegistry: nextRegistry, objectRuntime: turn.stackBundle.objectRuntime, stackAnnouncements: turn.stackBundle.stackAnnouncements });
+  const lifecycle = Core.createModeNeutralCoreTurnLifecycleSliceV1({
+    turnNumber: turn.lifecycle.turnNumber,
+    positionSequence: turn.lifecycle.positionSequence,
+    position: turn.lifecycle.position,
+    window: { kind: 'resolution-ready', objectId: 'PC5:1' as never },
+  });
+  const nextTurn = Core.createCoreTurnPriorityBundleV1({ stackBundle: nextStack, pendingTriggers: Core.createModeNeutralCorePendingTriggerSliceV1({ pendingObjectIds: [], byObject: {} }), lifecycle });
+  return Closure.createModeNeutralCoreRootV1({ ...current, ruleAuthority: Core.createCoreRuleAuthorityBundleV1({ ...current.ruleAuthority, turnPriorityBundle: nextTurn }) });
+}
 
 function root(): Closure.ModeNeutralCoreRootV1 {
   const fixture = JSON.parse(readFileSync(new URL('../../turn/fixtures/turn-priority-lifecycle-v1.json', import.meta.url), 'utf8')) as { bundle: unknown };
@@ -201,7 +238,7 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
 
     const entryId = 'e'.repeat(80);
     const acceptedEntry = Core.applyCoreCommandV1(acceptedNote.root, command(acceptedNote.root, {
-      kind: 'table-stack-entry', entryId, label: 'Boundary stack entry', sourceObjectId: null, manualMode: 'freeform',
+      kind: 'table-stack-entry', entryId, label: 'Boundary stack entry', sourceObjectId: 'PC5:1' as never, manualMode: 'freeform',
     }));
     expect(acceptedEntry.status).toBe('accepted');
     if (acceptedEntry.status !== 'accepted') return;
@@ -254,7 +291,7 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
     let stackRoot = root();
     for (let index = 0; index < 128; index += 1) {
       const result = Core.applyCoreCommandV1(stackRoot, command(stackRoot, {
-        kind: 'table-stack-entry', entryId: `bounded-entry-${String(index)}`, label: 'x', sourceObjectId: null, manualMode: 'freeform',
+        kind: 'table-stack-entry', entryId: `bounded-entry-${String(index)}`, label: 'x', sourceObjectId: 'PC5:1' as never, manualMode: 'freeform',
       }));
       expect(result.status).toBe('accepted');
       if (result.status !== 'accepted') return;
@@ -417,7 +454,7 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
     expect(updated.events[0]?.payload).toMatchObject({ kind: 'table-note-set', authorPlayerId: 'P1', creationRevision: 1 });
   });
 
-  it('records bounded notes and resolves only a controlled manual stack top', () => {
+  it('rejects manual resolution when the represented object is not the Core stack top', () => {
     const initial = root();
     const noted = Core.applyCoreCommandV1(initial, command(initial, { kind: 'table-note-set', noteId: 'table-note', text: 'Remember priority', manualMode: 'structured' }));
     expect(noted.status).toBe('accepted');
@@ -428,11 +465,11 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
     expect(stacked.root.tabletopManual?.notes['table-note']?.text).toBe('Remember priority');
     expect(stacked.root.tabletopManual?.stackEntries[0]?.provenance).toBe('freeform');
     const resolved = Core.applyCoreCommandV1(stacked.root, command(stacked.root, { kind: 'table-manual-resolve', manualMode: 'freeform' }));
-    expect(resolved.status).toBe('accepted');
-    if (resolved.status === 'accepted') expect(resolved.root.tabletopManual?.stackEntries).toHaveLength(0);
+    expect(resolved.status).toBe('rejected');
+    expect(resolved.root).toBe(stacked.root);
   });
 
-  it('resolves a controlled synthetic stack object through cease removal', () => {
+  it('rejects synthetic manual resolution outside a resolution-ready Core boundary', () => {
     const initial = root();
     const stacked = Core.applyCoreCommandV1(initial, command(initial, {
       kind: 'table-stack-entry', entryId: 'synthetic-entry', label: 'Ability marker',
@@ -443,14 +480,40 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
     const resolved = Core.applyCoreCommandV1(stacked.root, command(stacked.root, {
       kind: 'table-manual-resolve', entryId: 'synthetic-entry', manualMode: 'structured',
     }, 'P2' as never));
+    expect(resolved.status).toBe('rejected');
+    expect(resolved.root).toBe(stacked.root);
+  });
+
+  it('resolves permanent manual stack cards to the battlefield under immutable stewardship', () => {
+    const prepared = resolutionRoot(root(), true);
+    const stacked = Core.applyCoreCommandV1(prepared, command(prepared, {
+      kind: 'table-stack-entry', entryId: 'permanent-entry', label: 'Permanent marker', sourceObjectId: 'PC5:1' as never, manualMode: 'structured',
+    }));
+    expect(stacked.status).toBe('accepted');
+    if (stacked.status !== 'accepted') return;
+    const resolved = Core.applyCoreCommandV1(stacked.root, command(stacked.root, { kind: 'table-manual-resolve', entryId: 'permanent-entry', manualMode: 'structured' }));
     expect(resolved.status).toBe('accepted');
     if (resolved.status !== 'accepted') return;
-    const bundle = resolved.root.ruleAuthority.turnPriorityBundle.stackBundle;
-    expect(bundle.objectRegistry.zones.shared.stack).not.toContain('@spell-copy:fixture-copy');
-    expect(bundle.objectRegistry.objects['@spell-copy:fixture-copy' as never]).toBeUndefined();
-    expect(bundle.objectRuntime.byObject['@spell-copy:fixture-copy' as never]).toBeUndefined();
-    expect(bundle.stackAnnouncements.byObject['@spell-copy:fixture-copy' as never]).toBeUndefined();
-    expect(resolved.root.tabletopManual?.stackEntries).toHaveLength(0);
+    const registry = resolved.root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+    expect(registry.zones.shared.battlefield).toContain('PC5:2' as never);
+    expect(registry.zones.byPlayer['P4' as never]?.graveyard).not.toContain('PC5:2' as never);
+    expect(resolved.root.tabletopManual?.recentResolution).toMatchObject({ objectId: 'PC5:1', destination: 'battlefield', acceptedRevision: resolved.root.acceptedCommandCount });
+  });
+
+  it('resolves instant and sorcery manual stack cards to their owner graveyard', () => {
+    const prepared = resolutionRoot(root(), false);
+    const stacked = Core.applyCoreCommandV1(prepared, command(prepared, {
+      kind: 'table-stack-entry', entryId: 'sorcery-entry', label: 'Sorcery marker', sourceObjectId: 'PC5:1' as never, manualMode: 'structured',
+    }));
+    expect(stacked.status).toBe('accepted');
+    if (stacked.status !== 'accepted') return;
+    const resolved = Core.applyCoreCommandV1(stacked.root, command(stacked.root, { kind: 'table-manual-resolve', entryId: 'sorcery-entry', manualMode: 'structured' }));
+    expect(resolved.status).toBe('accepted');
+    if (resolved.status !== 'accepted') return;
+    const registry = resolved.root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+    expect(registry.zones.byPlayer['P4' as never]?.graveyard).toContain('PC5:2' as never);
+    expect(registry.zones.shared.battlefield).not.toContain('PC5:2' as never);
+    expect(resolved.root.tabletopManual?.recentResolution).toMatchObject({ objectId: 'PC5:1', destination: 'owner-graveyard', acceptedRevision: resolved.root.acceptedCommandCount });
   });
 
   it('retains manual provenance for a server-recorded random order payload', () => {
@@ -469,6 +532,8 @@ describe('O4P-06B ordinary tabletop command matrix', () => {
         notes: { note: { id: 'note', authorPlayerId: 'P1' as never, text: 'future', creationRevision: 1 } },
         noteOrder: ['note'],
         stackEntries: [],
+        priorityHolds: [],
+        recentResolution: null,
       },
     })).toThrow();
   });

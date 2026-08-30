@@ -29,6 +29,22 @@ describe('O4P-09D public tabletop intent boundary', () => {
     expect(validateOnlineTabletopIntentEnvelopeV1(envelope({ kind: 'note-set', noteId: 'n1', text: 'A note' }, 'freeform')).ok).toBe(true);
     expect(validateOnlineTabletopIntentEnvelopeV1(envelope({ kind: 'draw' })).ok).toBe(false);
     expect(validateOnlineTabletopIntentEnvelopeV1(envelope({ kind: 'move', objectId: 'PC1:0' as never })).ok).toBe(false);
+    expect(validateOnlineTabletopIntentEnvelopeV1(envelope({ kind: 'play-land', objectId: 'PC1:0' as never })).ok).toBe(true);
+    expect(validateOnlineTabletopIntentEnvelopeV1(envelope({ kind: 'cast-spell', objectId: 'PC1:0' as never })).ok).toBe(true);
+  });
+
+  it('keeps land binding on the server Core path instead of a generic move', () => {
+    const checked = validateOnlineTabletopIntentEnvelopeV1(envelope({ kind: 'play-land', objectId: 'PC1:0' as never }));
+    expect(checked.ok).toBe(true);
+    if (!checked.ok) return;
+    expect(() => bindOnlineTabletopIntentToCoreCommandV1({
+      envelope: checked.value,
+      binding: {
+        actorPlayerId: 'P1' as never,
+        decisionMakerPlayerId: 'P1' as never,
+        decisionContext: { kind: 'decision', decisionKey: 'manual' },
+      },
+    })).toThrow('server Core binding');
   });
 
   it('fails closed for hostile descriptor arrays without throwing', () => {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as Core from '../../../engine/core/index';
+import { coreSha256HexV1 } from '../../../engine/core/index';
+import type { CardDef } from '../../../types/card';
+import { buildVariableRoomGenesisV3, type VariableGenesisSeatInputV3 } from '../../genesis/index';
 import { createOnlineProtocolStateV1 } from '../../protocol/index';
 import { activateOnlineRoomV1, joinOnlineRoomV1, startOnlineRoomV1 } from '../../room/index';
 import {
@@ -12,8 +15,13 @@ import {
 import {
   ONLINE_PROJECTION_SCHEMA_VERSION_V1,
   handleOnlineProjectedSnapshotRequestV1,
+  validateOnlineParticipantProjectionV2,
   validateOnlineParticipantProjectionV1,
+  validateOnlineParticipantProjectionV3,
+  validateOnlineParticipantProjectionV4,
   validateOnlineProjectionRequestV1,
+  projectOnlineVariableProtocolV3,
+  projectOnlineVariableProtocolV4,
 } from '../index';
 
 function state() {
@@ -41,6 +49,27 @@ function stateFromCoreRoot(coreRoot: Core.ModeNeutralCoreRootV1) {
     coreRoot,
     observerAuthorizations: [],
   });
+}
+
+function variableState() {
+  const scryfallId = '5da14d86-0780-4821-a799-96f64b377df4';
+  const oracleId = 'd8ad23a1-0b43-48ea-9fbe-d89b29194509';
+  const definition: CardDef = { scryfallId, oracleId, name: 'V4 Projection Card', lang: 'en', layout: 'normal', cmc: 1, colorIdentity: [], typeLine: 'Artifact', faces: [{ name: 'V4 Projection Card', typeLine: 'Artifact', oracleText: '' }] };
+  const entries = Object.freeze([Object.freeze({ index: 0, section: 'main' as const, quantity: 40, scryfallId, oracleId, definition })]);
+  const serialized = JSON.stringify({ entries });
+  const seats = Object.freeze(Array.from({ length: 4 }, (_, index) => Object.freeze({
+    seatIndex: index as 0 | 1 | 2 | 3,
+    corePlayerId: `P${index + 1}` as 'P1' | 'P2' | 'P3' | 'P4',
+    participantId: `v4-player-${index + 1}`,
+    seatCapability: `seat_${String(index + 1).repeat(40)}`,
+    snapshot: Object.freeze({ entries, serialized, digest: coreSha256HexV1(serialized) }),
+  } satisfies VariableGenesisSeatInputV3)));
+  const result = buildVariableRoomGenesisV3(Object.freeze({
+    roomId: 'v4-projection-room', serverBuildId: 'v4-projection-build', configuration: Object.freeze({ playerCount: 4, startingLife: 40 }), seats,
+    tableParticipantId: 'v4-table', tableCapability: `observer_${'T'.repeat(40)}`,
+  }));
+  if (!result.ok) throw new Error('Expected variable state');
+  return result.protocolState;
 }
 
 function rootWithRuleAuthority(
@@ -135,6 +164,54 @@ describe('O4P-02D audience projection', () => {
       (issue) => issue.code === 'UNKNOWN_FIELD' && issue.path === '/<unknown-field>',
     )).toBe(true);
     expect(JSON.stringify(secretKeyResult)).not.toContain(CAPABILITIES[0]);
+  });
+
+  it('rejects assisted fields on legacy v1 and accepts the explicit v2 wire', () => {
+    const initial = state();
+    const transition = handleOnlineProjectedSnapshotRequestV1(initial, request());
+    if (transition.response.status !== 'accepted') throw new Error('Expected accepted projection');
+    const legacy = transition.response.projection;
+    const enriched = {
+      ...legacy,
+      kind: 'online-participant-projection-v2' as const,
+      schemaVersion: 2 as const,
+      game: {
+        ...legacy.game,
+        priorityHolds: [],
+        assistedPriority: {
+          holderPlayerId: null,
+          stewardPlayerId: null,
+          windowKind: 'sba-check-required',
+          holds: [],
+          responseWindow: null,
+          topStackObjectId: null,
+        },
+      },
+    };
+    expect(validateOnlineParticipantProjectionV1({ ...enriched, kind: 'online-participant-projection-v1', schemaVersion: 1 })).toMatchObject({ ok: false });
+    expect(validateOnlineParticipantProjectionV2(enriched)).toMatchObject({ ok: true });
+  });
+
+  it('keeps causal assisted priority V4-only and validates bounded public context', () => {
+    const initial = variableState();
+    const legacy = projectOnlineVariableProtocolV3(initial, 'v4-player-1');
+    const assisted = projectOnlineVariableProtocolV4(initial, 'v4-player-1');
+    expect(validateOnlineParticipantProjectionV3(legacy)).toMatchObject({ ok: true });
+    expect(validateOnlineParticipantProjectionV4(assisted)).toMatchObject({ ok: true });
+    expect(assisted.game.assistedPriority).toMatchObject({
+      sourceObjectId: null,
+      targetObjectIds: [],
+      targetPlayerIds: [],
+      undoAuthorizedPlayerId: 'P1',
+      recentResolution: null,
+    });
+    const malformed = structuredClone(assisted) as unknown as Record<string, unknown>;
+    const malformedGame = malformed.game as Record<string, unknown>;
+    malformedGame.assistedPriority = {
+      ...(malformedGame.assistedPriority as Record<string, unknown>),
+      targetObjectIds: ['not-a-core-object-id'],
+    };
+    expect(validateOnlineParticipantProjectionV4(malformed)).toMatchObject({ ok: false });
   });
 
   it('projects an authenticated player and hides all library identities', () => {

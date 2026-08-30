@@ -1,0 +1,685 @@
+import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import type { GameScreenInteractionPort } from '../game/gameScreenInteractionPort';
+import { GameCard } from '../game/GameCard';
+import type { DropIntent } from '../game/dragIntent';
+import type { GameState, PlayerId, ZoneId } from '../../engine/types';
+import type { CardDef, ManaColor } from '../../types/card';
+import type { OnlineParticipantProjectionV1, OnlineProjectedZoneEntryV1 } from '../../online/projection';
+import type { OnlineTabletopIntentEnvelopeV1, OnlineTabletopPrimitiveV1 } from '../../online/tabletopManual';
+import './remoteGameScreen.css';
+
+type SubmitTabletopIntent = (intent: OnlineTabletopIntentEnvelopeV1) => void | Promise<void>;
+type SubmitPersonalAction = (action: unknown) => void;
+
+export type RemoteGameScreenPortInput = Readonly<{
+  readonly projection: OnlineParticipantProjectionV1 | null;
+  readonly interactionState: 'ready' | 'updating' | 'offline';
+  readonly busy: boolean;
+  readonly onSubmitTabletopIntent: SubmitTabletopIntent;
+  readonly onSubmitPersonalAction: SubmitPersonalAction;
+}>;
+
+let commandSequence = 0;
+const remoteSessionPrefix = (() => {
+  try {
+    if (typeof globalThis.crypto?.getRandomValues === 'function') {
+      const bytes = globalThis.crypto.getRandomValues(new Uint8Array(8));
+      return Array.from(bytes, (byte) => byte.toString(36)).join('').slice(0, 16);
+    }
+  } catch {
+    // Fall through to a process-local entropy source in older browsers.
+  }
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+})();
+
+function noOp(): void {}
+
+function phaseOf(phase: OnlineParticipantProjectionV1['game']['turn']['position']['phase']): GameState['phase'] {
+  if (phase === 'beginning') return 'upkeep';
+  if (phase === 'precombat-main') return 'main1';
+  if (phase === 'combat') return 'combat';
+  if (phase === 'postcombat-main') return 'main2';
+  return 'end';
+}
+
+function stepOf(step: string | null): GameState['phase'] {
+  if (step === 'untap') return 'untap';
+  if (step === 'upkeep') return 'upkeep';
+  if (step === 'draw') return 'draw';
+  if (step === 'beginning-of-combat' || step === 'declare-attackers' || step === 'declare-blockers' || step === 'combat-damage' || step === 'end-of-combat') return 'combat';
+  if (step === 'end') return 'end';
+  if (step === 'cleanup') return 'cleanup';
+  return 'main1';
+}
+
+function cardIdentity(objectId: string): { id: string; zoneChangeCounter: number } {
+  const separator = objectId.lastIndexOf(':');
+  const suffix = separator >= 0 ? Number(objectId.slice(separator + 1)) : 0;
+  return { id: objectId, zoneChangeCounter: Number.isSafeInteger(suffix) && suffix >= 0 ? suffix : 0 };
+}
+
+function cardDef(definition: NonNullable<Extract<OnlineProjectedZoneEntryV1, { kind: 'visible-object' }>['definition']>, fallbackId: string): CardDef {
+  const source = definition.source.kind === 'scryfall' ? definition.source : null;
+  return {
+    scryfallId: source?.scryfallId ?? fallbackId,
+    oracleId: source?.oracleId ?? fallbackId,
+    name: definition.name,
+    lang: 'en',
+    layout: definition.layout,
+    cmc: definition.manaValue,
+    colorIdentity: [...definition.colorIdentity],
+    typeLine: definition.typeLine,
+    keywords: [...definition.keywords],
+    producedMana: [...definition.producedMana],
+    tokenKind: definition.tokenKind ?? undefined,
+    faces: definition.faces.map((face) => ({
+      name: face.name,
+      manaCost: face.manaCost ?? undefined,
+      typeLine: face.typeLine,
+      oracleText: face.oracleText,
+      power: face.power ?? undefined,
+      toughness: face.toughness ?? undefined,
+      loyalty: face.loyalty ?? undefined,
+      defense: face.defense ?? undefined,
+    })),
+  };
+}
+
+function emptyMana(): GameState['manaPool'] {
+  return { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 };
+}
+
+function phaseIsMain(phase: OnlineParticipantProjectionV1['game']['turn']['position']['phase']): boolean {
+  return phase === 'precombat-main' || phase === 'postcombat-main';
+}
+
+function hasPlayPermission(
+  projection: OnlineParticipantProjectionV1,
+  actor: PlayerId,
+  objectId: string,
+  action: 'cast-spell' | 'play-land',
+): boolean {
+  return projection.game.playPermissions.some((permission) => (
+    permission.allowedPlayerId === actor
+    && permission.action === action
+    && permission.subject.kind === 'object'
+    && permission.subject.objectId === objectId
+  ));
+}
+
+function handDefinition(projection: OnlineParticipantProjectionV1, objectId: string): NonNullable<Extract<OnlineProjectedZoneEntryV1, { kind: 'visible-object' }>['definition']> | null {
+  const actor = projection.corePlayerId;
+  if (actor === null) return null;
+  const entry = projection.game.zones.byPlayer.find((group) => group.playerId === actor)?.zones.hand.entries.find((candidate) => candidate.kind === 'visible-object' && candidate.objectId === objectId);
+  return entry?.kind === 'visible-object' ? entry.definition : null;
+}
+
+/** Ordinary hand actions stay discoverable without an alternative permission row. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function remoteHandActionAllowed(
+  projection: OnlineParticipantProjectionV1,
+  objectId: string,
+  action: 'cast-spell' | 'play-land',
+): boolean {
+  const actor = projection.corePlayerId;
+  if (actor === null) return false;
+  if (hasPlayPermission(projection, actor, objectId, action)) return true;
+  const definition = handDefinition(projection, objectId);
+  if (definition === null) return false;
+  const own = projection.game.players.find((player) => player.playerId === actor);
+  if (own === undefined) return false;
+  const priority = projection.game.assistedPriority;
+  const anyHold = (priority?.holds?.length ?? 0) > 0 || (projection.game.priorityHolds?.length ?? 0) > 0;
+  const holder = priority?.holderPlayerId ?? projection.game.turn.activePlayerId;
+  if (anyHold || holder !== actor) return false;
+  if (action === 'play-land') {
+    return /\bLand\b/u.test(definition.typeLine)
+      && projection.game.turn.activePlayerId === actor
+      && (projection.game.turn.position.phase === 'precombat-main' || projection.game.turn.position.phase === 'postcombat-main')
+      && projection.game.zones.stack.count === 0
+      && own.landsPlayedThisTurn < 1;
+  }
+  const instantOrFlash = /\bInstant\b/u.test(definition.typeLine)
+    || definition.keywords.some((keyword) => keyword.toLowerCase() === 'flash');
+  if (instantOrFlash) return true;
+  return projection.game.zones.stack.count === 0
+    && projection.game.turn.activePlayerId === actor
+    && phaseIsMain(projection.game.turn.position.phase);
+}
+
+type RemoteCausalExtras = Readonly<{
+  readonly sourceObjectId?: string | null;
+  readonly targetObjectIds?: readonly string[];
+  readonly targetPlayerIds?: readonly string[];
+  readonly recentResolution?: string | null;
+  readonly undoAuthorizedPlayerId?: string | null;
+}>;
+
+function causalExtras(projection: OnlineParticipantProjectionV1): RemoteCausalExtras {
+  const value = projection.game.assistedPriority as unknown as Record<string, unknown> | undefined;
+  if (value === undefined || value === null) return {};
+  const ids = (candidate: unknown): readonly string[] | undefined => {
+    if (!Array.isArray(candidate) || !candidate.every((item): item is string => typeof item === 'string')) return undefined;
+    return candidate;
+  };
+  const recentResolution = value.recentResolution;
+  const recentText = typeof recentResolution === 'string'
+    ? recentResolution
+    : recentResolution !== null && typeof recentResolution === 'object'
+      ? (() => {
+        const summary = recentResolution as Record<string, unknown>;
+        const text = ['summary', 'message', 'label', 'text', 'delta'].map((key) => summary[key]).find((item): item is string => typeof item === 'string');
+        if (text !== undefined) return text;
+        const destination = summary.destination;
+        const destinationLabel = destination === 'battlefield' ? '戦場' : destination === 'owner-graveyard' ? 'オーナーの墓地' : destination === 'cease' ? '消滅' : destination === 'manual' ? '手動処理' : null;
+        const revision = typeof summary.acceptedRevision === 'number' ? summary.acceptedRevision : null;
+        if (destinationLabel === null && revision === null) return null;
+        const objectId = typeof summary.objectId === 'string' ? ` (${summary.objectId})` : '';
+        return `解決: ${destinationLabel ?? '状態更新'}${objectId}${revision === null ? '' : ` / 更新 ${revision}`}`;
+      })()
+      : null;
+  return {
+    sourceObjectId: typeof value.sourceObjectId === 'string' ? value.sourceObjectId : null,
+    targetObjectIds: ids(value.targetObjectIds),
+    targetPlayerIds: ids(value.targetPlayerIds),
+    recentResolution: recentText,
+    undoAuthorizedPlayerId: typeof value.undoAuthorizedPlayerId === 'string' ? value.undoAuthorizedPlayerId : null,
+  };
+}
+
+function publicEntries(projection: OnlineParticipantProjectionV1): readonly OnlineProjectedZoneEntryV1[] {
+  return [
+    ...projection.game.zones.battlefield.entries,
+    ...projection.game.zones.stack.entries,
+    ...projection.game.zones.exile.entries,
+    ...projection.game.zones.command.entries,
+  ];
+}
+
+function automaticFocusPlayer(projection: OnlineParticipantProjectionV1): PlayerId | null {
+  const actor = projection.corePlayerId;
+  if (actor === null) return null;
+  const opponents = new Set<string>(projection.game.players.map((player) => player.playerId).filter((playerId) => playerId !== actor));
+  const extras = causalExtras(projection);
+  const sourceId = extras.sourceObjectId ?? null;
+  const source = sourceId === null ? undefined : publicEntries(projection).find((entry) => entry.kind !== 'hidden-card' && entry.objectId === sourceId);
+  const sourceController = source?.kind === 'visible-object'
+    ? source.controllerPlayerId
+    : source?.kind === 'concealed-object'
+      ? (source as OnlineProjectedZoneEntryV1 & Readonly<{ readonly controllerPlayerId?: PlayerId | null }>).controllerPlayerId ?? null
+      : null;
+  if (sourceController && opponents.has(sourceController)) return sourceController;
+  const targets = extras.targetObjectIds ?? [];
+  for (const targetId of targets) {
+    const target = publicEntries(projection).find((entry) => entry.kind !== 'hidden-card' && entry.objectId === targetId);
+    const controller = target?.kind === 'visible-object'
+      ? target.controllerPlayerId
+      : target?.kind === 'concealed-object'
+        ? (target as OnlineProjectedZoneEntryV1 & Readonly<{ readonly controllerPlayerId?: PlayerId | null }>).controllerPlayerId ?? null
+        : null;
+    if (controller && opponents.has(controller)) return controller;
+  }
+  for (const targetPlayerId of extras.targetPlayerIds ?? []) {
+    if (opponents.has(targetPlayerId)) return targetPlayerId;
+  }
+  const steward = projection.game.assistedPriority?.stewardPlayerId;
+  if (steward && opponents.has(steward)) return steward;
+  const active = projection.game.turn.activePlayerId;
+  if (opponents.has(active)) return active;
+  return projection.game.players.find((player) => opponents.has(player.playerId))?.playerId ?? null;
+}
+
+function projectedCard(entry: OnlineProjectedZoneEntryV1, zone: ZoneId, ownerFallback: PlayerId): { cardId: string; card: GameState['cards'][string]; def?: CardDef } | null {
+  if (entry.kind === 'hidden-card') return null;
+  const identity = cardIdentity(entry.objectId);
+  const runtime = entry.runtime;
+  const visible = entry.kind === 'visible-object';
+  const definition = visible ? entry.definition : null;
+  const concealed = entry.kind === 'concealed-object' ? entry as OnlineProjectedZoneEntryV1 & Readonly<{ readonly ownerPlayerId?: PlayerId | null; readonly controllerPlayerId?: PlayerId | null }> : null;
+  const owner = visible
+    ? entry.ownerPlayerId ?? ownerFallback
+    : concealed?.ownerPlayerId ?? ownerFallback;
+  const controller = visible
+    ? entry.controllerPlayerId ?? owner
+    : concealed?.controllerPlayerId ?? owner;
+  const defId = definition ? `remote-def:${entry.objectId}` : `remote-concealed:${entry.objectId}`;
+  const card = {
+    id: identity.id,
+    defId,
+    zone,
+    ownerId: owner,
+    controllerId: controller,
+    zoneChangeCounter: identity.zoneChangeCounter,
+    tapped: runtime?.tapped ?? false,
+    faceIndex: runtime?.faceIndex ?? 0,
+    faceDown: runtime?.faceDown ?? entry.kind === 'concealed-object',
+    counters: Object.fromEntries((runtime?.counters ?? []).map((counter) => [counter.kind, counter.count])),
+    damageMarked: runtime?.markedDamage ?? 0,
+    hasDeathtouchDamage: false,
+    isToken: entry.objectKind === 'token',
+    isCommander: visible ? entry.commander : false,
+    enteredTurn: 0,
+    attachedTo: runtime?.attachment.kind === 'object' ? runtime.attachment.objectId : undefined,
+    effectsAuto: false,
+  };
+  return { cardId: entry.objectId, card, ...(definition ? { def: cardDef(definition, defId) } : {}) };
+}
+
+// Shared adapter export is intentionally colocated with the Remote surface.
+// eslint-disable-next-line react-refresh/only-export-components
+export function projectionToGameState(projection: OnlineParticipantProjectionV1): GameState | null {
+  const localPlayerId = projection.corePlayerId;
+  if (localPlayerId === null) return null;
+  const cards: GameState['cards'] = {};
+  const defs: GameState['defs'] = {};
+  const zones: GameState['zones'] = { library: [], hand: [], battlefield: [], graveyard: [], exile: [], command: [], stack: [] };
+  const zonesByPlayer: GameState['zonesByPlayer'] = {};
+  const add = (entry: OnlineProjectedZoneEntryV1, zone: ZoneId, ownerFallback = localPlayerId): void => {
+    const result = projectedCard(entry, zone, ownerFallback);
+    if (result === null) return;
+    cards[result.cardId] = result.card;
+    if (result.def) defs[result.card.defId] = result.def;
+    zones[zone].push(result.cardId);
+  };
+  const ownGroup = projection.game.zones.byPlayer.find((group) => group.playerId === localPlayerId);
+  const ownPrivate = ownGroup?.zones;
+  ownPrivate?.hand.entries.forEach((entry) => add(entry, 'hand'));
+  ownPrivate?.graveyard.entries.forEach((entry) => add(entry, 'graveyard'));
+  const publicGraveyardIds = new Map<PlayerId, string[]>();
+  projection.game.zones.byPlayer.forEach((group) => {
+    if (group.playerId === localPlayerId) return;
+    const ids: string[] = [];
+    group.zones.graveyard.entries.forEach((entry) => {
+      const result = projectedCard(entry, 'graveyard', group.playerId);
+      if (result === null) return;
+      cards[result.cardId] = result.card;
+      if (result.def) defs[result.card.defId] = result.def;
+      ids.push(result.cardId);
+    });
+    publicGraveyardIds.set(group.playerId, ids);
+  });
+  projection.game.zones.battlefield.entries.forEach((entry) => add(entry, 'battlefield'));
+  projection.game.zones.stack.entries.forEach((entry) => add(entry, 'stack'));
+  projection.game.zones.exile.entries.forEach((entry) => add(entry, 'exile'));
+  projection.game.zones.command.entries.forEach((entry) => add(entry, 'command'));
+  const allPlayers = projection.game.players;
+  allPlayers.forEach((player) => {
+    const privateZones = projection.game.zones.byPlayer.find((group) => group.playerId === player.playerId)?.zones;
+    zonesByPlayer[player.playerId] = {
+      library: [],
+      hand: player.playerId === localPlayerId ? [...zones.hand] : [],
+      graveyard: player.playerId === localPlayerId ? [...zones.graveyard] : [...(publicGraveyardIds.get(player.playerId) ?? [])],
+    };
+    if (player.playerId !== localPlayerId && privateZones) zonesByPlayer[player.playerId].library = [];
+  });
+  const players: GameState['players'] = {};
+  allPlayers.forEach((player) => {
+    players[player.playerId] = {
+      id: player.playerId,
+      label: player.playerId === localPlayerId ? 'あなた' : `プレイヤー ${player.playerId}`,
+      life: player.life,
+      poison: player.poison,
+      energy: player.energy,
+      experience: player.experience,
+      manaPool: { ...player.manaPool },
+      landsPlayedThisTurn: player.landsPlayedThisTurn,
+      spellsCastThisTurn: player.spellsCastThisTurn,
+      drawnThisTurn: player.drawnThisTurn,
+      mulliganCount: player.mulliganCount,
+      maximumHandSizeOverride: player.maximumHandSizeOverride === null ? 'none' : player.maximumHandSizeOverride,
+    };
+  });
+  const commanders = zones.command.flatMap((cardId) => cards[cardId]?.isCommander ? [{ cardId, castCount: 0 }] : []);
+  const local = players[localPlayerId];
+  const state: GameState = {
+    defs,
+    cards,
+    zones,
+    zonesByPlayer,
+    commanders,
+    effectsAuto: false,
+    activePlayerId: projection.game.turn.activePlayerId,
+    players,
+    turnOrder: [...projection.game.turnOrder],
+    localPlayerId,
+    turn: projection.game.turn.turnNumber,
+    phase: projection.game.turn.position.step === null ? phaseOf(projection.game.turn.position.phase) : stepOf(projection.game.turn.position.step),
+    combat: null,
+    life: local?.life ?? 0,
+    poison: local?.poison ?? 0,
+    energy: local?.energy ?? 0,
+    experience: local?.experience ?? 0,
+    commanderDamage: {},
+    opponentLife: Object.fromEntries(allPlayers.filter((player) => player.playerId !== localPlayerId).map((player) => [player.playerId, player.life])),
+    defeat: {},
+    emptyLibraryDrawAttemptedSinceLastSba: {},
+    manaPool: local ? { ...local.manaPool } : emptyMana(),
+    mulliganCount: local?.mulliganCount ?? 0,
+    landsPlayedThisTurn: local?.landsPlayedThisTurn ?? 0,
+    spellsCastThisTurn: local?.spellsCastThisTurn ?? 0,
+    drawnThisTurn: local?.drawnThisTurn ?? 0,
+    combatDamagePreventedUntilEndOfTurn: false,
+    eventLog: [],
+    pendingTriggers: [],
+    oncePerTurnTriggerLedger: { turn: projection.game.turn.turnNumber, consumedKeys: [] },
+    powerUpActivated: {},
+    pendingRuleChoices: [],
+    pendingSbaChoices: [],
+    linkedExiles: {},
+    log: [],
+  };
+  return state;
+}
+
+function nextCommandId(revision?: number): string {
+  commandSequence += 1;
+  return `remote-surface-${remoteSessionPrefix}-${revision ?? 0}-${commandSequence}`;
+}
+
+function buildIntent(projection: OnlineParticipantProjectionV1, primitive: OnlineTabletopPrimitiveV1): OnlineTabletopIntentEnvelopeV1 {
+  return {
+    kind: 'online-tabletop-intent-envelope-v1',
+    schemaVersion: 1,
+    commandId: nextCommandId(projection.revision),
+    baseRevision: projection.revision,
+    mode: 'structured',
+    primitive,
+  };
+}
+
+function remoteNoopPort(state: GameState | null): GameScreenInteractionPort {
+  return {
+    state,
+    warnings: [],
+    triggerCandidates: [],
+    resolutionSession: null,
+    guidedDecisionActive: false,
+    mulliganDecisionPending: false,
+    autoAdvanceToMain: false,
+    openCardMenu: noOp,
+    handleCardDoubleClick: noOp,
+    requestTapForMana: noOp,
+    requestActivateAbility: noOp,
+    requestDraw: noOp,
+    requestShuffleLibrary: noOp,
+    requestMulligan: noOp,
+    requestKeepHand: noOp,
+    requestToggleTap: noOp,
+    requestSetAllTapped: noOp,
+    requestResolveTop: noOp,
+    requestResolveAll: noOp,
+    advancePhase: noOp,
+    advanceTurn: noOp,
+    undo: noOp,
+    redo: noOp,
+    canUndo: false,
+    canRedo: false,
+    setManualTargets: noOp,
+    confirmGuidedZeroChoice: noOp,
+    removeStackItem: noOp,
+    completeManualResolution: noOp,
+    placePendingTriggersForPriority: noOp,
+    putPendingTriggerOnStack: noOp,
+    addAbilityToStack: noOp,
+    resolveCommanderRitualCue: () => null,
+    adjustLife: noOp,
+    adjustMana: noOp,
+    clearManaPool: noOp,
+    adjustPlayerCounter: noOp,
+    setMaximumHandSizeOverride: noOp,
+    adjustOpponentLife: noOp,
+    adjustCommanderDamage: noOp,
+    proliferateAll: noOp,
+    rollDie: noOp,
+    flipCoin: noOp,
+    setAutoAdvance: noOp,
+    dismissTriggerCandidates: noOp,
+    clearWarnings: noOp,
+    openLibraryActions: noOp,
+    libraryActionsOpen: false,
+    openZoneViewer: noOp,
+    opponentBoardOpen: false,
+    openOpponentBoard: noOp,
+    closeOpponentBoard: noOp,
+    openTokenDialog: noOp,
+    openAttackDialog: noOp,
+    openArrangeTop: noOp,
+    openCountDialog: noOp,
+    requestConfirm: noOp,
+    triggerCandidateCount: 0,
+    triggerSheetOpen: false,
+    processTriggers: noOp,
+    closeTriggerSheet: noOp,
+    motionArmed: false,
+    feedOpen: false,
+    openFeed: noOp,
+    closeFeed: noOp,
+    overlays: null,
+    shortcutsBlocked: true,
+    transitionCue: null,
+    dismissTransitionCue: noOp,
+    performDrop: noOp,
+    closeTransientUi: noOp,
+  };
+}
+
+// The hook and its surface component share one private adapter implementation.
+// eslint-disable-next-line react-refresh/only-export-components
+export function useRemoteGameScreenInteractionPort(input: RemoteGameScreenPortInput): GameScreenInteractionPort {
+  return useMemo(() => {
+    const state = input.projection === null ? null : projectionToGameState(input.projection);
+    if (input.projection === null || state === null) return remoteNoopPort(state);
+    const projection = input.projection;
+    const submit = (primitive: OnlineTabletopPrimitiveV1): void => {
+      if (input.interactionState !== 'ready' || input.busy) return;
+      void input.onSubmitTabletopIntent(buildIntent(projection, primitive));
+    };
+    const localCardObjectId = (cardId: string): string | null => state.cards[cardId]?.id ?? null;
+    const port = remoteNoopPort(state);
+    const actor = projection.corePlayerId;
+    if (actor === null) return port;
+    port.libraryCount = projection.game.zones.byPlayer.find((group) => group.playerId === actor)?.zones.library.count ?? 0;
+    port.requestDraw = (count) => submit({ kind: 'draw', count });
+    port.requestShuffleLibrary = () => submit({ kind: 'shuffle' });
+    port.requestToggleTap = (cardId) => {
+      const card = state.cards[cardId];
+      const objectId = localCardObjectId(cardId);
+      if (!card || card.controllerId !== actor || objectId === null) return;
+      submit({ kind: 'tap', objectId: objectId as never, tapped: !card.tapped });
+    };
+    // Bulk actions are intentionally unsupported on the remote surface: the
+    // wire contract has no aggregate primitive, and looping would reuse one
+    // projection revision for multiple commands.
+    port.requestToggleTapMany = () => false;
+    port.requestSetAllTapped = noOp;
+    const priority = projection.game.assistedPriority;
+    const anyHold = (priority?.holds?.length ?? 0) > 0 || (projection.game.priorityHolds?.length ?? 0) > 0;
+    const steward = priority?.stewardPlayerId ?? (projection.game.zones.stack.count === 0 ? projection.game.turn.activePlayerId : null);
+    const holder = priority?.holderPlayerId ?? projection.game.turn.activePlayerId;
+    const canPass = holder === actor && !anyHold;
+    const windowKind = priority?.windowKind ?? '';
+    const canAdvance = !anyHold && steward === actor && (priority === undefined || ['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(windowKind));
+    // The server resolves only the actual stack top. Keep one projected top
+    // identity for every resolve affordance so a lower StackBand item cannot
+    // accidentally resolve whatever happens to be on top remotely.
+    const projectedTopEntry = projection.game.zones.stack.entries.at(-1);
+    const projectedTopObjectId = projectedTopEntry !== undefined && projectedTopEntry.kind !== 'hidden-card'
+      ? projectedTopEntry.objectId
+      : null;
+    const canResolve = !anyHold
+      && steward === actor
+      && windowKind === 'resolution-ready'
+      && projectedTopObjectId !== null
+      && priority?.topStackObjectId === projectedTopObjectId;
+    port.requestResolveTop = () => { if (canResolve) submit({ kind: 'priority-resolve' }); };
+    port.requestResolveAll = () => { if (canResolve) submit({ kind: 'priority-resolve' }); };
+    port.advancePhase = () => {
+      if (canAdvance) submit({ kind: 'priority-advance' });
+      else if (canPass) input.onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: actor, baseRevision: projection.revision });
+    };
+    port.advanceTurn = port.advancePhase;
+    port.performDrop = (intent: DropIntent) => {
+      if (intent.kind === 'cast') {
+        const objectId = localCardObjectId(intent.cardId);
+        const permitted = objectId !== null && remoteHandActionAllowed(projection, objectId, 'cast-spell');
+        if (permitted) submit({ kind: 'cast-spell', objectId: objectId as never });
+      } else if (intent.kind === 'play-land') {
+        const objectId = localCardObjectId(intent.cardId);
+        const permitted = objectId !== null && remoteHandActionAllowed(projection, objectId, 'play-land');
+        if (permitted) submit({ kind: 'play-land', objectId: objectId as never });
+      } else if (intent.kind === 'move-zone') {
+        const objectId = localCardObjectId(intent.cardId);
+        if (objectId && intent.zone !== 'library') submit({ kind: 'move', objectId: objectId as never, destination: { kind: intent.zone === 'hand' ? 'owner-hand' : intent.zone === 'graveyard' ? 'owner-graveyard' : intent.zone === 'battlefield' ? 'battlefield' : 'exile', ...(intent.zone === 'battlefield' ? { baseControllerPlayerId: actor } : {}) } as never });
+      }
+    };
+    port.removeStackItem = (id) => {
+      if (!canResolve || id !== projectedTopObjectId) return;
+      submit({ kind: 'priority-resolve' });
+    };
+    port.adjustLife = (delta) => submit({ kind: 'life', field: 'life', delta });
+    port.adjustMana = (color: ManaColor, delta: number) => submit({ kind: 'mana', color, delta });
+    port.clearManaPool = noOp;
+    port.openCardMenu = noOp;
+    port.handleCardDoubleClick = (cardId) => {
+      const card = state.cards[cardId];
+      if (!card) return;
+      if (card.zone === 'hand') port.performDrop({ kind: cardId && state.defs[card.defId]?.typeLine.includes('Land') ? 'play-land' : 'cast', cardId });
+      else if (card.zone === 'battlefield') port.requestToggleTap(cardId);
+    };
+    port.overlays = null;
+    return port;
+  }, [input]);
+}
+
+export function RemoteGameScreenActionRail({
+  projection,
+  interactionState,
+  busy,
+  onSubmitTabletopIntent,
+  onSubmitPersonalAction,
+  port,
+}: RemoteGameScreenPortInput & Readonly<{ readonly port: GameScreenInteractionPort }>): ReactNode {
+  const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
+  if (projection === null || port.state === null) return null;
+  const local = projection.corePlayerId;
+  if (local === null) return null;
+  const ownGroup = projection.game.zones.byPlayer.find((group) => group.playerId === local);
+  const ownHand = ownGroup?.zones.hand.entries ?? [];
+  const ownHandActions = ownHand.flatMap((entry) => {
+    if (entry.kind !== 'visible-object' || entry.definition === null) return [];
+    const cardId = entry.objectId;
+    const isLand = /\bLand\b/u.test(entry.definition.typeLine);
+    const action = isLand ? 'play-land' as const : 'cast' as const;
+    const permitted = remoteHandActionAllowed(projection, cardId, action === 'play-land' ? 'play-land' : 'cast-spell');
+    return [{ cardId, label: entry.definition.name, action, permitted }];
+  });
+  const stackTop = projection.game.zones.stack.entries.at(-1);
+  const extras = causalExtras(projection);
+  const automaticFocus = automaticFocusPlayer(projection);
+  const effectiveFocus = focusedPlayerId ?? automaticFocus;
+  const priority = projection.game.assistedPriority;
+  const ownHeld = priority?.holds?.includes(local) ?? projection.game.priorityHolds?.some((hold) => hold.playerId === local) ?? false;
+  const anyHold = (priority?.holds?.length ?? 0) > 0 || (projection.game.priorityHolds?.length ?? 0) > 0;
+  const disabled = interactionState !== 'ready' || busy;
+  const steward = priority?.stewardPlayerId ?? (projection.game.zones.stack.count === 0 ? projection.game.turn.activePlayerId : null);
+  const holder = priority?.holderPlayerId ?? projection.game.turn.activePlayerId;
+  const canPass = holder === local && !anyHold;
+  const canAdvance = !anyHold && steward === local && (priority === undefined || ['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(priority.windowKind));
+  const stackTopObjectId = stackTop !== undefined && stackTop.kind !== 'hidden-card' ? stackTop.objectId : null;
+  const canResolve = !anyHold && steward === local && priority?.windowKind === 'resolution-ready' && priority.topStackObjectId === stackTopObjectId;
+  const latestNote = projection.game.notes?.at(-1);
+  const opponentSeats = projection.game.players
+    .filter((player) => player.playerId !== local)
+    .map((player) => ({
+      player,
+      handCount: projection.game.zones.byPlayer.find((group) => group.playerId === player.playerId)?.zones.hand.count ?? 0,
+      graveyardCount: projection.game.zones.byPlayer.find((group) => group.playerId === player.playerId)?.zones.graveyard.count ?? 0,
+      battlefieldCount: projection.game.zones.battlefield.entries.filter((entry) => {
+        if (entry.kind === 'hidden-card') return false;
+        const controller = entry.kind === 'visible-object'
+          ? entry.controllerPlayerId
+          : (entry as OnlineProjectedZoneEntryV1 & Readonly<{ readonly controllerPlayerId?: PlayerId | null }>).controllerPlayerId ?? null;
+        return controller === player.playerId;
+      }).length,
+    }));
+  const opponentLanes = projection.game.zones.battlefield.entries.flatMap((entry) => {
+    if (entry.kind === 'hidden-card') return [];
+    const controller = entry.kind === 'visible-object'
+      ? entry.controllerPlayerId
+      : (entry as OnlineProjectedZoneEntryV1 & Readonly<{ readonly controllerPlayerId?: PlayerId | null }>).controllerPlayerId ?? null;
+    return controller && controller !== local ? [{ controller, entry }] : [];
+  });
+  const sourceId = extras.sourceObjectId;
+  const sourceEntry = sourceId === undefined || sourceId === null
+    ? undefined
+    : publicEntries(projection).find((entry) => entry.kind !== 'hidden-card' && entry.objectId === sourceId);
+  const sourceLabel = sourceEntry?.kind === 'visible-object'
+    ? `《${sourceEntry.definition?.name ?? '公開オブジェクト'}》`
+    : sourceEntry?.kind === 'concealed-object'
+      ? '裏向きの公開オブジェクト'
+      : null;
+  const targetIds = extras.targetObjectIds ?? [];
+  const targetLabels = targetIds.slice(0, 3).map((targetId) => {
+    const target = publicEntries(projection).find((entry) => entry.kind !== 'hidden-card' && entry.objectId === targetId);
+    return target?.kind === 'visible-object' ? `《${target.definition?.name ?? '公開オブジェクト'}》` : target ? '裏向きの公開オブジェクト' : '対象';
+  });
+  const targetPlayerIds = extras.targetPlayerIds ?? [];
+  const targetPlayerLabels = targetPlayerIds.slice(0, 3).map((playerId) => `プレイヤー ${playerId}`);
+  const postResolutionDelta = extras.recentResolution?.slice(0, 160) ?? null;
+  const undoAuthorized = extras.undoAuthorizedPlayerId === local;
+  return (
+    <section className="online-remote-rail" data-testid="online-remote-game-rail" aria-label="共有ゲーム操作">
+      <header className="online-remote-rail__header">
+        <strong>共有テーブル</strong>
+        <span>更新 {projection.revision} / {priority?.holderPlayerId === local ? 'あなたが優先権' : `手番 ${projection.game.turn.activePlayerId}`}</span>
+      </header>
+      <div className="online-remote-rail__causal" data-testid="online-remote-causal">
+        <span>スタック {projection.game.zones.stack.count}件</span>
+        {sourceLabel && <span>発生源: {sourceLabel}</span>}
+        {(targetLabels.length > 0 || targetPlayerLabels.length > 0) && <span>対象: {[...targetLabels, ...targetPlayerLabels].join(' / ')}{targetIds.length + targetPlayerIds.length > 3 ? ` 他${targetIds.length + targetPlayerIds.length - 3}件` : ''}</span>}
+        {priority?.stewardPlayerId && <span>解決担当: {priority.stewardPlayerId}</span>}
+        {priority?.responseWindow && <span>応答窓: {priority.responseWindow}</span>}
+        {postResolutionDelta && <span data-testid="online-remote-post-resolution">直近の変化: {postResolutionDelta}</span>}
+        {latestNote && <span>直近: {latestNote.text}</span>}
+      </div>
+      <div className="online-remote-rail__seats" aria-label="対戦相手の公開情報">
+        {opponentSeats.map(({ player, handCount, graveyardCount, battlefieldCount }) => (
+          <button key={player.playerId} type="button" className="online-remote-rail__seat" data-testid="online-remote-opponent" aria-pressed={effectiveFocus === player.playerId} onClick={() => setFocusedPlayerId((current) => current === player.playerId ? null : player.playerId)}>
+            {player.playerId} ♥{player.life} / 手札 {handCount} / 墓地 {graveyardCount} / 戦場 {battlefieldCount}
+          </button>
+        ))}
+      </div>
+      <div className="online-remote-rail__opponent-lanes" data-opponent-count={opponentSeats.length} aria-label="対戦相手の公開パーマネント">
+        {opponentSeats.map(({ player }) => {
+          const cards = opponentLanes.filter(({ controller }) => controller === player.playerId);
+          return (
+            <section key={player.playerId} className="online-remote-rail__opponent-lane" data-focused={effectiveFocus === player.playerId || undefined}>
+              <header><strong>{player.playerId}</strong><span>{effectiveFocus === player.playerId ? 'フォーカス中' : '公開盤面'}</span></header>
+              <div className="online-remote-rail__opponent-cards">
+                {cards.length === 0 && <span className="online-remote-rail__empty">公開パーマネントなし</span>}
+                {cards.map(({ entry }) => <GameCard key={entry.objectId} controller={port} cardId={entry.objectId} size="board" draggable={false} />)}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <div className="online-remote-rail__actions">
+        {ownHandActions.slice(0, 8).map((entry) => (
+          <button key={entry.cardId} type="button" data-testid={`online-remote-${entry.action}`} disabled={disabled || !entry.permitted} onClick={() => port.performDrop({ kind: entry.action, cardId: entry.cardId })}>
+            {entry.action === 'play-land' ? '土地' : '唱える'} 《{entry.label}》
+          </button>
+        ))}
+        <button type="button" data-testid="online-remote-hold" aria-pressed={ownHeld} disabled={disabled} onClick={() => {
+          const intent = { kind: 'online-tabletop-intent-envelope-v1' as const, schemaVersion: 1 as const, commandId: nextCommandId(projection.revision), baseRevision: projection.revision, mode: 'structured' as const, primitive: { kind: 'priority-hold' as const, held: !ownHeld } };
+          void onSubmitTabletopIntent(intent);
+        }}>{ownHeld ? 'HOLD解除' : 'HOLD'}</button>
+        <button type="button" data-testid="online-remote-pass" disabled={disabled || !canPass} onClick={() => onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: local, baseRevision: projection.revision })}>優先権をパス</button>
+        <button type="button" data-testid="online-remote-advance" disabled={disabled || anyHold || (!canAdvance && !canPass)} onClick={() => port.advancePhase()}>次の判断へ</button>
+        <button type="button" data-testid="online-remote-resolve" disabled={disabled || !canResolve} onClick={() => port.requestResolveTop()}>スタックを解決</button>
+        <button type="button" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled aria-label={undoAuthorized ? 'UNDO unavailable (checkpoint storage later); steward authorization present' : 'UNDO unavailable (steward only; checkpoint storage later)'}>UNDO unavailable (checkpoint storage later)</button>
+      </div>
+      <p className="online-remote-rail__manual">複合効果・対象選択・秘密情報はガイド/手動パネルで処理します。</p>
+    </section>
+  );
+}

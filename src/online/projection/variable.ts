@@ -1,5 +1,7 @@
-import type { CorePlayerId } from '../../engine/core/index';
-import { constructParticipantProjectionV1 } from './project';
+import type { CoreObjectId, CorePlayerId } from '../../engine/core/index';
+import { isCoreUndoAuthorizedPlayerV1 } from '../../engine/core/index';
+import { currentCoreObjectControllerV1 } from '../../engine/core/rules/controlEffectV1';
+import { constructParticipantProjectionV1, constructParticipantProjectionV2 } from './project';
 import type { OnlineProjectionRequestV1 } from './types';
 import type { OnlineProtocolStateV1 } from '../protocol/index';
 import type { OnlineRoomParticipantV1 } from '../room/index';
@@ -45,6 +47,34 @@ export type OnlineParticipantProjectionV2 = OnlineVariableParticipantProjectionV
  * compatibility lane while v3 carries the complete browser game surface.
  */
 export const ONLINE_PROJECTION_SCHEMA_VERSION_V3 = 3 as const;
+/** Version 4 carries the shared assisted-priority/HOLD projection fields. */
+export const ONLINE_PROJECTION_SCHEMA_VERSION_V4 = 4 as const;
+/** Secret-safe controller seat carried only on concealed battlefield entries. */
+export type OnlineProjectedConcealedBattlefieldObjectV4 = Readonly<{
+  readonly kind: 'concealed-object';
+  readonly objectId: CoreObjectId;
+  readonly objectKind: string;
+  readonly runtime: Readonly<Record<string, unknown>>;
+  readonly controllerPlayerId: CorePlayerId | null;
+}>;
+/** Causal context for the current public stack boundary. */
+export type OnlineProjectedAssistedPriorityV4 = Readonly<{
+  readonly holderPlayerId: CorePlayerId | null;
+  readonly stewardPlayerId: CorePlayerId | null;
+  readonly windowKind: string;
+  readonly holds: readonly CorePlayerId[];
+  readonly responseWindow: string | null;
+  readonly topStackObjectId: CoreObjectId | null;
+  readonly sourceObjectId: CoreObjectId | null;
+  readonly targetObjectIds: readonly CoreObjectId[];
+  readonly targetPlayerIds: readonly CorePlayerId[];
+  readonly undoAuthorizedPlayerId: CorePlayerId | null;
+  readonly recentResolution: Readonly<{
+    readonly objectId: CoreObjectId | null;
+    readonly destination: 'battlefield' | 'owner-graveyard' | 'cease' | 'manual';
+    readonly acceptedRevision: number;
+  }> | null;
+}>;
 export type OnlineVariableParticipantProjectionV3 = Readonly<{
   readonly kind: 'online-participant-projection-v3';
   readonly schemaVersion: typeof ONLINE_PROJECTION_SCHEMA_VERSION_V3;
@@ -74,6 +104,14 @@ export type OnlineVariableParticipantProjectionV3 = Readonly<{
     }>[];
   }>;
   readonly game: OnlineVariableParticipantProjectionV3Game;
+}>;
+export type OnlineVariableParticipantProjectionV4 = Readonly<Omit<OnlineVariableParticipantProjectionV3, 'kind' | 'schemaVersion' | 'game'> & {
+  readonly kind: 'online-participant-projection-v4';
+  readonly schemaVersion: typeof ONLINE_PROJECTION_SCHEMA_VERSION_V4;
+  readonly game: OnlineVariableParticipantProjectionV3['game'] & {
+    readonly priorityHolds: readonly Readonly<{ readonly playerId: CorePlayerId; readonly setRevision: number }>[];
+    readonly assistedPriority: OnlineProjectedAssistedPriorityV4;
+  };
 }>;
 
 /** The game payload is the established v1 game projection, shared verbatim. */
@@ -153,6 +191,103 @@ function searchResults(state: V2State): readonly Readonly<Record<string, unknown
   return Object.freeze(results);
 }
 
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function unknownArray(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value);
+}
+
+function publicSharedObjectIds(state: V2State): ReadonlySet<CoreObjectId> {
+  const shared = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.shared;
+  return new Set<CoreObjectId>([
+    ...shared.battlefield,
+    ...shared.stack,
+    ...shared.exile,
+    ...shared.command,
+  ]);
+}
+
+function concealedBattlefieldController(
+  state: V2State,
+  objectId: CoreObjectId,
+): CorePlayerId | null {
+  const identity = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.objects[objectId];
+  if (identity === undefined || (identity.kind !== 'card' && identity.kind !== 'token')) return null;
+  return currentCoreObjectControllerV1(
+    state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry,
+    state.coreRoot.ruleAuthority.control,
+    objectId,
+  );
+}
+
+function projectV4BattlefieldControllers(
+  state: V2State,
+  game: OnlineVariableParticipantProjectionV3Game,
+): OnlineVariableParticipantProjectionV3Game {
+  if (!record(game.zones)) return game;
+  const battlefield = game.zones.battlefield;
+  if (!record(battlefield) || !unknownArray(battlefield.entries)) return game;
+  const entries = battlefield.entries.map((entry: unknown) => {
+    if (!record(entry) || entry.kind !== 'concealed-object' || typeof entry.objectId !== 'string') return entry;
+    return Object.freeze({
+      ...entry,
+      controllerPlayerId: concealedBattlefieldController(state, entry.objectId as CoreObjectId),
+    });
+  });
+  return Object.freeze({
+    ...game,
+    zones: Object.freeze({
+      ...game.zones,
+      battlefield: Object.freeze({ ...battlefield, entries: Object.freeze(entries) }),
+    }),
+  });
+}
+
+function causalAssistedPriority(
+  state: V2State,
+  assistedPriority: Readonly<Record<string, unknown>>,
+  undoAuthorizedPlayerId: CorePlayerId | null,
+): OnlineProjectedAssistedPriorityV4 {
+  const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+  const topStackObjectId = assistedPriority.topStackObjectId === null || typeof assistedPriority.topStackObjectId !== 'string'
+    ? null
+    : assistedPriority.topStackObjectId as CoreObjectId;
+  const publicIds = publicSharedObjectIds(state);
+  const identity = topStackObjectId === null ? undefined : registry.objects[topStackObjectId];
+  let sourceObjectId: CoreObjectId | null = null;
+  if (identity?.kind === 'activated-ability' || identity?.kind === 'triggered-ability') sourceObjectId = identity.sourceObjectId;
+  else if (identity?.kind === 'spell-copy') sourceObjectId = identity.copiedFromObjectId;
+  else if (topStackObjectId !== null) sourceObjectId = topStackObjectId;
+  if (sourceObjectId !== null && !publicIds.has(sourceObjectId)) sourceObjectId = null;
+
+  const targetObjectIds: CoreObjectId[] = [];
+  const targetPlayerIds: CorePlayerId[] = [];
+  const announcement = topStackObjectId === null ? undefined : state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.stackAnnouncements.byObject[topStackObjectId];
+  for (const selection of announcement?.targetSelections ?? []) {
+    const target = selection.target;
+    if (target.kind === 'object') {
+      if (publicIds.has(target.objectId) && !targetObjectIds.includes(target.objectId) && targetObjectIds.length < 8) targetObjectIds.push(target.objectId);
+    } else if (registry.turnOrder.includes(target.playerId) && !targetPlayerIds.includes(target.playerId) && targetPlayerIds.length < 4) {
+      targetPlayerIds.push(target.playerId);
+    }
+  }
+  return Object.freeze({
+    holderPlayerId: assistedPriority.holderPlayerId as CorePlayerId | null,
+    stewardPlayerId: assistedPriority.stewardPlayerId as CorePlayerId | null,
+    windowKind: String(assistedPriority.windowKind),
+    holds: Object.freeze(Array.isArray(assistedPriority.holds) ? assistedPriority.holds.slice() as CorePlayerId[] : []),
+    responseWindow: assistedPriority.responseWindow as string | null,
+    topStackObjectId,
+    sourceObjectId,
+    targetObjectIds: Object.freeze(targetObjectIds),
+    targetPlayerIds: Object.freeze(targetPlayerIds),
+    undoAuthorizedPlayerId,
+    recentResolution: state.coreRoot.tabletopManual?.recentResolution ?? null,
+  });
+}
+
 /** Construct the full variable projection while preserving the v1 game facts. */
 export function projectOnlineVariableProtocolV3(stateInput: unknown, participantId: string): OnlineVariableParticipantProjectionV3 {
   const checked = validateOnlineVariableProtocolStateV2(stateInput);
@@ -217,8 +352,46 @@ export function projectOnlineVariableProtocolV3(stateInput: unknown, participant
   });
 }
 
+/** Current variable projection wire. It upgrades the legacy v3 envelope with
+ * a versioned, exact assisted-priority projection while retaining the same
+ * room/zone redaction rules and opaque search handles. */
+export function projectOnlineVariableProtocolV4(stateInput: unknown, participantId: string): OnlineVariableParticipantProjectionV4 {
+  const checked = validateOnlineVariableProtocolStateV2(stateInput);
+  if (!checked.ok) fail('Invalid variable protocol state');
+  const legacy = projectOnlineVariableProtocolV3(checked.value, participantId);
+  const participant = participantFor(checked.value, participantId);
+  const request: OnlineProjectionRequestV1 = {
+    kind: 'online-projection-request-v1',
+    protocolVersion: checked.value.protocolVersion,
+    roomId: checked.value.room.roomId as OnlineProjectionRequestV1['roomId'],
+    participantId: participantId as OnlineProjectionRequestV1['participantId'],
+    participantCapability: (participant.role === 'player'
+      ? checked.value.room.seats[participant.seatIndex]?.seatCapability
+      : checked.value.observerAuthorizations.find((entry) => entry.participantId === participantId)?.observerCapability) as OnlineProjectionRequestV1['participantCapability'],
+    knownRevision: checked.value.revision,
+    clientBuildId: checked.value.serverBuildId,
+    decisionContext: null,
+  };
+  const base = constructParticipantProjectionV2(stateAsV1(checked.value), request, participant);
+  const projectedGame = projectV4BattlefieldControllers(checked.value, legacy.game);
+  const viewerPlayerId = participant.role === 'player' && participant.seatIndex !== null
+    ? checked.value.room.seats[participant.seatIndex]?.corePlayerId ?? null
+    : null;
+  const undoAuthorizedPlayerId = viewerPlayerId !== null && isCoreUndoAuthorizedPlayerV1(checked.value.coreRoot, viewerPlayerId)
+    ? viewerPlayerId
+    : null;
+  const enrichedGame = Object.freeze({
+    ...projectedGame,
+    priorityHolds: base.game.priorityHolds,
+    assistedPriority: causalAssistedPriority(checked.value, base.game.assistedPriority as Readonly<Record<string, unknown>>, undoAuthorizedPlayerId),
+  });
+  return Object.freeze({ ...legacy, kind: 'online-participant-projection-v4', schemaVersion: ONLINE_PROJECTION_SCHEMA_VERSION_V4, game: enrichedGame });
+}
+
 export const projectOnlineVariableRoomV3 = projectOnlineVariableProtocolV3;
+export const projectOnlineVariableRoomV4 = projectOnlineVariableProtocolV4;
 export type OnlineParticipantProjectionV3 = OnlineVariableParticipantProjectionV3;
+export type OnlineParticipantProjectionV4 = OnlineVariableParticipantProjectionV4;
 // Full-generation validation is exported from validation.ts as
 // validateOnlineParticipantProjectionV3; it remains separate from this
 // constructor so the v1/v2 wire literals stay immutable.

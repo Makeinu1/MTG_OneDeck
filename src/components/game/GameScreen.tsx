@@ -75,6 +75,8 @@ export interface GameScreenProps {
   onOpenOpponentSetup?: () => void;
   interactionPort?: GameScreenInteractionPort;
   presentation?: ReactNode;
+  /** Optional remote controls rendered inside the shared adaptive surface. */
+  surfaceOverlay?: ReactNode;
 }
 
 export function TabletopSurface() {
@@ -111,6 +113,7 @@ interface GameScreenSurfaceProps {
   handWorkspaceOpen: boolean;
   setHandWorkspaceOpen: (open: boolean) => void;
   researchLayer?: ReactNode;
+  surfaceOverlay?: ReactNode;
 }
 
 interface LocalGameScreenProps extends Omit<GameScreenSurfaceProps, 'interactionPort'> {
@@ -122,6 +125,7 @@ export function GameScreen({
   onOpenOpponentSetup,
   interactionPort,
   presentation,
+  surfaceOverlay,
 }: GameScreenProps) {
   const initialHandLayout = useMemo(
     () => new URLSearchParams(window.location.search).get('hand'),
@@ -134,6 +138,7 @@ export function GameScreen({
     initialHandLayout,
     handWorkspaceOpen,
     setHandWorkspaceOpen,
+    surfaceOverlay,
   };
   if (presentation !== undefined) return <div className="game-screen game-screen--pregame" data-testid="game-screen">{presentation}</div>;
   return interactionPort
@@ -175,6 +180,7 @@ function GameScreenSurface({
   handWorkspaceOpen,
   setHandWorkspaceOpen,
   researchLayer,
+  surfaceOverlay,
 }: GameScreenSurfaceProps) {
   const handWorkspaceAvailable = initialHandLayout !== 'flat';
   const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
@@ -350,6 +356,7 @@ function GameScreenSurface({
           <OpponentBoardDialog controller={controller} onClose={controller.closeOpponentBoard} />
         )}
         {controller.overlays}
+        {surfaceOverlay}
         {researchLayer}
       </div>
       {/* A successful drop can remount the same card in its destination before
