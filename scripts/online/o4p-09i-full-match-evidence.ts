@@ -671,7 +671,8 @@ async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 
       progressed = true;
       completed += 1;
       recordControl(testId);
-      await waitForRevisionAdvance(page, workerOrigin, baseline, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments);
+      const terminalReady = testId === 'pregame-ready' && completed >= playerCount;
+      await waitForPregameTransition(page, workerOrigin, baseline, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments, terminalReady);
       break;
     }
     if (completed >= playerCount) return;
@@ -995,6 +996,37 @@ async function waitForRevisionAdvance(page: O4p09iPageV1, workerOrigin: string, 
     if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
     if (Date.now() >= deadline) throw new Error('visible action acknowledgement timeout');
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 50));
+  }
+}
+
+/**
+ * Pregame's final ready click can unmount the pregame layer before the normal
+ * revision marker is rendered on the started surface.  Preserve the strict
+ * revision acknowledgement for every non-terminal action, but allow the
+ * terminal ready transition to acknowledge the visible started surface once
+ * its pregame layer has disappeared without any probe/leak errors.
+ */
+async function waitForPregameTransition(page: O4p09iPageV1, workerOrigin: string, baseline: number, timeoutMs: number, secretFragments: readonly string[], terminalReady: boolean): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const probe = await probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments);
+    if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
+    if (terminalReady && probe.gameScreens === 1 && !probe.opponentLeak && probe.consoleErrors === 0) {
+      const startedSurface = await page.evaluate<boolean>(`(() => { // pregameTerminalSurfaceProbe
+        const visible = (node) => {
+          if (!(node instanceof HTMLElement)) return false;
+          const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+          return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
+        };
+        const pregame = document.querySelector('[data-pregame-layer="true"]');
+        const rail = document.querySelector('[data-testid="online-remote-game-rail"]');
+        const game = document.querySelector('[data-testid="game-screen"]:not(.game-screen--pregame)');
+        return !visible(pregame) && (visible(rail) || visible(game));
+      })()`);
+      if (startedSurface) return probe.revision;
+    }
+    if (Date.now() >= deadline) throw new Error('visible pregame transition acknowledgement timeout');
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(50, Math.max(1, deadline - Date.now()))));
   }
 }
 

@@ -52,6 +52,8 @@ type FakeOptions = Readonly<{
   readonly closeFailure?: boolean;
   readonly asyncInviteRender?: boolean;
   readonly asyncStartProbe?: boolean;
+  readonly pregameReadyRevisionMissing?: boolean;
+  readonly pregameTerminalSurfaceFailure?: boolean;
   readonly startedSurfaceFailure?: 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
   readonly lobbyReadyProbe?: 'delayed' | 'never';
 }>;
@@ -100,6 +102,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         if (options.savedResolutionPending === true) return Promise.resolve('resolution-pending' as T);
         return Promise.resolve('saved-state' as T);
       }
+      if (expression.includes('pregameTerminalSurfaceProbe')) {
+        return Promise.resolve((options.pregameReadyRevisionMissing === true && options.pregameTerminalSurfaceFailure !== true) as T);
+      }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
       const pregameControlIndex = pregameControls.findIndex((control) => expression.includes(`data-testid="${control}"`));
       if (pregameControlIndex >= 0) {
@@ -108,7 +113,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         const actorControl = state.phaseIndex === pregameControlIndex && state.actorIndex === seatIndex;
         if (expression.includes('pregameActorControlProbe')) {
           if (!actorControl) return Promise.resolve(false as T);
-          sharedRevisions[scenarioIndex] += 1;
+          const terminalReadyWithoutRevision = options.pregameReadyRevisionMissing === true
+            && pregameControlIndex === pregameControls.length - 1
+            && state.actorIndex === playerCount - 1;
+          if (!terminalReadyWithoutRevision) sharedRevisions[scenarioIndex] += 1;
           state.actorIndex += 1;
           if (state.actorIndex >= playerCount) { state.actorIndex = 0; state.phaseIndex += 1; }
           return Promise.resolve(true as T);
@@ -444,6 +452,27 @@ describe('O4P-09I full-match production evidence', () => {
     expect(summary.scenarios.twoPlayer.revision.afterSharedMutation).toBeGreaterThan(0);
     const gameScreenProbes = expressions.filter((expression) => expression.includes('gameScreens'));
     expect(gameScreenProbes.length).toBeGreaterThan(4);
+  });
+
+  it('accepts the terminal ready transition when the pregame revision marker unmounts', async () => {
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { pregameReadyRevisionMissing: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
+    expect(expressions.some((expression) => expression.includes('pregameTerminalSurfaceProbe'))).toBe(true);
+  });
+
+  it('fails closed when terminal ready has neither a revision nor a started surface', async () => {
+    const expressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { pregameReadyRevisionMissing: true, pregameTerminalSurfaceFailure: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: pregame-control');
+    expect(expressions.some((expression) => expression.includes('pregameTerminalSurfaceProbe'))).toBe(true);
   });
 
   it.each([
