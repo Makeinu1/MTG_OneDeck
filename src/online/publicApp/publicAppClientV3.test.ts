@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildVariableRoomGenesisV3 } from '../genesis/index';
 import { createOnlinePregameLifecycleV1, handleOnlinePregameCommandEnvelopeV1, projectOnlinePregameV1, type OnlinePregameProjectionV1, type OnlinePregameStateV1 } from '../pregame/index';
+import * as Browser from '../browser/index';
 import type { CardDef } from '../../types/card';
 import { createPublicOnlineControllerV3, encodeOnlineSharedInviteCodeV3, validatePublicOnlineProjectionV3, type PublicOnlineDeckOptionV2 } from './index';
 
@@ -193,6 +194,66 @@ describe('public variable-room client v3', () => {
     await controller.refresh();
     expect(controller.getSnapshot().pregame).toMatchObject({ phase: 'commander-reveal', currentPlayerId: 'P2', revision: 1 });
     controller.disconnect();
+  });
+
+  it('keeps one browser transport pair when a late lobby recovery repeats start', async () => {
+    const roomId = 'room-v3-pregame-test';
+    const inviteCode = encodeOnlineSharedInviteCodeV3(roomId, `admission_${'i'.repeat(40)}`);
+    let hostId = '';
+    let completeProjection: OnlinePregameProjectionV1 | null = null;
+    let socketCount = 0;
+    vi.stubGlobal('WebSocket', class {
+      onopen: (() => void) | null = null;
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onclose: (() => void) | null = null;
+      send(): void {}
+      close(): void {}
+      constructor() { socketCount += 1; }
+    });
+    vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      if (typeof init?.body !== 'string') throw new Error('missing request body');
+      const body = JSON.parse(init.body) as Record<string, unknown>;
+      if (body.kind === 'online-forming-lobby-create-v5') {
+        hostId = String(body.participantId);
+        const fixture = pregameFixture(hostId);
+        let state = fixture.state; let commandIndex = 0;
+        while (state.phase !== 'complete') {
+          const playerId = state.currentPlayerId ?? state.players.find((player) => !player.ready)?.playerId;
+          const seat = state.protocolState.room.seats.find((entry) => entry.corePlayerId === playerId);
+          if (seat?.participantId === null || seat === undefined) throw new Error('missing Pregame seat');
+          const command = state.phase === 'commander-reveal' ? { kind: 'confirm-commanders' as const } : state.phase === 'mulligan-declaration' ? { kind: 'declare-mulligan' as const, decision: 'keep' as const } : state.phase === 'pregame-actions' ? { kind: 'complete-pregame-actions' as const } : { kind: 'set-ready' as const, ready: true };
+          const transition = handleOnlinePregameCommandEnvelopeV1(state, { kind: 'online-pregame-command-envelope-v1', schemaVersion: 1, roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability, commandId: `idempotent-${String(commandIndex)}`, baseRevision: state.revision, command });
+          if (transition.response.kind !== 'online-pregame-command-ack-v1') throw new Error('Pregame fixture command rejected');
+          state = transition.state; commandIndex += 1;
+        }
+        completeProjection = projectOnlinePregameV1(state, hostId);
+        return Promise.resolve(new Response(JSON.stringify({ kind: 'online-forming-lobby-created-v5', schemaVersion: 5, roomId, participantId: hostId, playerCount: 2, startingLife: 40, ['seatCapability']: `seat_${'p'.repeat(40)}`, inviteCode, tableParticipantId: 'table-v3-idempotent', ['tableCapability']: `observer_${'t'.repeat(40)}`, projection: { ...readyProjection(hostId), roomId } }), { status: 200 }));
+      }
+      if (body.kind === 'online-forming-lobby-start-v4') return Promise.resolve(new Response(JSON.stringify({ kind: 'online-cloudflare-room-status-v2', schemaVersion: 2, roomId, playerCount: 2, startingLife: 40, revision: 0, roomLifecycle: 'active', pregame: completeProjection }), { status: 200 }));
+      if (body.kind === 'online-forming-lobby-recover-v5') return Promise.resolve(new Response(JSON.stringify({ kind: 'online-forming-lobby-recovered-v5', schemaVersion: 5, roomId, participantId: hostId, playerCount: 2, startingLife: 40, admissionOpen: false, inviteCode, tableParticipantId: 'table-v3-idempotent', ['tableCapability']: `observer_${'t'.repeat(40)}`, projection: { ...readyProjection(hostId), roomId, lifecycle: 'started' }, pregame: completeProjection }), { status: 200 }));
+      throw new Error('unexpected request');
+    }));
+    const controller = createPublicOnlineControllerV3();
+    await controller.createShared({ playerCount: 2, startingLife: 40 });
+    await controller.start();
+    expect(socketCount).toBe(2);
+    await controller.refresh();
+    expect(socketCount).toBe(2);
+    controller.disconnect();
+
+    const recoveringController = createPublicOnlineControllerV3();
+    const createBrowser = Browser.createOnlineBrowserWebSocketClientV1;
+    const createBrowserSpy = vi.spyOn(Browser, 'createOnlineBrowserWebSocketClientV1')
+      .mockImplementationOnce(() => { throw new Error('transport setup failure'); })
+      .mockImplementation(createBrowser);
+    await recoveringController.createShared({ playerCount: 2, startingLife: 40 });
+    await recoveringController.start();
+    expect(socketCount).toBe(2);
+    createBrowserSpy.mockRestore();
+    await recoveringController.refresh();
+    expect(socketCount).toBe(4);
+    recoveringController.disconnect();
   });
 
   it('surfaces a bounded structured issue when the visibility outbox rejects immediately', async () => {

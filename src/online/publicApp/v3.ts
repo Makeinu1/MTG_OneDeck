@@ -272,6 +272,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
   let playerUnsubscribe: (() => void) | null = null;
   let tableUnsubscribe: (() => void) | null = null;
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
+  let browserTransportLifecycle: 'idle' | 'starting' | 'started' = 'idle';
   const listeners = new Set<(value: PublicOnlineSnapshotV3) => void>();
   let retryOperation: (() => Promise<void>) | null = null;
   let playerTransportIssueVisible = false;
@@ -314,29 +315,45 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
   };
   const startBrowsers = (): void => {
     if (secrets === null || snapshot.roomId === null || snapshot.lifecycle !== 'started' || (snapshot.pregame !== null && snapshot.pregame.phase !== 'complete')) return;
+    // Pregame completion can race the final lobby poll. Keep one pair of
+    // browser transports per controller; recreating them from a late recover
+    // response closes a live socket while its handshake/projection is in
+    // flight and leaves the player on a non-retryable generic error.
+    if (browserTransportLifecycle !== 'idle') return;
+    browserTransportLifecycle = 'starting';
     const webSocketUrl = `${PUBLIC_ONLINE_ENDPOINT_V1.replace(/^http/u, 'ws')}/api/online/rooms/${encodeURIComponent(snapshot.roomId)}/websocket`;
     const common = { webSocketUrl, protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion, roomId: snapshot.roomId as never, clientBuildId: 'o4p-09f-client' as never };
-    playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null;
-    playerClient?.disconnect(); tableClient?.disconnect();
-    playerClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.participantId as never, participantCapability: secrets.seatCapability as never });
-    playerUnsubscribe = playerClient.subscribe((state) => {
-      const connection = state.phase === 'open' ? 'online' : state.phase === 'recovering' ? 'reconnecting' : state.phase === 'failed' ? 'failed' : 'connecting';
-      const issue = browserStateIssue(state, '盤面を確認');
-      if (issue !== null) {
-        playerTransportIssueVisible = true;
-        publish({ player: state, connection, error: issue.message, errorIssue: issue });
-      } else if (playerTransportIssueVisible) {
-        playerTransportIssueVisible = false;
-        publish({ player: state, connection, error: null, errorIssue: null });
-      } else {
-        publish({ player: state, connection });
+    try {
+      playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null;
+      playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null;
+      playerClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.participantId as never, participantCapability: secrets.seatCapability as never });
+      playerUnsubscribe = playerClient.subscribe((state) => {
+        const connection = state.phase === 'open' ? 'online' : state.phase === 'recovering' ? 'reconnecting' : state.phase === 'failed' ? 'failed' : 'connecting';
+        const issue = browserStateIssue(state, '盤面を確認');
+        if (issue !== null) {
+          playerTransportIssueVisible = true;
+          publish({ player: state, connection, error: issue.message, errorIssue: issue });
+        } else if (playerTransportIssueVisible) {
+          playerTransportIssueVisible = false;
+          publish({ player: state, connection, error: null, errorIssue: null });
+        } else {
+          publish({ player: state, connection });
+        }
+      });
+      playerClient.connect();
+      if (secrets.tableParticipantId && secrets.tableCapability) {
+        tableClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.tableParticipantId as never, participantCapability: secrets.tableCapability as never });
+        tableUnsubscribe = tableClient.subscribe((state) => publish({ table: state, connection: state.phase === 'open' ? 'online' : state.phase === 'recovering' ? 'reconnecting' : state.phase === 'failed' ? 'failed' : 'connecting' }));
+        tableClient.connect();
       }
-    });
-    playerClient.connect();
-    if (secrets.tableParticipantId && secrets.tableCapability) {
-      tableClient = createOnlineBrowserWebSocketClientV1({ ...common, participantId: secrets.tableParticipantId as never, participantCapability: secrets.tableCapability as never });
-      tableUnsubscribe = tableClient.subscribe((state) => publish({ table: state, connection: state.phase === 'open' ? 'online' : state.phase === 'recovering' ? 'reconnecting' : state.phase === 'failed' ? 'failed' : 'connecting' }));
-      tableClient.connect();
+      browserTransportLifecycle = 'started';
+    } catch {
+      playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null;
+      playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null;
+      browserTransportLifecycle = 'idle';
+      playerTransportIssueVisible = true;
+      const issue: PublicOnlineErrorIssueV2 = Object.freeze({ code: 'CLIENT_SOCKET_ERROR', retryable: true, message: '接続または操作の結果を確認できませんでした。盤面を確認して再試行してください。', correlationId: generatedId('correlation'), action: '盤面を確認' });
+      publish({ connection: 'reconnecting', error: issue.message, errorIssue: issue });
     }
   };
   const schedulePoll = (): void => {
@@ -694,7 +711,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
     } finally { publish({ busy: null }); }
   };
-  const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null, pregame: null }); };
+  const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; browserTransportLifecycle = 'idle'; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null, pregame: null }); };
   return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, submitTabletopIntent, submitVisibilityIntent, submitSharedUndo, submitManualCombatDamage, displayDeckName: (name: string, index: number) => {
     const fallback = `保存済みデッキ ${index + 1}`;
     try {
