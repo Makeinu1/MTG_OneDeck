@@ -113,7 +113,7 @@ function hangingObserverSendSocket(sent: unknown[]): O4p06fSocketV1 {
 
 describe('O4P-06F four-browser production evidence', () => {
   it('maps only allowlisted browser exception class names without leaking details', () => {
-    const secret = 'capability_secret_should_not_escape';
+    const secret = 'redacted-detail';
     expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'TypeError', description: secret, value: secret, stack: secret } })).toBe('browser evaluation TypeError');
     expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'Error', description: secret } })).toBe('browser evaluation Error');
     expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'ReferenceError', description: secret } })).toBe('browser evaluation ReferenceError');
