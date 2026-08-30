@@ -5,6 +5,8 @@ import {
   createModeNeutralCoreRootV1,
   type CoreDomainEventV1,
   type CoreCommandV1,
+  type CorePhysicalCardId,
+  type CorePlayerId,
 } from '../../engine/core/index';
 import { CURRENT_CONTRACT_VERSIONS } from '../../versioning/index';
 import { validateOnlineVariableRoomV2 } from '../room/variable';
@@ -94,7 +96,7 @@ function sharedMutation(payload: OnlineCommandEnvelopeV1['command']['payload']):
 
 function checkpointFor(
   state: OnlineVariableProtocolStateV2,
-  actorPlayerId: import('../../engine/core/index').CorePlayerId,
+  actorPlayerId: CorePlayerId,
   payload: OnlineCommandEnvelopeV1['command']['payload'],
 ): OnlineSharedCheckpointV1 {
   const stewardPlayerId = coreUndoAuthorizedPlayerV1(state.coreRoot) ?? actorPlayerId;
@@ -265,7 +267,7 @@ export function handleOnlineVariableManualCombatDamageIntentV2(
   const attacks = state.coreRoot.combatContext?.attacks ?? [];
   if (!attacks.some((attack) => attack.defendingPlayerId === intent.defendingPlayerId && (intent.commanderObjectId === null || attack.attackerObjectId === intent.commanderObjectId))) return manualDamageReject(state, intent, 'CORE_COMMAND_REJECTED', 'Damage must correspond to an active combat attack');
   const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
-  let commanderPhysicalCardId: import('../../engine/core/index').CorePhysicalCardId | null = null;
+  let commanderPhysicalCardId: CorePhysicalCardId | null = null;
   if (intent.commanderObjectId !== null) {
     const publicZones = registry.zones.shared;
     if (!publicZones.battlefield.includes(intent.commanderObjectId) && !publicZones.stack.includes(intent.commanderObjectId) && !publicZones.command.includes(intent.commanderObjectId)) return manualDamageReject(state, intent, 'CORE_COMMAND_REJECTED', 'Commander combat object is not in a public zone');

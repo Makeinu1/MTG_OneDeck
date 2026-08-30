@@ -88,11 +88,11 @@ const exactCoreImports = new Map<string, ReadonlySet<string>>([
   ],
   [
     'src/online/protocol/variable.ts',
-    new Set(['CoreObjectId', 'ModeNeutralCoreRootV1', 'isCanonicalCoreObjectIdV2', 'validateModeNeutralCoreRootV1']),
+    new Set(['CoreObjectId', 'CorePlayerId', 'ModeNeutralCoreRootV1', 'isCanonicalCoreObjectIdV2', 'isCoreBaseId', 'validateModeNeutralCoreRootV1']),
   ],
   [
     'src/online/protocol/variableCommand.ts',
-    new Set(['CoreDomainEventV1', 'applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
+    new Set(['CoreCommandV1', 'CoreDomainEventV1', 'CorePhysicalCardId', 'CorePlayerId', 'applyCoreCommandV1', 'coreCanonicalDigestFromValueV1', 'coreUndoAuthorizedPlayerV1', 'createModeNeutralCoreRootV1']),
   ],
 ]);
 
@@ -336,7 +336,7 @@ describe('O4P-02C in-memory protocol architecture boundary', () => {
       }
     }
     expect(reducerImportCount).toBe(2);
-    expect(reducerCallCount).toBe(2);
+    expect(reducerCallCount).toBe(3);
   });
 
   it('fails closed on aliases outside command, namespaces, dynamic imports, and escaping modules', () => {

@@ -286,11 +286,11 @@ const frozenProtocolCoreImports = new Map<string, ReadonlySet<string>>([
   ],
   [
     'src/online/protocol/variable.ts',
-    new Set(['CoreObjectId', 'ModeNeutralCoreRootV1', 'isCanonicalCoreObjectIdV2', 'validateModeNeutralCoreRootV1']),
+    new Set(['CoreObjectId', 'CorePlayerId', 'ModeNeutralCoreRootV1', 'isCanonicalCoreObjectIdV2', 'isCoreBaseId', 'validateModeNeutralCoreRootV1']),
   ],
   [
     'src/online/protocol/variableCommand.ts',
-    new Set(['CoreDomainEventV1', 'applyCoreCommandV1', 'coreCanonicalDigestFromValueV1']),
+    new Set(['CoreCommandV1', 'CoreDomainEventV1', 'CorePhysicalCardId', 'CorePlayerId', 'applyCoreCommandV1', 'coreCanonicalDigestFromValueV1', 'coreUndoAuthorizedPlayerV1', 'createModeNeutralCoreRootV1']),
   ],
 ]);
 

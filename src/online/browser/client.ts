@@ -1,5 +1,4 @@
 import { validateOnlineCommandEnvelopeV1 } from '../protocol/index';
-import { isCanonicalCoreObjectIdV2 } from '../../engine/core/index';
 import { validateOnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import {
   validateOnlineParticipantProjectionAny,
@@ -36,9 +35,35 @@ const MAX_SERIALIZED_FRAME_BYTES_V1 = 65_536;
 const APPLICATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
 const CAPABILITY_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 const MINIMUM_CAPABILITY_FRAGMENT_LENGTH = 8;
+const CORE_BASE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
+const CORE_INCARNATION_PATTERN = /^(0|[1-9][0-9]*)$/u;
 const ROOM_ROUTE_PREFIX = '/api/online/rooms/';
 const ROOM_ROUTE_SUFFIX = '/websocket';
 const ROOM_ROLES = new Set(['player', 'table', 'spectator']);
+
+/** Browser-local wire validator.  Keeping this tiny parser here avoids a
+ * dependency from the transport client into the Core implementation while
+ * preserving the canonical object-id grammar used at the protocol boundary. */
+function canonicalObjectId(value: string): boolean {
+  const validBase = (candidate: string): boolean => CORE_BASE_ID_PATTERN.test(candidate);
+  const validIncarnation = (candidate: string): boolean => {
+    if (!CORE_INCARNATION_PATTERN.test(candidate)) return false;
+    const parsed = Number(candidate);
+    return Number.isSafeInteger(parsed) && parsed >= 0;
+  };
+  if (value.startsWith('@token:')) {
+    const body = value.slice('@token:'.length);
+    const separator = body.indexOf(':');
+    return separator > 0 && separator === body.lastIndexOf(':') && separator < body.length - 1
+      && validBase(body.slice(0, separator)) && validIncarnation(body.slice(separator + 1));
+  }
+  for (const prefix of ['@spell-copy:', '@activated-ability:', '@triggered-ability:'] as const) {
+    if (value.startsWith(prefix)) return validBase(value.slice(prefix.length));
+  }
+  const separator = value.indexOf(':');
+  return separator > 0 && separator === value.lastIndexOf(':') && separator < value.length - 1
+    && validBase(value.slice(0, separator)) && validIncarnation(value.slice(separator + 1));
+}
 const PROTOCOL_ISSUE_CODES = new Set([
   'INVALID_ROOT', 'MISSING_FIELD', 'UNKNOWN_FIELD', 'INVALID_DESCRIPTOR', 'INVALID_TYPE',
   'INVALID_LITERAL', 'INVALID_VERSION', 'INVALID_ID', 'INVALID_CAPABILITY', 'INVALID_INTEGER',
@@ -164,7 +189,7 @@ function validManualCombatDamagePayload(value: unknown): value is OnlineBrowserM
     && nonNegativeInteger(baseRevision)
     && typeof defender === 'string' && applicationId(defender)
     && typeof damage === 'number' && Number.isSafeInteger(damage) && damage > 0 && damage <= 120
-    && (commanderObjectId === null || typeof commanderObjectId === 'string' && isCanonicalCoreObjectIdV2(commanderObjectId));
+    && (commanderObjectId === null || typeof commanderObjectId === 'string' && canonicalObjectId(commanderObjectId));
 }
 
 function closedVisibilityIntent(value: unknown): value is ParsedRecordV1 {
