@@ -69,7 +69,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-ZONES"],
       "supersedes": ["legacy:docs/engine-spec.md#multiplayer-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/test/architecture/soloOnlineBoundary.test.ts"],
-      "lastVerifiedCommit": "2a7ff03eea50fb53ce1268a6298cf9371a604360"
+      "lastVerifiedCommit": "8f6bd8a3e9e04d9e2ccf91eb93ff5121d24ee680"
     },
     {
       "id": "CONTRACT-ENGINE-COMPILER",
@@ -157,7 +157,7 @@
       "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": [],
       "verifiedBy": ["scripts/checks/generate-engine-api.mjs", "scripts/checks/check-docs.mjs"],
-      "lastVerifiedCommit": "2dfac319ee0320dcedca2f99b76c23251d0cf24a"
+      "lastVerifiedCommit": "8f6bd8a3e9e04d9e2ccf91eb93ff5121d24ee680"
     }
   ]
 }
