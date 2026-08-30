@@ -28,6 +28,13 @@ const MAX_CANONICAL_DEPTH = 64;
 const MAX_CANONICAL_NODES = 20_000;
 const MAX_DISCONNECT_OBSERVATION_ATTEMPTS = 8;
 const MAX_QUEUED_REVISION_NOTICES = 64;
+const BROWSER_EVALUATION_ERROR_MESSAGES = new Map<string, string>([
+  ['Error', 'browser evaluation Error'],
+  ['TypeError', 'browser evaluation TypeError'],
+  ['ReferenceError', 'browser evaluation ReferenceError'],
+  ['SyntaxError', 'browser evaluation SyntaxError'],
+  ['RangeError', 'browser evaluation RangeError'],
+]);
 
 type RecordV1 = Record<string, unknown>;
 type JsonValueV1 = null | boolean | number | string | readonly JsonValueV1[] | { readonly [key: string]: JsonValueV1 };
@@ -333,6 +340,14 @@ async function requestJson(page: O4p06fPageV1, url: string, init: Readonly<{ rea
 function asRecord(value: unknown, label: string): RecordV1 {
   if (!record(value)) throw new Error(label);
   return value;
+}
+
+export function mapO4p06fBrowserEvaluationErrorV1(exceptionDetails: unknown): string {
+  if (!record(exceptionDetails)) return 'browser evaluation failed';
+  const exception = own(exceptionDetails, 'exception');
+  if (!record(exception)) return 'browser evaluation failed';
+  const className = own(exception, 'className');
+  return typeof className === 'string' ? BROWSER_EVALUATION_ERROR_MESSAGES.get(className) ?? 'browser evaluation failed' : 'browser evaluation failed';
 }
 
 function exactString(value: RecordV1, key: string, expected: string, label: string): string {
@@ -750,7 +765,7 @@ class CdpPageV1 implements O4p06fPageV1 {
 
   setSecretFragments(fragments: readonly string[]): void { this.secretFragments = fragments; }
 
-  private async navigateBase(url: string): Promise<void> {
+  private async navigateRaw(url: string): Promise<void> {
     await this.connection.command('Page.enable', {}, this.sessionId);
     await this.connection.command('Runtime.enable', {}, this.sessionId);
     await this.connection.command('Page.navigate', { url }, this.sessionId);
@@ -764,6 +779,10 @@ class CdpPageV1 implements O4p06fPageV1 {
       console.warn = (...args) => { state.warnings += 1; originalWarn(...args); };
       return true;
     })()`);
+  }
+
+  private async navigateBase(url: string): Promise<void> {
+    await this.navigateRaw(url);
     try {
       await this.evaluate(`(() => {
         const open = document.querySelector('[data-testid="open-online-mode"]');
@@ -775,7 +794,10 @@ class CdpPageV1 implements O4p06fPageV1 {
   }
 
   async navigateForUiEvidence(url: string): Promise<void> {
-    await this.navigateBase(url);
+    // O4P-09I must start from the raw production entry.  The evidence lane
+    // imports a real deck through visible DOM controls before entering Online;
+    // only the legacy O4P-06F navigate() path performs entry activation here.
+    await this.navigateRaw(url);
   }
 
   async navigate(url: string): Promise<void> {
@@ -810,7 +832,7 @@ class CdpPageV1 implements O4p06fPageV1 {
     const response = await this.connection.command('Runtime.evaluate', params, this.sessionId);
     const result = asRecord(response.result, 'CDP result missing');
     const exception = own(result, 'exceptionDetails');
-    if (exception !== undefined) throw new Error('browser evaluation failed');
+    if (exception !== undefined) throw new Error(mapO4p06fBrowserEvaluationErrorV1(exception));
     const remote = asRecord(own(result, 'result'), 'CDP remote result missing');
     return own(remote, 'value') as T;
   }

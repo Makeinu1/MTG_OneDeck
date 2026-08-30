@@ -10,13 +10,24 @@
  * or form edit on a visible element.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import { stdout as output } from 'node:process';
 import { launchO4p06fCdpBrowserV1, type O4p06fBrowserV1, type O4p06fPageV1 } from './o4p-06f-four-browser-evidence';
 
 export const O4P09I_PAGES_ORIGIN_V1 = 'https://makeinu1.github.io/MTG_OneDeck/' as const;
 export const O4P09I_WORKER_ORIGIN_V1 = 'https://mtg-onedeck-online.makeinu1.workers.dev' as const;
+// A real 100-card import can require several seconds of visible resolution
+// and IndexedDB persistence. Keep the production default bounded below the
+// public 120s ceiling while leaving injected test browsers fast.
+export const O4P09I_DEFAULT_TIMEOUT_MS_V1 = 60_000 as const;
+export const O4P09I_START_SURFACE_TIMEOUT_MS_V1 = 120_000 as const;
+/** Public, deterministic fixtures used only when no test seam is injected. */
+export const O4P09I_PUBLIC_DECK_TEXTS_V1 = Object.freeze([
+  'Commander\n1 Celes, Rune Knight\n\nDeck\n49 Plains\n50 Mother of Runes',
+  'Commander\n1 Gogo, Master of Mimicry\n\nDeck\n49 Island\n50 Omen Hawker',
+  'Commander\n1 Kefka, Court Mage\n\nDeck\n49 Mountain\n50 Ragavan, Nimble Pilferer',
+  'Commander\n1 Muldrotha, the Gravetide\n\nDeck\n49 Forest\n50 Spore Frog',
+] as const);
 const VIEWPORTS = Object.freeze([
   Object.freeze({ width: 375, height: 812 }),
   Object.freeze({ width: 812, height: 375 }),
@@ -37,6 +48,11 @@ const UI_SEQUENCE = Object.freeze([
   'online-remote-guided-overlay',
   'online-manual-damage-submit',
 ] as const);
+const STAGE_HANDLED_UI_CONTROLS = new Set<string>([
+  'online-advance-to-main', 'online-journey-play-land', 'online-journey-cast-spell', 'online-remote-advance',
+  'online-guided-declare-attacker', 'online-manual-damage-submit', 'online-tabletop-submit-stack-entry',
+  'online-tabletop-submit-manual-resolve', 'visibility-look', 'online-remote-guided-overlay', 'online-remote-manual-overlay',
+]);
 const PREGAME_SEQUENCE = Object.freeze([
   'pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready',
 ] as const);
@@ -50,8 +66,44 @@ const MATCH_PHASES = Object.freeze([
   'combat/manual damage', 'private Look/Choose', 'unsupported Manual Stack/Resolve',
   'disconnect/reconnect',
 ] as const);
+const SCENARIO_STAGES = Object.freeze([
+  'import', 'lobby-probe', 'create-room', 'reveal-invite', 'read-invite', 'host-deck-submit', 'host-ready',
+  'join-seat-import', 'join-seat-join', 'join-seat-deck', 'join-seat-ready', 'start-game', 'start-probe',
+  'pregame-control', 'advance', 'land', 'cast', 'HOLD-pass-resolve', 'attacker', 'manual-damage', 'manual-stack',
+  'visibility', 'private-leak-check', 'ui-action', 'post-actions', 'viewport-geometry', 'reconnect', 'finalize',
+] as const);
+type O4p09iScenarioStageV1 = typeof SCENARIO_STAGES[number];
+const STARTED_SURFACE_FAILURES = Object.freeze([
+  'game-screen-missing/count', 'horizontal-overflow', 'opponent-leak', 'console-error', 'host-revision-missing',
+  'start-rejected', 'start-pending', 'start-not-accepted',
+] as const);
+type O4p09iStartedSurfaceFailureV1 = typeof STARTED_SURFACE_FAILURES[number];
 const MAX_SUMMARY_BYTES = 131_072;
 const MAX_TEXT_BYTES = 4_096;
+const MAX_DOM_SCAN_NODES_V1 = 4_096;
+const MAX_DOM_SCAN_ATTRIBUTES_V1 = 32;
+const MAX_DOM_SCAN_BYTES_V1 = 262_144;
+const MAX_RESOURCE_ENTRIES_V1 = 4_096;
+const MAX_PRIVATE_ROOTS_V1 = 128;
+const MAX_PRIVATE_ATTRIBUTES_PER_ROOT_V1 = 32;
+const MAX_PRIVATE_VALUES_PER_ROOT_V1 = 32;
+const MAX_PRIVATE_TOKENS_V1 = 512;
+const MAX_PRIVATE_CAPTURE_BYTES_V1 = 65_536;
+const PRODUCTION_UI_STAGE_ERRORS = Object.freeze({
+  deckInput: 'production UI stage failed: deck input',
+  importClick: 'production UI stage failed: deck import',
+  savedState: 'production UI stage failed: deck saved state',
+  storageUnavailable: 'production UI stage failed: deck storage unavailable',
+  resolutionUnavailable: 'production UI stage failed: deck resolution unavailable',
+  resolutionPending: 'production UI stage failed: deck resolution pending',
+  notificationMissing: 'production UI stage failed: deck save notification missing',
+  importRuntimeFailed: 'production UI stage failed: deck import runtime failed',
+  importRuntimeError: 'production UI stage failed: deck import runtime error',
+  productErrorBoundary: 'production UI stage failed: product error boundary',
+  importSurfaceDisappeared: 'production UI stage failed: import surface disappeared',
+  invalidWorkflow: 'production UI stage failed: invalid workflow state',
+  onlineOpen: 'production UI stage failed: online entry',
+} as const);
 
 type JsonRecord = Record<string, unknown>;
 type Primitive = null | boolean | number | string;
@@ -115,6 +167,7 @@ export type O4p09iViewportFactV1 = Readonly<{
   readonly gameScreens: number;
   readonly consoleErrors: number;
   readonly geometry: O4p09iGeometryFactV1;
+  readonly pageGeometries: readonly O4p09iGeometryFactV1[];
 }>;
 
 type O4p09iRectV1 = Readonly<{
@@ -132,6 +185,8 @@ type O4p09iScrollFactV1 = Readonly<{
   readonly scrollHeight: number;
   readonly clientWidth: number;
   readonly clientHeight: number;
+  readonly scrollMoved: boolean;
+  readonly focusReachable: boolean;
 }>;
 
 type O4p09iPrimaryActionFactV1 = Readonly<{
@@ -144,6 +199,8 @@ type O4p09iGeometryFactV1 = Readonly<{
   readonly rail: O4p09iRectV1 | null;
   readonly hand: O4p09iRectV1 | null;
   readonly battlefield: O4p09iRectV1 | null;
+  readonly seatRects: readonly O4p09iRectV1[];
+  readonly boardRects: readonly O4p09iRectV1[];
   readonly primaryAction: O4p09iPrimaryActionFactV1 | null;
   readonly panel: O4p09iRectV1 | null;
   readonly scroll: O4p09iScrollFactV1 | null;
@@ -159,6 +216,8 @@ type O4p09iGeometryProbeV1 = Readonly<{
   readonly rail: O4p09iRectV1 | null;
   readonly hand: O4p09iRectV1 | null;
   readonly battlefield: O4p09iRectV1 | null;
+  readonly seatRects: readonly O4p09iRectV1[];
+  readonly boardRects: readonly O4p09iRectV1[];
   readonly primaryAction: O4p09iPrimaryActionFactV1 | null;
   readonly panel: O4p09iRectV1 | null;
   readonly scroll: O4p09iScrollFactV1 | null;
@@ -173,7 +232,7 @@ export type O4p09iScenarioFactV1 = Readonly<{
   readonly playerCount: 2 | 4;
   readonly phases: readonly string[];
   readonly actionKinds: readonly string[];
-  readonly revision: Readonly<{ readonly start: 0; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true }>;
+  readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true }>;
   readonly privateLookChoose: Readonly<{ readonly look: true; readonly choose: true; readonly crossSeatLeak: false }>;
   readonly unsupportedManual: Readonly<{ readonly stack: true; readonly resolve: true }>;
   readonly outcome: 'winner' | 'three-continue';
@@ -188,8 +247,12 @@ export type O4p09iEvidenceSummaryV1 = Readonly<{
   readonly workerOrigin: typeof O4P09I_WORKER_ORIGIN_V1;
   readonly chromeVersion: string;
   readonly scenarios: Readonly<{ readonly twoPlayer: O4p09iScenarioFactV1; readonly fourPlayer: O4p09iScenarioFactV1 }>;
-  readonly consoleCounts: Readonly<{ readonly errors: 0; readonly warnings: 0; readonly secretViolations: 0 }>;
+  readonly consoleCounts: Readonly<{ readonly errors: number; readonly warnings: number; readonly secretViolations: number }>;
   readonly cleanup: Readonly<{ readonly contextsClosed: number; readonly pagesClosed: number; readonly profileRemoved: true }>;
+}>;
+
+export type O4p09iSyntheticEvidenceSummaryV1 = Readonly<Omit<O4p09iEvidenceSummaryV1, 'kind'> & {
+  readonly kind: 'o4p-09i-full-match-test-evidence-v1';
 }>;
 
 export type O4p09iEvidenceDepsV1 = Readonly<{
@@ -258,6 +321,35 @@ function containsSecret(value: unknown, fragments: readonly string[], seen = new
 
 function sha256(value: string): string { return createHash('sha256').update(value).digest('hex'); }
 
+function rectSignature(rects: readonly O4p09iRectV1[]): string {
+  return rects.map((rect) => [rect.x, rect.y, rect.width, rect.height, rect.right, rect.bottom].join(',')).join('|');
+}
+
+function cloneRect(rect: O4p09iRectV1): O4p09iRectV1 { return Object.freeze({ ...rect }); }
+
+function cloneGeometry(geometry: O4p09iGeometryFactV1): O4p09iGeometryFactV1 {
+  return Object.freeze({
+    ...geometry,
+    viewport: cloneRect(geometry.viewport),
+    rail: geometry.rail === null ? null : cloneRect(geometry.rail),
+    hand: geometry.hand === null ? null : cloneRect(geometry.hand),
+    battlefield: geometry.battlefield === null ? null : cloneRect(geometry.battlefield),
+    seatRects: Object.freeze(geometry.seatRects.map(cloneRect)),
+    boardRects: Object.freeze(geometry.boardRects.map(cloneRect)),
+    primaryAction: geometry.primaryAction === null ? null : Object.freeze({ rect: cloneRect(geometry.primaryAction.rect), enabled: true as const }),
+    panel: geometry.panel === null ? null : cloneRect(geometry.panel),
+    scroll: geometry.scroll === null ? null : Object.freeze({
+      rect: cloneRect(geometry.scroll.rect),
+      scrollWidth: geometry.scroll.scrollWidth,
+      scrollHeight: geometry.scroll.scrollHeight,
+      clientWidth: geometry.scroll.clientWidth,
+      clientHeight: geometry.scroll.clientHeight,
+      scrollMoved: geometry.scroll.scrollMoved,
+      focusReachable: geometry.scroll.focusReachable,
+    }),
+  });
+}
+
 function safeRevision(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && !Object.is(value, -0) && value >= 0;
 }
@@ -282,7 +374,7 @@ function validateRect(value: unknown, label: string): O4p09iRectV1 {
 }
 
 function validateGeometry(value: unknown, index: number): O4p09iGeometryFactV1 {
-  const row = exact(value, ['viewport', 'rail', 'hand', 'battlefield', 'primaryAction', 'panel', 'scroll', 'clippedPrimaryAction', 'railHandCollision', 'panelOutsideViewport', 'scrollAccessible', 'battlefieldObscured'], `geometry ${index} malformed`);
+  const row = exact(value, ['viewport', 'rail', 'hand', 'battlefield', 'seatRects', 'boardRects', 'primaryAction', 'panel', 'scroll', 'clippedPrimaryAction', 'railHandCollision', 'panelOutsideViewport', 'scrollAccessible', 'battlefieldObscured'], `geometry ${index} malformed`);
   const viewport = validateRect(own(row, 'viewport'), `geometry ${index}.viewport`);
   const railValue = own(row, 'rail');
   const handValue = own(row, 'hand');
@@ -291,6 +383,11 @@ function validateGeometry(value: unknown, index: number): O4p09iGeometryFactV1 {
   const rail = railValue === null ? null : validateRect(railValue, `geometry ${index}.rail`);
   const hand = handValue === null ? null : validateRect(handValue, `geometry ${index}.hand`);
   const battlefield = battlefieldValue === null ? null : validateRect(battlefieldValue, `geometry ${index}.battlefield`);
+  const seatValues = own(row, 'seatRects');
+  const boardValues = own(row, 'boardRects');
+  if (!Array.isArray(seatValues) || !Array.isArray(boardValues)) throw new Error(`geometry ${index} public lane rectangles malformed`);
+  const seatRects = Object.freeze(seatValues.map((entry, rectIndex) => validateRect(entry, `geometry ${index}.seatRects.${rectIndex}`)));
+  const boardRects = Object.freeze(boardValues.map((entry, rectIndex) => validateRect(entry, `geometry ${index}.boardRects.${rectIndex}`)));
   const panel = panelValue === null ? null : validateRect(panelValue, `geometry ${index}.panel`);
   const primaryValue = own(row, 'primaryAction');
   let primaryAction: O4p09iPrimaryActionFactV1 | null = null;
@@ -302,13 +399,16 @@ function validateGeometry(value: unknown, index: number): O4p09iGeometryFactV1 {
   const scrollValue = own(row, 'scroll');
   let scroll: O4p09iScrollFactV1 | null = null;
   if (scrollValue !== null) {
-    const scrollRow = exact(scrollValue, ['rect', 'scrollWidth', 'scrollHeight', 'clientWidth', 'clientHeight'], `geometry ${index}.scroll malformed`);
+    const scrollRow = exact(scrollValue, ['rect', 'scrollWidth', 'scrollHeight', 'clientWidth', 'clientHeight', 'scrollMoved', 'focusReachable'], `geometry ${index}.scroll malformed`);
     const scrollWidth = boundedNumber(own(scrollRow, 'scrollWidth'), `geometry ${index}.scroll.scrollWidth`);
     const scrollHeight = boundedNumber(own(scrollRow, 'scrollHeight'), `geometry ${index}.scroll.scrollHeight`);
     const clientWidth = boundedNumber(own(scrollRow, 'clientWidth'), `geometry ${index}.scroll.clientWidth`);
     const clientHeight = boundedNumber(own(scrollRow, 'clientHeight'), `geometry ${index}.scroll.clientHeight`);
+    const scrollMoved = own(scrollRow, 'scrollMoved');
+    const focusReachable = own(scrollRow, 'focusReachable');
+    if (scrollMoved !== true || focusReachable !== true) throw new Error(`geometry ${index}.scroll interaction unavailable`);
     if (scrollWidth <= 0 || scrollHeight <= 0 || clientWidth <= 0 || clientHeight <= 0) throw new Error(`geometry ${index}.scroll dimensions invalid`);
-    scroll = Object.freeze({ rect: validateRect(own(scrollRow, 'rect'), `geometry ${index}.scroll.rect`), scrollWidth, scrollHeight, clientWidth, clientHeight });
+    scroll = Object.freeze({ rect: validateRect(own(scrollRow, 'rect'), `geometry ${index}.scroll.rect`), scrollWidth, scrollHeight, clientWidth, clientHeight, scrollMoved, focusReachable });
   }
   const clippedPrimaryAction = own(row, 'clippedPrimaryAction');
   const railHandCollision = own(row, 'railHandCollision');
@@ -316,20 +416,24 @@ function validateGeometry(value: unknown, index: number): O4p09iGeometryFactV1 {
   const scrollAccessible = own(row, 'scrollAccessible');
   const battlefieldObscured = own(row, 'battlefieldObscured');
   if (typeof clippedPrimaryAction !== 'boolean' || typeof railHandCollision !== 'boolean' || typeof panelOutsideViewport !== 'boolean' || typeof scrollAccessible !== 'boolean' || typeof battlefieldObscured !== 'boolean') throw new Error(`geometry ${index} flags malformed`);
-  if (rail === null || hand === null || battlefield === null || primaryAction === null || panel === null || scroll === null || clippedPrimaryAction || railHandCollision || panelOutsideViewport || !scrollAccessible || battlefieldObscured) throw new Error(`geometry ${index} failed`);
-  return Object.freeze({ viewport, rail, hand, battlefield, primaryAction, panel, scroll, clippedPrimaryAction, railHandCollision, panelOutsideViewport, scrollAccessible, battlefieldObscured });
+  if (rail === null || hand === null || battlefield === null || seatRects.length === 0 || boardRects.length === 0 || primaryAction === null || panel === null || scroll === null || clippedPrimaryAction || railHandCollision || panelOutsideViewport || !scrollAccessible || battlefieldObscured) throw new Error(`geometry ${index} failed`);
+  return Object.freeze({ viewport, rail, hand, battlefield, seatRects, boardRects, primaryAction, panel, scroll, clippedPrimaryAction, railHandCollision, panelOutsideViewport, scrollAccessible, battlefieldObscured });
 }
 
-function validateViewport(value: unknown, index: number): O4p09iViewportFactV1 {
-  const row = exact(value, ['width', 'height', 'horizontalOverflow', 'gameScreens', 'consoleErrors', 'geometry'], `viewport ${index} malformed`);
+function validateViewport(value: unknown, index: number, expectedPlayers: 2 | 4): O4p09iViewportFactV1 {
+  const row = exact(value, ['width', 'height', 'horizontalOverflow', 'gameScreens', 'consoleErrors', 'geometry', 'pageGeometries'], `viewport ${index} malformed`);
   const width = own(row, 'width'); const height = own(row, 'height');
   const expected = VIEWPORTS[index];
   if (width !== expected?.width || height !== expected?.height || own(row, 'horizontalOverflow') !== 0 || own(row, 'gameScreens') !== 1 || own(row, 'consoleErrors') !== 0) throw new Error(`viewport ${index} failed`);
   const geometry = validateGeometry(own(row, 'geometry'), index);
   if (geometry.viewport.width !== width || geometry.viewport.height !== height) throw new Error(`viewport ${index} geometry viewport mismatch`);
+  const pageValues = own(row, 'pageGeometries');
+  if (!Array.isArray(pageValues) || pageValues.length !== expectedPlayers) throw new Error(`viewport ${index} page geometry count mismatch`);
+  const pageGeometries = Object.freeze(pageValues.map((entry, pageIndex) => validateGeometry(entry, index * expectedPlayers + pageIndex)));
+  if (pageGeometries.some((entry) => entry.viewport.width !== width || entry.viewport.height !== height || entry.seatRects.length !== expectedPlayers - 1 || entry.boardRects.length !== expectedPlayers - 1)) throw new Error(`viewport ${index} public lane geometry mismatch`);
   const normalizedWidth = width === 375 ? 375 : width === 812 ? 812 : 1440;
   const normalizedHeight = height === 812 ? 812 : height === 375 ? 375 : 900;
-  return Object.freeze({ width: normalizedWidth, height: normalizedHeight, horizontalOverflow: 0, gameScreens: 1, consoleErrors: 0, geometry });
+  return Object.freeze({ width: normalizedWidth, height: normalizedHeight, horizontalOverflow: 0, gameScreens: 1, consoleErrors: 0, geometry, pageGeometries });
 }
 
 function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: readonly string[]): O4p09iScenarioFactV1 {
@@ -342,7 +446,8 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
   const revision = exact(own(row, 'revision'), ['start', 'afterSharedMutation', 'afterReconnect', 'continuous'], 'scenario revision malformed');
   const afterSharedMutation = own(revision, 'afterSharedMutation');
   const afterReconnect = own(revision, 'afterReconnect');
-  if (own(revision, 'start') !== 0 || !safeRevision(afterSharedMutation) || !safeRevision(afterReconnect) || afterReconnect < afterSharedMutation || own(revision, 'continuous') !== true) throw new Error('scenario revision continuity failed');
+  const start = own(revision, 'start');
+  if (!safeRevision(start) || !safeRevision(afterSharedMutation) || !safeRevision(afterReconnect) || start > afterSharedMutation || afterReconnect < afterSharedMutation || own(revision, 'continuous') !== true) throw new Error('scenario revision continuity failed');
   const privateFacts = exact(own(row, 'privateLookChoose'), ['look', 'choose', 'crossSeatLeak'], 'private choice facts malformed');
   if (own(privateFacts, 'look') !== true || own(privateFacts, 'choose') !== true || own(privateFacts, 'crossSeatLeak') !== false) throw new Error('private choice leak');
   const unsupported = exact(own(row, 'unsupportedManual'), ['stack', 'resolve'], 'manual fallback facts malformed');
@@ -350,15 +455,15 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
   const outcome = own(row, 'outcome');
   if (expectedPlayers === 2 ? outcome !== 'winner' : outcome !== 'three-continue') throw new Error('scenario outcome mismatch');
   const eliminated = own(row, 'eliminatedSeats');
-  if (!Array.isArray(eliminated) || eliminated.some((seat) => typeof seat !== 'string') || (expectedPlayers === 2 ? eliminated.length !== 1 : eliminated.length !== 1)) throw new Error('elimination facts malformed');
+  if (!Array.isArray(eliminated) || eliminated.length !== 1 || eliminated.some((seat) => typeof seat !== 'string') || new Set(eliminated).size !== 1) throw new Error('elimination facts malformed');
   const viewports = own(row, 'viewportFacts');
   if (!Array.isArray(viewports) || viewports.length !== VIEWPORTS.length) throw new Error('viewport matrix incomplete');
-  const viewportFacts = Object.freeze(viewports.map((entry, index) => validateViewport(entry, index)));
+  const viewportFacts = Object.freeze(viewports.map((entry, index) => validateViewport(entry, index, expectedPlayers)));
   const normalized: O4p09iScenarioFactV1 = Object.freeze({
     playerCount: expectedPlayers,
     phases: Object.freeze(phases.map((phase) => String(phase))),
     actionKinds: Object.freeze(actionKinds.map((kind) => String(kind))),
-    revision: Object.freeze({ start: 0, afterSharedMutation, afterReconnect, continuous: true }),
+    revision: Object.freeze({ start, afterSharedMutation, afterReconnect, continuous: true }),
     privateLookChoose: Object.freeze({ look: true, choose: true, crossSeatLeak: false }),
     unsupportedManual: Object.freeze({ stack: true, resolve: true }),
     outcome: outcome as 'winner' | 'three-continue',
@@ -412,17 +517,19 @@ async function clickVisibleSelector(page: O4p09iPageV1, selector: string, timeou
 }
 
 async function clickButtonByText(page: O4p09iPageV1, text: string, timeoutMs: number): Promise<void> {
-  await Promise.race([
-    page.evaluate<boolean>(`(() => {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const clicked = await page.evaluate<boolean>(`(() => {
       const target = [...document.querySelectorAll('button')].find((node) => (node.textContent ?? '').trim().includes(${JSON.stringify(text)}));
-      if (!(target instanceof HTMLButtonElement)) throw new Error('visible text control missing');
+      if (!(target instanceof HTMLButtonElement)) return false;
       const style = getComputedStyle(target); const rect = target.getBoundingClientRect();
-      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || target.closest('details:not([open])') !== null) throw new Error('visible text control hidden');
-      if (target.disabled) throw new Error('visible text control disabled');
+      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || target.closest('details:not([open])') !== null || target.disabled) return false;
       target.click(); return true;
-    })()`),
-    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`text control ${text} timeout`)), timeoutMs)),
-  ]);
+    })()`);
+    if (clicked) return;
+    if (Date.now() >= deadline) throw new Error(`text control ${text} timeout`);
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
 }
 
 async function fillVisible(page: O4p09iPageV1, testId: string, value: string, timeoutMs: number): Promise<void> {
@@ -441,6 +548,211 @@ async function fillVisible(page: O4p09iPageV1, testId: string, value: string, ti
     })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`input ${testId} timeout`)), timeoutMs)),
   ]);
+}
+
+async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: number, text = ''): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    // Keep each CDP command synchronous and short. A page-side polling promise
+    // can outlive the adapter's command deadline by a few milliseconds and
+    // surface an opaque CDP timeout instead of the intended stage failure.
+    const visible = await page.evaluate<boolean>(`(() => {
+      const node = document.querySelector('[data-testid="${testId}"]');
+      if (!(node instanceof HTMLElement)) return false;
+      const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+      return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && (${JSON.stringify(text)} === '' || (node.textContent ?? '').includes(${JSON.stringify(text)}));
+    })()`);
+    if (visible) return;
+    if (Date.now() >= deadline) throw new Error(`visible control ${testId} timeout`);
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
+async function waitForStartedSurface(page: O4p09iPageV1, host: boolean, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], failureState: { reason: O4p09iStartedSurfaceFailureV1 | null }): Promise<O4p09iProbeV1> {
+  const deadline = Date.now() + timeoutMs;
+  let lastFailure: O4p09iStartedSurfaceFailureV1 = 'game-screen-missing/count';
+  for (;;) {
+    try {
+      const probe = await probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments);
+      const ready = probe.gameScreens === 1 && probe.overflow === 0 && !probe.opponentLeak && probe.consoleErrors === 0 && (!host || safeRevision(probe.revision));
+      if (ready) return probe;
+      if (probe.gameScreens !== 1) lastFailure = 'game-screen-missing/count';
+      else if (probe.overflow !== 0) lastFailure = 'horizontal-overflow';
+      else if (probe.opponentLeak) lastFailure = 'opponent-leak';
+      else if (probe.consoleErrors !== 0) lastFailure = 'console-error';
+      else if (host && !safeRevision(probe.revision)) lastFailure = 'host-revision-missing';
+    } catch {
+      // The shared surface may still be mounting after the start action. Keep
+      // the probe bounded and report only the constant scenario stage on exit.
+      lastFailure = 'game-screen-missing/count';
+    }
+    if (Date.now() >= deadline) {
+      if (lastFailure === 'game-screen-missing/count') {
+        try {
+          const terminal = await page.evaluate<O4p09iStartedSurfaceFailureV1>(`(() => { // startedSurfaceTerminalProbe
+            const visible = (candidate) => {
+              if (!(candidate instanceof HTMLElement)) return false;
+              const style = getComputedStyle(candidate); const rect = candidate.getBoundingClientRect();
+              return !candidate.hidden && candidate.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+            };
+            if (visible(document.querySelector('[data-testid="online-error"]'))) return 'start-rejected';
+            const start = document.querySelector('[data-testid="online-start-game"]');
+            if (visible(start) && start instanceof HTMLButtonElement) return start.disabled ? 'start-pending' : 'start-not-accepted';
+            return 'game-screen-missing/count';
+          })()`);
+          lastFailure = terminal;
+        } catch {
+          // Preserve the conservative game-screen-missing/count reason when
+          // the terminal DOM probe itself is unavailable.
+        }
+      }
+      failureState.reason = lastFailure;
+      throw new Error(`started surface failed: ${lastFailure}`);
+    }
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
+async function clickPregameActorControl(page: O4p09iPageV1, testId: string): Promise<boolean> {
+  return page.evaluate<boolean>(`(() => { // pregameActorControlProbe
+    const node = document.querySelector('[data-testid="${testId}"]');
+    if (!(node instanceof HTMLElement)) return false;
+    const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+    if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) return false;
+    if (node instanceof HTMLButtonElement && node.disabled) return false;
+    node.click(); return true;
+  })()`);
+}
+
+async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 | 4, testId: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let completed = 0;
+  while (completed < playerCount) {
+    let progressed = false;
+    for (const page of pages) {
+      if (Date.now() >= deadline) break;
+      const baseline = (await probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments)).revision;
+      const clicked = await clickPregameActorControl(page, testId);
+      if (!clicked) continue;
+      progressed = true;
+      completed += 1;
+      recordControl(testId);
+      await waitForRevisionAdvance(page, workerOrigin, baseline, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments);
+      break;
+    }
+    if (completed >= playerCount) return;
+    if (Date.now() >= deadline) throw new Error('pregame actor transition timeout');
+    if (!progressed) await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
+async function waitForSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow'> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const status = await page.evaluate<'pending' | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'notification-missing' | 'error-boundary'>(`(() => { // savedDeckProbe
+      const node = document.querySelector('[data-testid="deck-save-status"]');
+      const visible = (candidate) => {
+        if (!(candidate instanceof HTMLElement)) return false;
+        const style = getComputedStyle(candidate); const rect = candidate.getBoundingClientRect();
+        return !candidate.hidden && candidate.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+      };
+      if (visible(document.querySelector('[data-testid="error-boundary"]'))) return 'error-boundary';
+      const visibleStatus = visible(node);
+      if (visibleStatus && (node.classList.contains('import-screen__save-status--error') || node.getAttribute('role') === 'alert')) return 'storage-error';
+      if (visibleStatus && node.classList.contains('import-screen__save-status--saved')) return 'ready';
+      if (visible(document.querySelector('[data-testid="public-online-app"]'))) return 'already-online';
+      const onlineEntry = document.querySelector('[data-testid="open-online-mode"]');
+      if (visible(onlineEntry) && (!(onlineEntry instanceof HTMLButtonElement) || !onlineEntry.disabled)) return 'ready';
+      const screen = document.querySelector('[data-testid="import-screen"]');
+      const workflow = screen?.getAttribute('data-state') ?? null;
+      const importButton = document.querySelector('[data-testid="import-button"]');
+      if (workflow === 'error' && visible(importButton)) return 'resolution-error';
+      if (workflow === 'ready' && !visibleStatus) return 'notification-missing';
+      return 'pending';
+    })()`);
+    if (status === 'ready' || status === 'already-online' || status === 'storage-error' || status === 'error-boundary') return status;
+    if (status === 'resolution-error') return 'resolution-error';
+    if (status === 'notification-missing') return 'notification-missing';
+    if (Date.now() >= deadline) {
+      if (page.consoleCounts().errors > 0) return 'import-runtime-error';
+      const terminal = await page.evaluate<'resolution-pending' | 'import-runtime-failed' | 'import-surface-disappeared' | 'invalid-workflow' | 'error-boundary' | 'already-online' | 'saved-state'>(`(() => { // savedDeckTerminalProbe
+        const visible = (candidate) => {
+          if (!(candidate instanceof HTMLElement)) return false;
+          const style = getComputedStyle(candidate); const rect = candidate.getBoundingClientRect();
+          return !candidate.hidden && candidate.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+        };
+        if (visible(document.querySelector('[data-testid="error-boundary"]'))) return 'error-boundary';
+        if (visible(document.querySelector('[data-testid="public-online-app"]'))) return 'already-online';
+        const screen = document.querySelector('[data-testid="import-screen"]');
+        if (!(screen instanceof HTMLElement)) return 'import-surface-disappeared';
+        const workflow = screen?.getAttribute('data-state') ?? null;
+        if (workflow !== null && !['empty', 'resolving', 'error', 'ready'].includes(workflow)) return 'invalid-workflow';
+        const importButton = document.querySelector('[data-testid="import-button"]');
+        const importButtonVisible = visible(importButton);
+        if (workflow === 'empty' && importButtonVisible) return 'import-runtime-failed';
+        const node = document.querySelector('[data-testid="cancel-import"]');
+        if (!(node instanceof HTMLElement)) return 'saved-state';
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 ? 'resolution-pending' : 'saved-state';
+      })()`);
+      if (terminal === 'resolution-pending') return 'resolution-pending';
+      if (terminal === 'import-runtime-failed') return 'import-runtime-failed';
+      if (terminal === 'error-boundary') return 'error-boundary';
+      if (terminal === 'already-online') return 'already-online';
+      if (terminal === 'import-surface-disappeared') return 'import-surface-disappeared';
+      if (terminal === 'invalid-workflow') return 'invalid-workflow';
+      throw new Error('visible save state timeout');
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
+async function importDeckAndOpenOnline(page: O4p09iPageV1, deckText: string, timeoutMs: number): Promise<void> {
+  if (deckText.trim() === '') throw new Error('deck input empty');
+  try {
+    await waitForVisible(page, 'deck-input', timeoutMs);
+    await fillVisible(page, 'deck-input', deckText, timeoutMs);
+  } catch {
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.deckInput);
+  }
+  try {
+    await clickVisible(page, 'import-button', timeoutMs);
+  } catch {
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.importClick);
+  }
+  let saveStatus: 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow';
+  try {
+    saveStatus = await waitForSavedDeck(page, timeoutMs);
+  } catch {
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.savedState);
+  }
+  if (saveStatus === 'storage-error') throw new Error(PRODUCTION_UI_STAGE_ERRORS.storageUnavailable);
+  if (saveStatus === 'resolution-error') throw new Error(PRODUCTION_UI_STAGE_ERRORS.resolutionUnavailable);
+  if (saveStatus === 'resolution-pending') throw new Error(PRODUCTION_UI_STAGE_ERRORS.resolutionPending);
+  if (saveStatus === 'notification-missing') throw new Error(PRODUCTION_UI_STAGE_ERRORS.notificationMissing);
+  if (saveStatus === 'import-runtime-failed') throw new Error(PRODUCTION_UI_STAGE_ERRORS.importRuntimeFailed);
+  if (saveStatus === 'import-runtime-error') throw new Error(PRODUCTION_UI_STAGE_ERRORS.importRuntimeError);
+  if (saveStatus === 'error-boundary') throw new Error(PRODUCTION_UI_STAGE_ERRORS.productErrorBoundary);
+  if (saveStatus === 'import-surface-disappeared') throw new Error(PRODUCTION_UI_STAGE_ERRORS.importSurfaceDisappeared);
+  if (saveStatus === 'invalid-workflow') throw new Error(PRODUCTION_UI_STAGE_ERRORS.invalidWorkflow);
+  await openOnlineFromSavedDeck(page, timeoutMs);
+}
+
+async function openOnlineFromSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<void> {
+  try {
+    const alreadyOnline = await page.evaluate<boolean>(`(() => { // alreadyOnlineSurfaceProbe
+      const node = document.querySelector('[data-testid="public-online-app"]');
+      if (!(node instanceof HTMLElement)) return false;
+      const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+      return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+    })()`);
+    if (alreadyOnline) return;
+    await waitForVisible(page, 'open-online-mode', timeoutMs);
+    await clickVisible(page, 'open-online-mode', timeoutMs);
+    await waitForVisible(page, 'public-online-app', timeoutMs);
+  } catch {
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.onlineOpen);
+  }
 }
 
 async function selectFirstVisibleOption(page: O4p09iPageV1, testId: string, timeoutMs: number): Promise<void> {
@@ -487,6 +799,12 @@ type O4p09iPrivateChoicePayloadV1 = Readonly<{
   readonly candidateHandles: readonly string[];
   readonly serialized: string;
   readonly digest: string;
+  readonly complete: true;
+  readonly roots: number;
+  readonly attributes: number;
+  readonly values: number;
+  readonly tokens: number;
+  readonly bytes: number;
 }>;
 
 /**
@@ -496,56 +814,103 @@ type O4p09iPrivateChoicePayloadV1 = Readonly<{
  */
 async function readPrivateChoicePayload(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iPrivateChoicePayloadV1> {
   const raw = await Promise.race([
-    page.evaluate<Readonly<{ readonly identifiers: readonly string[]; readonly candidateHandles: readonly string[]; readonly serialized: string }>>(`(() => {
-      const clip = (value: string): string => value.trim().slice(0, 256);
-      const privateRoots = [...document.querySelectorAll('[data-testid^="visibility-choice-"], [data-testid^="visibility-choose-"], [data-private-choice], [data-choice-handle], input[type="checkbox"]')].slice(0, 48);
-      const rows = privateRoots.map((node) => {
-        const attrs = [...node.attributes]
-          .filter((attribute) => /^(?:data-|id$|name$|value$)/iu.test(attribute.name))
-          .slice(0, 16)
-          .map((attribute) => [attribute.name, clip(attribute.value)] as const);
-        const values = [...node.querySelectorAll('input, option')]
-          .slice(0, 16)
-          .map((child) => 'value' in child && typeof child.value === 'string' ? clip(child.value) : '')
-          .filter((value) => value !== '');
-        const text = node.classList.contains('online-visibility-decisions__candidate') || node.matches('label') ? clip(node.textContent ?? '') : '';
-        return { attrs, values, text };
+    page.evaluate<Readonly<{
+      readonly identifiers: readonly string[];
+      readonly candidateHandles: readonly string[];
+      readonly serialized: string;
+      readonly complete: boolean;
+      readonly roots: number;
+      readonly attributes: number;
+      readonly values: number;
+      readonly tokens: number;
+      readonly bytes: number;
+    }>>(`(() => { // privateChoicePayload
+      const roots = [...document.querySelectorAll('[data-testid^="visibility-choice-"], [data-testid^="visibility-choose-"], [data-private-choice], [data-choice-handle], input[type="checkbox"]')];
+      let complete = roots.length < ${String(MAX_PRIVATE_ROOTS_V1)};
+      let attributes = 0;
+      let values = 0;
+      let tokens = 0;
+      let bytes = 0;
+      const appendToken = (value) => {
+        if (typeof value !== 'string' || value === '') return '';
+        const size = new TextEncoder().encode(value).byteLength;
+        if (tokens + 1 >= ${String(MAX_PRIVATE_TOKENS_V1)} || bytes + size >= ${String(MAX_PRIVATE_CAPTURE_BYTES_V1)}) { complete = false; return ''; }
+        tokens += 1;
+        bytes += size;
+        return value;
+      };
+      const rows = roots.slice(0, ${String(MAX_PRIVATE_ROOTS_V1)}).map((node) => {
+        const allAttributes = [...node.attributes];
+        if (allAttributes.length >= ${String(MAX_PRIVATE_ATTRIBUTES_PER_ROOT_V1)}) complete = false;
+        const attrs = allAttributes.slice(0, ${String(MAX_PRIVATE_ATTRIBUTES_PER_ROOT_V1)}).map((attribute) => {
+          attributes += 1;
+          return [appendToken(attribute.name), appendToken(attribute.value)];
+        });
+        const allValues = [...node.querySelectorAll('input, option')];
+        if (allValues.length >= ${String(MAX_PRIVATE_VALUES_PER_ROOT_V1)}) complete = false;
+        const valuesForRoot = allValues.slice(0, ${String(MAX_PRIVATE_VALUES_PER_ROOT_V1)}).map((child) => {
+          values += 1;
+          return 'value' in child && typeof child.value === 'string' ? appendToken(child.value) : '';
+        }).filter((value) => value !== '');
+        const text = appendToken(node.textContent ?? '');
+        return { attrs, values: valuesForRoot, text };
       });
-      const identifiers = rows.flatMap((row) => row.attrs.filter(([name, value]) => name === 'data-testid' && value.startsWith('visibility-choose-')).map(([, value]) => value)).slice(0, 32);
+      const identifiers = rows.flatMap((row) => row.attrs.filter(([name, value]) => name.startsWith('data-testid') && value.startsWith('visibility-choose-')).map(([, value]) => value)).filter((value) => value !== '');
       const candidateHandles = rows.flatMap((row) => [
-        ...row.attrs.filter(([name]) => name !== 'data-testid' && /handle|candidate|object|value/iu.test(name)).map(([, value]) => value),
+        ...row.attrs.flatMap(([name, value]) => [name, value]),
         ...row.values,
         ...(row.text === '' ? [] : [row.text]),
-      ]).filter((value) => value.length >= 4).slice(0, 64);
-      const privateChoicePayload = { identifiers, candidateHandles, serialized: JSON.stringify(rows) };
-      return privateChoicePayload;
+      ]).filter((value) => value.length >= 1);
+      const serializedCandidate = JSON.stringify(rows);
+      if (new TextEncoder().encode(serializedCandidate).byteLength >= ${String(MAX_PRIVATE_CAPTURE_BYTES_V1)}) complete = false;
+      const serialized = complete ? serializedCandidate : '';
+      return { identifiers, candidateHandles, serialized, complete, roots: roots.length, attributes, values, tokens, bytes };
     })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choice probe timeout')), timeoutMs)),
   ]);
-  if (raw.serialized.length > 16_384) throw new Error('private choice payload too large');
-  const identifiers = raw.identifiers.filter((value) => typeof value === 'string' && value.length <= 256).slice(0, 32);
-  const candidateHandles = raw.candidateHandles.filter((value) => typeof value === 'string' && value.length <= 256).slice(0, 64);
-  return Object.freeze({ identifiers, candidateHandles, serialized: raw.serialized, digest: sha256(raw.serialized) });
+  if (raw.complete !== true || !Array.isArray(raw.identifiers) || !Array.isArray(raw.candidateHandles) || !Number.isSafeInteger(raw.roots) || !Number.isSafeInteger(raw.attributes) || !Number.isSafeInteger(raw.values) || !Number.isSafeInteger(raw.tokens) || !Number.isSafeInteger(raw.bytes) || raw.roots >= MAX_PRIVATE_ROOTS_V1 || raw.attributes >= MAX_PRIVATE_ROOTS_V1 * MAX_PRIVATE_ATTRIBUTES_PER_ROOT_V1 || raw.values >= MAX_PRIVATE_ROOTS_V1 * MAX_PRIVATE_VALUES_PER_ROOT_V1 || raw.tokens >= MAX_PRIVATE_TOKENS_V1 || raw.bytes >= MAX_PRIVATE_CAPTURE_BYTES_V1) throw new Error('private choice capture incomplete');
+  if (new TextEncoder().encode(raw.serialized).byteLength >= MAX_PRIVATE_CAPTURE_BYTES_V1) throw new Error('private choice payload too large');
+  if (raw.identifiers.some((value) => typeof value !== 'string' || value.length > MAX_TEXT_BYTES) || raw.candidateHandles.some((value) => typeof value !== 'string' || value.length > MAX_TEXT_BYTES)) throw new Error('private choice capture incomplete');
+  const identifiers = raw.identifiers;
+  const candidateHandles = raw.candidateHandles;
+  return Object.freeze({ identifiers, candidateHandles, serialized: raw.serialized, digest: sha256(raw.serialized), complete: true, roots: raw.roots, attributes: raw.attributes, values: raw.values, tokens: raw.tokens, bytes: raw.bytes });
 }
 
 /** Capture bounded rendered text, attributes, form values, and choice-control
  * content from an unauthorized seat.  Values remain memory-only in the caller;
  * host tokens are never injected into that seat's page. */
+type O4p09iDomSurfaceScanV1 = Readonly<{ readonly surfaces: readonly string[]; readonly complete: boolean }>;
+
 async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, timeoutMs: number): Promise<readonly string[]> {
-  return Promise.race([
-    page.evaluate<readonly string[]>(`(() => {
-      const clip = (value: string): string => value.trim().slice(0, 256);
-      const surfaces = [clip(document.documentElement.textContent ?? '')];
-      for (const node of [...document.querySelectorAll('*')].slice(0, 512)) {
-        for (const attribute of [...node.attributes].slice(0, 16)) surfaces.push(clip(attribute.value));
-        if ('value' in node && typeof node.value === 'string') surfaces.push(clip(node.value));
-        if (node.matches('[data-testid^="visibility-"], [data-testid^="visibility-choice-"], [data-testid^="visibility-choose-"]')) surfaces.push(clip(node.textContent ?? ''));
+  const raw = await Promise.race([
+    page.evaluate<O4p09iDomSurfaceScanV1>(`(() => { // privateChoiceDomSurfaces
+      const surfaces = [];
+      let complete = true;
+      let bytes = 0;
+      let nodes = 0;
+      const append = (value) => {
+        if (typeof value !== 'string' || value === '') return;
+        const size = new TextEncoder().encode(value).byteLength;
+        if (bytes + size >= ${String(MAX_DOM_SCAN_BYTES_V1)}) { complete = false; return; }
+        bytes += size;
+        surfaces.push(value);
+      };
+      for (const node of [...document.querySelectorAll('*')]) {
+        if (nodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) { complete = false; break; }
+        nodes += 1;
+        for (const child of [...node.childNodes]) if (child.nodeType === 3) append(child.nodeValue ?? '');
+        const attributes = [...node.attributes];
+        if (attributes.length >= ${String(MAX_DOM_SCAN_ATTRIBUTES_V1)}) complete = false;
+        for (const attribute of attributes.slice(0, ${String(MAX_DOM_SCAN_ATTRIBUTES_V1)})) { append(attribute.name); append(attribute.value); }
+        if ('value' in node && typeof node.value === 'string') append(node.value);
       }
-      const privateChoiceDomSurfaces = surfaces.filter((value) => value !== '').slice(0, 2_048);
-      return privateChoiceDomSurfaces;
+      if (nodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) complete = false;
+      return { surfaces, complete };
     })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choice surface probe timeout')), timeoutMs)),
   ]);
+  if (!raw.complete) throw new Error('bounded private choice surface scan incomplete');
+  return raw.surfaces;
 }
 
 async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: number): Promise<void> {
@@ -564,17 +929,29 @@ async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: numb
 }
 
 async function readInvite(page: O4p09iPageV1, timeoutMs: number): Promise<string> {
-  return Promise.race([
-    page.evaluate<string>(`(() => {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const invite = await page.evaluate<string | null>(`(() => {
       const invite = [...document.querySelectorAll('.public-online-app__invite span')].map((node) => {
         const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
         return node.hidden || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 ? '' : (node.textContent ?? '').trim();
       }).find((value) => value !== '' && !value.includes('準備しました'));
-      if (!invite) throw new Error('visible invite missing');
-      return invite;
-    })()`),
-    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('invite read timeout')), timeoutMs)),
-  ]);
+      return invite ?? null;
+    })()`);
+    if (invite !== null && invite !== '') return invite;
+    if (Date.now() >= deadline) throw new Error('invite read timeout');
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
+async function digestVisibleInput(page: O4p09iPageV1, testId: string): Promise<string> {
+  return page.evaluate<string>(`(async () => { // inviteFingerprintProbe
+    const node = document.querySelector('[data-testid="${testId}"]');
+    if (!(node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement)) return '';
+    const bytes = new TextEncoder().encode(node.value);
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
+  })()`);
 }
 
 async function waitForRevisionAdvance(page: O4p09iPageV1, workerOrigin: string, baseline: number, timeoutMs: number, secretFragments: readonly string[] = []): Promise<number> {
@@ -627,6 +1004,7 @@ type O4p09iProbeV1 = Readonly<{
   readonly activeSeatCount: number;
   readonly eliminatedSeats: readonly string[];
   readonly opponentLeak: boolean;
+  readonly leakScanComplete: boolean;
   readonly privateLookControl: boolean;
   readonly chooseControl: boolean;
   readonly manualStackControl: boolean;
@@ -635,26 +1013,51 @@ type O4p09iProbeV1 = Readonly<{
   readonly workerObserved: boolean;
 }>;
 
+type O4p09iConsoleAccumulatorV1 = { errors: number; warnings: number; secretViolations: number };
+
 async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: string, secretFragments: readonly string[] = []): Promise<O4p09iProbeV1> {
   const probe = await Promise.race([
     page.evaluate<O4p09iProbeV1>(`(() => {
       const root = document.documentElement;
-      const text = document.body?.textContent ?? '';
-      const revision = [...document.querySelectorAll('[data-testid="online-remote-connection"], [data-testid="online-assisted-priority"]')]
+      const fragments = (argument.fragments ?? []).filter((fragment) => typeof fragment === 'string' && fragment.length >= 8);
+      let opponentLeak = false;
+      let leakScanComplete = true;
+      let leakScanBytes = 0;
+      let leakScanNodes = 0;
+      const scan = (value) => {
+        if (typeof value !== 'string') return;
+        const bytes = new TextEncoder().encode(value).byteLength;
+        if (leakScanBytes + bytes >= ${String(MAX_DOM_SCAN_BYTES_V1)}) { leakScanComplete = false; return; }
+        leakScanBytes += bytes;
+        if (/(?:seat_|invite_|observer_)[A-Za-z0-9_-]{4,}/u.test(value) || fragments.some((fragment) => value.includes(fragment))) opponentLeak = true;
+      };
+      for (const node of [...document.querySelectorAll('*')]) {
+        if (leakScanNodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) { leakScanComplete = false; break; }
+        leakScanNodes += 1;
+        for (const child of [...node.childNodes]) if (child.nodeType === 3) scan(child.nodeValue ?? '');
+        const attributes = [...node.attributes];
+        if (attributes.length >= ${String(MAX_DOM_SCAN_ATTRIBUTES_V1)}) leakScanComplete = false;
+        for (const attribute of attributes.slice(0, ${String(MAX_DOM_SCAN_ATTRIBUTES_V1)})) { scan(attribute.name); scan(attribute.value); }
+        if ('value' in node && typeof node.value === 'string') scan(node.value);
+      }
+      if (leakScanNodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) leakScanComplete = false;
+      const revision = [...document.querySelectorAll('[data-testid="online-remote-connection"], [data-testid="online-assisted-priority"], [data-testid="online-pregame-revision"]')]
         .map((node) => /更新 (\\d+)/u.exec(node.textContent ?? '')?.[1] ?? '')
         .flatMap((value) => value === '' ? [] : [Number(value)]).at(-1) ?? 0;
       const outcomeText = document.querySelector('[data-testid="online-remote-outcome"]')?.textContent ?? '';
       const phase = document.querySelector('[data-testid="phase-indicator"]')?.getAttribute('data-phase') ?? '';
       const eliminated = [...outcomeText.matchAll(/\\b(P\\d+)\\s*:\\s*(?:敗北|投了)/gu)].map((match) => match[1] ?? '').filter(Boolean);
       const activeSeatCount = [...outcomeText.matchAll(/\\bP\\d+\\s*:\\s*進行中/gu)].length;
-      const workerObserved = [...performance.getEntriesByType('resource')]
+      const resources = performance.getEntriesByType('resource');
+      if (resources.length >= ${String(MAX_RESOURCE_ENTRIES_V1)}) leakScanComplete = false;
+      const workerObserved = resources.slice(0, ${String(MAX_RESOURCE_ENTRIES_V1)})
         .map((entry) => entry.name).some((name) => { try { return new URL(name, location.href).origin === ${JSON.stringify(workerOrigin)}; } catch { return false; } });
-      const visible = (node: Element | null): node is HTMLElement => {
+      const visible = (node) => {
         if (!(node instanceof HTMLElement)) return false;
         const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
         return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
       };
-      const rectOf = (node: Element | null) => {
+      const rectOf = (node) => {
         if (!visible(node)) return null;
         const rect = node.getBoundingClientRect();
         return { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom };
@@ -666,19 +1069,41 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
       const rail = rectOf(railNode);
       const hand = rectOf(handNode);
       const battlefield = rectOf(battlefieldNode);
-      const primaryNode = railNode === null ? null : [...railNode.querySelectorAll('button.online-remote-rail__primary-action')].find((node) => visible(node) && !(node as HTMLButtonElement).disabled) ?? null;
+      const seatRects = [...document.querySelectorAll('[data-testid="online-remote-opponent"]')].map((node) => rectOf(node)).filter((value) => value !== null);
+      const boardRects = [...document.querySelectorAll('.online-remote-rail__opponent-lane')].map((node) => rectOf(node)).filter((value) => value !== null);
+      const primaryNode = railNode === null ? null : [...railNode.querySelectorAll('button.online-remote-rail__primary-action')].find((node) => visible(node) && !node.disabled) ?? null;
       const primaryRect = rectOf(primaryNode);
       const primaryAction = primaryRect === null ? null : { rect: primaryRect, enabled: true };
       const panelNode = document.querySelector('[data-testid="online-remote-guided-overlay"][open], [data-testid="online-remote-manual-overlay"][open]');
       const panel = rectOf(panelNode);
       const scrollNode = [panelNode, railNode, handNode, document.querySelector('[data-testid="hand-cards"]')]
-        .find((node) => visible(node) && ['auto', 'scroll'].some((value) => { const style = getComputedStyle(node); return style.overflow === value || style.overflowX === value || style.overflowY === value; })) ?? null;
+        .find((node) => visible(node) && ['auto', 'scroll'].some((value) => { const style = getComputedStyle(node); return style.overflow === value || style.overflowX === value || style.overflowY === value; }) && (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth)) ?? null;
       const scrollRect = rectOf(scrollNode);
-      const scrollElement = scrollNode as HTMLElement | null;
-      const scroll = scrollRect === null || scrollElement === null ? null : { rect: scrollRect, scrollWidth: scrollElement.scrollWidth, scrollHeight: scrollElement.scrollHeight, clientWidth: scrollElement.clientWidth, clientHeight: scrollElement.clientHeight };
-      const overlaps = (left: typeof rail, right: typeof hand): boolean => left !== null && right !== null && left.right > right.x && right.right > left.x && left.bottom > right.y && right.bottom > left.y;
-      const insideViewport = (value: typeof rail): boolean => value !== null && value.x >= 0 && value.y >= 0 && value.right <= viewportRect.width && value.bottom <= viewportRect.height;
-      const intersectionArea = (left: typeof rail, right: typeof battlefield): number => {
+      const scrollElement = scrollNode;
+      let scrollMoved = false;
+      let focusReachable = false;
+      if (scrollRect !== null && scrollElement !== null) {
+        const previousTop = scrollElement.scrollTop;
+        const previousLeft = scrollElement.scrollLeft;
+        const targetTop = scrollElement.scrollHeight > scrollElement.clientHeight ? Math.min(previousTop + 1, scrollElement.scrollHeight - scrollElement.clientHeight) : previousTop;
+        const targetLeft = scrollElement.scrollWidth > scrollElement.clientWidth ? Math.min(previousLeft + 1, scrollElement.scrollWidth - scrollElement.clientWidth) : previousLeft;
+        scrollElement.scrollTop = targetTop;
+        scrollElement.scrollLeft = targetLeft;
+        scrollMoved = scrollElement.scrollTop !== previousTop || scrollElement.scrollLeft !== previousLeft;
+        scrollElement.scrollTop = previousTop;
+        scrollElement.scrollLeft = previousLeft;
+        const previousActive = document.activeElement;
+        const focusTarget = [...scrollElement.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].find((node) => visible(node));
+        if (focusTarget instanceof HTMLElement) {
+          focusTarget.focus();
+          focusReachable = scrollElement.contains(document.activeElement);
+          if (previousActive instanceof HTMLElement) previousActive.focus();
+        }
+      }
+      const scroll = scrollRect === null || scrollElement === null ? null : { rect: scrollRect, scrollWidth: scrollElement.scrollWidth, scrollHeight: scrollElement.scrollHeight, clientWidth: scrollElement.clientWidth, clientHeight: scrollElement.clientHeight, scrollMoved, focusReachable };
+      const overlaps = (left, right) => left !== null && right !== null && left.right > right.x && right.right > left.x && left.bottom > right.y && right.bottom > left.y;
+      const insideViewport = (value) => value !== null && value.x >= 0 && value.y >= 0 && value.right <= viewportRect.width && value.bottom <= viewportRect.height;
+      const intersectionArea = (left, right) => {
         if (left === null || right === null) return 0;
         return Math.max(0, Math.min(left.right, right.right) - Math.max(left.x, right.x)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.y, right.y));
       };
@@ -689,13 +1114,15 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         rail,
         hand,
         battlefield,
+        seatRects,
+        boardRects,
         primaryAction,
         panel,
         scroll,
         clippedPrimaryAction: primaryRect !== null && !insideViewport(primaryRect),
         railHandCollision: overlaps(rail, hand),
         panelOutsideViewport: panel !== null && !insideViewport(panel),
-        scrollAccessible: scroll !== null && insideViewport(scroll.rect) && scroll.clientWidth > 0 && scroll.clientHeight > 0,
+        scrollAccessible: scroll !== null && insideViewport(scroll.rect) && scroll.clientWidth > 0 && scroll.clientHeight > 0 && scroll.scrollMoved && scroll.focusReachable,
         battlefieldObscured: battlefieldArea > 0 && coveredArea >= battlefieldArea * 0.98,
       };
       const consoleErrors = 0;
@@ -709,7 +1136,8 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         outcomeVisible: outcomeText.trim() !== '',
         activeSeatCount,
         eliminatedSeats: eliminated,
-        opponentLeak: /(?:seat_|invite_|observer_)[A-Za-z0-9_-]{4,}/u.test(text) || (argument.fragments ?? []).some((fragment) => typeof fragment === 'string' && fragment.length >= 8 && text.includes(fragment)),
+        opponentLeak,
+        leakScanComplete,
         privateLookControl: document.querySelector('[data-testid="visibility-look"]') !== null,
         chooseControl: document.querySelector('[data-testid^="visibility-choose-"]') !== null,
         manualStackControl: document.querySelector('[data-testid="online-tabletop-submit-stack-entry"]') !== null,
@@ -721,18 +1149,34 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('page probe timeout')), timeoutMs)),
   ]);
   const consoleErrors = page.consoleCounts().errors;
+  if (!probe.leakScanComplete) throw new Error('bounded leak scan incomplete');
   return Object.freeze({ ...probe, consoleErrors });
 }
 
-async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pagesOrigin: string, workerOrigin: string, timeoutMs: number, secretFragments: string[], counters: { contextsClosed: number; pagesClosed: number }): Promise<O4p09iScenarioFactV1> {
+async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pagesOrigin: string, workerOrigin: string, timeoutMs: number, secretFragments: string[], counters: { contextsClosed: number; pagesClosed: number }, deckTexts: readonly string[], lifetimeConsole: O4p09iConsoleAccumulatorV1): Promise<O4p09iScenarioFactV1> {
   const contexts: O4p09iContextV1[] = [];
   const pages: O4p09iPageV1[] = [];
+  const consoleSnapshots = new WeakSet<object>();
+  const snapshotConsole = (page: O4p09iPageV1): void => {
+    if (consoleSnapshots.has(page)) return;
+    consoleSnapshots.add(page);
+    const counts = page.consoleCounts();
+    lifetimeConsole.errors += counts.errors;
+    lifetimeConsole.warnings += counts.warnings;
+    lifetimeConsole.secretViolations += counts.secretViolations ?? 0;
+  };
   let revisionBeforeReconnect: number;
   let revisionAfterReconnect: number | undefined;
   let initialRevision = 0;
   let manualDamageCount = 0;
   let chooseObserved = false;
   let crossSeatPrivateChoiceLeak = false;
+  let stage: O4p09iScenarioStageV1 = 'import';
+  const setStage = (next: O4p09iScenarioStageV1): void => {
+    if (!SCENARIO_STAGES.includes(next)) throw new Error('scenario stage invalid');
+    stage = next;
+  };
+  const startedSurfaceFailureState: { reason: O4p09iStartedSurfaceFailureV1 | null } = { reason: null };
   const actionKinds: string[] = [];
   const phases = new Set<string>();
   const phaseByControl: Readonly<Record<string, string>> = {
@@ -778,16 +1222,27 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     const hostPage = await hostContext.createPage(); pages.push(hostPage);
     pageSetSecret(hostPage, secretFragments);
     await hostPage.navigate(pagesOrigin);
+    setStage('import');
+    await importDeckAndOpenOnline(hostPage, deckTexts[0] ?? '', timeoutMs);
+    setStage('lobby-probe');
     const lobby = await probePage(hostPage, timeoutMs, workerOrigin, secretFragments);
     if (lobby.gameScreens > 1 || lobby.overflow !== 0 || lobby.opponentLeak || lobby.consoleErrors !== 0) throw new Error('production lobby probe failed');
+    setStage('create-room');
     await clickVisible(hostPage, 'online-create-shared', timeoutMs); recordControl('online-create-shared');
+    setStage('reveal-invite');
     await clickButtonByText(hostPage, 'コードを表示', timeoutMs);
+    setStage('read-invite');
     const invite = await readInvite(hostPage, timeoutMs);
     if (!safeString(invite)) throw new Error('invite value malformed');
+    // Correlate every visible join form with this room without retaining or
+    // emitting the raw invite value.  The digest is runtime-only.
+    const roomFingerprint = sha256(invite);
     // Invite values are runtime-only and become scanner fragments; they never
     // enter the evidence summary.
     secretFragments.push(invite);
+    setStage('host-deck-submit');
     await clickVisible(hostPage, 'online-submit-deck', timeoutMs); recordControl('online-submit-deck');
+    setStage('host-ready');
     await clickVisible(hostPage, 'online-ready-toggle', timeoutMs); recordControl('online-ready-toggle');
 
     for (let index = 1; index < playerCount; index += 1) {
@@ -795,25 +1250,34 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       const page = await context.createPage(); pages.push(page);
       pageSetSecret(page, secretFragments);
       await page.navigate(pagesOrigin);
+      setStage('join-seat-import');
+      await importDeckAndOpenOnline(page, deckTexts[index] ?? '', timeoutMs);
       const initial = await probePage(page, timeoutMs, workerOrigin, secretFragments);
       if (initial.gameScreens > 1 || initial.overflow !== 0 || initial.opponentLeak || initial.consoleErrors !== 0) throw new Error('production join probe failed');
+      setStage('join-seat-join');
       await clickVisible(page, 'online-open-join', timeoutMs);
       await fillVisible(page, 'online-shared-invite', invite, timeoutMs);
+      if (await digestVisibleInput(page, 'online-shared-invite') !== roomFingerprint) throw new Error('join room correlation failed');
       await clickVisible(page, 'online-join-shared', timeoutMs);
+      setStage('join-seat-deck');
       await clickVisible(page, 'online-submit-deck', timeoutMs); recordControl('online-submit-deck');
+      setStage('join-seat-ready');
       await clickVisible(page, 'online-ready-toggle', timeoutMs); recordControl('online-ready-toggle');
     }
+    setStage('start-game');
     await clickVisible(hostPage, 'online-start-game', timeoutMs); recordControl('online-start-game');
+    setStage('start-probe');
+    // Give the production start transition its own bounded window; injected
+    // short-timeout harnesses retain their explicit deadline for fast tests.
+    const startSurfaceTimeoutMs = timeoutMs === O4P09I_DEFAULT_TIMEOUT_MS_V1 ? O4P09I_START_SURFACE_TIMEOUT_MS_V1 : timeoutMs;
     for (const page of pages) {
-      const started = await probePage(page, timeoutMs, workerOrigin, secretFragments);
-      if (started.gameScreens > 1 || started.overflow !== 0 || started.opponentLeak || started.consoleErrors !== 0) throw new Error('started shared surface probe failed');
+      const started = await waitForStartedSurface(page, page === hostPage, workerOrigin, startSurfaceTimeoutMs, secretFragments, startedSurfaceFailureState);
       if (page === hostPage) initialRevision = started.revision;
     }
 
-    for (const page of pages) {
-      for (const testId of PREGAME_SEQUENCE) {
-        await clickVisible(page, testId, timeoutMs); recordControl(testId);
-      }
+    for (const testId of PREGAME_SEQUENCE) {
+      setStage('pregame-control');
+      await drivePregamePhase(pages, playerCount, testId, workerOrigin, timeoutMs, secretFragments, recordControl);
     }
 
     // Pregame and game controls are driven on the host surface after every
@@ -821,13 +1285,21 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     // action; missing/disabled controls fail closed.
     for (const testId of UI_SEQUENCE) {
       if (testId === 'online-advance-to-main') {
+        setStage('advance');
         await advanceUntilPhase(hostPage, 'main1', workerOrigin, timeoutMs, secretFragments);
         recordControl(testId);
         continue;
       }
-      if (testId === 'online-journey-play-land') await selectFirstVisibleOption(hostPage, 'online-journey-land', timeoutMs);
-      if (testId === 'online-journey-cast-spell') await selectFirstVisibleOption(hostPage, 'online-journey-spell', timeoutMs);
+      if (testId === 'online-journey-play-land') {
+        setStage('land');
+        await selectFirstVisibleOption(hostPage, 'online-journey-land', timeoutMs);
+      }
+      if (testId === 'online-journey-cast-spell') {
+        setStage('cast');
+        await selectFirstVisibleOption(hostPage, 'online-journey-spell', timeoutMs);
+      }
       if (testId === 'online-remote-advance') {
+        setStage('HOLD-pass-resolve');
         // The first priority cycle is completed before entering combat. HOLD,
         // pass and resolve remain legal actions for their current seat only.
         const holdRevision = await clickAndAwaitRevision(hostPage, 'online-remote-hold', workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-hold');
@@ -843,6 +1315,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         continue;
       }
       if (testId === 'online-guided-declare-attacker') {
+        setStage('attacker');
         await selectFirstVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) select:nth-of-type(1)', timeoutMs);
         await selectFirstVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) select:nth-of-type(2)', timeoutMs);
         const baseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;
@@ -853,6 +1326,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         continue;
       }
       if (testId === 'online-manual-damage-submit') {
+        setStage('manual-damage');
         await selectFirstVisibleOption(hostPage, 'online-manual-damage-defender', timeoutMs);
         // First combat damage is deliberately nonlethal; the final repeated
         // entry (after private/manual semantics) is the lethal branch.
@@ -860,18 +1334,26 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         manualDamageCount += 1;
       }
       if (testId === 'online-tabletop-submit-stack-entry') {
+        setStage('manual-stack');
         await fillVisible(hostPage, 'online-tabletop-stack-entry-id', 'manual-stack-entry', timeoutMs);
         await fillVisible(hostPage, 'online-tabletop-stack-label', '公開手動項目', timeoutMs);
       }
       if (testId === 'visibility-look') {
+        setStage('visibility');
         await selectFirstVisibleOption(hostPage, 'visibility-look-subject', timeoutMs);
         await selectFirstVisibleOption(hostPage, 'visibility-look-viewers', timeoutMs);
       }
-      if (testId === 'online-remote-guided-overlay' || testId === 'online-remote-manual-overlay') await toggleDetails(hostPage, testId, timeoutMs);
+      if (testId === 'online-remote-guided-overlay' || testId === 'online-remote-manual-overlay') {
+        setStage('manual-stack');
+        await toggleDetails(hostPage, testId, timeoutMs);
+      }
+      if (testId === 'online-tabletop-submit-manual-resolve') setStage('manual-stack');
+      if (!STAGE_HANDLED_UI_CONTROLS.has(testId)) setStage('ui-action');
       const actionBaseline = REVISION_CONTROLS.has(testId) ? (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision : null;
       await clickVisible(hostPage, testId, timeoutMs); recordControl(testId);
       if (actionBaseline !== null) await waitForRevisionAdvance(hostPage, workerOrigin, actionBaseline, timeoutMs, secretFragments);
       if (testId === 'visibility-look') {
+        setStage('private-leak-check');
         const confirmBaseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;
         await clickVisible(hostPage, 'visibility-confirm', timeoutMs); recordControl('visibility-confirm');
         await waitForRevisionAdvance(hostPage, workerOrigin, confirmBaseline, timeoutMs, secretFragments);
@@ -906,55 +1388,89 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
     }
 
+    setStage('post-actions');
     const postActions = await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments);
     revisionBeforeReconnect = postActions.revision;
     if (postActions.gameScreens !== 1 || postActions.overflow !== 0 || postActions.opponentLeak || postActions.consoleErrors !== 0 || !postActions.workerObserved) throw new Error('post-action surface/worker probe failed');
 
-    // Resize the actual page and collect measured DOM facts rather than
-    // asserting a constant viewport matrix.
-    if (hostPage.setViewport === undefined) throw new Error('viewport adapter required');
+    // Resize every live page and collect measured DOM facts rather than
+    // asserting a host-only or constant viewport matrix.  This keeps the
+    // opponent lanes observable for every seat at every required size.
+    if (pages.some((page) => page.setViewport === undefined)) throw new Error('viewport adapter required');
+    setStage('viewport-geometry');
     const measuredViewports: O4p09iViewportFactV1[] = [];
     for (const viewport of VIEWPORTS) {
-      await hostPage.setViewport(viewport);
-      const measured = await probePage(hostPage, timeoutMs, workerOrigin, secretFragments);
-      const geometry = measured.geometry;
-      if (measured.gameScreens !== 1 || measured.overflow !== 0 || measured.consoleErrors !== 0 || measured.opponentLeak || !measured.workerObserved || geometry.viewport.width !== viewport.width || geometry.viewport.height !== viewport.height || geometry.rail === null || geometry.hand === null || geometry.battlefield === null || geometry.primaryAction === null || geometry.panel === null || geometry.scroll === null || geometry.primaryAction.enabled !== true || geometry.clippedPrimaryAction || geometry.railHandCollision || geometry.panelOutsideViewport || !geometry.scrollAccessible || geometry.battlefieldObscured) throw new Error('responsive surface/geometry/worker probe failed');
-      measuredViewports.push(Object.freeze({ width: viewport.width, height: viewport.height, horizontalOverflow: measured.overflow, gameScreens: measured.gameScreens, consoleErrors: measured.consoleErrors, geometry }));
+      for (const page of pages) await page.setViewport?.(viewport);
+      const measuredPages = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
+      const reference = measuredPages[0];
+      if (reference === undefined) throw new Error('responsive page probe missing');
+      const referenceSeatSignature = rectSignature(reference.geometry.seatRects);
+      const referenceBoardSignature = rectSignature(reference.geometry.boardRects);
+      for (const measured of measuredPages) {
+        const geometry = measured.geometry;
+        if (measured.gameScreens !== 1 || measured.overflow !== 0 || measured.consoleErrors !== 0 || measured.opponentLeak || !measured.workerObserved || geometry.viewport.width !== viewport.width || geometry.viewport.height !== viewport.height || geometry.seatRects.length !== playerCount - 1 || geometry.boardRects.length !== playerCount - 1 || geometry.rail === null || geometry.hand === null || geometry.battlefield === null || geometry.primaryAction === null || geometry.panel === null || geometry.scroll === null || geometry.primaryAction.enabled !== true || geometry.clippedPrimaryAction || geometry.railHandCollision || geometry.panelOutsideViewport || !geometry.scrollAccessible || geometry.battlefieldObscured) throw new Error('responsive surface/geometry/worker probe failed');
+        if (rectSignature(geometry.seatRects) !== referenceSeatSignature || rectSignature(geometry.boardRects) !== referenceBoardSignature) throw new Error('responsive public lane geometry mismatch');
+      }
+      measuredViewports.push(Object.freeze({ width: viewport.width, height: viewport.height, horizontalOverflow: reference.overflow, gameScreens: reference.gameScreens, consoleErrors: reference.consoleErrors, geometry: cloneGeometry(reference.geometry), pageGeometries: Object.freeze(measuredPages.map((measured) => cloneGeometry(measured.geometry))) }));
     }
     const viewportFacts = Object.freeze(measuredViewports);
 
+    setStage('reconnect');
     const disconnectedPage = pages[0];
+    if (disconnectedPage === undefined) throw new Error('reconnect page missing');
+    snapshotConsole(disconnectedPage);
     await disconnectedPage.close(); counters.pagesClosed += 1;
     const replacement = await contexts[0]?.createPage();
     if (replacement === undefined) throw new Error('reconnect page missing');
     pages[0] = replacement;
     pageSetSecret(replacement, secretFragments);
     await replacement.navigate(pagesOrigin);
+    await openOnlineFromSavedDeck(replacement, timeoutMs);
     const recovered = await probePage(replacement, timeoutMs, workerOrigin, secretFragments);
+    const recoveredPeers = await Promise.all(pages.slice(1).map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
+    const recoveredProbes = Object.freeze([recovered, ...recoveredPeers]);
     revisionAfterReconnect = recovered.revision;
-    if (!safeRevision(revisionAfterReconnect) || recovered.gameScreens !== 1 || recovered.overflow !== 0 || recovered.opponentLeak || recovered.consoleErrors !== 0 || !recovered.workerObserved || revisionAfterReconnect < revisionBeforeReconnect) throw new Error('reconnect continuity probe failed');
-    const consoleCounts = pages.reduce((totals, current) => {
-      const value = current.consoleCounts();
-      return { errors: totals.errors + value.errors, warnings: totals.warnings + value.warnings, secretViolations: totals.secretViolations + (value.secretViolations ?? 0) };
-    }, { errors: 0, warnings: 0, secretViolations: 0 });
-    if (consoleCounts.errors !== 0 || consoleCounts.warnings !== 0 || consoleCounts.secretViolations !== 0) throw new Error('browser console or secret violation observed');
+    if (!safeRevision(revisionAfterReconnect) || revisionAfterReconnect < revisionBeforeReconnect) throw new Error('reconnect continuity probe failed');
+    if (recoveredProbes.some((probe) => probe.gameScreens !== 1 || probe.overflow !== 0 || probe.opponentLeak || probe.consoleErrors !== 0 || !probe.workerObserved || probe.revision !== revisionAfterReconnect)) throw new Error('reconnect continuity probe failed');
+    const observedEliminatedSeats = recoveredProbes.flatMap((probe) => probe.eliminatedSeats);
+    const uniqueEliminatedSeats = [...new Set(observedEliminatedSeats)];
+    if (uniqueEliminatedSeats.length !== 1 || recoveredProbes.some((probe) => probe.eliminatedSeats.length !== 1 || probe.eliminatedSeats[0] !== uniqueEliminatedSeats[0])) throw new Error('reconnect outcome continuity failed');
+    let observedOutcome: O4p09iScenarioFactV1['outcome'];
+    if (playerCount === 2) {
+      if (!recoveredProbes.every((probe) => probe.winner)) throw new Error('winner outcome not observed');
+      observedOutcome = 'winner';
+    } else {
+      if (!recoveredProbes.every((probe) => probe.activeSeatCount === 3)) throw new Error('active seats outcome not observed');
+      observedOutcome = 'three-continue';
+    }
+    // Snapshot every still-live seat (replacement plus peers) before making
+    // the zero-counter acceptance decision.  The WeakSet keeps finally from
+    // double-counting these pages when they are closed.
+    for (const page of pages) snapshotConsole(page);
+    if (lifetimeConsole.errors !== 0 || lifetimeConsole.warnings !== 0 || lifetimeConsole.secretViolations !== 0) throw new Error('browser console or secret violation observed');
     phases.add('disconnect/reconnect');
     if (phases.size !== MATCH_PHASES.length || MATCH_PHASES.some((phase) => !phases.has(phase))) throw new Error('journey phases incomplete');
+    setStage('finalize');
     const privateLookChoose: O4p09iScenarioFactV1['privateLookChoose'] = Object.freeze({ look: postActions.privateLookControl as true, choose: chooseObserved as true, crossSeatLeak: crossSeatPrivateChoiceLeak });
     const unsupportedManual: O4p09iScenarioFactV1['unsupportedManual'] = Object.freeze({ stack: postActions.manualStackControl as true, resolve: postActions.manualResolveControl as true });
     return Object.freeze({
       playerCount,
       phases: Object.freeze(MATCH_PHASES.filter((phase) => phases.has(phase))),
       actionKinds: Object.freeze(actionKinds),
-      revision: Object.freeze({ start: 0, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, continuous: true }),
+      revision: Object.freeze({ start: initialRevision, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, continuous: true }),
       privateLookChoose,
       unsupportedManual,
-      outcome: playerCount === 2 ? 'winner' : 'three-continue',
-      eliminatedSeats: Object.freeze(postActions.eliminatedSeats),
+      outcome: observedOutcome,
+      eliminatedSeats: Object.freeze(uniqueEliminatedSeats),
       viewportFacts,
     });
+  } catch {
+    const failedStage: string = stage;
+    if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`);
+    throw new Error(`production scenario stage failed: ${stage}`);
   } finally {
     for (const page of pages) {
+      snapshotConsole(page);
       try { await page.close(); counters.pagesClosed += 1; } catch { /* cleanup is checked by aggregate count */ }
     }
     for (const context of contexts) {
@@ -965,8 +1481,8 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
 
 function pageSetSecret(page: O4p09iPageV1, fragments: readonly string[]): void { page.setSecretFragments?.(fragments); }
 
-export async function runO4p09iFullMatchEvidenceV1(inputDeps: O4p09iEvidenceDepsV1 = {}): Promise<O4p09iEvidenceSummaryV1> {
-  const timeoutMs = inputDeps.timeoutMs ?? 15_000;
+export async function runO4p09iFullMatchEvidenceTestDriverV1(inputDeps: O4p09iEvidenceDepsV1 = {}): Promise<O4p09iSyntheticEvidenceSummaryV1> {
+  const timeoutMs = inputDeps.timeoutMs ?? O4P09I_DEFAULT_TIMEOUT_MS_V1;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 250 || timeoutMs > 120_000) throw new Error('invalid evidence timeout');
   const pagesOrigin = inputDeps.pagesOrigin ?? O4P09I_PAGES_ORIGIN_V1;
   const workerOrigin = inputDeps.workerOrigin ?? O4P09I_WORKER_ORIGIN_V1;
@@ -975,17 +1491,19 @@ export async function runO4p09iFullMatchEvidenceV1(inputDeps: O4p09iEvidenceDeps
   if (browser === null) throw new Error('browser dependency required for production evidence');
   const secretFragments: string[] = [];
   const counters = { contextsClosed: 0, pagesClosed: 0 };
+  const lifetimeConsole: O4p09iConsoleAccumulatorV1 = { errors: 0, warnings: 0, secretViolations: 0 };
   let scenarios: Readonly<{ readonly twoPlayer: O4p09iScenarioFactV1; readonly fourPlayer: O4p09iScenarioFactV1 }>;
   try {
-    const readDeck = inputDeps.readDeck ?? ((path: string) => readFileSync(resolve(process.cwd(), path), 'utf8'));
-    for (const path of ['Mydeck/Celes.txt', 'Mydeck/Gogo.txt', 'Mydeck/Kefka.txt', 'Mydeck/Muldrotha.txt']) {
-      const text = readDeck(path);
+    const deckTexts: string[] = inputDeps.readDeck === undefined
+      ? [...O4P09I_PUBLIC_DECK_TEXTS_V1]
+      : ['Celes', 'Gogo', 'Kefka', 'Muldrotha'].map((label) => inputDeps.readDeck?.(label) ?? '');
+    for (const text of deckTexts) {
       if (typeof text !== 'string' || text.length === 0) throw new Error('deck input missing');
       secretFragments.push(sha256(text).slice(0, 16));
     }
     scenarios = Object.freeze({
-      twoPlayer: await driveScenario(browser, 2, pagesOrigin, workerOrigin, timeoutMs, secretFragments, counters),
-      fourPlayer: await driveScenario(browser, 4, pagesOrigin, workerOrigin, timeoutMs, secretFragments, counters),
+      twoPlayer: await driveScenario(browser, 2, pagesOrigin, workerOrigin, timeoutMs, secretFragments, counters, deckTexts, lifetimeConsole),
+      fourPlayer: await driveScenario(browser, 4, pagesOrigin, workerOrigin, timeoutMs, secretFragments, counters, deckTexts, lifetimeConsole),
     });
   } finally {
     // A browser/profile close failure invalidates the run; never emit a
@@ -994,16 +1512,23 @@ export async function runO4p09iFullMatchEvidenceV1(inputDeps: O4p09iEvidenceDeps
   }
   const profileRemoved = browser.profilePath === undefined || !existsSync(browser.profilePath);
   if (!profileRemoved) throw new Error('browser profile cleanup incomplete');
+  if (lifetimeConsole.errors !== 0 || lifetimeConsole.warnings !== 0 || lifetimeConsole.secretViolations !== 0) throw new Error('browser console or secret violation observed');
   const summary: O4p09iEvidenceSummaryV1 = Object.freeze({
     kind: 'o4p-09i-full-match-production-evidence-v1', schemaVersion: 1,
     pagesOrigin: O4P09I_PAGES_ORIGIN_V1, workerOrigin: O4P09I_WORKER_ORIGIN_V1,
     chromeVersion: browser.chromeVersion,
-    scenarios, consoleCounts: Object.freeze({ errors: 0 as const, warnings: 0 as const, secretViolations: 0 as const }),
+    scenarios, consoleCounts: Object.freeze({ errors: lifetimeConsole.errors, warnings: lifetimeConsole.warnings, secretViolations: lifetimeConsole.secretViolations }),
     cleanup: Object.freeze({ contextsClosed: counters.contextsClosed, pagesClosed: counters.pagesClosed, profileRemoved: true as const }),
   });
   const checked = validateO4p09iFullMatchEvidenceV1(summary, secretFragments);
   if (!checked.ok) throw new Error(checked.issues[0] ?? 'evidence summary invalid');
-  return checked.value;
+  return Object.freeze({ ...checked.value, kind: 'o4p-09i-full-match-test-evidence-v1' });
+}
+
+export async function runO4p09iFullMatchEvidenceV1(inputDeps: O4p09iEvidenceDepsV1 = {}): Promise<O4p09iEvidenceSummaryV1> {
+  if (inputDeps.browser !== undefined || inputDeps.launchBrowser !== undefined || inputDeps.readDeck !== undefined) throw new Error('production evidence does not accept injected seams');
+  const synthetic = await runO4p09iFullMatchEvidenceTestDriverV1(inputDeps);
+  return Object.freeze({ ...synthetic, kind: 'o4p-09i-full-match-production-evidence-v1' });
 }
 
 async function main(): Promise<void> {

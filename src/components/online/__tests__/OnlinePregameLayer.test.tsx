@@ -87,6 +87,12 @@ function interactivePort(value: OnlinePregameProjectionV1, commands: OnlinePrega
 afterEach(() => { document.body.replaceChildren(); });
 
 describe('PregameLayer', () => {
+  it('exposes a stable revision marker for shared evidence probes', () => {
+    const markup = renderToStaticMarkup(<PregameLayer port={port(projection('commander-reveal', P1))} />);
+    expect(markup).toContain('data-testid="online-pregame-revision"');
+    expect(markup).toContain('更新 3');
+  });
+
   it('gates commander confirmation to the projected current actor', () => {
     const actor = renderToStaticMarkup(<PregameLayer port={port(projection('commander-reveal', P1))} />);
     const waiting = renderToStaticMarkup(<PregameLayer port={port(projection('commander-reveal', P2))} />);

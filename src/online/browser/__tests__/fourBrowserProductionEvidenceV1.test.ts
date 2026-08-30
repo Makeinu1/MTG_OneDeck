@@ -6,6 +6,7 @@ import {
   inspectO4p06fParticipantPresenceV1,
   inspectO4p06fProjectionZonesV1,
   isO4p06fRevisionNoticeAtMostV1,
+  mapO4p06fBrowserEvaluationErrorV1,
   runO4p06fFourBrowserEvidenceV1,
   validateO4p06fEvidenceSummaryV1,
   type O4p06fBrowserV1,
@@ -111,6 +112,18 @@ function hangingObserverSendSocket(sent: unknown[]): O4p06fSocketV1 {
 }
 
 describe('O4P-06F four-browser production evidence', () => {
+  it('maps only allowlisted browser exception class names without leaking details', () => {
+    const secret = 'capability_secret_should_not_escape';
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'TypeError', description: secret, value: secret, stack: secret } })).toBe('browser evaluation TypeError');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'Error', description: secret } })).toBe('browser evaluation Error');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'ReferenceError', description: secret } })).toBe('browser evaluation ReferenceError');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'SyntaxError', description: secret } })).toBe('browser evaluation SyntaxError');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'RangeError', description: secret } })).toBe('browser evaluation RangeError');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { className: 'EvalError', description: secret }, description: secret })).toBe('browser evaluation failed');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ exception: { description: secret, stack: secret }, value: secret })).toBe('browser evaluation failed');
+    expect(mapO4p06fBrowserEvaluationErrorV1({ className: 'TypeError', description: secret })).toBe('browser evaluation failed');
+  });
+
   it('accepts only an exact same-room non-future revision notice', () => {
     const roomId = 'room-ordinary-revision-notice';
     const notice = { kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId, revision: 3 };
