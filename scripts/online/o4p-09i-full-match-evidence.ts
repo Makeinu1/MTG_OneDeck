@@ -568,6 +568,40 @@ async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: num
   }
 }
 
+/**
+ * Wait for the host's lobby projection to expose every configured seat as
+ * deck-submitted and ready before issuing the start intent.  The player pages
+ * submit their ready intents asynchronously; relying only on the host's
+ * enabled button can otherwise race a stale lobby projection during a fresh
+ * production run.  This probe reads public status labels only and keeps every
+ * page evaluation synchronous so the adapter command deadline cannot win the
+ * outer poll.
+ */
+async function waitForLobbyReady(page: O4p09iPageV1, playerCount: 2 | 4, timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const ready = await page.evaluate<boolean>(`(() => {
+      const start = document.querySelector('[data-testid="online-start-game"]');
+      const visible = (node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
+      };
+      if (!(start instanceof HTMLButtonElement) || !visible(start) || start.disabled) return false;
+      const seats = [...document.querySelectorAll('[data-testid="online-seat-summary"]')];
+      if (seats.length !== ${String(playerCount)}) return false;
+      return seats.every((seat) => {
+        if (!visible(seat)) return false;
+        const status = seat.textContent ?? '';
+        return status.includes('提出済み') && status.includes('準備完了');
+      });
+    })()`);
+    if (ready) return;
+    if (Date.now() >= deadline) throw new Error('lobby readiness timeout');
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
 async function waitForStartedSurface(page: O4p09iPageV1, host: boolean, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], failureState: { reason: O4p09iStartedSurfaceFailureV1 | null }): Promise<O4p09iProbeV1> {
   const deadline = Date.now() + timeoutMs;
   let lastFailure: O4p09iStartedSurfaceFailureV1 = 'game-screen-missing/count';
@@ -1265,6 +1299,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       await clickVisible(page, 'online-ready-toggle', timeoutMs); recordControl('online-ready-toggle');
     }
     setStage('start-game');
+    await waitForLobbyReady(hostPage, playerCount, timeoutMs);
     await clickVisible(hostPage, 'online-start-game', timeoutMs); recordControl('online-start-game');
     setStage('start-probe');
     // Give the production start transition its own bounded window; injected

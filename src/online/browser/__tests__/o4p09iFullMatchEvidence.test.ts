@@ -53,6 +53,7 @@ type FakeOptions = Readonly<{
   readonly asyncInviteRender?: boolean;
   readonly asyncStartProbe?: boolean;
   readonly startedSurfaceFailure?: 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
+  readonly lobbyReadyProbe?: 'delayed' | 'never';
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -66,6 +67,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let inviteReads = 0;
     let startClicks = 0;
     let startedSurfaceProbes = 0;
+    let lobbyReadyProbes = 0;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
     const seatIndex = scenarioIndex === 0 ? contextOrdinal : contextOrdinal - 2;
     let phase = 'beginning';
@@ -118,7 +120,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         return Promise.resolve(true as T);
       }
       if (expression.includes('alreadyOnlineSurfaceProbe')) return Promise.resolve((options.alreadyOnline === true) as T);
-      if (expression.includes('data-testid="online-start-game"')) startClicks += 1;
+      if (expression.includes("status.includes('提出済み')") && expression.includes("status.includes('準備完了')")) {
+        if (options.lobbyReadyProbe === 'never' || (options.lobbyReadyProbe === 'delayed' && lobbyReadyProbes++ === 0)) return Promise.resolve(false as T);
+        return Promise.resolve(true as T);
+      }
+      if (expression.includes('data-testid="online-start-game"') && expression.includes('node.click(); return true')) startClicks += 1;
       if (expression.includes('node.click(); return true') || expression.includes('target.click(); return true')) sharedRevisions[scenarioIndex] += 1;
       if (expression.includes('data-testid="online-remote-advance"')) {
         advanceClicks += 1;
@@ -322,6 +328,30 @@ describe('O4P-09I full-match production evidence', () => {
     expect(firstSaved).toBeGreaterThan(firstImport);
     expect(firstOnline).toBeGreaterThan(firstSaved);
     expect(expressions.some((expression) => expression.includes('applyCommand') || /\bdispatch\s*\(/u.test(expression) || /\bfetch\s*\(/u.test(expression))).toBe(false);
+  });
+
+  it('waits for the host to observe every seat ready before starting', async () => {
+    const expressions: string[] = [];
+    await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions), readDeck: () => 'fixture deck' });
+    const readiness = expressions.findIndex((expression) => expression.includes("status.includes('提出済み')") && expression.includes("status.includes('準備完了')"));
+    const startClick = expressions.findIndex((expression) => expression.includes('data-testid="online-start-game"') && expression.includes('node.click(); return true'));
+    expect(readiness).toBeGreaterThanOrEqual(0);
+    expect(startClick).toBeGreaterThan(readiness);
+  });
+
+  it('does not start until a delayed lobby readiness probe turns true', async () => {
+    const expressions: string[] = [];
+    await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions, { lobbyReadyProbe: 'delayed' }), readDeck: () => 'fixture deck', timeoutMs: 250 });
+    const readinessProbes = expressions.filter((expression) => expression.includes("status.includes('提出済み')") && expression.includes("status.includes('準備完了')"));
+    const startClicks = expressions.filter((expression) => expression.includes('data-testid="online-start-game"') && expression.includes('node.click(); return true'));
+    expect(readinessProbes.length).toBeGreaterThan(2);
+    expect(startClicks.length).toBe(2);
+  });
+
+  it('fails closed without a start click when lobby readiness never arrives', async () => {
+    const expressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions, { lobbyReadyProbe: 'never' }), readDeck: () => 'fixture deck', timeoutMs: 250 })).rejects.toThrow('production scenario stage failed: start-game');
+    expect(expressions.some((expression) => expression.includes('data-testid="online-start-game"') && expression.includes('node.click(); return true'))).toBe(false);
   });
 
   it('syntax-compiles every browser evaluate payload collected by the injected harness', async () => {
