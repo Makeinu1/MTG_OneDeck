@@ -163,6 +163,7 @@ const allowedCoreImports = new Set([
   'currentCoreObjectControllerV1',
   'isCanonicalCoreObjectIdV2',
   'isCoreBaseId',
+  'isCoreUndoAuthorizedPlayerV1',
   'parseCoreObjectIdV2',
   'validateCoreRuleZoneRefV1',
 ]);

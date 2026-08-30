@@ -1,10 +1,19 @@
-import { coreCanonicalDigestFromValueV1, createCoreCommandV1, type CoreCommandV1, type CoreObjectId, type CorePlayerId } from '../../engine/core/index';
+import {
+  coreCanonicalDigestFromValueV1,
+  createCoreCommandV1,
+  currentCoreObjectControllerV1,
+  type CoreCommandPayloadV1,
+  type CoreCommandV1,
+  type CoreGameObjectIdentityV2,
+  type CoreObjectId,
+  type CoreObjectRegistryStateV2,
+  type CorePlayerId,
+  type CoreTurnPositionV1,
+} from '../../engine/core/index';
 import type { OnlineProtocolStateV1, OnlineVariableProtocolStateV2 } from '../protocol/index';
 import { bindOnlineTabletopIntentToCoreCommandV1, type OnlineTabletopCommandResultV1 } from './binding';
 import { validateOnlineTabletopIntentEnvelopeV1 } from './validation';
 import type { OnlineTabletopIntentEnvelopeV1 } from './types';
-import type { ModeNeutralCoreObjectRegistryStateV2 } from '../../engine/core/object/objectRegistryStateV2';
-import { currentCoreObjectControllerV1 } from '../../engine/core/rules/controlEffectV1';
 
 export type OnlineTabletopServerBindingInputV1 = Readonly<{
   readonly state: Pick<OnlineProtocolStateV1, 'room' | 'coreRoot' | 'revision'> | Pick<OnlineVariableProtocolStateV2, 'room' | 'coreRoot' | 'revision'>;
@@ -134,7 +143,7 @@ export function bindOnlineTabletopIntentOnServerV1(input: OnlineTabletopServerBi
             : null;
     if (stewardPlayerId !== actorPlayerId) throw new Error('Only the current stack steward may advance or resolve');
     if ((input.state.coreRoot.tabletopManual?.priorityHolds ?? []).length > 0) throw new Error('Active priority HOLD blocks advance or resolve');
-    let payload: import('../../engine/core/index').CoreCommandPayloadV1;
+    let payload: CoreCommandPayloadV1;
     if (primitive.kind === 'priority-resolve') {
       if (window.kind !== 'resolution-ready' || top === null || window.objectId !== top) throw new Error('Stack is not ready to resolve');
       const object = turn.stackBundle.objectRegistry.objects[top];
@@ -170,7 +179,7 @@ export function bindOnlineTabletopIntentOnServerV1(input: OnlineTabletopServerBi
   return bindOnlineTabletopIntentToCoreCommandV1({ envelope: randomEnvelope, binding: { actorPlayerId, decisionMakerPlayerId: actorPlayerId, decisionContext: { kind: 'decision', decisionKey: 'tabletop-manual' }, random: { randomDecisionId, zone: { kind: 'player-zone', playerId: actorPlayerId, zone: 'library' }, beforeOrder: Object.freeze(library.slice()), afterOrder: Object.freeze(afterOrder.slice()) } } });
 }
 
-function nextPosition(position: import('../../engine/core/index').CoreTurnPositionV1): import('../../engine/core/index').CoreTurnPositionV1 {
+function nextPosition(position: CoreTurnPositionV1): CoreTurnPositionV1 {
   if (position.phase === 'beginning') {
     if (position.step === 'untap') return { phase: 'beginning', step: 'upkeep' };
     if (position.step === 'upkeep') return { phase: 'beginning', step: 'draw' };
@@ -189,8 +198,8 @@ function nextPosition(position: import('../../engine/core/index').CoreTurnPositi
 }
 
 function isPermanentCard(
-  registry: ModeNeutralCoreObjectRegistryStateV2,
-  object: Extract<import('../../engine/core/index').CoreGameObjectIdentityV2, { readonly kind: 'card' }>,
+  registry: CoreObjectRegistryStateV2,
+  object: Extract<CoreGameObjectIdentityV2, { readonly kind: 'card' }>,
 ): boolean {
   const physical = registry.physicalCards[object.physicalCardId];
   const definition = physical === undefined ? undefined : registry.cardDefinitions[physical.definitionId];

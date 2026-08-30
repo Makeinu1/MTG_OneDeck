@@ -1027,10 +1027,10 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 ## `src/engine/core/tabletop/operationsV1.ts`
 
 - line 108: `export type CoreTabletopOperationResultV1 = Readonly<{`
-- line 113: `export class CoreTabletopOperationErrorV1 extends Error {`
-- line 406: `export function drawCoreTabletopCardsV1(`
-- line 889: `export function untapCoreTabletopPermanentsV1(`
-- line 909: `export function applyCoreTabletopPayloadV1(`
+- line 120: `export class CoreTabletopOperationErrorV1 extends Error {`
+- line 413: `export function drawCoreTabletopCardsV1(`
+- line 924: `export function untapCoreTabletopPermanentsV1(`
+- line 944: `export function applyCoreTabletopPayloadV1(`
 
 ## `src/engine/core/transition/cardReincarnation.ts`
 

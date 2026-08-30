@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../../online/workbench/fixtures/o4p-04a-personal-workbench-v1.json';
 import type { OnlineParticipantProjectionV1 } from '../../../online/projection';
-import type { OnlineTabletopIntentEnvelopeV1 } from '../../../online/tabletopManual/types';
+import type { OnlineTabletopIntentEnvelopeV1 } from '../../../online/tabletopManual';
 import { projectionToGameState, remoteHandActionAllowed, RemoteGameScreenActionRail, useRemoteGameScreenInteractionPort } from '../remoteGameScreen';
 import type { GameScreenInteractionPort } from '../../game/gameScreenInteractionPort';
 import { GameScreen } from '../../game/GameScreen';

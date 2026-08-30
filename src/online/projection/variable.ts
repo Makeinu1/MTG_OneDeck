@@ -1,6 +1,9 @@
-import type { CoreObjectId, CorePlayerId } from '../../engine/core/index';
-import { isCoreUndoAuthorizedPlayerV1 } from '../../engine/core/index';
-import { currentCoreObjectControllerV1 } from '../../engine/core/rules/controlEffectV1';
+import {
+  currentCoreObjectControllerV1,
+  isCoreUndoAuthorizedPlayerV1,
+  type CoreObjectId,
+  type CorePlayerId,
+} from '../../engine/core/index';
 import { constructParticipantProjectionV1, constructParticipantProjectionV2 } from './project';
 import type { OnlineProjectionRequestV1 } from './types';
 import type { OnlineProtocolStateV1 } from '../protocol/index';

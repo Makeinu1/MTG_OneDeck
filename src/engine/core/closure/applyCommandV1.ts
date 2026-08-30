@@ -591,6 +591,18 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
       const result = applyCoreTabletopPayloadV1(current, checked.actorPlayerId, payload);
       let nextRoot = result.root;
       const payloads = result.payloads.slice();
+      if (result.resolutionRemoval !== undefined) {
+        const completed = completeCoreResolutionAfterRemovalV1({
+          stackBundle: stackBundle(current),
+          lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle,
+        }, result.resolutionRemoval);
+        nextRoot = replaceStackBundle(nextRoot, completed.stackBundle, completed.lifecycle);
+        payloads.push({
+          kind: 'priority-changed',
+          holderPlayerId: null,
+          windowKind: completed.lifecycle.window.kind,
+        });
+      }
       if (payload.kind === 'table-zone-move' && payload.destination.kind === 'stack') {
         const turn = nextRoot.ruleAuthority.turnPriorityBundle;
         const started = startCorePriorityCycleV1({ stackBundle: turn.stackBundle, lifecycle: turn.lifecycle });

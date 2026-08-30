@@ -227,6 +227,15 @@ function isAuthorizedOnlineDisplayPublicImport(unit: SourceUnit, targetPath: str
       || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/visibilityDecisions/index'))
     )
   ) || (
+    sourcePath === 'src/components/online/remoteGameScreen.tsx'
+    && (
+      sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/projection/index'))
+      || sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/tabletopManual/index'))
+    )
+  ) || (
+    sourcePath === 'src/components/online/tabletopManualViewTypes.ts'
+    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/projection/index'))
+  ) || (
     sourcePath === 'src/components/online/PublicOnlineApp.tsx'
     && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/publicApp/index'))
   );

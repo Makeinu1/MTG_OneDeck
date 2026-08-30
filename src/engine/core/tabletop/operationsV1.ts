@@ -43,7 +43,7 @@ import { createCoreCombatContextV1 } from '../combat/combatContextV1';
 import type { CoreCardZoneDestinationV1 } from '../transition/zoneDestination';
 import { nextCoreCardIncarnationV1 } from '../transition/cardReincarnation';
 import { removeCoreStackObjectV1 } from '../stack/transaction/stackRemovalV1';
-import { completeCoreResolutionAfterRemovalV1 } from '../turn/resolutionBoundaryV1';
+import type { CoreStackRemovalResultV1 } from '../stack/transaction/stackRemovalV1';
 import type { CoreTabletopCommandPayloadV1 } from './commandV1';
 import { createCoreTabletopManualStateV1, type CoreTabletopManualModeV1, type CoreTabletopManualStateV1, type CoreTabletopRecentResolutionV1 } from './manualStateV1';
 
@@ -108,6 +108,13 @@ function assertManualStateBudget(state: CoreTabletopManualStateV1): void {
 export type CoreTabletopOperationResultV1 = Readonly<{
   readonly root: ModeNeutralCoreRootV1;
   readonly payloads: readonly CoreDomainEventPayloadV1[];
+  /**
+   * Stack removal is performed atomically here, but resolution-window
+   * completion belongs to the closure boundary.  Carry the validated removal
+   * result across that boundary instead of importing turn internals into the
+   * tabletop layer.
+   */
+  readonly resolutionRemoval?: CoreStackRemovalResultV1;
 }>;
 
 export class CoreTabletopOperationErrorV1 extends Error {
@@ -847,18 +854,46 @@ function resolveManual(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId,
     if (source.kind === 'card') {
       const destination = cardResolutionDestination(stackBundle(workingRoot).objectRegistry, source);
       const removed = removeCoreStackObjectV1(stackBundle(workingRoot), { kind: 'card-to-zone', objectId: top.sourceObjectId, destination });
-      const completed = completeCoreResolutionAfterRemovalV1({
-        stackBundle: stackBundle(workingRoot),
-        lifecycle: workingRoot.ruleAuthority.turnPriorityBundle.lifecycle,
-      }, removed);
-      workingRoot = rebuildRoot(workingRoot, completed.stackBundle.objectRegistry, completed.stackBundle.objectRuntime, completed.lifecycle, new Set([top.sourceObjectId]));
+      const turn = workingRoot.ruleAuthority.turnPriorityBundle;
+      // The resolution boundary is finalized by closure.  Keep the
+      // intermediate root valid while the captured stack top is absent.
+      const interimLifecycle = {
+        kind: 'mode-neutral-core-turn-lifecycle-slice-v1' as const,
+        turnNumber: turn.lifecycle.turnNumber,
+        positionSequence: turn.lifecycle.positionSequence,
+        position: turn.lifecycle.position,
+        window: {
+          kind: 'sba-check-required' as const,
+          priorityRecipientPlayerId: removed.bundle.objectRegistry.activePlayerId,
+          grantPriorityIfStable: true as const,
+        },
+      };
+      workingRoot = rebuildRoot(workingRoot, removed.bundle.objectRegistry, removed.bundle.objectRuntime, interimLifecycle, new Set([top.sourceObjectId]));
+      return {
+        root: workingRoot,
+        payloads: [{ kind: 'table-manual-resolved', entryId: top.id, objectId: top.sourceObjectId }],
+        resolutionRemoval: removed,
+      };
     } else if (source.kind === 'spell-copy' || source.kind === 'activated-ability' || source.kind === 'triggered-ability') {
       const removed = removeCoreStackObjectV1(stackBundle(workingRoot), { kind: 'cease', objectId: top.sourceObjectId });
-      const completed = completeCoreResolutionAfterRemovalV1({
-        stackBundle: stackBundle(workingRoot),
-        lifecycle: workingRoot.ruleAuthority.turnPriorityBundle.lifecycle,
-      }, removed);
-      workingRoot = rebuildRoot(workingRoot, completed.stackBundle.objectRegistry, completed.stackBundle.objectRuntime, completed.lifecycle, new Set([top.sourceObjectId]));
+      const turn = workingRoot.ruleAuthority.turnPriorityBundle;
+      const interimLifecycle = {
+        kind: 'mode-neutral-core-turn-lifecycle-slice-v1' as const,
+        turnNumber: turn.lifecycle.turnNumber,
+        positionSequence: turn.lifecycle.positionSequence,
+        position: turn.lifecycle.position,
+        window: {
+          kind: 'sba-check-required' as const,
+          priorityRecipientPlayerId: removed.bundle.objectRegistry.activePlayerId,
+          grantPriorityIfStable: true as const,
+        },
+      };
+      workingRoot = rebuildRoot(workingRoot, removed.bundle.objectRegistry, removed.bundle.objectRuntime, interimLifecycle, new Set([top.sourceObjectId]));
+      return {
+        root: workingRoot,
+        payloads: [{ kind: 'table-manual-resolved', entryId: top.id, objectId: top.sourceObjectId }],
+        resolutionRemoval: removed,
+      };
     } else {
       fail('INVALID_TARGET', '/payload', 'Manual stack source is not resolvable');
     }
@@ -937,5 +972,9 @@ export function applyCoreTabletopPayloadV1(
   }
   const mode = manualModeOf(payload);
   if (mode === undefined) return result;
-  return { root: result.root, payloads: result.payloads.map((entry) => ({ ...entry, manualMode: mode })) };
+  return {
+    root: result.root,
+    payloads: result.payloads.map((entry) => ({ ...entry, manualMode: mode })),
+    ...(result.resolutionRemoval === undefined ? {} : { resolutionRemoval: result.resolutionRemoval }),
+  };
 }

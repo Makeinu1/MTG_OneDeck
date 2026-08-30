@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { OnlineParticipantProjectionV1 } from '../../../online/projection';
-import type { OnlineTabletopIntentEnvelopeV1 } from '../../../online/tabletopManual/types';
+import type { OnlineTabletopIntentEnvelopeV1 } from '../../../online/tabletopManual';
 import { OnlineTabletopManual } from '../OnlineTabletopManual';
 
 const projection = {

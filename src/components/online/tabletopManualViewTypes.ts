@@ -6,7 +6,10 @@ import type {
   CorePlayerId,
 } from '../../engine/core';
 import type { CoreCardZoneDestinationV1 } from '../../engine/core/transition/zoneDestination';
-import type { OnlineProjectedCommonResponseWindowV1 } from '../../online/projection/types';
+import type { OnlineProjectedGameV1 } from '../../online/projection';
+
+/** Keep this view-only contract on the projection's public barrel. */
+type OnlineProjectedCommonResponseWindowV1 = NonNullable<NonNullable<OnlineProjectedGameV1['assistedPriority']>['responseWindow']>;
 
 export type OnlineTabletopManualInteractionStateV1 = 'ready' | 'updating' | 'offline';
 export type OnlineTabletopManualModeV1 = 'structured' | 'freeform';

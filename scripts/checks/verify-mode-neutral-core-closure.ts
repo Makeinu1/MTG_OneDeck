@@ -50,11 +50,17 @@ function makeRoot(): Core.ModeNeutralCoreRootV1 {
   const turnBundle = record(turnFixture.bundle, 'turn fixture bundle') as unknown as Parameters<typeof Core.createCoreTurnPriorityBundleV1>[0];
   const source = Core.createCoreTurnPriorityBundleV1(turnBundle);
   const baseRegistry = source.stackBundle.objectRegistry;
+  const fixtureDefinition = baseRegistry.cardDefinitions['def.fixture-card' as never];
+  const responseDefinition = {
+    ...fixtureDefinition,
+    typeLine: 'Instant',
+    faces: fixtureDefinition.faces.map((face) => ({ ...face, typeLine: 'Instant' })),
+  };
   const objectRegistry = Core.createModeNeutralCoreObjectRegistryStateV2({
     players: baseRegistry.players,
     turnOrder: baseRegistry.turnOrder,
     activePlayerId: baseRegistry.activePlayerId,
-    cardDefinitions: baseRegistry.cardDefinitions,
+    cardDefinitions: { ...baseRegistry.cardDefinitions, ['def.fixture-card' as never]: responseDefinition },
     physicalCards: { ...baseRegistry.physicalCards, [PC7]: { ...baseRegistry.physicalCards[PC1] } },
     objects: { ...baseRegistry.objects, [O7]: Core.createCoreCardObjectIdentityV2({ kind: 'card', physicalCardId: PC7, incarnation: 0, baseControllerPlayerId: null }) },
     zones: { byPlayer: { ...baseRegistry.zones.byPlayer, [P1]: { ...baseRegistry.zones.byPlayer[P1], library: [...baseRegistry.zones.byPlayer[P1].library, O7] } }, shared: baseRegistry.zones.shared },

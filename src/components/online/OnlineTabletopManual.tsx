@@ -375,7 +375,7 @@ export function OnlineTabletopManual({
             <option value="">土地を選択</option>
             {landObjects.map((option) => <option key={option.objectId} value={option.objectId}>{option.label}</option>)}
           </select>
-          <ActionButton testId="online-journey-play-land" disabled={disabled || journeyLand === ''} onClick={() => emit({ kind: 'play-land', objectId: journeyLand as CoreObjectId })}>土地をプレイ</ActionButton>
+          <ActionButton testId="online-journey-play-land" disabled={disabled || journeyLand === ''} onClick={() => emit({ kind: 'play-land', objectId: journeyLand as CoreObjectId })}>土地を置く</ActionButton>
         </div>
         <div className="online-tabletop-manual__priority-actions">
           <select aria-label="唱える呪文を選択" data-testid="online-journey-spell" value={journeySpell} onChange={(event) => setJourneySpell(event.target.value)} disabled={disabled}>

@@ -98,6 +98,7 @@ function accept(
   const transition = Protocol.handleOnlineCommandEnvelopeV1(
     state,
     envelope(state, seatIndex, commandId, coreCommand),
+    coreCommand.payload.kind === 'table-turn-progress',
   );
   expect(transition.response).toMatchObject({
     kind: 'online-command-ack-v1',

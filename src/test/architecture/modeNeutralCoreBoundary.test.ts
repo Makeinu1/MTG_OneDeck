@@ -460,7 +460,18 @@ const frozenO4p09DCoreImports = new Map<string, ReadonlySet<string>>([
   ['src/online/tabletopManual/binding.ts|src/engine/core/index.ts|import', new Set(['CoreCommandPayloadV1', 'CoreCommandV1', 'CoreObjectId', 'CorePlayerId', 'createCoreCommandV1', 'validateCoreCommandV1'])],
   ['src/online/tabletopManual/binding.ts|src/engine/core/rules/decisionAuthorityV1.ts|import-type', new Set(['CoreDecisionContextV1'])],
   ['src/online/tabletopManual/binding.ts|src/engine/core/rules/ruleZoneRefV1.ts|import-type', new Set(['CoreRuleZoneRefV1'])],
-  ['src/online/tabletopManual/server.ts|src/engine/core/index.ts|import', new Set(['CoreCommandV1', 'CoreObjectId', 'coreCanonicalDigestFromValueV1'])],
+  ['src/online/tabletopManual/server.ts|src/engine/core/index.ts|import', new Set([
+    'CoreCommandPayloadV1',
+    'CoreCommandV1',
+    'CoreGameObjectIdentityV2',
+    'CoreObjectId',
+    'CoreObjectRegistryStateV2',
+    'CorePlayerId',
+    'CoreTurnPositionV1',
+    'coreCanonicalDigestFromValueV1',
+    'createCoreCommandV1',
+    'currentCoreObjectControllerV1',
+  ])],
   ['src/online/tabletopManual/types.ts|src/engine/core/cardDefinition.ts|import-type', new Set(['CoreManaColorV1'])],
   ['src/online/tabletopManual/types.ts|src/engine/core/index.ts|import-type', new Set(['CoreObjectId', 'CorePlayerId', 'CoreRuleZoneRefV1'])],
   ['src/online/tabletopManual/types.ts|src/engine/core/transition/zoneDestination.ts|import-type', new Set(['CoreCardZoneDestinationV1'])],
@@ -529,7 +540,12 @@ const frozenProjectionCoreImports = new Map<string, ReadonlySet<string>>([
   ],
   [
     'src/online/projection/variable.ts',
-    new Set(['CorePlayerId']),
+    new Set([
+      'CoreObjectId',
+      'CorePlayerId',
+      'currentCoreObjectControllerV1',
+      'isCoreUndoAuthorizedPlayerV1',
+    ]),
   ],
   [
     'src/online/projection/project.ts',

@@ -2,13 +2,12 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as Core from '../../index';
 import * as Closure from '../../closure/index';
-import { removeCoreStackObjectV1 } from '../../stack/transaction/stackRemovalV1';
 
 function resolutionRoot(base: Closure.ModeNeutralCoreRootV1, permanent: boolean): Closure.ModeNeutralCoreRootV1 {
   let current = base;
   for (const objectId of ['@triggered-ability:fixture-trigger', '@activated-ability:fixture-activation'] as const) {
     const turn = current.ruleAuthority.turnPriorityBundle;
-    const removed = removeCoreStackObjectV1(turn.stackBundle, { kind: 'cease', objectId });
+    const removed = Core.removeCoreStackObjectV1(turn.stackBundle, { kind: 'cease', objectId });
     const nextTurn = Core.createCoreTurnPriorityBundleV1({ ...turn, stackBundle: removed.bundle });
     current = Closure.createModeNeutralCoreRootV1({ ...current, ruleAuthority: Core.createCoreRuleAuthorityBundleV1({ ...current.ruleAuthority, turnPriorityBundle: nextTurn }) });
   }

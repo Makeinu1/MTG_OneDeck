@@ -16,11 +16,17 @@ function makeRoot(options: RootOptions = {}): Closure.ModeNeutralCoreRootV1 {
   const fixture = JSON.parse(readFileSync(new URL('../../turn/fixtures/turn-priority-lifecycle-v1.json', import.meta.url), 'utf8')) as { bundle: unknown };
   const source = Core.createCoreTurnPriorityBundleV1(fixture.bundle as never);
   const baseRegistry = source.stackBundle.objectRegistry;
+  const fixtureDefinition = baseRegistry.cardDefinitions['def.fixture-card' as never];
+  const responseDefinition = {
+    ...fixtureDefinition,
+    typeLine: 'Instant',
+    faces: fixtureDefinition.faces.map((face) => ({ ...face, typeLine: 'Instant' })),
+  };
   const objectRegistry = Core.createModeNeutralCoreObjectRegistryStateV2({
     players: baseRegistry.players,
     turnOrder: baseRegistry.turnOrder,
     activePlayerId: baseRegistry.activePlayerId,
-    cardDefinitions: baseRegistry.cardDefinitions,
+    cardDefinitions: { ...baseRegistry.cardDefinitions, ['def.fixture-card' as never]: responseDefinition },
     physicalCards: { ...baseRegistry.physicalCards, [PC7]: { ...baseRegistry.physicalCards[PC1] } },
     objects: { ...baseRegistry.objects, [O7]: Core.createCoreCardObjectIdentityV2({ kind: 'card', physicalCardId: PC7, incarnation: 0, baseControllerPlayerId: null }) },
     zones: { byPlayer: { ...baseRegistry.zones.byPlayer, [P1]: { ...baseRegistry.zones.byPlayer[P1], library: [...baseRegistry.zones.byPlayer[P1].library, O7] } }, shared: baseRegistry.zones.shared },
@@ -201,7 +207,7 @@ describe('O4P-01N repair wave 1', () => {
     const first = Closure.applyCoreCommandV1(initial, firstCommand);
     expect(first.status).toBe('accepted');
     if (first.status !== 'accepted') return;
-    const secondCommand = command(2, 'P2', { kind: 'table-stack-entry', entryId: 'survivor-entry', label: 'Surviving label', sourceObjectId: null, manualMode: 'structured' });
+    const secondCommand = command(2, 'P2', { kind: 'table-stack-entry', entryId: 'survivor-entry', label: 'Surviving label', sourceObjectId: '@spell-copy:fixture-copy', manualMode: 'structured' });
     const second = Closure.applyCoreCommandV1(first.root, secondCommand);
     expect(second.status).toBe('accepted');
     if (second.status !== 'accepted') return;
@@ -209,7 +215,7 @@ describe('O4P-01N repair wave 1', () => {
     const third = Closure.applyCoreCommandV1(second.root, thirdCommand);
     expect(third.status).toBe('accepted');
     if (third.status !== 'accepted') return;
-    const fourthCommand = command(4, 'P4', { kind: 'table-stack-entry', entryId: 'exiting-null-entry', label: 'Exiting label', sourceObjectId: null, manualMode: 'structured' });
+    const fourthCommand = command(4, 'P4', { kind: 'table-stack-entry', entryId: 'exiting-null-entry', label: 'Exiting label', sourceObjectId: '@triggered-ability:fixture-trigger', manualMode: 'structured' });
     const fourth = Closure.applyCoreCommandV1(third.root, fourthCommand);
     expect(fourth.status).toBe('accepted');
     if (fourth.status !== 'accepted') return;
