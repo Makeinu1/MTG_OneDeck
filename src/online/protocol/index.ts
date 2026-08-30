@@ -52,12 +52,19 @@ export {
   protocolStateCapabilitiesV2,
   createOnlineProtocolStateV2,
   validateOnlineProtocolStateV2,
+  validateOnlineSharedUndoIntentV1,
+  validateOnlineManualCombatDamageIntentV1,
 } from './variable';
-export { handleOnlineVariableCommandEnvelopeV2 } from './variableCommand';
+export { handleOnlineVariableCommandEnvelopeV2, handleOnlineVariableSharedUndoIntentV2, handleOnlineVariableManualCombatDamageIntentV2 } from './variableCommand';
 export type { OnlineVariableCommandTransitionV2 } from './variableCommand';
 export type {
   OnlineVariableProtocolStateV2,
   CreateOnlineVariableProtocolStateV2Input,
   OnlineVariableProtocolValidationResultV2,
+  OnlineSharedCheckpointV1,
+  OnlineSharedUndoIntentV1,
+  OnlineSharedUndoIntentValidationResultV1,
+  OnlineManualCombatDamageIntentV1,
+  OnlineManualCombatDamageIntentValidationResultV1,
 } from './variable';
 export type { OnlineVariableProtocolStateV2 as OnlineProtocolStateV2 } from './variable';

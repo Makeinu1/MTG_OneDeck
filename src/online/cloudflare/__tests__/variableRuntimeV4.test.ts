@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { coreCanonicalDigestFromValueV1, createCoreCommandV1 } from '../../../engine/core/index';
+import { coreCanonicalDigestFromValueV1, coreUndoAuthorizedPlayerV1, createCoreCommandV1 } from '../../../engine/core/index';
 import type { CardDef } from '../../../types/card';
 import { createOnlineVariableLobbyV4, claimOnlineVariableLobbySeatV4, parseOnlineSharedInviteCodeV3 } from '../../lobby/index';
 import {
@@ -10,6 +10,8 @@ import {
   type OnlinePregameStateV1,
 } from '../../pregame/index';
 import { ConflictError, OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
+import { createAuthenticatedOnlineCloudflareSocketAttachmentV1 } from '../index';
+import { handleOnlineVariableCommandEnvelopeV2, handleOnlineVariableSharedUndoIntentV2 } from '../../protocol/index';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
 
 const SID = '5da14d86-0780-4821-a799-96f64b377df4';
@@ -494,6 +496,78 @@ describe('O4P-08C variable runtime persistence', () => {
     const storage = new ReviewSqliteStorage(); const repository = new OnlineCloudflareRepository(storage); repository.migrateApplicationSchema(); const initial = lobby(2, 20); repository.initializeVariableLobbyV4(initial);
     expect(() => repository.persistVariableLobbyV4(initial, { ...initial, configuration: { playerCount: 2, startingLife: 40 } })).toThrow('Invalid variable lobby transition');
   });
+
+  it('replays a persisted shared undo journal entry and rejects secret-bearing identities', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (initial === null) throw new Error('Missing variable protocol fixture');
+    const activePlayerId = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+    const actorSeatIndex = initial.room.seats.findIndex((seat) => seat.corePlayerId === activePlayerId);
+    const actorSeat = initial.room.seats[actorSeatIndex];
+    if (actorSeat === undefined || actorSeat.participantId === null) throw new Error('Missing active seat');
+    const beforeLife = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.players[activePlayerId]?.life ?? 40;
+    const command = createCoreCommandV1({ schemaVersion: 1, sequence: 1, actorPlayerId: activePlayerId, decisionMakerPlayerId: activePlayerId, decisionContext: { kind: 'decision', decisionKey: 'shared-undo-persist' }, payload: { kind: 'correct-player-life', playerId: activePlayerId, replacementLifeTotal: beforeLife - 1, expectedBeforeStateDigest: coreCanonicalDigestFromValueV1(initial.coreRoot), reason: 'shared undo persistence test' } });
+    const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: initial.protocolVersion, roomId: initial.room.roomId as never, participantId: actorSeat.participantId as never, ['participantCapability']: actorSeat.seatCapability as never, commandId: 'shared-persist-mutation' as never, baseRevision: 0, command };
+    const accepted = handleOnlineVariableCommandEnvelopeV2(initial, envelope);
+    expect(accepted.response).toMatchObject({ kind: 'online-command-ack-v1', acceptedRevision: 1 });
+    fixture.repository.commitVariableAcceptedV2(initial, accepted.state, envelope);
+    const after = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (after === null) throw new Error('Missing accepted shared state');
+    const stewardPlayerId = coreUndoAuthorizedPlayerV1(after.coreRoot) ?? activePlayerId;
+    const stewardSeatIndex = after.room.seats.findIndex((seat) => seat.corePlayerId === stewardPlayerId);
+    const stewardSeat = after.room.seats[stewardSeatIndex];
+    if (stewardSeat === undefined || stewardSeat.participantId === null) throw new Error('Missing shared steward seat');
+    const intent = { kind: 'online-shared-undo-intent-v1' as const, schemaVersion: 1 as const, protocolVersion: after.protocolVersion, roomId: after.room.roomId, participantId: stewardSeat.participantId, ['participantCapability']: stewardSeat.seatCapability, commandId: 'shared-persist-undo', baseRevision: after.revision };
+    const undone = handleOnlineVariableSharedUndoIntentV2(after, intent, true);
+    expect(undone.response).toMatchObject({ kind: 'online-command-ack-v1', acceptedRevision: 2, duplicate: false });
+    fixture.repository.commitVariableUndoAcceptedV2(after, undone.state, intent);
+    const reloaded = new OnlineCloudflareRepository(fixture.storage, false).loadVariableProtocolV2(fixture.roomId);
+    expect(reloaded).toEqual(undone.state);
+    const journal = fixture.storage.all<{ readonly command_json: string }>('SELECT command_json FROM online_accepted_command ORDER BY accepted_revision');
+    expect(journal.at(-1)?.command_json).not.toContain(stewardSeat.seatCapability);
+    expect(() => fixture.repository.commitVariableUndoAcceptedV2(after, undone.state, { ...intent, commandId: stewardSeat.seatCapability })).toThrow();
+    fixture.storage.close();
+  }, 90000);
+
+  it('broadcasts one HTTP shared-undo revision after persistence and keeps rejected intents read-only', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (initial === null) throw new Error('Missing variable protocol fixture');
+    const activePlayerId = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+    const activeSeat = initial.room.seats.find((seat) => seat.corePlayerId === activePlayerId);
+    const otherSeat = initial.room.seats.find((seat) => seat !== activeSeat);
+    if (activeSeat?.participantId === null || activeSeat === undefined || otherSeat?.participantId === null || otherSeat === undefined) throw new Error('Missing HTTP undo seats');
+    const command = createCoreCommandV1({ schemaVersion: 1, sequence: 1, actorPlayerId: activePlayerId, decisionMakerPlayerId: activePlayerId, decisionContext: { kind: 'decision', decisionKey: 'http-undo-mutation' }, payload: { kind: 'correct-player-life', playerId: activePlayerId, replacementLifeTotal: 39, expectedBeforeStateDigest: coreCanonicalDigestFromValueV1(initial.coreRoot), reason: 'http undo mutation' } });
+    const mutation = { kind: 'online-command-envelope-v1', protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: activeSeat.participantId, ['participantCapability']: activeSeat.seatCapability, commandId: 'http-undo-mutation', baseRevision: 0, command };
+    const notices: string[] = [];
+    const peer = (participantId: string, connectionId: number) => {
+      let attachment: unknown = createAuthenticatedOnlineCloudflareSocketAttachmentV1(fixture.roomId, participantId, 'player', connectionId, 0, Date.now() + 60_000);
+      return { send: (data: string) => { notices.push(data); }, serializeAttachment: (value: unknown) => { attachment = value; }, deserializeAttachment: () => attachment };
+    };
+    const peers = [peer(activeSeat.participantId, 1), peer(otherSeat.participantId, 2)];
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => peers });
+    const post = (value: unknown) => object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) }));
+    expect(await (await post(mutation)).json()).toMatchObject({ kind: 'online-command-ack-v1', acceptedRevision: 1, duplicate: false });
+    expect(notices).toHaveLength(2);
+    notices.length = 0;
+    const current = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (current === null) throw new Error('Missing mutated protocol fixture');
+    const undo = (participantId: string, participantCapability: string, commandId: string, baseRevision: number) => ({ kind: 'online-shared-undo-intent-v1', schemaVersion: 1, protocolVersion: current.protocolVersion, roomId: fixture.roomId, participantId, ['participantCapability']: participantCapability, commandId, baseRevision });
+    expect(await (await post(undo(otherSeat.participantId, otherSeat.seatCapability, 'http-undo-unauthorized', 1))).json()).toMatchObject({ kind: 'online-command-reject-v1' });
+    expect(notices).toHaveLength(0);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(1);
+    expect(await (await post(undo(activeSeat.participantId, activeSeat.seatCapability, 'http-undo-stale', 0))).json()).toMatchObject({ kind: 'online-command-reject-v1' });
+    expect(notices).toHaveLength(0);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(1);
+    expect(await (await post(undo(activeSeat.participantId, activeSeat.seatCapability, 'http-undo-accepted', 1))).json()).toMatchObject({ kind: 'online-command-ack-v1', acceptedRevision: 2, duplicate: false });
+    expect(notices).toHaveLength(2);
+    const parsedNotices = notices.map((notice): Record<string, unknown> => { const value: unknown = JSON.parse(notice); if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid revision notice'); return value as Record<string, unknown>; });
+    expect(parsedNotices.every((notice) => notice.kind === 'online-cloudflare-revision-v1' && notice.revision === 2)).toBe(true);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(2);
+    fixture.storage.close();
+  }, 90000);
 
   it('commits resolved deck and the latest concurrently changed lobby atomically', async () => {
     const storage = new ReviewSqliteStorage(); const repository = new OnlineCloudflareRepository(storage); repository.migrateApplicationSchema(); const initial = lobby(2, 20); repository.initializeVariableLobbyV4(initial);

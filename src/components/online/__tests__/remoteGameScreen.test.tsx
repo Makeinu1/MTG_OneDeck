@@ -303,4 +303,86 @@ describe('remote GameScreen adapter', () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  it('shows projected combat/damage/checkpoint facts and invokes guarded shared undo', () => {
+    const projected = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: {
+          holderPlayerId: 'P1',
+          stewardPlayerId: 'P1',
+          windowKind: 'turn-based-action-required',
+          holds: [],
+          responseWindow: 'before-combat',
+          topStackObjectId: null,
+          undoAuthorizedPlayerId: 'P1',
+        },
+        combat: {
+          step: 'declare-attackers',
+          attackingPlayerId: 'P1',
+          attacks: [{ attackerObjectId: 'PC1:0', defendingPlayerId: 'P2' }],
+          blocks: [{ blockerObjectId: 'PC2:0', attackedObjectId: 'PC1:0', defendingPlayerId: 'P2' }],
+        },
+        commanderDamage: [{ commanderOwnerPlayerId: 'P1', commanderSlot: 0, defendingPlayerId: 'P2', damage: 7 }],
+        winnerPlayerId: null,
+        checkpoint: { available: true, informationExposureWarning: true },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const onSubmitSharedUndo = vi.fn();
+    const onSubmitTabletopIntent = vi.fn();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    function Harness() {
+      const port = useRemoteGameScreenInteractionPort({ projection: projected, interactionState: 'ready', busy: false, onSubmitTabletopIntent, onSubmitPersonalAction: vi.fn(), onSubmitSharedUndo });
+      return <RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} onSubmitPersonalAction={vi.fn()} onSubmitSharedUndo={onSubmitSharedUndo} port={port} />;
+    }
+    act(() => root.render(<Harness />));
+    expect(container.querySelector('[data-testid="online-remote-combat"]')?.textContent).toContain('攻撃指定');
+    expect(container.querySelector('[data-testid="online-remote-manual-damage-link"]')?.textContent).toContain('Manual Damage');
+    expect(container.querySelector('[data-testid="online-remote-commander-damage"]')?.textContent).toContain('P1 #1');
+    expect(container.querySelector('[data-testid="online-remote-exposure-warning"]')?.textContent).toContain('公開情報');
+    const undo = container.querySelector<HTMLButtonElement>('[data-testid="online-remote-undo"]');
+    expect(undo?.disabled).toBe(false);
+    act(() => undo?.click());
+    expect(onSubmitSharedUndo).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('presents a two-player lethal winner and keeps three other seats visible after a four-player elimination', () => {
+    const twoPlayer = {
+      ...projection,
+      game: {
+        ...projection.game,
+        players: projection.game.players.slice(0, 2).map((player) => player.playerId === 'P2' ? { ...player, life: 0, status: 'exited', exitCause: 'defeat' } : player),
+        turnOrder: ['P1', 'P2'],
+        winnerPlayerId: 'P1',
+        combat: { step: 'declare-attackers', attackingPlayerId: 'P1', attacks: [{ attackerObjectId: 'PC1:0', defendingPlayerId: 'P2' }], blocks: [] },
+      },
+      room: { ...projection.room, lifecycle: 'finished', seats: projection.room.seats.slice(0, 2).map((seat) => seat.corePlayerId === 'P2' ? { ...seat, outcome: 'defeated' } : seat) },
+    } as unknown as OnlineParticipantProjectionV1;
+    const twoContainer = document.createElement('div');
+    document.body.appendChild(twoContainer);
+    const twoRoot = createRoot(twoContainer);
+    act(() => twoRoot.render(<RemoteGameScreenActionRail projection={twoPlayer} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(twoPlayer))} />));
+    expect(twoContainer.querySelector('[data-testid="online-remote-outcome"]')?.textContent).toContain('勝者: P1');
+    expect(twoContainer.querySelectorAll('.online-remote-rail__opponent-lane')).toHaveLength(1);
+    act(() => twoRoot.unmount());
+    twoContainer.remove();
+
+    const fourPlayer = {
+      ...projection,
+      room: { ...projection.room, seats: projection.room.seats.map((seat) => seat.corePlayerId === 'P2' ? { ...seat, outcome: 'defeated' } : seat) },
+    } as unknown as OnlineParticipantProjectionV1;
+    const fourContainer = document.createElement('div');
+    document.body.appendChild(fourContainer);
+    const fourRoot = createRoot(fourContainer);
+    act(() => fourRoot.render(<RemoteGameScreenActionRail projection={fourPlayer} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(fourPlayer))} />));
+    expect(fourContainer.querySelector('[data-testid="online-remote-outcome"]')?.textContent).toContain('P2: 敗北');
+    expect(fourContainer.querySelectorAll('.online-remote-rail__opponent-lane')).toHaveLength(3);
+    act(() => fourRoot.unmount());
+    fourContainer.remove();
+  });
 });

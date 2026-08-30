@@ -7,6 +7,7 @@ import type {
   OnlineProtocolCommandIdV1,
   OnlineProtocolParticipantCapabilityV1,
   OnlineProtocolRevisionV1,
+  OnlineSharedUndoIntentV1,
 } from '../protocol/index';
 import type { OnlineProjectionRequestV1 } from '../projection/index';
 import type {
@@ -65,9 +66,16 @@ export type OnlineDisplayPairingBindingInputV1 = Readonly<{
   readonly commandId: string | null;
 }>;
 
+export type OnlineDisplayPairingSharedUndoBindingInputV1 = Readonly<{
+  readonly session: OnlineDisplayPairingSessionV1;
+  readonly commandId: string;
+  readonly baseRevision: OnlineProtocolRevisionV1;
+}>;
+
 export type OnlineDisplayPairingProtocolFrameV1 =
   | OnlineProjectionRequestV1
-  | OnlineCommandEnvelopeV1;
+  | OnlineCommandEnvelopeV1
+  | OnlineSharedUndoIntentV1;
 
 export type OnlineDisplayPairingCoreCommandV1 = CoreCommandV1;
 export type OnlineDisplayPairingCommandIdV1 = OnlineProtocolCommandIdV1;

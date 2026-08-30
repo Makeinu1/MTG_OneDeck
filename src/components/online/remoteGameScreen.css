@@ -38,6 +38,31 @@
   white-space: nowrap;
 }
 
+.online-remote-rail__combat,
+.online-remote-rail__commander-damage,
+.online-remote-rail__outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem .65rem;
+  padding: .35rem .45rem;
+  border: 1px solid color-mix(in srgb, var(--color-muted, #a9b4c9) 18%, transparent);
+  border-radius: .45rem;
+  font-size: .72rem;
+}
+
+.online-remote-rail__combat span,
+.online-remote-rail__commander-damage span,
+.online-remote-rail__outcome span {
+  color: var(--color-muted, #a9b4c9);
+}
+
+.online-remote-rail__exposure-warning {
+  margin: 0;
+  color: var(--color-warning, #f4c56b);
+  font-size: .72rem;
+}
+
 .online-remote-rail__seats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
@@ -136,6 +161,42 @@
 
 .online-remote-rail__manual {
   margin: 0;
+}
+
+.online-remote-rail__manual-link {
+  color: var(--color-accent, #7dd3fc);
+  font-size: .72rem;
+  text-decoration: underline;
+}
+
+.online-remote-guided-overlay {
+  position: absolute;
+  z-index: 9;
+  inset: .75rem .75rem auto auto;
+  width: min(34rem, calc(100% - 1.5rem));
+  max-height: min(70vh, 42rem);
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 44%, transparent);
+  border-radius: .65rem;
+  background: color-mix(in srgb, var(--color-panel, #121827) 96%, transparent);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 26%);
+  pointer-events: auto;
+}
+
+.online-remote-guided-overlay > summary {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  padding: .45rem .6rem;
+  color: var(--color-text, #fff);
+  background: var(--color-panel, #121827);
+  cursor: pointer;
+  font-size: .78rem;
+}
+
+.online-remote-guided-overlay .online-guided-actions {
+  padding: .55rem;
+  background: transparent;
 }
 
 @media (max-width: 899px) {

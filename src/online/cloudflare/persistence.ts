@@ -54,7 +54,7 @@ import {
   type OnlineFormingLobbyProjectionV2,
 } from '../deckSubmission/index';
 import { buildDynamicRoomGenesisV2, buildVariableRoomGenesisV3, type DynamicGenesisSeatInputV2, type VariableGenesisSeatInputV3 } from '../genesis/index';
-import { handleOnlineVariableCommandEnvelopeV2, validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/index';
+import { handleOnlineVariableCommandEnvelopeV2, handleOnlineVariableManualCombatDamageIntentV2, handleOnlineVariableSharedUndoIntentV2, validateOnlineManualCombatDamageIntentV1, validateOnlineSharedUndoIntentV1, validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/index';
 import type { OnlineDynamicStartResultV2 } from './types';
 import { isOnlineVariableProjectionWithinFrameBudgetV1 } from './projectionBudgetV1';
 import { validateOnlineVariableLobbyV4, projectOnlineVariableLobbyV4, setOnlineVariableLobbyDeckAcceptedV4, setOnlineVariableLobbyReadyV4, rotateOnlineVariableLobbyAdmissionV4, closeOnlineVariableLobbyAdmissionV4, replaceOnlineVariableLobbySeatV4, type OnlineVariableLobbyV4, type OnlineVariableLobbyProjectionV4 } from '../lobby/index';
@@ -818,9 +818,21 @@ export class OnlineCloudflareRepository {
       const receipt = checked.value.receipts.find((candidate) => candidate.acceptedRevision === acceptedRevision); if (receipt === undefined || receipt.commandId !== entry.command_id || receipt.participantId !== entry.participant_id) throw new Error('Invalid variable journal receipt');
       const participant = replay.room.participants.find((candidate) => candidate.participantId === entry.participant_id); const seat = participant === undefined || participant.seatIndex === null ? undefined : replay.room.seats[participant.seatIndex]; if (participant?.role !== 'player' || seat === undefined) throw new Error('Invalid variable journal participant');
       let command: unknown; try { command = JSON.parse(entry.command_json); } catch { throw new Error('Invalid variable journal command JSON'); }
-      const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: replay.protocolVersion, roomId, participantId: entry.participant_id, participantCapability: seat.seatCapability, commandId: entry.command_id, baseRevision: index, command };
-      const validation = validateOnlineCommandEnvelopeV1(envelope); if (!validation.ok || JSON.stringify(validation.value.command) !== entry.command_json) throw new Error('Invalid variable journal command');
-      const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value, true); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
+      if (command !== null && typeof command === 'object' && !Array.isArray(command) && (command as Record<string, unknown>).kind === 'online-shared-undo-intent-v1') {
+        const intent = { ...(command as Record<string, unknown>), participantCapability: seat.seatCapability };
+        const transition = handleOnlineVariableSharedUndoIntentV2(replay, intent, true);
+        if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected');
+        replay = transition.state;
+      } else if (command !== null && typeof command === 'object' && !Array.isArray(command) && (command as Record<string, unknown>).kind === 'online-manual-combat-damage-intent-v1') {
+        const intent = { ...(command as Record<string, unknown>), participantCapability: seat.seatCapability };
+        const transition = handleOnlineVariableManualCombatDamageIntentV2(replay, intent, true);
+        if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected');
+        replay = transition.state;
+      } else {
+        const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: replay.protocolVersion, roomId, participantId: entry.participant_id, participantCapability: seat.seatCapability, commandId: entry.command_id, baseRevision: index, command };
+        const validation = validateOnlineCommandEnvelopeV1(envelope); if (!validation.ok || JSON.stringify(validation.value.command) !== entry.command_json) throw new Error('Invalid variable journal command');
+        const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value, true); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
+      }
     }
     if (JSON.stringify(replay) !== row.state_json) throw new Error('Variable journal replay mismatch');
     return checked.value;
@@ -932,6 +944,42 @@ export class OnlineCloudflareRepository {
     this.storage.transactionSync(() => {
       this.storage.sql.exec(INSERT_JOURNAL, next.value.revision, envelope.commandId, envelope.participantId, envelope.baseRevision, commandJson);
       const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_variable_room_state SET revision = ?, room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton', next.value.revision, next.value.room.lifecycle, nextJson, envelope.roomId, previous.value.revision, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
+  }
+
+  commitVariableUndoAcceptedV2(previousInput: OnlineVariableProtocolStateV2, nextInput: OnlineVariableProtocolStateV2, intentInput: unknown): void {
+    const previous = validateOnlineVariableProtocolStateV2(previousInput); const next = validateOnlineVariableProtocolStateV2(nextInput);
+    if (!previous.ok || !next.ok || previous.value.room.roomId !== next.value.room.roomId || next.value.revision !== previous.value.revision + 1) throw new Error('Invalid variable undo transition');
+    const checkedIntent = validateOnlineSharedUndoIntentV1(intentInput);
+    if (!checkedIntent.ok || checkedIntent.value.protocolVersion !== previous.value.protocolVersion || checkedIntent.value.roomId !== previous.value.room.roomId || checkedIntent.value.baseRevision !== previous.value.revision) throw new Error('Invalid shared undo intent');
+    const raw = checkedIntent.value;
+    const capabilities = [...next.value.room.seats.map((seat) => seat.seatCapability), ...next.value.observerAuthorizations.map((entry) => entry.observerCapability)];
+    assertNoConfiguredCapabilityFragmentV1(raw.commandId, capabilities); assertNoConfiguredCapabilityFragmentV1(raw.participantId, capabilities); assertNoConfiguredCapabilityFragmentV1(raw.roomId, capabilities);
+    const commandJson = JSON.stringify({ kind: 'online-shared-undo-intent-v1', schemaVersion: 1, protocolVersion: raw.protocolVersion, roomId: raw.roomId, participantId: raw.participantId, commandId: raw.commandId, baseRevision: raw.baseRevision });
+    if (typeof commandJson !== 'string') throw new Error('Invalid shared undo intent');
+    const nextJson = JSON.stringify(next.value); const previousJson = JSON.stringify(previous.value);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(INSERT_JOURNAL, next.value.revision, raw.commandId, raw.participantId, raw.baseRevision, commandJson);
+      const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_variable_room_state SET revision = ?, room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton', next.value.revision, next.value.room.lifecycle, nextJson, previous.value.room.roomId, previous.value.revision, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
+  }
+
+  commitVariableManualCombatDamageAcceptedV2(previousInput: OnlineVariableProtocolStateV2, nextInput: OnlineVariableProtocolStateV2, intentInput: unknown): void {
+    const previous = validateOnlineVariableProtocolStateV2(previousInput); const next = validateOnlineVariableProtocolStateV2(nextInput);
+    if (!previous.ok || !next.ok || previous.value.room.roomId !== next.value.room.roomId || next.value.revision !== previous.value.revision + 1) throw new Error('Invalid variable manual damage transition');
+    const checkedIntent = validateOnlineManualCombatDamageIntentV1(intentInput);
+    if (!checkedIntent.ok || checkedIntent.value.protocolVersion !== previous.value.protocolVersion || checkedIntent.value.roomId !== previous.value.room.roomId || checkedIntent.value.baseRevision !== previous.value.revision) throw new Error('Invalid manual combat damage intent');
+    const raw = checkedIntent.value;
+    const capabilities = [...next.value.room.seats.map((seat) => seat.seatCapability), ...next.value.observerAuthorizations.map((entry) => entry.observerCapability)];
+    assertNoConfiguredCapabilityFragmentV1(raw.commandId, capabilities); assertNoConfiguredCapabilityFragmentV1(raw.participantId, capabilities); assertNoConfiguredCapabilityFragmentV1(raw.roomId, capabilities);
+    const commandJson = JSON.stringify({ kind: 'online-manual-combat-damage-intent-v1', schemaVersion: 1, protocolVersion: raw.protocolVersion, roomId: raw.roomId, participantId: raw.participantId, commandId: raw.commandId, baseRevision: raw.baseRevision, defendingPlayerId: raw.defendingPlayerId, damage: raw.damage, commanderObjectId: raw.commanderObjectId });
+    if (typeof commandJson !== 'string') throw new Error('Invalid manual combat damage intent');
+    const nextJson = JSON.stringify(next.value); const previousJson = JSON.stringify(previous.value);
+    this.storage.transactionSync(() => {
+      this.storage.sql.exec(INSERT_JOURNAL, next.value.revision, raw.commandId, raw.participantId, raw.baseRevision, commandJson);
+      const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_variable_room_state SET revision = ?, room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton', next.value.revision, next.value.room.lifecycle, nextJson, previous.value.room.roomId, previous.value.revision, previousJson).toArray();
       if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
     });
   }

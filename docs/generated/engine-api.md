@@ -115,7 +115,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 - line 79: `export function coreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1): CorePlayerId | null {`
 - line 85: `export function isCoreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1, playerId: CorePlayerId): boolean {`
-- line 358: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 396: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -156,14 +156,15 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 35: `export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[]; readonly manualMode?: unknown }>;`
 - line 36: `export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
 - line 37: `export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;`
-- line 39: `export type CoreCommandPayloadV1 =`
-- line 48: `export type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';`
-- line 50: `export type CoreCommandV1 = Readonly<{`
-- line 60: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
-- line 61: `export type CoreCommandValidationResultV1 =`
-- line 404: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
-- line 502: `export class CoreCommandCreationErrorV1 extends Error {`
-- line 506: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+- line 41: `export type CoreManualCombatDamagePayloadV1 = Readonly<{`
+- line 49: `export type CoreCommandPayloadV1 =`
+- line 59: `export type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';`
+- line 61: `export type CoreCommandV1 = Readonly<{`
+- line 71: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
+- line 72: `export type CoreCommandValidationResultV1 =`
+- line 415: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 522: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 526: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
 
 ## `src/engine/core/closure/correctionV1.ts`
 
@@ -177,8 +178,8 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 - line 11: `export type CoreSearchCompletionResultV1 = Readonly<{`
 - line 19: `export type CoreDomainEventPayloadV1 =`
-- line 52: `export type CoreDomainEventV1 = Readonly<{`
-- line 62: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
+- line 53: `export type CoreDomainEventV1 = Readonly<{`
+- line 63: `export function createCoreDomainEventV1(command: CoreCommandV1, eventIndex: number, payload: CoreDomainEventPayloadV1): CoreDomainEventV1 {`
 
 ## `src/engine/core/closure/headlessClosureV1.ts`
 

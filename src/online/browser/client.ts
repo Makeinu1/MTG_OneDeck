@@ -1,4 +1,5 @@
 import { validateOnlineCommandEnvelopeV1 } from '../protocol/index';
+import { isCanonicalCoreObjectIdV2 } from '../../engine/core/index';
 import { validateOnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import {
   validateOnlineParticipantProjectionAny,
@@ -15,6 +16,8 @@ import type {
   OnlineBrowserSocketFactoryV1,
   OnlineBrowserSocketV1,
   OnlineBrowserStateV1,
+  OnlineBrowserSharedUndoIntentV1,
+  OnlineBrowserManualCombatDamageIntentV1,
   OnlineBrowserTabletopIntentV1,
   OnlineBrowserSubmitResultV1,
   OnlineBrowserSubscriptionV1,
@@ -86,6 +89,20 @@ type PendingEntryV1 =
     readonly kind: 'visibility';
     readonly visibility: OnlineBrowserVisibilityIntentV1;
     readonly fingerprint: string;
+  }>
+  | Readonly<{
+    readonly commandId: string;
+    readonly baseRevision: number;
+    readonly kind: 'sharedUndo';
+    readonly sharedUndo: OnlineBrowserSharedUndoIntentV1;
+    readonly fingerprint: string;
+  }>
+  | Readonly<{
+    readonly commandId: string;
+    readonly baseRevision: number;
+    readonly kind: 'manualCombatDamage';
+    readonly manualCombatDamage: OnlineBrowserManualCombatDamageIntentV1;
+    readonly fingerprint: string;
   }>;
 
 type SocketEpochV1 = Readonly<{
@@ -122,6 +139,32 @@ function closedRecord(value: unknown, expectedKeys: readonly string[]): value is
   } catch {
     return false;
   }
+}
+
+function validSharedUndoPayload(value: unknown): value is OnlineBrowserSharedUndoIntentV1 {
+  if (!closedRecord(value, ['baseRevision', 'commandId', 'kind', 'schemaVersion'])) return false;
+  const commandId = ownDataValue(value, 'commandId');
+  const baseRevision = ownDataValue(value, 'baseRevision');
+  return ownDataValue(value, 'kind') === 'online-shared-undo-intent-v1'
+    && ownDataValue(value, 'schemaVersion') === 1
+    && typeof commandId === 'string' && APPLICATION_ID_PATTERN.test(commandId)
+    && nonNegativeInteger(baseRevision);
+}
+
+function validManualCombatDamagePayload(value: unknown): value is OnlineBrowserManualCombatDamageIntentV1 {
+  if (!closedRecord(value, ['baseRevision', 'commanderObjectId', 'commandId', 'damage', 'defendingPlayerId', 'kind', 'schemaVersion'])) return false;
+  const commandId = ownDataValue(value, 'commandId');
+  const baseRevision = ownDataValue(value, 'baseRevision');
+  const defender = ownDataValue(value, 'defendingPlayerId');
+  const damage = ownDataValue(value, 'damage');
+  const commanderObjectId = ownDataValue(value, 'commanderObjectId');
+  return ownDataValue(value, 'kind') === 'online-manual-combat-damage-intent-v1'
+    && ownDataValue(value, 'schemaVersion') === 1
+    && typeof commandId === 'string' && APPLICATION_ID_PATTERN.test(commandId)
+    && nonNegativeInteger(baseRevision)
+    && typeof defender === 'string' && applicationId(defender)
+    && typeof damage === 'number' && Number.isSafeInteger(damage) && damage > 0 && damage <= 120
+    && (commanderObjectId === null || typeof commanderObjectId === 'string' && isCanonicalCoreObjectIdV2(commanderObjectId));
 }
 
 function closedVisibilityIntent(value: unknown): value is ParsedRecordV1 {
@@ -485,6 +528,22 @@ export function createOnlineBrowserWebSocketClientV1(
           participantId: config.participantId,
           ['participantCapability']: config.participantCapability,
         })
+        : entry.kind === 'sharedUndo'
+        ? Object.freeze({
+          ...entry.sharedUndo,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+        })
+        : entry.kind === 'manualCombatDamage'
+        ? Object.freeze({
+          ...entry.manualCombatDamage,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+        })
         : Object.freeze({
           kind: 'online-command-envelope-v1' as const,
           protocolVersion: config.protocolVersion,
@@ -499,9 +558,14 @@ export function createOnlineBrowserWebSocketClientV1(
         ? validateOnlineTabletopIntentEnvelopeV1(entry.tabletop)
         : entry.kind === 'visibility'
         ? validateOnlineVisibilityIntentV1(entry.visibility)
+        : entry.kind === 'sharedUndo'
+        ? { ok: validSharedUndoPayload(entry.sharedUndo) }
+        : entry.kind === 'manualCombatDamage'
+        ? { ok: validManualCombatDamagePayload(entry.manualCombatDamage) }
         : validateOnlineCommandEnvelopeV1(envelope);
-      if (!validation.ok || !sendFrame(socket, envelope)) {
-        issueCode = validation.ok ? 'SEND_FAILED' : 'INVALID_COMMAND';
+      const validationOk = typeof validation === 'boolean' ? validation : validation.ok;
+      if (!validationOk || !sendFrame(socket, envelope)) {
+        issueCode = validationOk ? 'SEND_FAILED' : 'INVALID_COMMAND';
         beginRecovery(socket, epoch, issueCode);
         return;
       }
@@ -942,6 +1006,60 @@ export function createOnlineBrowserWebSocketClientV1(
     } catch { return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' }); }
   };
 
+  const submitSharedUndo = (intent: OnlineBrowserSharedUndoIntentV1): OnlineBrowserSubmitResultV1 => {
+    try {
+      if (!validSharedUndoPayload(intent) || capabilityFragmentPresent(intent, config.participantCapability)) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+      const commandId = ownDataValue(intent, 'commandId') as string;
+      const baseRevision = ownDataValue(intent, 'baseRevision') as number;
+      const normalized = Object.freeze({ kind: 'online-shared-undo-intent-v1' as const, schemaVersion: 1 as const, commandId, baseRevision });
+      const fingerprint = JSON.stringify({ kind: 'sharedUndo', intent: normalized });
+      const existing = pending.find((entry) => entry.commandId === commandId);
+      if (existing !== undefined) return existing.fingerprint === fingerprint
+        ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      const settledFingerprint = settled.get(commandId);
+      if (settledFingerprint !== undefined) return settledFingerprint === fingerprint
+        ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      if (pending.length >= ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1) return frozenSubmitResult({ ok: false, code: 'OUTBOX_FULL' });
+      pending.push(Object.freeze({ kind: 'sharedUndo' as const, commandId, baseRevision, sharedUndo: normalized, fingerprint }));
+      publish();
+      if (currentSocket !== null && phase === 'open') {
+        const frame = Object.freeze({
+          ...normalized,
+          protocolVersion: config.protocolVersion,
+          roomId: config.roomId,
+          participantId: config.participantId,
+          ['participantCapability']: config.participantCapability,
+        });
+        if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+      }
+      return frozenSubmitResult({ ok: true });
+    } catch {
+      return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+    }
+  };
+
+  const submitManualCombatDamage = (intent: OnlineBrowserManualCombatDamageIntentV1): OnlineBrowserSubmitResultV1 => {
+    try {
+      if (!validManualCombatDamagePayload(intent) || capabilityFragmentPresent(intent, config.participantCapability)) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
+      const commandId = ownDataValue(intent, 'commandId') as string;
+      const baseRevision = ownDataValue(intent, 'baseRevision') as number;
+      const normalized = Object.freeze({ kind: 'online-manual-combat-damage-intent-v1' as const, schemaVersion: 1 as const, commandId, baseRevision, defendingPlayerId: ownDataValue(intent, 'defendingPlayerId') as string, damage: ownDataValue(intent, 'damage') as number, commanderObjectId: ownDataValue(intent, 'commanderObjectId') as string | null });
+      const fingerprint = JSON.stringify({ kind: 'manualCombatDamage', intent: normalized });
+      const existing = pending.find((entry) => entry.commandId === commandId);
+      if (existing !== undefined) return existing.fingerprint === fingerprint ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      const settledFingerprint = settled.get(commandId);
+      if (settledFingerprint !== undefined) return settledFingerprint === fingerprint ? frozenSubmitResult({ ok: true }) : frozenSubmitResult({ ok: false, code: 'COMMAND_ID_REUSE' });
+      if (pending.length >= ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1) return frozenSubmitResult({ ok: false, code: 'OUTBOX_FULL' });
+      pending.push(Object.freeze({ kind: 'manualCombatDamage' as const, commandId, baseRevision, manualCombatDamage: normalized, fingerprint }));
+      publish();
+      if (currentSocket !== null && phase === 'open') {
+        const frame = Object.freeze({ ...normalized, protocolVersion: config.protocolVersion, roomId: config.roomId, participantId: config.participantId, ['participantCapability']: config.participantCapability });
+        if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+      }
+      return frozenSubmitResult({ ok: true });
+    } catch { return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' }); }
+  };
+
   const subscribe = (listener: OnlineBrowserSubscriptionV1): OnlineBrowserUnsubscribeV1 => {
     if (typeof listener !== 'function') return () => undefined;
     listeners.add(listener);
@@ -954,6 +1072,8 @@ export function createOnlineBrowserWebSocketClientV1(
     submit,
     submitTabletop,
     submitVisibility,
+    submitSharedUndo,
+    submitManualCombatDamage,
     getSnapshot: () => snapshot,
     subscribe,
   });

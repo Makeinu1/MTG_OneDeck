@@ -13,6 +13,7 @@ import './publicOnlineApp.css';
 import { PregameLayer } from './OnlinePregameLayer';
 import { OnlineTabletopManual } from './OnlineTabletopManual';
 import { OnlineVisibilityDecisions } from './OnlineVisibilityDecisions';
+import { OnlineGuidedActions } from './OnlineGuidedActions';
 import { RemoteGameScreenActionRail, useRemoteGameScreenInteractionPort } from './remoteGameScreen';
 
 export type PublicOnlineAppProps = Readonly<{
@@ -171,6 +172,7 @@ export function PublicOnlineApp({
     busy: tabletopBusy,
     onSubmitTabletopIntent: controller.submitTabletopIntent,
     onSubmitPersonalAction: controller.submitPersonalAction,
+    onSubmitSharedUndo: () => { void controller.submitSharedUndo(remoteProjection?.revision); },
   });
   const chooseDeck = (id: string) => {
     setSelectedDeckId(id);
@@ -642,14 +644,27 @@ export function PublicOnlineApp({
           keybindings={keybindings}
           interactionPort={remoteInteractionPort}
           surfaceOverlay={(
-            <RemoteGameScreenActionRail
-              projection={snapshot.player.projection}
-              interactionState={interactionState}
-              busy={tabletopBusy}
-              onSubmitTabletopIntent={controller.submitTabletopIntent}
-              onSubmitPersonalAction={controller.submitPersonalAction}
-              port={remoteInteractionPort}
-            />
+            <>
+              <RemoteGameScreenActionRail
+                projection={snapshot.player.projection}
+                interactionState={interactionState}
+                busy={tabletopBusy}
+                onSubmitTabletopIntent={controller.submitTabletopIntent}
+                onSubmitPersonalAction={controller.submitPersonalAction}
+                onSubmitSharedUndo={() => { void controller.submitSharedUndo(snapshot.player?.projection?.revision); }}
+                port={remoteInteractionPort}
+              />
+              <details className="online-remote-guided-overlay" data-testid="online-remote-guided-overlay">
+                <summary>ガイド付き操作（戦闘・手動）</summary>
+                <OnlineGuidedActions
+                  projection={snapshot.player.projection}
+                  interactionState={interactionState}
+                  busy={tabletopBusy}
+                  onAction={controller.submitGuidedAction}
+                  onSubmitManualCombatDamage={(input) => { void controller.submitManualCombatDamage({ ...input, baseRevision: snapshot.player?.projection?.revision }); }}
+                />
+              </details>
+            </>
           )}
         />
       )}

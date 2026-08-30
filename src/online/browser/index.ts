@@ -11,6 +11,8 @@ export type {
   OnlineBrowserCommandIntentV1,
   OnlineBrowserTabletopIntentV1,
   OnlineBrowserVisibilityIntentV1,
+  OnlineBrowserSharedUndoIntentV1,
+  OnlineBrowserManualCombatDamageIntentV1,
   OnlineBrowserIssueCodeV1,
   OnlineBrowserPendingCommandV1,
   OnlineBrowserPhaseV1,

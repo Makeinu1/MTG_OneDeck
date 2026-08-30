@@ -184,7 +184,7 @@ export type PublicOnlineSnapshotV3 = Readonly<{
   readonly projection: PublicOnlineProjectionV3 | null;
   readonly invites: readonly string[];
   readonly selectedDeckId: string;
-  readonly busy: 'create' | 'join' | 'refresh' | 'deck' | 'ready' | 'start' | 'rotate' | 'close' | 'kick' | 'leave' | 'pregame' | 'tabletop' | 'visibility' | null;
+  readonly busy: 'create' | 'join' | 'refresh' | 'deck' | 'ready' | 'start' | 'rotate' | 'close' | 'kick' | 'leave' | 'pregame' | 'tabletop' | 'visibility' | 'undo' | null;
   readonly connection: 'lobby' | 'connecting' | 'online' | 'reconnecting' | 'failed';
   readonly error: string | null;
   readonly errorIssue: PublicOnlineErrorIssueV2 | null;
@@ -216,6 +216,17 @@ export type PublicOnlineControllerV3 = Readonly<{
   readonly submitGuidedAction: (action: unknown) => void;
   readonly submitTabletopIntent: (intent: OnlineTabletopIntentEnvelopeV1) => Promise<void>;
   readonly submitVisibilityIntent: (intent: OnlineVisibilityIntentEnvelopeV1) => Promise<void>;
+  /** Request rollback of the latest server-owned shared checkpoint. */
+  readonly submitSharedUndo: (baseRevision?: number, commandId?: string) => Promise<void>;
+  readonly submitManualCombatDamage: (input: PublicOnlineManualCombatDamageInputV1) => Promise<void>;
   readonly submitPregame: (command: OnlinePregameCommandV1) => Promise<void>;
   readonly disconnect: () => void;
+}>;
+
+export type PublicOnlineManualCombatDamageInputV1 = Readonly<{
+  readonly defendingPlayerId: string;
+  readonly damage: number;
+  readonly commanderObjectId: string | null;
+  readonly baseRevision?: number;
+  readonly commandId?: string;
 }>;

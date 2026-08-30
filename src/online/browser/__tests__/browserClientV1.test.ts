@@ -145,6 +145,41 @@ function openClient(client: Browser.OnlineBrowserWebSocketClientV1, socket: Test
 }
 
 describe('O4P-06D ordinary browser client coverage', () => {
+  it('sends the server-owned shared undo intent without a Core snapshot', () => {
+    const { client, sockets } = harness();
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing socket');
+    openClient(client, socket);
+    expect(client.submitSharedUndo({
+      kind: 'online-shared-undo-intent-v1', schemaVersion: 1,
+      commandId: 'browser-shared-undo', baseRevision: 0,
+    })).toEqual({ ok: true });
+    const frame = JSON.parse(socket.sent.at(-1) ?? '{}') as Record<string, unknown>;
+    expect(Object.keys(frame).sort()).toEqual([
+      'baseRevision', 'commandId', 'kind', 'participantCapability',
+      'participantId', 'protocolVersion', 'roomId', 'schemaVersion',
+    ]);
+    expect(frame).toMatchObject({ kind: 'online-shared-undo-intent-v1', schemaVersion: 1, protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: 'browser-shared-undo', baseRevision: 0 });
+    expect(JSON.stringify(frame)).not.toContain('coreRoot');
+    socket.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: 'browser-shared-undo', baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: false });
+    expect(client.getSnapshot().pendingCommands).toEqual([]);
+  });
+
+  it('queues manual combat damage without exposing a physical card identity', () => {
+    const { client, sockets } = harness();
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing socket');
+    openClient(client, socket);
+    expect(client.submitManualCombatDamage({ kind: 'online-manual-combat-damage-intent-v1', schemaVersion: 1, commandId: 'browser-combat-damage', baseRevision: 0, defendingPlayerId: 'P3', damage: 3, commanderObjectId: 'PC1:0' })).toEqual({ ok: true });
+    const frame = JSON.parse(socket.sent.at(-1) ?? '{}') as Record<string, unknown>;
+    expect(frame).toMatchObject({ kind: 'online-manual-combat-damage-intent-v1', schemaVersion: 1, defendingPlayerId: 'P3', damage: 3, commanderObjectId: 'PC1:0' });
+    expect(frame.physicalCardId).toBeUndefined();
+    socket.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: 'browser-combat-damage', baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: false });
+    expect(client.getSnapshot().pendingCommands).toEqual([]);
+  });
+
   it('queues a high-level tabletop intent on the same authenticated socket and replays it without Core data', () => {
     const { client, sockets } = harness();
     const intent: OnlineTabletopIntentEnvelopeV1 = {

@@ -1,7 +1,7 @@
 import type { CoreObjectId, CorePhysicalCardId, CorePlayerId } from '../ids';
 import type { CorePlayerZonesV1 } from '../identityZoneState';
 import { createCoreCommanderDamageProvenanceLedgerV1, recordCoreCommanderDamageProvenanceV1 } from '../commander/commanderDamageProvenanceV1';
-import { createCoreCommanderDamageStateV1, recordCoreCommanderDamageV1 } from '../commander/commanderDamageV1';
+import { createCoreCommanderDamageStateV1, coreCommanderDamageAgainstV1, recordCoreCommanderDamageV1 } from '../commander/commanderDamageV1';
 import { recordCoreCommanderCastV1 } from '../commander/commanderTaxV1';
 import { addCoreCombatContextAttackV1, addCoreCombatContextBlockV1, reconcileCoreCombatContextForPlayerExitV1, setCoreCombatContextStepV1 } from '../combat/combatContextV1';
 import { createModeNeutralCoreObjectRegistryStateV2, createModeNeutralCoreObjectRuntimeStateV2, type ModeNeutralCoreObjectRegistryStateV2, type ModeNeutralCoreObjectRuntimeStateV2 } from '../object/objectRegistryStateV2';
@@ -355,6 +355,44 @@ function handlePlayerExit(root: ModeNeutralCoreRootV1, payload: Extract<CoreComm
   return { root: nextRoot, payloads: [{ kind: 'player-exited', playerId: payload.playerId, cause: payload.cause }], warnings: [] };
 }
 
+/** Apply one server-bound combat damage fact atomically.  This deliberately
+ * reuses the existing Commander damage ledger and player-exit reconciliation;
+ * no client-supplied replacement life/physical identity is accepted here. */
+function handleManualCombatDamage(root: ModeNeutralCoreRootV1, actorPlayerId: CorePlayerId, payload: Extract<CoreCommandPayloadV1, { readonly kind: 'manual-combat-damage' }>): HandlerResult {
+  if (payload.defendingPlayerId !== actorPlayerId) adapterFailure('ACTOR_PAYLOAD_MISMATCH', '/payload/defendingPlayerId', 'Damage actor must equal the defending player');
+  const activeIds = activePlayerIds(root);
+  if (!activeIds.includes(payload.defendingPlayerId)) adapterFailure('PLAYER_INACTIVE', '/payload/defendingPlayerId', 'Damage cannot target an inactive player');
+  const registry = stackBundle(root).objectRegistry;
+  const player = registry.players[payload.defendingPlayerId];
+  if (player === undefined) adapterFailure('PLAYER_NOT_FOUND', '/payload/defendingPlayerId', 'Damage player is not registered');
+  if (payload.commanderPhysicalCardId !== null || payload.combatObjectId !== null) {
+    if (payload.commanderPhysicalCardId === null || payload.combatObjectId === null) adapterFailure('INVALID_PROVENANCE', '/payload', 'Commander provenance requires both object IDs');
+    if (!root.commanders.some((commander) => commander.physicalCardId === payload.commanderPhysicalCardId)) adapterFailure('UNREGISTERED_COMMANDER', '/payload/commanderPhysicalCardId', 'Commander physical card is not registered');
+    const combatObject = registry.objects[payload.combatObjectId];
+    if (combatObject?.kind !== 'card' || combatObject.physicalCardId !== payload.commanderPhysicalCardId) adapterFailure('COMMANDER_PROVENANCE_MISMATCH', '/payload/combatObjectId', 'Combat object must match the Commander physical card');
+  }
+  const nextPlayers: ModeNeutralCoreObjectRegistryStateV2['players'] = {
+    ...registry.players,
+    [payload.defendingPlayerId]: { ...player, life: player.life - payload.damage },
+  };
+  let nextRoot = updateRegistryInRoot(root, registryWith(registry, { players: nextPlayers }));
+  const payloads: CoreDomainEventPayloadV1[] = [{ kind: 'manual-combat-damaged', defendingPlayerId: payload.defendingPlayerId, damage: payload.damage, commanderPhysicalCardId: payload.commanderPhysicalCardId, combatObjectId: payload.combatObjectId }];
+  if (payload.commanderPhysicalCardId !== null && payload.combatObjectId !== null) {
+    const damage = recordCoreCommanderDamageV1(nextRoot.commanderDamage, { commanderPhysicalCardId: payload.commanderPhysicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage });
+    const provenance = recordCoreCommanderDamageProvenanceV1(nextRoot.commanderDamageProvenance, { combatObjectId: payload.combatObjectId, commanderPhysicalCardId: payload.commanderPhysicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage });
+    nextRoot = createModeNeutralCoreRootV1({ ...nextRoot, commanderDamage: damage, commanderDamageProvenance: provenance });
+  }
+  const commanderThreshold = payload.commanderPhysicalCardId === null
+    ? false
+    : coreCommanderDamageAgainstV1(nextRoot.commanderDamage, payload.commanderPhysicalCardId, payload.defendingPlayerId) >= 21;
+  if (nextPlayers[payload.defendingPlayerId].life <= 0 || commanderThreshold) {
+    const exited = handlePlayerExit(nextRoot, { kind: 'player-exit', playerId: payload.defendingPlayerId, cause: 'defeat' });
+    nextRoot = exited.root;
+    payloads.push(...exited.payloads);
+  }
+  return { root: nextRoot, payloads, warnings: [] };
+}
+
 export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {
   const rootValidation = validateModeNeutralCoreRootV1(root);
   if (!rootValidation.ok) return reject(root, rootValidation.issues.map((value) => Object.freeze({ ...value })));
@@ -579,6 +617,7 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     else if (payload.kind === 'control-effect-apply') { const result = applyCoreControlEffectV1(current.ruleAuthority.control, payload.effectKey, payload.effect); handled = { root: replaceAuthority(current, { control: result.value }), payloads: [{ kind: 'control-changed', effectKey: payload.effectKey, targetObjectId: payload.effect.targetObjectId }], warnings: [] }; }
     else if (payload.kind === 'commander-cast-record') { const index = current.commanders.findIndex((commander) => commander.physicalCardId === payload.physicalCardId); if (index < 0) throw new Error('Commander not found'); const ledgers = current.commanderCastLedgers.slice(); if (payload.accepted) ledgers[index] = recordCoreCommanderCastV1(ledgers[index], { origin: payload.origin }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderCastLedgers: ledgers }), payloads: [{ kind: 'commander-cast-recorded', physicalCardId: payload.physicalCardId, accepted: payload.accepted, castCount: ledgers[index].castCount }], warnings: [] }; }
     else if (payload.kind === 'commander-damage-record') { const damage = recordCoreCommanderDamageV1(current.commanderDamage, { commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage }); const provenance = recordCoreCommanderDamageProvenanceV1(current.commanderDamageProvenance, { combatObjectId: payload.combatObjectId, commanderPhysicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage }); handled = { root: createModeNeutralCoreRootV1({ ...current, commanderDamage: damage, commanderDamageProvenance: provenance }), payloads: [{ kind: 'commander-damage-recorded', physicalCardId: payload.physicalCardId, defendingPlayerId: payload.defendingPlayerId, damage: payload.damage, combatObjectId: payload.combatObjectId }], warnings: [] }; }
+    else if (payload.kind === 'manual-combat-damage') handled = handleManualCombatDamage(current, checked.actorPlayerId, payload);
     else if (payload.kind === 'combat-step-set') { if (!current.combatContext) throw new Error('Combat context is not active'); handled = { root: createModeNeutralCoreRootV1({ ...current, combatContext: setCoreCombatContextStepV1(current.combatContext, payload.step) }), payloads: [{ kind: 'combat-changed', operation: 'step' }], warnings: [] }; }
     else if (payload.kind === 'combat-attack-add') { if (!current.combatContext) throw new Error('Combat context is not active'); handled = { root: createModeNeutralCoreRootV1({ ...current, combatContext: addCoreCombatContextAttackV1(current.combatContext, payload.attack) }), payloads: [{ kind: 'combat-changed', operation: 'attack' }], warnings: [] }; }
     else if (payload.kind === 'combat-block-add') { if (!current.combatContext) throw new Error('Combat context is not active'); handled = { root: createModeNeutralCoreRootV1({ ...current, combatContext: addCoreCombatContextBlockV1(current.combatContext, payload.block) }), payloads: [{ kind: 'combat-changed', operation: 'block' }], warnings: [] }; }

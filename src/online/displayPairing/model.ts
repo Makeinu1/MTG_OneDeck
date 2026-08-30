@@ -7,6 +7,7 @@ import {
 import {
   validateOnlineCommandEnvelopeV1,
   validateOnlineClientHelloV1,
+  validateOnlineSharedUndoIntentV1,
   type OnlineClientHelloV1,
 } from '../protocol/index';
 import {
@@ -437,6 +438,40 @@ function bindWorkbenchAction(input: unknown): OnlineDisplayPairingProtocolFrameV
 export function bindPersonalWorkbenchActionV1(input: unknown): OnlineDisplayPairingProtocolFrameV1 {
   try {
     return bindWorkbenchAction(input);
+  } catch (error: unknown) {
+    if (error instanceof PersonalWorkbenchActionBindingErrorV1) throw error;
+    return bindingUnavailable();
+  }
+}
+
+/** Bind the transport-only shared undo intent.  Unlike a workbench action it
+ * does not create a Core command or carry a client-provided snapshot. */
+export function bindSharedUndoIntentV1(input: unknown): OnlineDisplayPairingProtocolFrameV1 {
+  try {
+    const root = readExactRecord(input, ['session', 'commandId', 'baseRevision']);
+    if (root === null) return bindingUnavailable();
+    const sessionRecord = readExactRecord(root.session, [
+      'protocolVersion', 'roomId', 'participantId', 'participantCapability',
+      'clientBuildId', 'corePlayerId', 'personalProjection',
+    ]);
+    if (sessionRecord === null || typeof root.commandId !== 'string' || !validRevision(root.baseRevision)) return bindingUnavailable();
+    const session = validatedSession(sessionRecord);
+    if (root.baseRevision !== session.revision
+      || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(root.commandId)
+      || containsCapabilityFragment(root.commandId, session.participantCapability)) return bindingUnavailable();
+    const frame = {
+      kind: 'online-shared-undo-intent-v1' as const,
+      schemaVersion: 1 as const,
+      protocolVersion: session.protocolVersion,
+      roomId: session.roomId,
+      participantId: session.participantId,
+      participantCapability: session.participantCapability,
+      commandId: root.commandId,
+      baseRevision: root.baseRevision,
+    };
+    const validation = validateOnlineSharedUndoIntentV1(frame);
+    if (!validation.ok) return bindingUnavailable();
+    return freezeDeep(validation.value);
   } catch (error: unknown) {
     if (error instanceof PersonalWorkbenchActionBindingErrorV1) throw error;
     return bindingUnavailable();

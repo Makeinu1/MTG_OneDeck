@@ -55,7 +55,13 @@ function variableState() {
   const scryfallId = '5da14d86-0780-4821-a799-96f64b377df4';
   const oracleId = 'd8ad23a1-0b43-48ea-9fbe-d89b29194509';
   const definition: CardDef = { scryfallId, oracleId, name: 'V4 Projection Card', lang: 'en', layout: 'normal', cmc: 1, colorIdentity: [], typeLine: 'Artifact', faces: [{ name: 'V4 Projection Card', typeLine: 'Artifact', oracleText: '' }] };
-  const entries = Object.freeze([Object.freeze({ index: 0, section: 'main' as const, quantity: 40, scryfallId, oracleId, definition })]);
+  const commanderScryfallId = '5da14d86-0780-4821-a799-96f64b3779df';
+  const commanderOracleId = 'd8ad23a1-0b43-48ea-9fbe-d89b2919459f';
+  const commanderDefinition: CardDef = { scryfallId: commanderScryfallId, oracleId: commanderOracleId, name: 'V4 Projection Commander', lang: 'en', layout: 'normal', cmc: 3, colorIdentity: [], typeLine: 'Legendary Creature', faces: [{ name: 'V4 Projection Commander', typeLine: 'Legendary Creature', oracleText: '' }] };
+  const entries = Object.freeze([
+    Object.freeze({ index: 0, section: 'commander' as const, quantity: 1, scryfallId: commanderScryfallId, oracleId: commanderOracleId, definition: commanderDefinition }),
+    Object.freeze({ index: 1, section: 'main' as const, quantity: 40, scryfallId, oracleId, definition }),
+  ]);
   const serialized = JSON.stringify({ entries });
   const seats = Object.freeze(Array.from({ length: 4 }, (_, index) => Object.freeze({
     seatIndex: index as 0 | 1 | 2 | 3,
@@ -212,6 +218,41 @@ describe('O4P-02D audience projection', () => {
       targetObjectIds: ['not-a-core-object-id'],
     };
     expect(validateOnlineParticipantProjectionV4(malformed)).toMatchObject({ ok: false });
+  });
+
+  it('projects the shared combat, damage, outcome, and checkpoint facts without private identity', () => {
+    const initial = variableState();
+    const assisted = projectOnlineVariableProtocolV4(initial, 'v4-player-1');
+    expect(assisted.game.combat).toBeNull();
+    expect(assisted.game.commanderDamage).toEqual([]);
+    expect(assisted.game.winnerPlayerId).toBeNull();
+    expect(assisted.game.checkpoint).toEqual({ available: false, informationExposureWarning: false });
+    expect(JSON.stringify(assisted.game.combat)).not.toMatch(/physicalCardId|definitionId|private|snapshot/u);
+    expect(JSON.stringify(assisted.game.commanderDamage)).not.toMatch(/physicalCardId|definitionId/u);
+  });
+
+  it('keeps commander damage against a seated defender after that seat is marked defeated', () => {
+    const initial = variableState();
+    const commanderPhysicalCardId = initial.coreRoot.commanders.find((entry) => entry.ownerPlayerId === 'P1')?.physicalCardId;
+    if (commanderPhysicalCardId === undefined) throw new Error('Expected P1 commander');
+    const commanderDamage = Core.recordCoreCommanderDamageV1(initial.coreRoot.commanderDamage, {
+      commanderPhysicalCardId,
+      defendingPlayerId: 'P2',
+      damage: 7,
+    });
+    const coreRoot = Core.createModeNeutralCoreRootV1({ ...initial.coreRoot, commanderDamage });
+    const projected = projectOnlineVariableProtocolV4({ ...initial, coreRoot }, 'v4-player-1');
+    const eliminated = {
+      ...projected,
+      room: {
+        ...projected.room,
+        seats: projected.room.seats.map((seat) => seat.corePlayerId === 'P2' ? { ...seat, outcome: 'defeated' as const } : seat),
+      },
+    };
+    expect(eliminated.game.commanderDamage).toContainEqual({
+      commanderOwnerPlayerId: 'P1', commanderSlot: 0, defendingPlayerId: 'P2', damage: 7,
+    });
+    expect(validateOnlineParticipantProjectionV4(eliminated)).toMatchObject({ ok: true });
   });
 
   it('projects an authenticated player and hides all library identities', () => {

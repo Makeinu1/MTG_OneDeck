@@ -4,12 +4,14 @@ export {
 } from './errors';
 export {
   bindPersonalWorkbenchActionV1,
+  bindSharedUndoIntentV1,
   buildOnlineDisplayPairingViewV1,
   createOnlineOpponentFocusActionV1,
 } from './model';
 export { ONLINE_DISPLAY_PAIRING_SCHEMA_VERSION_V1 } from './types';
 export type {
   OnlineDisplayPairingBindingInputV1,
+  OnlineDisplayPairingSharedUndoBindingInputV1,
   OnlineDisplayPairingCommandIdV1,
   OnlineDisplayPairingCoreCommandV1,
   OnlineDisplayPairingInputV1,

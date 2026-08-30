@@ -1192,6 +1192,67 @@ function stripV4ConcealedControllers(game: Record<string, unknown>): Record<stri
   };
 }
 
+function validateV4SharedFacts(
+  game: Record<string, unknown>,
+  turnOrder: readonly unknown[],
+  seatedRoster: readonly unknown[],
+  roomLifecycle: unknown,
+  handles: ReadonlySet<string>,
+  issues: OnlineProjectionIssueV1[],
+): void {
+  const combat = game.combat;
+  if (combat !== null) {
+    const value = readExactRecord(combat, ['step', 'attackingPlayerId', 'attacks', 'blocks'], '/game/combat', issues);
+    if (value !== null) {
+      literal(value.step, ['declare-attackers', 'declare-blockers'], '/game/combat/step', issues);
+      if (!player(value.attackingPlayerId, '/game/combat/attackingPlayerId', issues) || !turnOrder.includes(value.attackingPlayerId)) invalid(issues, 'INVALID_RELATION', '/game/combat/attackingPlayerId', 'Combat attacker must be seated');
+      const attacks = arrayValues(value.attacks, '/game/combat/attacks', issues, 64);
+      attacks.forEach((entry, index) => {
+        const attack = readExactRecord(entry, ['attackerObjectId', 'defendingPlayerId'], `/game/combat/attacks/${index}`, issues);
+        if (attack === null) return;
+        if (objectId(attack.attackerObjectId, `/game/combat/attacks/${index}/attackerObjectId`, issues) && !handles.has(String(attack.attackerObjectId))) invalid(issues, 'INVALID_RELATION', `/game/combat/attacks/${index}/attackerObjectId`, 'Combat object must have public coverage');
+        if (player(attack.defendingPlayerId, `/game/combat/attacks/${index}/defendingPlayerId`, issues) && !turnOrder.includes(attack.defendingPlayerId)) invalid(issues, 'INVALID_RELATION', `/game/combat/attacks/${index}/defendingPlayerId`, 'Combat defender must be seated');
+      });
+      const blocks = arrayValues(value.blocks, '/game/combat/blocks', issues, 128);
+      blocks.forEach((entry, index) => {
+        const block = readExactRecord(entry, ['blockerObjectId', 'attackedObjectId', 'defendingPlayerId'], `/game/combat/blocks/${index}`, issues);
+        if (block === null) return;
+        for (const [field, fieldPath] of [['blockerObjectId', 'blockerObjectId'], ['attackedObjectId', 'attackedObjectId']] as const) {
+          if (objectId(block[field], `/game/combat/blocks/${index}/${fieldPath}`, issues) && !handles.has(String(block[field]))) invalid(issues, 'INVALID_RELATION', `/game/combat/blocks/${index}/${fieldPath}`, 'Combat object must have public coverage');
+        }
+        if (player(block.defendingPlayerId, `/game/combat/blocks/${index}/defendingPlayerId`, issues) && !turnOrder.includes(block.defendingPlayerId)) invalid(issues, 'INVALID_RELATION', `/game/combat/blocks/${index}/defendingPlayerId`, 'Combat defender must be seated');
+      });
+    }
+  } else if (Object.prototype.hasOwnProperty.call(game, 'combat') === false) {
+    invalid(issues, 'MISSING_FIELD', '/game/combat', 'Combat projection is required');
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(game, 'commanderDamage')) invalid(issues, 'MISSING_FIELD', '/game/commanderDamage', 'Commander damage projection is required');
+  const damage = arrayValues(game.commanderDamage, '/game/commanderDamage', issues, 128);
+  damage.forEach((entry, index) => {
+    const row = readExactRecord(entry, ['commanderOwnerPlayerId', 'commanderSlot', 'defendingPlayerId', 'damage'], `/game/commanderDamage/${index}`, issues);
+    if (row === null) return;
+    if (player(row.commanderOwnerPlayerId, `/game/commanderDamage/${index}/commanderOwnerPlayerId`, issues) && !seatedRoster.includes(row.commanderOwnerPlayerId)) invalid(issues, 'INVALID_RELATION', `/game/commanderDamage/${index}/commanderOwnerPlayerId`, 'Commander owner must be seated');
+    integer(row.commanderSlot, `/game/commanderDamage/${index}/commanderSlot`, issues);
+    if (player(row.defendingPlayerId, `/game/commanderDamage/${index}/defendingPlayerId`, issues) && !seatedRoster.includes(row.defendingPlayerId)) invalid(issues, 'INVALID_RELATION', `/game/commanderDamage/${index}/defendingPlayerId`, 'Commander damage defender must be seated');
+    integer(row.damage, `/game/commanderDamage/${index}/damage`, issues);
+  });
+
+  const winner = game.winnerPlayerId;
+  if (winner !== null) {
+    if (!player(winner, '/game/winnerPlayerId', issues) || !turnOrder.includes(winner)) invalid(issues, 'INVALID_RELATION', '/game/winnerPlayerId', 'Winner must be seated');
+    if (roomLifecycle !== 'finished') invalid(issues, 'INVALID_RELATION', '/game/winnerPlayerId', 'Winner is only available for a finished room');
+  } else if (!Object.prototype.hasOwnProperty.call(game, 'winnerPlayerId')) {
+    invalid(issues, 'MISSING_FIELD', '/game/winnerPlayerId', 'Winner projection is required');
+  }
+
+  const checkpoint = readExactRecord(game.checkpoint, ['available', 'informationExposureWarning'], '/game/checkpoint', issues);
+  if (checkpoint !== null) {
+    if (typeof checkpoint.available !== 'boolean') invalid(issues, 'INVALID_TYPE', '/game/checkpoint/available', 'Checkpoint availability must be boolean');
+    if (typeof checkpoint.informationExposureWarning !== 'boolean') invalid(issues, 'INVALID_TYPE', '/game/checkpoint/informationExposureWarning', 'Information exposure warning must be boolean');
+  }
+}
+
 export function validateOnlineParticipantProjectionV4(
   input: unknown,
 ): Readonly<{ readonly ok: true; readonly value: OnlineVariableParticipantProjectionV4 } | { readonly ok: false; readonly issues: readonly OnlineProjectionIssueV1[] }> {
@@ -1208,9 +1269,25 @@ export function validateOnlineParticipantProjectionV4(
       if (!Object.prototype.hasOwnProperty.call(game, 'priorityHolds') || !Object.prototype.hasOwnProperty.call(game, 'assistedPriority')) invalid(issues, 'MISSING_FIELD', '/game', 'Projection v4 requires assisted priority fields');
       const turnOrder = Array.isArray(game.turnOrder) ? game.turnOrder : [];
       validateV4ConcealedControllers(game, turnOrder, issues);
+      const rawRoom = root.room;
+      const rawSeats = rawRoom !== null && typeof rawRoom === 'object' && !Array.isArray(rawRoom)
+        ? (rawRoom as Record<string, unknown>).seats
+        : null;
+      const seatedRoster = Array.isArray(rawSeats)
+        ? rawSeats.flatMap((seat) => {
+          if (seat === null || typeof seat !== 'object' || Array.isArray(seat)) return [];
+          const playerId = (seat as Record<string, unknown>).corePlayerId;
+          return typeof playerId === 'string' ? [playerId] : [];
+        })
+        : turnOrder;
+      validateV4SharedFacts(game, turnOrder, seatedRoster, (rawRoom as Record<string, unknown> | null)?.lifecycle, projectedPublicHandles(game), issues);
       const legacyGame = stripV4ConcealedControllers(game);
       delete legacyGame.priorityHolds;
       delete legacyGame.assistedPriority;
+      delete legacyGame.combat;
+      delete legacyGame.commanderDamage;
+      delete legacyGame.winnerPlayerId;
+      delete legacyGame.checkpoint;
       const legacy = validateOnlineParticipantProjectionV3({ ...root, kind: 'online-participant-projection-v3', schemaVersion: ONLINE_PROJECTION_SCHEMA_VERSION_V3, game: legacyGame });
       if (!legacy.ok) issues.push(...legacy.issues);
       validateAssistedPriorityFields(game, root.revision, turnOrder, '/game', issues, true, projectedPublicHandles(game));

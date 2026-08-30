@@ -12,7 +12,14 @@ import './onlineGuidedActions.css';
 export type OnlineGuidedActionsProps = Readonly<{
   readonly projection: unknown;
   readonly interactionState: 'ready' | 'updating' | 'offline';
+  readonly busy?: boolean;
   readonly onAction: (action: OnlineGuidedActionV1) => void;
+  /** Server-bound combat damage callback. Snapshot/private state never crosses this boundary. */
+  readonly onSubmitManualCombatDamage?: (input: Readonly<{
+    readonly defendingPlayerId: string;
+    readonly damage: number;
+    readonly commanderObjectId: string | null;
+  }>) => void | Promise<void>;
 }>;
 
 type ManualRecord = Readonly<{ readonly kind: string; readonly text: string }>;
@@ -33,7 +40,38 @@ function optionLabel(candidate: OnlineGuidedControlCandidateV1 | OnlineGuidedCom
   return candidate.label;
 }
 
-function OnlineGuidedActionsForm({ projection, view, interactionState, onAction }: OnlineGuidedActionsProps & Readonly<{ readonly view: OnlineGuidedActionsViewV1 }>) {
+function manualCombatTargetIds(projection: unknown): readonly string[] {
+  if (projection === null || typeof projection !== 'object' || Array.isArray(projection)) return [];
+  const game = (projection as Record<string, unknown>).game;
+  if (game === null || typeof game !== 'object' || Array.isArray(game)) return [];
+  const combat = (game as Record<string, unknown>).combat;
+  if (combat === null || typeof combat !== 'object' || Array.isArray(combat)) return [];
+  const attacks = (combat as Record<string, unknown>).attacks;
+  if (!Array.isArray(attacks)) return [];
+  const ids = attacks.flatMap((entry) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const defender = (entry as Record<string, unknown>).defendingPlayerId;
+    return typeof defender === 'string' ? [defender] : [];
+  });
+  return Object.freeze([...new Set(ids)]);
+}
+
+function manualCombatPermission(projection: unknown, actorPlayerId: string, busy: boolean, interactionState: OnlineGuidedActionsProps['interactionState']): boolean {
+  if (busy || interactionState !== 'ready') return false;
+  if (projection === null || typeof projection !== 'object' || Array.isArray(projection)) return false;
+  const game = (projection as Record<string, unknown>).game;
+  if (game === null || typeof game !== 'object' || Array.isArray(game)) return false;
+  const value = game as Record<string, unknown>;
+  const priority = value.assistedPriority;
+  if (priority === null || typeof priority !== 'object' || Array.isArray(priority)) return false;
+  const fields = priority as Record<string, unknown>;
+  if (fields.stewardPlayerId !== actorPlayerId) return false;
+  const holds = Array.isArray(fields.holds) ? fields.holds : [];
+  const priorityHolds = Array.isArray(value.priorityHolds) ? value.priorityHolds : [];
+  return holds.length === 0 && priorityHolds.length === 0 && manualCombatTargetIds(projection).length > 0;
+}
+
+function OnlineGuidedActionsForm({ projection, view, interactionState, busy = false, onAction, onSubmitManualCombatDamage }: OnlineGuidedActionsProps & Readonly<{ readonly view: OnlineGuidedActionsViewV1 }>) {
   const [searchSessionId, setSearchSessionId] = useState('');
   const [selectedSearchIds, setSelectedSearchIds] = useState<readonly string[]>([]);
   const [controlTarget, setControlTarget] = useState('');
@@ -54,11 +92,17 @@ function OnlineGuidedActionsForm({ projection, view, interactionState, onAction 
   const [commanderDefender, setCommanderDefender] = useState('');
   const [commanderDamage, setCommanderDamage] = useState('');
   const [commanderReason, setCommanderReason] = useState('');
+  const [manualDamageDefender, setManualDamageDefender] = useState('');
+  const [manualDamageAmount, setManualDamageAmount] = useState('1');
+  const [manualDamageCommander, setManualDamageCommander] = useState('');
   const [confirming, setConfirming] = useState<OnlineGuidedActionV1 | null>(null);
   const [manualRecords, setManualRecords] = useState<readonly ManualRecord[]>([]);
 
   const disabled = interactionState !== 'ready';
   const currentSearch = view.searchSessions.find((session) => session.sessionId === searchSessionId);
+  const manualDamageTargets = manualCombatTargetIds(projection);
+  const manualDamageAllowed = onSubmitManualCombatDamage !== undefined
+    && manualCombatPermission(projection, view.actorPlayerId, busy, interactionState);
 
   function emit(action: OnlineGuidedActionV1 | null): void {
     if (disabled || action === null) return;
@@ -156,6 +200,32 @@ function OnlineGuidedActionsForm({ projection, view, interactionState, onAction 
           <label>防御プレイヤー<select value={blockDefender} onChange={(event) => setBlockDefender(event.target.value)} disabled={disabled}><option value="">選択してください</option>{view.combat.defendingPlayers.map((player) => <option value={player.playerId} key={player.playerId}>プレイヤー {player.playerId}</option>)}</select></label>
           <button type="submit" disabled={disabled}>サーバーへ確認する</button>
         </form>
+        {onSubmitManualCombatDamage !== undefined && (
+          <form data-testid="manual-combat-damage" onSubmit={(event) => {
+            event.preventDefault();
+            const amount = Number(manualDamageAmount);
+            if (!manualDamageAllowed || manualDamageDefender === '' || !Number.isSafeInteger(amount) || amount < 1 || amount > 120) return;
+            void onSubmitManualCombatDamage({
+              defendingPlayerId: manualDamageDefender,
+              damage: amount,
+              commanderObjectId: manualDamageCommander === '' ? null : manualDamageCommander,
+            });
+          }}>
+            <h3>Manual Damage（戦闘結果）</h3>
+            <p className="online-guided-actions__manual">攻撃先へ手動で記録します。最終判定と勝敗はサーバーが行います。</p>
+            <label>防御プレイヤー<select data-testid="online-manual-damage-defender" value={manualDamageDefender} onChange={(event) => setManualDamageDefender(event.target.value)} disabled={!manualDamageAllowed}>
+              <option value="">攻撃先を選択</option>
+              {view.combat.defendingPlayers.filter((player) => manualDamageTargets.includes(player.playerId)).map((player) => <option value={player.playerId} key={player.playerId}>プレイヤー {player.playerId}</option>)}
+            </select></label>
+            <label>ダメージ<input data-testid="online-manual-damage-amount" type="number" min="1" max="120" value={manualDamageAmount} onChange={(event) => setManualDamageAmount(event.target.value)} disabled={!manualDamageAllowed} /></label>
+            <label>発生源（統率者の場合のみ任意）<select data-testid="online-manual-damage-commander" value={manualDamageCommander} onChange={(event) => setManualDamageCommander(event.target.value)} disabled={!manualDamageAllowed}>
+              <option value="">通常の戦闘ダメージ</option>
+              {view.corrections.commanders.map((commander) => <option value={commander.objectId} key={commander.objectId}>{commander.label}</option>)}
+            </select></label>
+            <button type="submit" data-testid="online-manual-damage-submit" disabled={!manualDamageAllowed || manualDamageDefender === '' || !Number.isSafeInteger(Number(manualDamageAmount)) || Number(manualDamageAmount) < 1 || Number(manualDamageAmount) > 120}>Manual Damage を送信</button>
+            {!manualDamageAllowed && <p className="online-guided-actions__manual" data-testid="online-manual-damage-unavailable">現在は Manual Damage を送信できません（steward の戦闘・HOLDなし・接続済みが必要です）。</p>}
+          </form>
+        )}
       </section>
 
       <section className="online-guided-actions__section" data-testid="manual-correction" aria-labelledby="manual-correction-title">
@@ -188,7 +258,7 @@ function OnlineGuidedActionsForm({ projection, view, interactionState, onAction 
   );
 }
 
-export function OnlineGuidedActions({ projection, interactionState, onAction }: OnlineGuidedActionsProps) {
+export function OnlineGuidedActions({ projection, interactionState, busy = false, onAction, onSubmitManualCombatDamage }: OnlineGuidedActionsProps) {
   let view: OnlineGuidedActionsViewV1;
   try {
     view = buildOnlineGuidedActionsViewV1(projection);
@@ -201,7 +271,9 @@ export function OnlineGuidedActions({ projection, interactionState, onAction }: 
       projection={projection}
       view={view}
       interactionState={interactionState}
+      busy={busy}
       onAction={onAction}
+      onSubmitManualCombatDamage={onSubmitManualCombatDamage}
     />
   );
 }

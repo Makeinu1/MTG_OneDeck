@@ -78,6 +78,32 @@ export type OnlineProjectedAssistedPriorityV4 = Readonly<{
     readonly acceptedRevision: number;
   }> | null;
 }>;
+/** Public combat facts only; object identity is already redacted by the zone projection. */
+export type OnlineProjectedCombatV4 = Readonly<{
+  readonly step: 'declare-attackers' | 'declare-blockers';
+  readonly attackingPlayerId: CorePlayerId;
+  readonly attacks: readonly Readonly<{
+    readonly attackerObjectId: CoreObjectId;
+    readonly defendingPlayerId: CorePlayerId;
+  }>[];
+  readonly blocks: readonly Readonly<{
+    readonly blockerObjectId: CoreObjectId;
+    readonly attackedObjectId: CoreObjectId;
+    readonly defendingPlayerId: CorePlayerId;
+  }>[];
+}> | null;
+/** Commander damage keeps only public owner/slot and defending player facts. */
+export type OnlineProjectedCommanderDamageV4 = readonly Readonly<{
+  readonly commanderOwnerPlayerId: CorePlayerId;
+  readonly commanderSlot: number;
+  readonly defendingPlayerId: CorePlayerId;
+  readonly damage: number;
+}>[];
+/** Checkpoint facts are intentionally bounded to availability and memory warning. */
+export type OnlineProjectedCheckpointV4 = Readonly<{
+  readonly available: boolean;
+  readonly informationExposureWarning: boolean;
+}>;
 export type OnlineVariableParticipantProjectionV3 = Readonly<{
   readonly kind: 'online-participant-projection-v3';
   readonly schemaVersion: typeof ONLINE_PROJECTION_SCHEMA_VERSION_V3;
@@ -114,6 +140,10 @@ export type OnlineVariableParticipantProjectionV4 = Readonly<Omit<OnlineVariable
   readonly game: OnlineVariableParticipantProjectionV3['game'] & {
     readonly priorityHolds: readonly Readonly<{ readonly playerId: CorePlayerId; readonly setRevision: number }>[];
     readonly assistedPriority: OnlineProjectedAssistedPriorityV4;
+    readonly combat: OnlineProjectedCombatV4;
+    readonly commanderDamage: OnlineProjectedCommanderDamageV4;
+    readonly winnerPlayerId: CorePlayerId | null;
+    readonly checkpoint: OnlineProjectedCheckpointV4;
   };
 }>;
 
@@ -210,6 +240,80 @@ function publicSharedObjectIds(state: V2State): ReadonlySet<CoreObjectId> {
     ...shared.exile,
     ...shared.command,
   ]);
+}
+
+function publicCombat(state: V2State): OnlineProjectedCombatV4 {
+  const combat = state.coreRoot.combatContext;
+  if (combat === null) return null;
+  const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+  const publicIds = publicSharedObjectIds(state);
+  const players = new Set<CorePlayerId>(registry.turnOrder);
+  const attacks = combat.attacks
+    .filter((entry) => publicIds.has(entry.attackerObjectId) && players.has(entry.defendingPlayerId))
+    .slice(0, 64)
+    .map((entry) => Object.freeze({
+      attackerObjectId: entry.attackerObjectId,
+      defendingPlayerId: entry.defendingPlayerId,
+    }));
+  const blocks = combat.blocks
+    .filter((entry) => publicIds.has(entry.blockerObjectId) && publicIds.has(entry.attackedObjectId) && players.has(entry.defendingPlayerId))
+    .slice(0, 128)
+    .map((entry) => Object.freeze({
+      blockerObjectId: entry.blockerObjectId,
+      attackedObjectId: entry.attackedObjectId,
+      defendingPlayerId: entry.defendingPlayerId,
+    }));
+  if (!players.has(combat.attackingPlayerId)) return null;
+  return Object.freeze({
+    step: combat.step,
+    attackingPlayerId: combat.attackingPlayerId,
+    attacks: Object.freeze(attacks),
+    blocks: Object.freeze(blocks),
+  });
+}
+
+function publicCommanderDamage(state: V2State): OnlineProjectedCommanderDamageV4 {
+  // Keep historical damage against players who have since been eliminated.
+  // The live priority turn-order can omit those players, so use the stable
+  // room-seat/lifecycle roster as the public relation boundary instead.
+  const seatedPlayers = new Set<CorePlayerId>([
+    ...state.room.seats.map((seat) => seat.corePlayerId),
+    ...state.coreRoot.playerLifecycle.players.map((entry) => entry.playerId),
+  ]);
+  const slots = new Map<string, Readonly<{ readonly owner: CorePlayerId; readonly slot: number }>>();
+  const nextSlots = new Map<string, number>();
+  for (const commander of state.coreRoot.commanders) {
+    const owner = commander.ownerPlayerId;
+    const slot = nextSlots.get(owner) ?? 0;
+    nextSlots.set(owner, slot + 1);
+    slots.set(commander.physicalCardId, { owner, slot });
+  }
+  const entries = state.coreRoot.commanderDamage.entries.flatMap((entry) => {
+    const commander = slots.get(entry.commanderPhysicalCardId);
+    if (commander === undefined || !seatedPlayers.has(entry.defendingPlayerId)) return [];
+    return [Object.freeze({
+      commanderOwnerPlayerId: commander.owner,
+      commanderSlot: commander.slot,
+      defendingPlayerId: entry.defendingPlayerId,
+      damage: entry.damage,
+    })];
+  });
+  return Object.freeze(entries.slice(0, 128));
+}
+
+function projectedWinner(state: V2State): CorePlayerId | null {
+  if (state.room.lifecycle !== 'finished') return null;
+  const active = state.coreRoot.playerLifecycle.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId);
+  return active.length === 1 ? active[0] ?? null : null;
+}
+
+function projectedCheckpoint(state: V2State): OnlineProjectedCheckpointV4 {
+  const candidate = (state as unknown as Readonly<{ readonly sharedCheckpoint?: unknown }>).sharedCheckpoint;
+  if (!record(candidate)) return Object.freeze({ available: false, informationExposureWarning: false });
+  return Object.freeze({
+    available: candidate.kind === 'online-shared-checkpoint-v1',
+    informationExposureWarning: candidate.informationExposureWarning === true,
+  });
 }
 
 function concealedBattlefieldController(
@@ -387,6 +491,10 @@ export function projectOnlineVariableProtocolV4(stateInput: unknown, participant
     ...projectedGame,
     priorityHolds: base.game.priorityHolds,
     assistedPriority: causalAssistedPriority(checked.value, base.game.assistedPriority as Readonly<Record<string, unknown>>, undoAuthorizedPlayerId),
+    combat: publicCombat(checked.value),
+    commanderDamage: publicCommanderDamage(checked.value),
+    winnerPlayerId: projectedWinner(checked.value),
+    checkpoint: projectedCheckpoint(checked.value),
   });
   return Object.freeze({ ...legacy, kind: 'online-participant-projection-v4', schemaVersion: ONLINE_PROJECTION_SCHEMA_VERSION_V4, game: enrichedGame });
 }

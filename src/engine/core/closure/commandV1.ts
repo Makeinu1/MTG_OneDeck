@@ -35,6 +35,16 @@ export type CorePlayerExitPayloadV1 = Readonly<{ readonly kind: 'player-exit'; r
 export type CoreRandomZoneOrderPayloadV1 = Readonly<{ readonly kind: 'random-zone-order'; readonly randomDecisionId: CoreRuleKeyV1; readonly zone: CoreRuleZoneRefV1; readonly beforeOrder: readonly CoreObjectId[]; readonly afterOrder: readonly CoreObjectId[]; readonly manualMode?: unknown }>;
 export type CoreCorrectPlayerLifePayloadV1 = Readonly<{ readonly kind: 'correct-player-life'; readonly playerId: CorePlayerId; readonly replacementLifeTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;
 export type CoreCorrectCommanderDamagePayloadV1 = Readonly<{ readonly kind: 'correct-commander-damage'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly replacementDamageTotal: number; readonly expectedBeforeStateDigest: string; readonly reason: string }>;
+/** Server-bound atomic combat damage fact.  It is intentionally distinct from
+ * client/manual correction payloads so the protocol can require a trusted
+ * binder while Core still journals one deterministic accepted command. */
+export type CoreManualCombatDamagePayloadV1 = Readonly<{
+  readonly kind: 'manual-combat-damage';
+  readonly defendingPlayerId: CorePlayerId;
+  readonly damage: number;
+  readonly commanderPhysicalCardId: CorePhysicalCardId | null;
+  readonly combatObjectId: CoreObjectId | null;
+}>;
 
 export type CoreCommandPayloadV1 =
   | CoreStackCommitCardSpellPayloadV1 | CoreStackRemoveObjectPayloadV1 | CorePriorityPassPayloadV1
@@ -43,6 +53,7 @@ export type CoreCommandPayloadV1 =
   | CoreCommanderCastRecordPayloadV1 | CoreCommanderDamageRecordPayloadV1 | CoreCombatStepSetPayloadV1
   | CoreCombatAttackAddPayloadV1 | CoreCombatBlockAddPayloadV1 | CorePlayerExitPayloadV1
   | CoreRandomZoneOrderPayloadV1 | CoreCorrectPlayerLifePayloadV1 | CoreCorrectCommanderDamagePayloadV1
+  | CoreManualCombatDamagePayloadV1
   | CoreTabletopCommandPayloadV1;
 
 export type { CoreTabletopCommandPayloadV1 } from '../tabletop/commandV1';
@@ -453,6 +464,15 @@ export function validateCoreCommandV1(input: unknown): CoreCommandValidationResu
       const row = requireRecord(['kind', 'playerId', 'replacementLifeTotal', 'expectedBeforeStateDigest', 'reason']); if (row) { requirePlayerId(row.playerId, '/payload/playerId'); if (typeof row.replacementLifeTotal !== 'number' || !Number.isSafeInteger(row.replacementLifeTotal)) issues.push(issue('INVALID_INTEGER', '/payload/replacementLifeTotal', 'Life must be a safe integer')); if (typeof row.expectedBeforeStateDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.expectedBeforeStateDigest)) issues.push(issue('INVALID_DIGEST', '/payload/expectedBeforeStateDigest', 'Digest must be lowercase SHA-256 hexadecimal')); if (typeof row.reason !== 'string' || row.reason.trim().length === 0) issues.push(issue('INVALID_REASON', '/payload/reason', 'Reason must be non-empty and non-whitespace')); payload = Object.freeze({ kind, playerId: row.playerId as CorePlayerId, replacementLifeTotal: row.replacementLifeTotal as number, expectedBeforeStateDigest: row.expectedBeforeStateDigest as string, reason: row.reason as string }); }
     } else if (kind === 'correct-commander-damage') {
       const row = requireRecord(['kind', 'physicalCardId', 'defendingPlayerId', 'replacementDamageTotal', 'expectedBeforeStateDigest', 'reason']); if (row) { requireBaseId(row.physicalCardId, '/payload/physicalCardId', issues); requirePlayerId(row.defendingPlayerId, '/payload/defendingPlayerId'); if (typeof row.replacementDamageTotal !== 'number' || !Number.isSafeInteger(row.replacementDamageTotal) || row.replacementDamageTotal < 0) issues.push(issue('INVALID_DAMAGE', '/payload/replacementDamageTotal', 'Damage must be a nonnegative safe integer')); if (typeof row.expectedBeforeStateDigest !== 'string' || !/^[0-9a-f]{64}$/.test(row.expectedBeforeStateDigest)) issues.push(issue('INVALID_DIGEST', '/payload/expectedBeforeStateDigest', 'Digest must be lowercase SHA-256 hexadecimal')); if (typeof row.reason !== 'string' || row.reason.trim().length === 0) issues.push(issue('INVALID_REASON', '/payload/reason', 'Reason must be non-empty and non-whitespace')); payload = Object.freeze({ kind, physicalCardId: row.physicalCardId as CorePhysicalCardId, defendingPlayerId: row.defendingPlayerId as CorePlayerId, replacementDamageTotal: row.replacementDamageTotal as number, expectedBeforeStateDigest: row.expectedBeforeStateDigest as string, reason: row.reason as string }); }
+    } else if (kind === 'manual-combat-damage') {
+      const row = requireRecord(['kind', 'defendingPlayerId', 'damage', 'commanderPhysicalCardId', 'combatObjectId']); if (row) {
+        requirePlayerId(row.defendingPlayerId, '/payload/defendingPlayerId');
+        if (typeof row.damage !== 'number' || !Number.isSafeInteger(row.damage) || row.damage <= 0 || row.damage > 120 || Object.is(row.damage, -0)) issues.push(issue('INVALID_DAMAGE', '/payload/damage', 'Damage must be a positive bounded safe integer'));
+        if (row.commanderPhysicalCardId !== null) requireBaseId(row.commanderPhysicalCardId, '/payload/commanderPhysicalCardId', issues);
+        if (row.combatObjectId !== null) requireObjectId(row.combatObjectId, '/payload/combatObjectId', issues);
+        if ((row.commanderPhysicalCardId === null) !== (row.combatObjectId === null)) issues.push(issue('INVALID_PROVENANCE', '/payload', 'Commander provenance requires both physical and combat object IDs'));
+        payload = Object.freeze({ kind, defendingPlayerId: row.defendingPlayerId as CorePlayerId, damage: row.damage as number, commanderPhysicalCardId: row.commanderPhysicalCardId as CorePhysicalCardId | null, combatObjectId: row.combatObjectId as CoreObjectId | null });
+      }
     } else if (kind === 'table-draw') {
       const row = requireRecord(['kind', 'count', 'manualMode'], ['manualMode']); if (row) { if (typeof row.count !== 'number' || !Number.isSafeInteger(row.count) || row.count < 1 || row.count > 100 || Object.is(row.count, -0)) issues.push(issue('INVALID_INTEGER', '/payload/count', 'Draw count must be 1 through 100')); if (row.manualMode !== undefined && row.manualMode !== 'structured' && row.manualMode !== 'freeform') issues.push(issue('INVALID_LITERAL', '/payload/manualMode', 'Invalid manual mode')); payload = Object.freeze({ kind, count: row.count as number, ...(row.manualMode === undefined ? {} : { manualMode: row.manualMode }) }); }
     } else if (kind === 'table-zone-move') {

@@ -61,6 +61,24 @@ export type OnlineBrowserCommandIntentV1 = Readonly<{
 
 export type OnlineBrowserTabletopIntentV1 = OnlineTabletopIntentEnvelopeV1;
 export type OnlineBrowserVisibilityIntentV1 = OnlineVisibilityIntentEnvelopeV1;
+/** Client payload for the server-owned shared undo intent. Transport context
+ * and participant capability are supplied by the configured client. */
+export type OnlineBrowserSharedUndoIntentV1 = Readonly<{
+  readonly kind: 'online-shared-undo-intent-v1';
+  readonly schemaVersion: 1;
+  readonly commandId: string;
+  readonly baseRevision: OnlineProtocolRevisionV1;
+}>;
+/** Public combat fact; physical card identity is intentionally absent. */
+export type OnlineBrowserManualCombatDamageIntentV1 = Readonly<{
+  readonly kind: 'online-manual-combat-damage-intent-v1';
+  readonly schemaVersion: 1;
+  readonly commandId: string;
+  readonly baseRevision: OnlineProtocolRevisionV1;
+  readonly defendingPlayerId: string;
+  readonly damage: number;
+  readonly commanderObjectId: string | null;
+}>;
 
 export type OnlineBrowserPendingCommandV1 = Readonly<{
   readonly commandId: OnlineProtocolCommandIdV1;
@@ -111,6 +129,8 @@ export type OnlineBrowserWebSocketClientV1 = Readonly<{
   readonly submit: (intent: OnlineBrowserCommandIntentV1) => OnlineBrowserSubmitResultV1;
   readonly submitTabletop: (intent: OnlineBrowserTabletopIntentV1) => OnlineBrowserSubmitResultV1;
   readonly submitVisibility: (intent: OnlineBrowserVisibilityIntentV1) => OnlineBrowserSubmitResultV1;
+  readonly submitSharedUndo: (intent: OnlineBrowserSharedUndoIntentV1) => OnlineBrowserSubmitResultV1;
+  readonly submitManualCombatDamage: (intent: OnlineBrowserManualCombatDamageIntentV1) => OnlineBrowserSubmitResultV1;
   readonly getSnapshot: () => OnlineBrowserStateV1;
   readonly subscribe: (
     listener: OnlineBrowserSubscriptionV1,

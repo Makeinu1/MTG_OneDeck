@@ -25,6 +25,7 @@ export type CoreDomainEventPayloadV1 =
   | Readonly<{ readonly kind: 'control-changed'; readonly effectKey: string; readonly targetObjectId: CoreObjectId }>
   | Readonly<{ readonly kind: 'commander-cast-recorded'; readonly physicalCardId: CorePhysicalCardId; readonly accepted: boolean; readonly castCount: number }>
   | Readonly<{ readonly kind: 'commander-damage-recorded'; readonly physicalCardId: CorePhysicalCardId; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly combatObjectId: CoreObjectId }>
+  | Readonly<{ readonly kind: 'manual-combat-damaged'; readonly defendingPlayerId: CorePlayerId; readonly damage: number; readonly commanderPhysicalCardId: CorePhysicalCardId | null; readonly combatObjectId: CoreObjectId | null }>
   | Readonly<{ readonly kind: 'combat-changed'; readonly operation: 'step' | 'attack' | 'block' }>
   | Readonly<{ readonly kind: 'player-exited'; readonly playerId: CorePlayerId; readonly cause: 'concession' | 'defeat' }>
   | Readonly<{ readonly kind: 'zone-randomized'; readonly randomDecisionId: string; readonly zoneKind: string; readonly count: number; readonly manualMode?: CoreTabletopManualModeV1 }>

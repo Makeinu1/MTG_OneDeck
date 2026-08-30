@@ -1,6 +1,8 @@
 import {
   handleOnlineCommandEnvelopeV1,
   handleOnlineVariableCommandEnvelopeV2,
+  handleOnlineVariableSharedUndoIntentV2,
+  handleOnlineVariableManualCombatDamageIntentV2,
   handleOnlineClientHelloV1,
   validateOnlineCommandEnvelopeV1,
   validateOnlineProtocolStateV1,
@@ -172,6 +174,7 @@ function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
   // accepting them on the legacy command envelope would bypass the shared
   // tabletop binder's HOLD and steward checks.
   if (payload.kind === 'stack-remove-object' || payload.kind === 'table-turn-progress' || payload.kind === 'table-manual-resolve') return true;
+  if (payload.kind === 'manual-combat-damage') return true;
   if (
     payload.kind === 'table-zone-move'
     || payload.kind === 'table-tap'
@@ -423,6 +426,15 @@ const TABLETOP_INTENT_FIELDS_V1 = Object.freeze([
   'baseRevision',
   'mode',
   'primitive',
+]);
+const SHARED_UNDO_INTENT_FIELDS_V1 = Object.freeze([
+  'kind', 'schemaVersion', 'protocolVersion', 'roomId', 'participantId',
+  'participantCapability', 'commandId', 'baseRevision',
+]);
+const MANUAL_COMBAT_DAMAGE_INTENT_FIELDS_V1 = Object.freeze([
+  'kind', 'schemaVersion', 'protocolVersion', 'roomId', 'participantId',
+  'participantCapability', 'commandId', 'baseRevision', 'defendingPlayerId',
+  'damage', 'commanderObjectId',
 ]);
 const VISIBILITY_INTENT_FIELDS_V1 = Object.freeze([
   'kind',
@@ -893,10 +905,16 @@ export class OnlineRoomDurableObject {
           return genericError(401);
         }
         const tabletopIntent = ownDataString(body, 'kind') === 'online-tabletop-intent-envelope-v1';
+        const sharedUndoIntent = ownDataString(body, 'kind') === 'online-shared-undo-intent-v1';
+        const manualCombatDamageIntent = ownDataString(body, 'kind') === 'online-manual-combat-damage-intent-v1';
         const visibilityIntent = ownDataString(body, 'kind') === 'online-visibility-intent-v1';
         if (tabletopIntent && !isExactRecord(body, TABLETOP_INTENT_FIELDS_V1)) return genericError(400);
+        if (sharedUndoIntent && !isExactRecord(body, SHARED_UNDO_INTENT_FIELDS_V1)) return genericError(400);
+        if (manualCombatDamageIntent && !isExactRecord(body, MANUAL_COMBAT_DAMAGE_INTENT_FIELDS_V1)) return genericError(400);
         if (tabletopIntent && ownDataValue(body, 'protocolVersion') !== state.protocolVersion) return genericError(400);
         if (tabletopIntent && roomId !== route.roomId) return genericError(400);
+        if (sharedUndoIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
+        if (manualCombatDamageIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
         if (visibilityIntent && !isVisibilityIntentRecord(body)) return genericError(400);
         if (visibilityIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
         let internalMessage: Record<string, unknown>;
@@ -927,6 +945,28 @@ export class OnlineRoomDurableObject {
             const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(route.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
             internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
           } catch { return genericError(400); }
+        }
+        if (sharedUndoIntent) {
+          if (state.kind !== 'online-protocol-state-v2') return genericError(426);
+          const transition = handleOnlineVariableSharedUndoIntentV2(state, internalMessage, true);
+          if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
+            const acquired = this.security.acquireControllerLease(state, participantId, admission.authorization.generation, { kind: 'http', connectionId: null }, now);
+            if (!acquired) return genericError(409);
+            this.repository.commitVariableUndoAcceptedV2(state, transition.state, internalMessage);
+            this.broadcastRevision(state.room.roomId, transition.state.revision);
+          }
+          return publicProtocolResponse(transition.response);
+        }
+        if (manualCombatDamageIntent) {
+          if (state.kind !== 'online-protocol-state-v2') return genericError(426);
+          const transition = handleOnlineVariableManualCombatDamageIntentV2(state, internalMessage, true);
+          if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
+            const acquired = this.security.acquireControllerLease(state, participantId, admission.authorization.generation, { kind: 'http', connectionId: null }, now);
+            if (!acquired) return genericError(409);
+            this.repository.commitVariableManualCombatDamageAcceptedV2(state, transition.state, internalMessage);
+            this.broadcastRevision(state.room.roomId, transition.state.revision);
+          }
+          return publicProtocolResponse(transition.response);
         }
         if (!tabletopIntent && !visibilityIntent && rejectsClientTabletopAuthorityBypass(internalMessage.command)) return genericError(400);
         const validation = validateOnlineCommandEnvelopeV1(internalMessage);
@@ -1037,7 +1077,7 @@ export class OnlineRoomDurableObject {
     }
     const frame = parsed.value;
     const kind = frameKind(frame);
-    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1' && kind !== 'online-visibility-intent-v1') {
+    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1' && kind !== 'online-visibility-intent-v1' && kind !== 'online-shared-undo-intent-v1' && kind !== 'online-manual-combat-damage-intent-v1') {
       this.malformedMessage(socket, counted.attachment, now);
       return;
     }
@@ -1070,12 +1110,30 @@ export class OnlineRoomDurableObject {
         return;
       }
       const tabletopIntent = kind === 'online-tabletop-intent-envelope-v1';
+      const sharedUndoIntent = kind === 'online-shared-undo-intent-v1';
+      const manualCombatDamageIntent = kind === 'online-manual-combat-damage-intent-v1';
       const visibilityIntent = kind === 'online-visibility-intent-v1';
       if (tabletopIntent && !isExactRecord(frame, TABLETOP_INTENT_FIELDS_V1)) {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }
+      if (sharedUndoIntent && !isExactRecord(frame, SHARED_UNDO_INTENT_FIELDS_V1)) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (manualCombatDamageIntent && !isExactRecord(frame, MANUAL_COMBAT_DAMAGE_INTENT_FIELDS_V1)) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
       if (tabletopIntent && ownDataValue(frame, 'protocolVersion') !== state.protocolVersion) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (sharedUndoIntent && (ownDataValue(frame, 'protocolVersion') !== state.protocolVersion || frameStringField(frame, 'roomId') !== state.room.roomId || frameStringField(frame, 'participantId') !== participantId)) {
+        this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (manualCombatDamageIntent && (ownDataValue(frame, 'protocolVersion') !== state.protocolVersion || frameStringField(frame, 'roomId') !== state.room.roomId || frameStringField(frame, 'participantId') !== participantId)) {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }
@@ -1116,6 +1174,22 @@ export class OnlineRoomDurableObject {
       }
       if ((kind === 'online-tabletop-intent-envelope-v1' || kind === 'online-visibility-intent-v1') && state.kind !== 'online-protocol-state-v2') {
         this.sendError(socket, 'INVALID_MESSAGE');
+        return;
+      }
+      if (sharedUndoIntent) {
+        if (state.kind !== 'online-protocol-state-v2') {
+          this.sendError(socket, 'INVALID_MESSAGE');
+          return;
+        }
+        this.handleVariableSharedUndo(socket, internalMessage, state, admission.authorization, now);
+        return;
+      }
+      if (manualCombatDamageIntent) {
+        if (state.kind !== 'online-protocol-state-v2') {
+          this.sendError(socket, 'INVALID_MESSAGE');
+          return;
+        }
+        this.handleVariableManualCombatDamage(socket, internalMessage, state, admission.authorization, now);
         return;
       }
       if (!tabletopIntent && kind === 'online-command-envelope-v1' && rejectsClientTabletopAuthorityBypass(internalMessage.command)) {
@@ -1365,6 +1439,50 @@ export class OnlineRoomDurableObject {
     if (!acquired) { this.sendError(socket, 'CONTROLLER_LEASE_REQUIRED'); return; }
     if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
       this.repository.commitVariableAcceptedV2(state, transition.state, validation.value); this.sendApplicationValue(socket, transition.response); this.broadcastRevision(state.room.roomId, transition.state.revision); return;
+    }
+    this.sendApplicationValue(socket, transition.response);
+  }
+
+  private handleVariableSharedUndo(
+    socket: OnlineCloudflareWebSocket,
+    intent: Record<string, unknown>,
+    state: OnlineVariableProtocolStateV2,
+    authorization: { readonly participantId: string; readonly authority: 'host' | 'seat' | 'table' | 'spectator'; readonly generation: number; readonly expiresAt: number },
+    now: number,
+  ): void {
+    const transition = handleOnlineVariableSharedUndoIntentV2(state, intent, true);
+    if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
+      const acquired = this.security.acquireControllerLease(state, authorization.participantId, authorization.generation, { kind: 'socket', connectionId: this.attachment(socket)?.connectionId ?? null }, now);
+      if (!acquired) {
+        this.sendError(socket, 'CONTROLLER_LEASE_REQUIRED');
+        return;
+      }
+      this.repository.commitVariableUndoAcceptedV2(state, transition.state, intent);
+      this.sendApplicationValue(socket, transition.response);
+      this.broadcastRevision(state.room.roomId, transition.state.revision);
+      return;
+    }
+    this.sendApplicationValue(socket, transition.response);
+  }
+
+  private handleVariableManualCombatDamage(
+    socket: OnlineCloudflareWebSocket,
+    intent: Record<string, unknown>,
+    state: OnlineVariableProtocolStateV2,
+    authorization: { readonly participantId: string; readonly authority: 'host' | 'seat' | 'table' | 'spectator'; readonly generation: number; readonly expiresAt: number },
+    now: number,
+  ): void {
+    const transition = handleOnlineVariableManualCombatDamageIntentV2(state, intent, true);
+    if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
+      const acquired = this.security.acquireControllerLease(state, authorization.participantId, authorization.generation, { kind: 'socket', connectionId: this.attachment(socket)?.connectionId ?? null }, now);
+      if (!acquired) {
+        this.sendError(socket, 'CONTROLLER_LEASE_REQUIRED');
+        return;
+      }
+      this.repository.commitVariableManualCombatDamageAcceptedV2(state, transition.state, intent);
+      this.sendApplicationValue(socket, transition.response);
+      this.broadcastRevision(state.room.roomId, transition.state.revision);
+      return;
     }
     this.sendApplicationValue(socket, transition.response);
   }

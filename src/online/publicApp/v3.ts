@@ -6,6 +6,7 @@ import {
 } from '../browser/index';
 import {
   bindPersonalWorkbenchActionV1,
+  bindSharedUndoIntentV1,
   type OnlineDisplayPairingSessionV1,
 } from '../displayPairing/index';
 import { bindOnlineGuidedCommandActionV1 } from '../guidedActions/index';
@@ -18,6 +19,7 @@ import {
   type PublicOnlineProjectionV3,
   type PublicOnlineSeatV3,
   type PublicOnlineSnapshotV3,
+  type PublicOnlineManualCombatDamageInputV1,
 } from './types';
 import { PUBLIC_ONLINE_ENDPOINT_V1 } from './index';
 import type { OnlineBrowserStateV1, OnlineBrowserSubmitErrorCodeV1 } from '../browser/index';
@@ -636,8 +638,64 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
       publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
     } finally { publish({ busy: null }); }
   };
+  const submitSharedUndo = async (baseRevision?: number, commandId = generatedId('undo')): Promise<void> => {
+    await Promise.resolve();
+    const activeSecrets = secrets;
+    const client = playerClient;
+    const projection = client?.getSnapshot().projection ?? null;
+    if (activeSecrets === null || client === null || snapshot.roomId === null || projection === null || projection.corePlayerId === null || snapshot.busy !== null || snapshot.lifecycle !== 'started') return;
+    const revision = baseRevision ?? projection.revision;
+    publish({ busy: 'undo', error: null, errorIssue: null });
+    try {
+      const session: OnlineDisplayPairingSessionV1 = {
+        protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion,
+        roomId: snapshot.roomId,
+        participantId: activeSecrets.participantId,
+        participantCapability: activeSecrets.seatCapability as never,
+        clientBuildId: 'o4p-09f-client',
+        corePlayerId: projection.corePlayerId,
+        personalProjection: projection,
+      };
+      const frame = bindSharedUndoIntentV1({ session, commandId, baseRevision: revision });
+      if (frame.kind !== 'online-shared-undo-intent-v1') throw new Error('共有状態を戻せませんでした。');
+      const result = client.submitSharedUndo({ kind: frame.kind, schemaVersion: frame.schemaVersion, commandId: frame.commandId, baseRevision: frame.baseRevision });
+      if (!result.ok) {
+        const issue = visibilitySubmitIssue(result.code);
+        publish({ error: issue.message, errorIssue: issue });
+      }
+    } catch (error: unknown) {
+      const issue = clientIssue(error, '共有状態を戻す操作を再試行');
+      if (issue.retryable) retryOperation = () => submitSharedUndo(revision, commandId);
+      publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
+    } finally { publish({ busy: null }); }
+  };
+  const submitManualCombatDamage = async (input: PublicOnlineManualCombatDamageInputV1): Promise<void> => {
+    await Promise.resolve();
+    const activeSecrets = secrets;
+    const client = playerClient;
+    const projection = client?.getSnapshot().projection ?? null;
+    if (activeSecrets === null || client === null || snapshot.roomId === null || projection === null || projection.corePlayerId === null || snapshot.busy !== null || snapshot.lifecycle !== 'started') return;
+    if (typeof input !== 'object' || input === null || typeof input.defendingPlayerId !== 'string' || !ID.test(input.defendingPlayerId) || typeof input.damage !== 'number' || !Number.isSafeInteger(input.damage) || input.damage <= 0 || input.damage > 120 || (input.commanderObjectId !== null && typeof input.commanderObjectId !== 'string')) {
+      publish({ error: '戦闘結果を確認して再試行してください。' });
+      return;
+    }
+    const revision = input.baseRevision ?? projection.revision;
+    const commandId = input.commandId ?? generatedId('damage');
+    publish({ busy: 'tabletop', error: null, errorIssue: null });
+    try {
+      const result = client.submitManualCombatDamage({ kind: 'online-manual-combat-damage-intent-v1', schemaVersion: 1, commandId, baseRevision: revision, defendingPlayerId: input.defendingPlayerId, damage: input.damage, commanderObjectId: input.commanderObjectId });
+      if (!result.ok) {
+        const issue = visibilitySubmitIssue(result.code);
+        publish({ error: issue.message, errorIssue: issue });
+      }
+    } catch (error: unknown) {
+      const issue = clientIssue(error, '戦闘結果を再送');
+      if (issue.retryable) retryOperation = () => submitManualCombatDamage(input);
+      publish({ error: issue.message, errorIssue: issue, connection: issue.retryable ? 'reconnecting' : snapshot.connection });
+    } finally { publish({ busy: null }); }
+  };
   const disconnect = (): void => { if (pollTimer !== null) clearTimeout(pollTimer); pollTimer = null; playerUnsubscribe?.(); tableUnsubscribe?.(); playerUnsubscribe = null; tableUnsubscribe = null; playerClient?.disconnect(); tableClient?.disconnect(); playerClient = null; tableClient = null; secrets = null; publish({ mode: 'entry', roomId: null, participantId: null, isHost: false, ownSeatIndex: null, lifecycle: null, configuration: null, projection: null, invites: [], busy: null, connection: 'lobby', error: null, errorIssue: null, ownerIssue: null, admissionOpen: null, player: null, table: null, pregame: null }); };
-  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, submitTabletopIntent, submitVisibilityIntent, displayDeckName: (name: string, index: number) => {
+  return Object.freeze({ getSnapshot: () => snapshot, subscribe: (listener: (value: PublicOnlineSnapshotV3) => void) => { listeners.add(listener); listener(snapshot); return () => listeners.delete(listener); }, createShared, joinShared, recover, refresh, submitDeck, toggleReady, start, rotateInvite, closeAdmission, kick, leave, retry, submitPregame, submitTabletopIntent, submitVisibilityIntent, submitSharedUndo, submitManualCombatDamage, displayDeckName: (name: string, index: number) => {
     const fallback = `保存済みデッキ ${index + 1}`;
     try {
       if (!Number.isSafeInteger(index) || index < 0 || typeof name !== 'string' ||

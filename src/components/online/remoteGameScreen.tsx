@@ -18,6 +18,8 @@ export type RemoteGameScreenPortInput = Readonly<{
   readonly busy: boolean;
   readonly onSubmitTabletopIntent: SubmitTabletopIntent;
   readonly onSubmitPersonalAction: SubmitPersonalAction;
+  /** Optional server-bound shared undo callback; no snapshot crosses this boundary. */
+  readonly onSubmitSharedUndo?: () => void | Promise<void>;
 }>;
 
 let commandSequence = 0;
@@ -156,6 +158,76 @@ type RemoteCausalExtras = Readonly<{
   readonly undoAuthorizedPlayerId?: string | null;
 }>;
 
+type RemoteCombatFacts = Readonly<{
+  readonly step: 'declare-attackers' | 'declare-blockers';
+  readonly attackingPlayerId: string;
+  readonly attacks: readonly Readonly<{ readonly attackerObjectId: string; readonly defendingPlayerId: string }>[];
+  readonly blocks: readonly Readonly<{ readonly blockerObjectId: string; readonly attackedObjectId: string; readonly defendingPlayerId: string }>[];
+}>;
+
+type RemoteCommanderDamageFact = Readonly<{
+  readonly commanderOwnerPlayerId: string;
+  readonly commanderSlot: number;
+  readonly defendingPlayerId: string;
+  readonly damage: number;
+}>;
+
+type RemoteSharedFacts = Readonly<{
+  readonly combat: RemoteCombatFacts | null;
+  readonly commanderDamage: readonly RemoteCommanderDamageFact[];
+  readonly winnerPlayerId: string | null;
+  readonly checkpointAvailable: boolean;
+  readonly informationExposureWarning: boolean;
+}>;
+
+function sharedFacts(projection: OnlineParticipantProjectionV1): RemoteSharedFacts {
+  const game = projection.game as unknown as Record<string, unknown>;
+  const checkpoint = game.checkpoint as Record<string, unknown> | null | undefined;
+  const combatValue = game.combat;
+  const combat = combatValue !== null && combatValue !== undefined && typeof combatValue === 'object' && !Array.isArray(combatValue)
+    ? (() => {
+      const value = combatValue as Record<string, unknown>;
+      const attacks = Array.isArray(value.attacks) ? value.attacks.flatMap((entry) => {
+        if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [];
+        const row = entry as Record<string, unknown>;
+        return typeof row.attackerObjectId === 'string' && typeof row.defendingPlayerId === 'string'
+          ? [{ attackerObjectId: row.attackerObjectId, defendingPlayerId: row.defendingPlayerId }]
+          : [];
+      }) : [];
+      const blocks = Array.isArray(value.blocks) ? value.blocks.flatMap((entry) => {
+        if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [];
+        const row = entry as Record<string, unknown>;
+        return typeof row.blockerObjectId === 'string' && typeof row.attackedObjectId === 'string' && typeof row.defendingPlayerId === 'string'
+          ? [{ blockerObjectId: row.blockerObjectId, attackedObjectId: row.attackedObjectId, defendingPlayerId: row.defendingPlayerId }]
+          : [];
+      }) : [];
+      const step: RemoteCombatFacts['step'] | null = value.step === 'declare-attackers'
+        ? 'declare-attackers'
+        : value.step === 'declare-blockers'
+          ? 'declare-blockers'
+          : null;
+      return step !== null && typeof value.attackingPlayerId === 'string'
+        ? { step, attackingPlayerId: value.attackingPlayerId, attacks, blocks }
+        : null;
+    })()
+    : null;
+  const commanderDamage = Array.isArray(game.commanderDamage) ? game.commanderDamage.flatMap((entry) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    return typeof row.commanderOwnerPlayerId === 'string' && Number.isSafeInteger(row.commanderSlot)
+      && typeof row.defendingPlayerId === 'string' && typeof row.damage === 'number'
+      ? [{ commanderOwnerPlayerId: row.commanderOwnerPlayerId, commanderSlot: row.commanderSlot as number, defendingPlayerId: row.defendingPlayerId, damage: row.damage }]
+      : [];
+  }) : [];
+  return {
+    combat,
+    commanderDamage,
+    winnerPlayerId: typeof game.winnerPlayerId === 'string' ? game.winnerPlayerId : null,
+    checkpointAvailable: checkpoint?.available === true,
+    informationExposureWarning: checkpoint?.informationExposureWarning === true,
+  };
+}
+
 function causalExtras(projection: OnlineParticipantProjectionV1): RemoteCausalExtras {
   const value = projection.game.assistedPriority as unknown as Record<string, unknown> | undefined;
   if (value === undefined || value === null) return {};
@@ -266,6 +338,50 @@ function projectedCard(entry: OnlineProjectedZoneEntryV1, zone: ZoneId, ownerFal
   return { cardId: entry.objectId, card, ...(definition ? { def: cardDef(definition, defId) } : {}) };
 }
 
+function projectedCombatState(
+  projection: OnlineParticipantProjectionV1,
+  cards: GameState['cards'],
+): NonNullable<GameState['combat']> | null {
+  const combat = sharedFacts(projection).combat;
+  if (combat === null) return null;
+  const attackerIds = new Set(combat.attacks.map((entry) => entry.attackerObjectId));
+  const attackers = combat.attacks.flatMap((entry, index) => {
+    if (cards[entry.attackerObjectId] === undefined) return [];
+    const blockedBy = combat.blocks
+      .filter((block) => block.attackedObjectId === entry.attackerObjectId)
+      .map((block) => block.blockerObjectId)
+      .filter((id) => cards[id] !== undefined);
+    return [{
+      cardId: entry.attackerObjectId,
+      objectId: entry.attackerObjectId,
+      controllerId: cards[entry.attackerObjectId]?.controllerId ?? combat.attackingPlayerId,
+      target: { type: 'player' as const, playerId: entry.defendingPlayerId },
+      blockedBy,
+      declaredOrder: index,
+    }];
+  });
+  const blockers = combat.blocks.flatMap((entry, index) => {
+    if (cards[entry.blockerObjectId] === undefined || !attackerIds.has(entry.attackedObjectId)) return [];
+    return [{
+      cardId: entry.blockerObjectId,
+      objectId: entry.blockerObjectId,
+      controllerId: cards[entry.blockerObjectId]?.controllerId ?? entry.defendingPlayerId,
+      blocking: [entry.attackedObjectId],
+      declaredOrder: index,
+    }];
+  });
+  const defendingPlayerId = combat.attacks[0]?.defendingPlayerId ?? combat.blocks[0]?.defendingPlayerId ?? projection.game.turn.activePlayerId;
+  return {
+    combatId: `remote-combat-${projection.revision}`,
+    turn: projection.game.turn.turnNumber,
+    step: combat.step === 'declare-attackers' ? 'declareAttackers' : 'declareBlockers',
+    attackingPlayerId: combat.attackingPlayerId,
+    defendingPlayerId,
+    attackers,
+    blockers,
+  };
+}
+
 // Shared adapter export is intentionally colocated with the Remote surface.
 // eslint-disable-next-line react-refresh/only-export-components
 export function projectionToGameState(projection: OnlineParticipantProjectionV1): GameState | null {
@@ -303,6 +419,7 @@ export function projectionToGameState(projection: OnlineParticipantProjectionV1)
   projection.game.zones.stack.entries.forEach((entry) => add(entry, 'stack'));
   projection.game.zones.exile.entries.forEach((entry) => add(entry, 'exile'));
   projection.game.zones.command.entries.forEach((entry) => add(entry, 'command'));
+  const combat = projectedCombatState(projection, cards);
   const allPlayers = projection.game.players;
   allPlayers.forEach((player) => {
     const privateZones = projection.game.zones.byPlayer.find((group) => group.playerId === player.playerId)?.zones;
@@ -345,7 +462,7 @@ export function projectionToGameState(projection: OnlineParticipantProjectionV1)
     localPlayerId,
     turn: projection.game.turn.turnNumber,
     phase: projection.game.turn.position.step === null ? phaseOf(projection.game.turn.position.phase) : stepOf(projection.game.turn.position.step),
-    combat: null,
+    combat,
     life: local?.life ?? 0,
     poison: local?.poison ?? 0,
     energy: local?.energy ?? 0,
@@ -512,6 +629,19 @@ export function useRemoteGameScreenInteractionPort(input: RemoteGameScreenPortIn
       && windowKind === 'resolution-ready'
       && projectedTopObjectId !== null
       && priority?.topStackObjectId === projectedTopObjectId;
+    const extras = causalExtras(projection);
+    const facts = sharedFacts(projection);
+    const undoAuthorized = extras.undoAuthorizedPlayerId === actor;
+    const canUndo = input.onSubmitSharedUndo !== undefined
+      && input.interactionState === 'ready'
+      && !input.busy
+      && !anyHold
+      && facts.checkpointAvailable
+      && undoAuthorized;
+    port.canUndo = canUndo;
+    port.undo = () => {
+      if (canUndo) void input.onSubmitSharedUndo?.();
+    };
     port.requestResolveTop = () => { if (canResolve) submit({ kind: 'priority-resolve' }); };
     port.requestResolveAll = () => { if (canResolve) submit({ kind: 'priority-resolve' }); };
     port.advancePhase = () => {
@@ -576,6 +706,7 @@ export function RemoteGameScreenActionRail({
   });
   const stackTop = projection.game.zones.stack.entries.at(-1);
   const extras = causalExtras(projection);
+  const facts = sharedFacts(projection);
   const automaticFocus = automaticFocusPlayer(projection);
   const effectiveFocus = focusedPlayerId ?? automaticFocus;
   const priority = projection.game.assistedPriority;
@@ -628,11 +759,14 @@ export function RemoteGameScreenActionRail({
   const targetPlayerLabels = targetPlayerIds.slice(0, 3).map((playerId) => `プレイヤー ${playerId}`);
   const postResolutionDelta = extras.recentResolution?.slice(0, 160) ?? null;
   const undoAuthorized = extras.undoAuthorizedPlayerId === local;
+  const seatOutcomes = projection.room.seats.map((seat) => ({ playerId: seat.corePlayerId, outcome: seat.outcome }));
+  const outcomeLabel = (outcome: string): string => outcome === 'conceded' ? '投了' : outcome === 'defeated' ? '敗北' : '進行中';
+  const connectionLabel = interactionState === 'ready' ? '接続済み' : interactionState === 'updating' ? '再同期中' : 'オフライン';
   return (
     <section className="online-remote-rail" data-testid="online-remote-game-rail" aria-label="共有ゲーム操作">
       <header className="online-remote-rail__header">
         <strong>共有テーブル</strong>
-        <span>更新 {projection.revision} / {priority?.holderPlayerId === local ? 'あなたが優先権' : `手番 ${projection.game.turn.activePlayerId}`}</span>
+        <span data-testid="online-remote-connection">{connectionLabel} / 更新 {projection.revision} / {priority?.holderPlayerId === local ? 'あなたが優先権' : `手番 ${projection.game.turn.activePlayerId}`}</span>
       </header>
       <div className="online-remote-rail__causal" data-testid="online-remote-causal">
         <span>スタック {projection.game.zones.stack.count}件</span>
@@ -643,6 +777,33 @@ export function RemoteGameScreenActionRail({
         {postResolutionDelta && <span data-testid="online-remote-post-resolution">直近の変化: {postResolutionDelta}</span>}
         {latestNote && <span>直近: {latestNote.text}</span>}
       </div>
+      {facts.combat && (
+        <section className="online-remote-rail__combat" data-testid="online-remote-combat" aria-label="共有戦闘">
+          <strong>戦闘 {facts.combat.step === 'declare-attackers' ? '攻撃指定' : 'ブロック指定'}</strong>
+          <span>攻撃 {facts.combat.attacks.length}件 / ブロック {facts.combat.blocks.length}件</span>
+          <span>攻撃プレイヤー: {facts.combat.attackingPlayerId}</span>
+          <span className="online-remote-rail__manual">割当・ダメージは Manual Damage で確認</span>
+        </section>
+      )}
+      {facts.commanderDamage.length > 0 && (
+        <section className="online-remote-rail__commander-damage" data-testid="online-remote-commander-damage" aria-label="統率者ダメージ">
+          <strong>統率者ダメージ</strong>
+          {facts.commanderDamage.map((entry) => (
+            <span key={`${entry.commanderOwnerPlayerId}:${entry.commanderSlot}:${entry.defendingPlayerId}`}>
+              {entry.commanderOwnerPlayerId} #{entry.commanderSlot + 1} → {entry.defendingPlayerId}: {entry.damage}
+            </span>
+          ))}
+        </section>
+      )}
+      {(facts.winnerPlayerId !== null || seatOutcomes.some((seat) => seat.outcome !== 'pending')) && (
+        <section className="online-remote-rail__outcome" data-testid="online-remote-outcome" aria-label="ゲーム結果">
+          {facts.winnerPlayerId !== null && <strong>勝者: {facts.winnerPlayerId}</strong>}
+          {seatOutcomes.map((seat) => <span key={seat.playerId}>{seat.playerId}: {outcomeLabel(seat.outcome)}</span>)}
+        </section>
+      )}
+      {facts.checkpointAvailable && facts.informationExposureWarning && (
+        <p className="online-remote-rail__exposure-warning" data-testid="online-remote-exposure-warning">公開情報は記憶から消せないため、UNDO後も忘れられません。</p>
+      )}
       <div className="online-remote-rail__seats" aria-label="対戦相手の公開情報">
         {opponentSeats.map(({ player, handCount, graveyardCount, battlefieldCount }) => (
           <button key={player.playerId} type="button" className="online-remote-rail__seat" data-testid="online-remote-opponent" aria-pressed={effectiveFocus === player.playerId} onClick={() => setFocusedPlayerId((current) => current === player.playerId ? null : player.playerId)}>
@@ -677,8 +838,9 @@ export function RemoteGameScreenActionRail({
         <button type="button" data-testid="online-remote-pass" disabled={disabled || !canPass} onClick={() => onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: local, baseRevision: projection.revision })}>優先権をパス</button>
         <button type="button" data-testid="online-remote-advance" disabled={disabled || anyHold || (!canAdvance && !canPass)} onClick={() => port.advancePhase()}>次の判断へ</button>
         <button type="button" data-testid="online-remote-resolve" disabled={disabled || !canResolve} onClick={() => port.requestResolveTop()}>スタックを解決</button>
-        <button type="button" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled aria-label={undoAuthorized ? 'UNDO unavailable (checkpoint storage later); steward authorization present' : 'UNDO unavailable (steward only; checkpoint storage later)'}>UNDO unavailable (checkpoint storage later)</button>
+        <button type="button" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled={!port.canUndo} onClick={() => port.undo()} aria-label={port.canUndo ? '共有チェックポイントへ1手戻す' : undoAuthorized ? 'UNDO unavailable (checkpoint unavailable or HOLD active)' : 'UNDO unavailable (steward only)'}>{port.canUndo ? 'UNDO（1手戻す）' : 'UNDO unavailable (checkpoint/steward)'}</button>
       </div>
+      <a className="online-remote-rail__manual-link" data-testid="online-remote-manual-damage-link" href="#online-tabletop-manual-title">Manual Damage を開く</a>
       <p className="online-remote-rail__manual">複合効果・対象選択・秘密情報はガイド/手動パネルで処理します。</p>
     </section>
   );

@@ -78,5 +78,8 @@ export type {
   OnlineVariableParticipantProjectionV4,
   OnlineParticipantProjectionV4,
   OnlineProjectedAssistedPriorityV4,
+  OnlineProjectedCombatV4,
+  OnlineProjectedCommanderDamageV4,
+  OnlineProjectedCheckpointV4,
   OnlineProjectedConcealedBattlefieldObjectV4,
 } from './variable';

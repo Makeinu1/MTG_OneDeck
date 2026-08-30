@@ -1,11 +1,19 @@
 import {
   isCanonicalCoreObjectIdV2,
+  isCoreBaseId,
   validateModeNeutralCoreRootV1,
   type ModeNeutralCoreRootV1,
   type CoreObjectId,
+  type CorePlayerId,
 } from '../../engine/core/index';
 import { CURRENT_CONTRACT_VERSIONS } from '../../versioning/index';
 import { validateOnlineVariableRoomV2, type OnlineVariableRoomV2 } from '../room/variable';
+import {
+  isOnlineProtocolCommandIdV1,
+  isProtocolApplicationId,
+  isProtocolCapability,
+  isProtocolRevision,
+} from './support';
 
 export const ONLINE_PROTOCOL_SCHEMA_VERSION_V2 = 2 as const;
 /** Private result retained with the accepted command receipt. */
@@ -24,6 +32,51 @@ export type OnlineVariableProtocolReceiptV2 = Readonly<{
   readonly status: 'accepted' | 'accepted-with-warning';
   readonly completion?: OnlineVariableProtocolCompletionResultV2;
 }>;
+/** One server-owned rollback point for the latest shared mutation.  The Core
+ * root is never accepted from the client; it is captured from authoritative
+ * state before a mutation and consumed only by the trusted undo handler. */
+export type OnlineSharedCheckpointV1 = Readonly<{
+  readonly kind: 'online-shared-checkpoint-v1';
+  readonly revision: number;
+  readonly coreRoot: ModeNeutralCoreRootV1;
+  readonly seatOutcomes: readonly ('pending' | 'conceded' | 'defeated')[];
+  readonly stewardPlayerId: CorePlayerId;
+  readonly informationExposureWarning: boolean;
+}>;
+export type OnlineSharedUndoIntentV1 = Readonly<{
+  readonly kind: 'online-shared-undo-intent-v1';
+  readonly schemaVersion: 1;
+  readonly protocolVersion: number;
+  readonly roomId: string;
+  readonly participantId: string;
+  readonly participantCapability: string;
+  readonly commandId: string;
+  readonly baseRevision: number;
+}>;
+/** Transport-only manual combat damage fact.  The client may identify a
+ * public combat object, but never supplies a private physical card identity;
+ * the trusted server binder derives that identity from its registry. */
+export type OnlineManualCombatDamageIntentV1 = Readonly<{
+  readonly kind: 'online-manual-combat-damage-intent-v1';
+  readonly schemaVersion: 1;
+  readonly protocolVersion: number;
+  readonly roomId: string;
+  readonly participantId: string;
+  readonly participantCapability: string;
+  readonly commandId: string;
+  readonly baseRevision: number;
+  readonly defendingPlayerId: CorePlayerId;
+  readonly damage: number;
+  readonly commanderObjectId: CoreObjectId | null;
+}>;
+export type OnlineManualCombatDamageIntentValidationResultV1 = Readonly<
+  | { readonly ok: true; readonly value: OnlineManualCombatDamageIntentV1 }
+  | { readonly ok: false }
+>;
+export type OnlineSharedUndoIntentValidationResultV1 = Readonly<
+  | { readonly ok: true; readonly value: OnlineSharedUndoIntentV1 }
+  | { readonly ok: false }
+>;
 export type OnlineVariableProtocolStateV2 = Readonly<{
   readonly kind: 'online-protocol-state-v2';
   readonly schemaVersion: typeof ONLINE_PROTOCOL_SCHEMA_VERSION_V2;
@@ -33,6 +86,7 @@ export type OnlineVariableProtocolStateV2 = Readonly<{
   readonly configuration: OnlineVariableRoomV2['configuration'];
   readonly coreRoot: ModeNeutralCoreRootV1;
   readonly observerAuthorizations: readonly Readonly<{ readonly participantId: string; readonly observerCapability: string }>[];
+  readonly sharedCheckpoint?: OnlineSharedCheckpointV1 | null;
   readonly revision: number;
   readonly receipts: readonly OnlineVariableProtocolReceiptV2[];
 }>;
@@ -50,6 +104,56 @@ function exactOptional(value: unknown, fields: readonly string[], optional: read
       && fields.every((key) => Object.prototype.hasOwnProperty.call(value, key));
   } catch { return false; }
 }
+
+/** Validate the transport-only shared rollback intent.  The payload carries
+ * no snapshot or authority fields; the server binds participant capability
+ * and checks the checkpoint against authoritative state. */
+export function validateOnlineSharedUndoIntentV1(input: unknown): OnlineSharedUndoIntentValidationResultV1 {
+  if (!record(input)) return { ok: false };
+  const fields = ['kind', 'schemaVersion', 'protocolVersion', 'roomId', 'participantId', 'participantCapability', 'commandId', 'baseRevision'] as const;
+  try {
+    const keys = Reflect.ownKeys(input);
+    if (keys.length !== fields.length || keys.some((key) => {
+      if (typeof key !== 'string' || !fields.includes(key as typeof fields[number]) || !Object.prototype.propertyIsEnumerable.call(input, key)) return true;
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      return descriptor === undefined || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined;
+    })) return { ok: false };
+    const row = input;
+    if (row.kind !== 'online-shared-undo-intent-v1' || row.schemaVersion !== 1
+      || !isProtocolRevision(row.protocolVersion)
+      || !isProtocolApplicationId(row.roomId) || !isProtocolApplicationId(row.participantId)
+      || !isProtocolCapability(row.participantCapability) || !isOnlineProtocolCommandIdV1(row.commandId)
+      || !isProtocolRevision(row.baseRevision)) return { ok: false };
+    return Object.freeze({ ok: true as const, value: Object.freeze({ kind: 'online-shared-undo-intent-v1' as const, schemaVersion: 1 as const, protocolVersion: row.protocolVersion, roomId: row.roomId, participantId: row.participantId, participantCapability: row.participantCapability, commandId: row.commandId, baseRevision: row.baseRevision }) });
+  } catch {
+    return { ok: false };
+  }
+}
+
+export function validateOnlineManualCombatDamageIntentV1(input: unknown): OnlineManualCombatDamageIntentValidationResultV1 {
+  if (!record(input)) return { ok: false };
+  const fields = ['kind', 'schemaVersion', 'protocolVersion', 'roomId', 'participantId', 'participantCapability', 'commandId', 'baseRevision', 'defendingPlayerId', 'damage', 'commanderObjectId'] as const;
+  try {
+    const keys = Reflect.ownKeys(input);
+    if (keys.length !== fields.length || keys.some((key) => {
+      if (typeof key !== 'string' || !fields.includes(key as typeof fields[number]) || !Object.prototype.propertyIsEnumerable.call(input, key)) return true;
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      return descriptor === undefined || !('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined;
+    })) return { ok: false };
+    const row = input;
+    if (row.kind !== 'online-manual-combat-damage-intent-v1' || row.schemaVersion !== 1
+      || !isProtocolRevision(row.protocolVersion)
+      || !isProtocolApplicationId(row.roomId) || !isProtocolApplicationId(row.participantId)
+      || !isProtocolCapability(row.participantCapability) || !isOnlineProtocolCommandIdV1(row.commandId)
+      || !isProtocolRevision(row.baseRevision) || !isCoreBaseId(row.defendingPlayerId)
+      || typeof row.damage !== 'number' || !Number.isSafeInteger(row.damage) || row.damage <= 0 || row.damage > 120 || Object.is(row.damage, -0)
+      || (row.commanderObjectId !== null && !isCanonicalCoreObjectIdV2(row.commanderObjectId))) return { ok: false };
+    const normalized = Object.freeze({ kind: 'online-manual-combat-damage-intent-v1' as const, schemaVersion: 1 as const, protocolVersion: row.protocolVersion, roomId: row.roomId, participantId: row.participantId, participantCapability: row.participantCapability, commandId: row.commandId, baseRevision: row.baseRevision, defendingPlayerId: row.defendingPlayerId, damage: row.damage, commanderObjectId: row.commanderObjectId });
+    return Object.freeze({ ok: true as const, value: normalized as unknown as OnlineManualCombatDamageIntentV1 });
+  } catch {
+    return { ok: false };
+  }
+}
 function outcomeForCore(
   entry: ModeNeutralCoreRootV1['playerLifecycle']['players'][number],
 ): 'pending' | 'conceded' | 'defeated' {
@@ -58,7 +162,7 @@ function outcomeForCore(
 }
 
 function validateInternal(input: unknown): OnlineVariableProtocolStateV2 {
-  if (!exact(input, ['kind', 'schemaVersion', 'protocolVersion', 'serverBuildId', 'room', 'configuration', 'coreRoot', 'observerAuthorizations', 'revision', 'receipts'])) fail('Invalid variable protocol state');
+  if (!exactOptional(input, ['kind', 'schemaVersion', 'protocolVersion', 'serverBuildId', 'room', 'configuration', 'coreRoot', 'observerAuthorizations', 'revision', 'receipts'], ['sharedCheckpoint'])) fail('Invalid variable protocol state');
   const roomResult = validateOnlineVariableRoomV2(input.room);
   const coreResult = validateModeNeutralCoreRootV1(input.coreRoot);
   if (input.kind !== 'online-protocol-state-v2' || input.schemaVersion !== 2 || typeof input.protocolVersion !== 'number' || !Number.isSafeInteger(input.protocolVersion) || typeof input.serverBuildId !== 'string' || !roomResult.ok || !coreResult.ok || JSON.stringify(input.configuration) !== JSON.stringify(roomResult.value.configuration) || typeof input.revision !== 'number' || !Number.isSafeInteger(input.revision) || input.revision < 0 || !Array.isArray(input.receipts)) fail('Invalid variable protocol state fields');
@@ -94,7 +198,28 @@ function validateInternal(input: unknown): OnlineVariableProtocolStateV2 {
     }
     return Object.freeze({ participantId: entry.participantId, acceptedRevision: entry.acceptedRevision, commandId: entry.commandId, requestDigest: entry.requestDigest, status: entry.status, ...(completion === undefined ? {} : { completion }) });
   }));
-  return Object.freeze({ kind: 'online-protocol-state-v2', schemaVersion: 2, protocolVersion: input.protocolVersion, serverBuildId: input.serverBuildId, room: roomResult.value, configuration: roomResult.value.configuration, coreRoot, observerAuthorizations: Object.freeze(observers), revision, receipts });
+  let sharedCheckpoint: OnlineSharedCheckpointV1 | null | undefined;
+  if (Object.prototype.hasOwnProperty.call(input, 'sharedCheckpoint')) {
+    const raw = input.sharedCheckpoint;
+    if (raw !== null) {
+      const checkpoint = raw as Record<string, unknown>;
+      if (!exact(raw, ['kind', 'revision', 'coreRoot', 'seatOutcomes', 'stewardPlayerId', 'informationExposureWarning'])
+        || checkpoint.kind !== 'online-shared-checkpoint-v1'
+        || typeof checkpoint.revision !== 'number' || !Number.isSafeInteger(checkpoint.revision) || checkpoint.revision < 0 || checkpoint.revision >= revision
+        || !Array.isArray(checkpoint.seatOutcomes) || checkpoint.seatOutcomes.length !== roomResult.value.seats.length
+        || checkpoint.seatOutcomes.some((outcome) => outcome !== 'pending' && outcome !== 'conceded' && outcome !== 'defeated')
+        || !isCoreBaseId(checkpoint.stewardPlayerId)
+        || !roomResult.value.seats.some((seat) => seat.corePlayerId === checkpoint.stewardPlayerId)
+        || typeof checkpoint.informationExposureWarning !== 'boolean') fail('Invalid shared checkpoint');
+      const outcomes = checkpoint.seatOutcomes as readonly ('pending' | 'conceded' | 'defeated')[];
+      const checkpointCore = validateModeNeutralCoreRootV1(checkpoint.coreRoot);
+      if (!checkpointCore.ok || checkpointCore.value.acceptedCommandCount !== checkpoint.revision) fail('Invalid shared checkpoint');
+      const checkpointPlayers = checkpointCore.value.playerLifecycle.players;
+      if (checkpointPlayers.length !== roomResult.value.seats.length || checkpointPlayers.some((player, index) => outcomeForCore(player) !== outcomes[index])) fail('Invalid shared checkpoint');
+      sharedCheckpoint = Object.freeze({ kind: 'online-shared-checkpoint-v1', revision: checkpoint.revision, coreRoot: checkpointCore.value, seatOutcomes: Object.freeze(outcomes.slice()), stewardPlayerId: checkpoint.stewardPlayerId as CorePlayerId, informationExposureWarning: checkpoint.informationExposureWarning });
+    } else sharedCheckpoint = null;
+  }
+  return Object.freeze({ kind: 'online-protocol-state-v2', schemaVersion: 2, protocolVersion: input.protocolVersion, serverBuildId: input.serverBuildId, room: roomResult.value, configuration: roomResult.value.configuration, coreRoot, observerAuthorizations: Object.freeze(observers), ...(sharedCheckpoint === undefined ? {} : { sharedCheckpoint }), revision, receipts });
 }
 export function validateOnlineVariableProtocolStateV2(input: unknown): OnlineVariableProtocolValidationResultV2 { try { return Object.freeze({ ok: true as const, value: validateInternal(input) }); } catch (error: unknown) { return Object.freeze({ ok: false as const, issues: Object.freeze([{ code: 'INVALID_PROTOCOL_STATE', path: '', message: error instanceof Error ? error.message : 'Invalid variable protocol state' }]) }); } }
 export function createOnlineVariableProtocolStateV2(input: CreateOnlineVariableProtocolStateV2Input): OnlineVariableProtocolStateV2 { if (!record(input)) fail('Invalid variable protocol input'); return validateInternal({ kind: 'online-protocol-state-v2', schemaVersion: 2, protocolVersion: CURRENT_CONTRACT_VERSIONS.protocolVersion, serverBuildId: input.serverBuildId, room: input.room, configuration: input.room.configuration, coreRoot: input.coreRoot, observerAuthorizations: input.observerAuthorizations ?? [], revision: 0, receipts: [] }); }
