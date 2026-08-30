@@ -54,6 +54,8 @@ type FakeOptions = Readonly<{
   readonly asyncStartProbe?: boolean;
   readonly pregameReadyRevisionMissing?: boolean;
   readonly pregameTerminalSurfaceFailure?: boolean;
+  readonly manualStackEnabledSeat?: number;
+  readonly manualStackEnabledProbeNeverSettles?: boolean;
   readonly startedSurfaceFailure?: 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
   readonly lobbyReadyProbe?: 'delayed' | 'never';
 }>;
@@ -105,6 +107,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('pregameTerminalSurfaceProbe')) {
         return Promise.resolve((options.pregameReadyRevisionMissing === true && options.pregameTerminalSurfaceFailure !== true) as T);
       }
+      if (expression.includes('manualStackEnabledProbe')) {
+        if (options.manualStackEnabledProbeNeverSettles === true) return new Promise<T>(() => {});
+        return Promise.resolve((options.manualStackEnabledSeat === undefined || options.manualStackEnabledSeat === seatIndex) as T);
+      }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
       const pregameControlIndex = pregameControls.findIndex((control) => expression.includes(`data-testid="${control}"`));
       if (pregameControlIndex >= 0) {
@@ -133,6 +139,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         return Promise.resolve(true as T);
       }
       if (expression.includes('data-testid="online-start-game"') && expression.includes('node.click(); return true')) startClicks += 1;
+      if (expression.includes('data-testid="online-tabletop-submit-stack-entry"') && expression.includes('node.click(); return true') && options.manualStackEnabledSeat !== undefined && options.manualStackEnabledSeat !== seatIndex) return Promise.reject(new Error('manual stack actor mismatch'));
+      if (expression.includes('data-testid="online-tabletop-submit-manual-resolve"') && expression.includes('node.click(); return true') && options.manualStackEnabledSeat !== undefined && options.manualStackEnabledSeat !== seatIndex) return Promise.reject(new Error('manual resolve actor mismatch'));
       if (expression.includes('node.click(); return true') || expression.includes('target.click(); return true')) sharedRevisions[scenarioIndex] += 1;
       if (expression.includes('data-testid="online-remote-advance"')) {
         advanceClicks += 1;
@@ -473,6 +481,37 @@ describe('O4P-09I full-match production evidence', () => {
       timeoutMs: 250,
     })).rejects.toThrow('production scenario stage failed: pregame-control');
     expect(expressions.some((expression) => expression.includes('pregameTerminalSurfaceProbe'))).toBe(true);
+  });
+
+  it('drives manual stack and resolve from the seat whose current actor control is enabled', async () => {
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { manualStackEnabledSeat: 1 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
+    expect(expressions.some((expression) => expression.includes('manualStackEnabledProbe'))).toBe(true);
+  });
+
+  it('fails closed when no seat exposes an enabled manual stack actor control', async () => {
+    const expressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { manualStackEnabledSeat: 9 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: manual-stack');
+    expect(expressions.some((expression) => expression.includes('manualStackEnabledProbe'))).toBe(true);
+  });
+
+  it('bounds a manual stack actor probe that never settles', async () => {
+    const expressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { manualStackEnabledProbeNeverSettles: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: manual-stack');
+    expect(expressions.some((expression) => expression.includes('manualStackEnabledProbe'))).toBe(true);
   });
 
   it.each([

@@ -963,6 +963,42 @@ async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: numb
   ]);
 }
 
+async function manualStackControlEnabled(page: O4p09iPageV1, timeoutMs: number): Promise<boolean> {
+  if (timeoutMs <= 0) return false;
+  return Promise.race([
+    page.evaluate<boolean>(`(() => { // manualStackEnabledProbe
+      const node = document.querySelector('[data-testid="online-tabletop-submit-stack-entry"]');
+      if (!(node instanceof HTMLButtonElement)) return false;
+      const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+      return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && !node.disabled;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('manual stack actor probe timeout')), timeoutMs)),
+  ]);
+}
+
+async function findManualStackActorPage(pages: readonly O4p09iPageV1[], timeoutMs: number): Promise<O4p09iPageV1> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    for (const page of pages) {
+      const beforePanel = deadline - Date.now();
+      if (beforePanel <= 0) throw new Error('manual stack actor control timeout');
+      try {
+        // The stack form lives inside the manual details panel. Open each
+        // panel before probing so only a genuinely enabled actor is selected.
+        await toggleDetails(page, 'online-remote-manual-overlay', Math.min(250, beforePanel));
+        const beforeProbe = deadline - Date.now();
+        if (beforeProbe <= 0) throw new Error('manual stack actor control timeout');
+        if (await manualStackControlEnabled(page, beforeProbe)) return page;
+      } catch {
+        // A seat may still be rendering its projected actor/phase. Continue
+        // polling until the bounded deadline instead of guessing an actor.
+      }
+    }
+    if (Date.now() >= deadline) throw new Error('manual stack actor control timeout');
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
 async function readInvite(page: O4p09iPageV1, timeoutMs: number): Promise<string> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -1235,6 +1271,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let revisionAfterReconnect: number | undefined;
   let initialRevision = 0;
   let manualDamageCount = 0;
+  let manualStackPage: O4p09iPageV1 | null = null;
   let chooseObserved = false;
   let crossSeatPrivateChoiceLeak = false;
   let stage: O4p09iScenarioStageV1 = 'import';
@@ -1402,8 +1439,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-tabletop-submit-stack-entry') {
         setStage('manual-stack');
-        await fillVisible(hostPage, 'online-tabletop-stack-entry-id', 'manual-stack-entry', timeoutMs);
-        await fillVisible(hostPage, 'online-tabletop-stack-label', '公開手動項目', timeoutMs);
+        manualStackPage = await findManualStackActorPage(pages, timeoutMs);
+        await fillVisible(manualStackPage, 'online-tabletop-stack-entry-id', 'manual-stack-entry', timeoutMs);
+        await fillVisible(manualStackPage, 'online-tabletop-stack-label', '公開手動項目', timeoutMs);
       }
       if (testId === 'visibility-look') {
         setStage('visibility');
@@ -1416,9 +1454,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-tabletop-submit-manual-resolve') setStage('manual-stack');
       if (!STAGE_HANDLED_UI_CONTROLS.has(testId)) setStage('ui-action');
-      const actionBaseline = REVISION_CONTROLS.has(testId) ? (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision : null;
-      await clickVisible(hostPage, testId, timeoutMs); recordControl(testId);
-      if (actionBaseline !== null) await waitForRevisionAdvance(hostPage, workerOrigin, actionBaseline, timeoutMs, secretFragments);
+      const actionPage = (testId === 'online-tabletop-submit-stack-entry' || testId === 'online-tabletop-submit-manual-resolve')
+        ? manualStackPage ?? hostPage
+        : hostPage;
+      const actionBaseline = REVISION_CONTROLS.has(testId) ? (await probePage(actionPage, timeoutMs, workerOrigin, secretFragments)).revision : null;
+      await clickVisible(actionPage, testId, timeoutMs); recordControl(testId);
+      if (actionBaseline !== null) await waitForRevisionAdvance(actionPage, workerOrigin, actionBaseline, timeoutMs, secretFragments);
       if (testId === 'visibility-look') {
         setStage('private-leak-check');
         const confirmBaseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;
