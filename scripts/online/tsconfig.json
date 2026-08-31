@@ -3,5 +3,5 @@
   "compilerOptions": {
     "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.online-evidence.tsbuildinfo"
   },
-  "include": ["./o4p-03d-evidence.ts", "./o4p-06f-four-browser-evidence.ts", "./o4p-09i-full-match-evidence.ts"]
+  "include": ["./o4p-03d-evidence.ts", "./o4p-06f-four-browser-evidence.ts", "./o4p-09i-full-match-evidence.ts", "./remote-priority-journey-evidence.ts"]
 }

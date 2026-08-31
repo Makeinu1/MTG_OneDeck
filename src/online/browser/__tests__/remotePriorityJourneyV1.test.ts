@@ -105,5 +105,19 @@ describe('Remote HOLD/pass/resolve journey evidence', () => {
         seats: resolved.seats.map((candidate) => ({ ...candidate, stackCount: 1, topObjectId: 'PC3:1' })),
       }],
     })).toEqual({ ok: false, code: 'CAPTURED_TOP_NOT_RESOLVED' });
+
+    expect(validateRemotePriorityJourneyObservationV1({
+      ...observation,
+      steps: observation.steps.map((candidate, index) => index === 0
+        ? { ...candidate, seats: candidate.seats.map((projected) => ({ ...projected, windowKind: 'resolution-ready' })) }
+        : candidate),
+    })).toEqual({ ok: false, code: 'HOLD_WINDOW_DIVERGED' });
+
+    expect(validateRemotePriorityJourneyObservationV1({
+      ...observation,
+      steps: observation.steps.map((candidate, index) => index === 2
+        ? { ...candidate, seats: candidate.seats.map((projected) => ({ ...projected, stewardPlayerId: 'P3' })) }
+        : candidate),
+    })).toEqual({ ok: false, code: 'STATE_ID_NOT_SEATED' });
   });
 });

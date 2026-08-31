@@ -6,18 +6,27 @@ import type { DropIntent } from '../game/dragIntent';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import type { CardDef, ManaColor } from '../../types/card';
 import type { OnlineParticipantProjectionV1, OnlineProjectedZoneEntryV1 } from '../../online/projection';
-import type { OnlineBrowserCommandSettlementV1 } from '../../online/browser';
 import type { OnlineTabletopIntentEnvelopeV1, OnlineTabletopPrimitiveV1 } from '../../online/tabletopManual';
 import './remoteGameScreen.css';
 
 type SubmitTabletopIntent = (intent: OnlineTabletopIntentEnvelopeV1) => void | Promise<void>;
+type RemoteCommandSettlementV1 = Readonly<{
+  readonly commandId: string;
+  readonly baseRevision: number;
+  readonly currentRevision: number;
+  readonly acceptedRevision: number | null;
+  readonly commandKind: 'command' | 'tabletop' | 'visibility' | 'sharedUndo' | 'manualCombatDamage';
+  readonly operation: string | null;
+  readonly outcome: 'accepted' | 'rejected';
+  readonly issueCode: string | null;
+}>;
 
 export type RemoteGameScreenPortInput = Readonly<{
   readonly projection: OnlineParticipantProjectionV1 | null;
   readonly interactionState: 'ready' | 'updating' | 'offline';
   readonly busy: boolean;
   readonly onSubmitTabletopIntent: SubmitTabletopIntent;
-  readonly lastCommandSettlement?: OnlineBrowserCommandSettlementV1 | null;
+  readonly lastCommandSettlement?: RemoteCommandSettlementV1 | null;
   /** Optional server-bound shared undo callback; no snapshot crosses this boundary. */
   readonly onSubmitSharedUndo?: () => void | Promise<void>;
 }>;
@@ -840,8 +849,26 @@ export function RemoteGameScreenActionRail({
   const holdLabel = anyHold
     ? ownHeld ? 'あなたがHOLD中' : '他プレイヤーがHOLD中'
     : 'HOLDなし';
+  const publicSeatIds = projection.room.seats.map((seat) => seat.corePlayerId).join(',');
+  const priorityHolds = priority?.holds ?? projection.game.priorityHolds?.map((hold) => hold.playerId) ?? [];
+  const recentResolution = (projection.game.assistedPriority as unknown as Readonly<{
+    readonly recentResolution?: Readonly<{ readonly objectId: string | null; readonly acceptedRevision: number }> | null;
+  }> | undefined)?.recentResolution ?? null;
   return (
-    <section className="online-remote-rail" data-testid="online-remote-game-rail" aria-label="共有ゲーム操作">
+    <section
+      className="online-remote-rail"
+      data-testid="online-remote-game-rail"
+      aria-label="共有ゲーム操作"
+      data-projection-revision={projection.revision}
+      data-public-seat-ids={publicSeatIds}
+      data-local-player-id={local}
+      data-priority-holder-player-id={priority?.holderPlayerId ?? ''}
+      data-priority-steward-player-id={priority?.stewardPlayerId ?? ''}
+      data-priority-window-kind={priority?.windowKind ?? ''}
+      data-priority-holds={priorityHolds.join(',')}
+      data-recent-resolution-object-id={recentResolution?.objectId ?? ''}
+      data-recent-resolution-revision={recentResolution === null ? '' : String(recentResolution.acceptedRevision)}
+    >
       <header className="online-remote-rail__header">
         <h2 id="online-remote-rail-title">共有テーブル</h2>
         <span data-testid="online-remote-connection" role="status" aria-live="polite">{connectionLabel} / 更新 {projection.revision}</span>

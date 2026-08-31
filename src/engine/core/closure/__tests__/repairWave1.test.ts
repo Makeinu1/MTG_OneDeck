@@ -168,11 +168,12 @@ describe('O4P-01N repair wave 1', () => {
     const root = Closure.createModeNeutralCoreRootV1({
       ...base,
       acceptedCommandCount: 1,
-      tabletopManual: Core.createCoreTabletopManualStateV1({ priorityHolds: [{ playerId: 'P1', setRevision: 1 }] }),
+      tabletopManual: Core.createCoreTabletopManualStateV1({ priorityHolds: [{ playerId: P1, setRevision: 1 }] }),
     });
     const digest = Closure.coreCanonicalDigestFromValueV1(root);
     const result = Closure.applyCoreCommandV1(root, command(2, 'P2', { kind: 'priority-pass', playerId: 'P2' }));
     expect(result).toMatchObject({ status: 'rejected', root, beforeStateDigest: digest, afterStateDigest: digest, events: [] });
+    if (result.status !== 'rejected') throw new Error('Expected HOLD rejection');
     expect(result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'PRIORITY_HOLD_ACTIVE' })]));
   });
 

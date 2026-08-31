@@ -7,14 +7,13 @@ import {
   useRemoteGameScreenInteractionPort,
 } from '../../components/online/remoteGameScreen';
 import { DEFAULT_KEYBINDINGS } from '../../data/keybindings';
-import type { OnlineBrowserCommandSettlementV1 } from '../../online/browser';
 import type { OnlineParticipantProjectionV1 } from '../../online/projection';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../../online/tabletopManual';
 import fixture from '../../online/workbench/fixtures/o4p-04a-personal-workbench-v1.json';
 
 const projection = fixture as unknown as OnlineParticipantProjectionV1;
 const prioritySettlement = Object.freeze({
-  commandId: 'remote-priority-fixture' as OnlineBrowserCommandSettlementV1['commandId'],
+  commandId: 'remote-priority-fixture',
   baseRevision: projection.revision - 1,
   currentRevision: projection.revision,
   acceptedRevision: projection.revision,
@@ -26,7 +25,9 @@ const prioritySettlement = Object.freeze({
 
 /** Dev-only visual entry. It mounts the production Remote surface without a room or network. */
 export function RemoteGameScreenFixture() {
-  const submitTabletop = useCallback((_intent: OnlineTabletopIntentEnvelopeV1): void => undefined, []);
+  const submitTabletop = useCallback((intent: OnlineTabletopIntentEnvelopeV1): void => {
+    void intent;
+  }, []);
   const port = useRemoteGameScreenInteractionPort({
     projection,
     interactionState: 'ready',

@@ -19,6 +19,11 @@ import {
   validateRemoteCastJourneyObservationV1,
   type RemoteCastJourneyFactV1,
 } from './remote-cast-journey-evidence';
+import {
+  validateRemotePriorityJourneyObservationV1,
+  type RemotePriorityJourneyFactV1,
+  type RemotePriorityJourneyObservationV1,
+} from './remote-priority-journey-evidence';
 
 export const O4P09I_PAGES_ORIGIN_V1 = 'https://makeinu1.github.io/MTG_OneDeck/' as const;
 export const O4P09I_WORKER_ORIGIN_V1 = 'https://mtg-onedeck-online.makeinu1.workers.dev' as const;
@@ -328,6 +333,8 @@ export type O4p09iScenarioFactV1 = Readonly<{
   readonly phases: readonly string[];
   readonly actionKinds: readonly string[];
   readonly cast: RemoteCastJourneyFactV1;
+  /** Two-seat priority is a separately governed evidence lane; four-seat stays explicit null. */
+  readonly priority: RemotePriorityJourneyFactV1 | null;
   readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true;
   }>;
   readonly privateLookChoose: Readonly<{ readonly look: true; readonly choose: true; readonly crossSeatLeak: false;
@@ -544,7 +551,7 @@ function validateViewport(value: unknown, index: number, expectedPlayers: 2 | 4)
 }
 
 function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: readonly string[]): O4p09iScenarioFactV1 {
-  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'cast', 'revision', 'privateLookChoose', 'unsupportedManual', 'outcome', 'eliminatedSeats', 'viewportFacts'], 'scenario malformed');
+  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'cast', 'priority', 'revision', 'privateLookChoose', 'unsupportedManual', 'outcome', 'eliminatedSeats', 'viewportFacts'], 'scenario malformed');
   if (own(row, 'playerCount') !== expectedPlayers) throw new Error('scenario player count mismatch');
   const phases = own(row, 'phases');
   if (!Array.isArray(phases) || phases.length !== MATCH_PHASES.length || phases.some((phase, index) => phase !== MATCH_PHASES[index])) throw new Error('scenario phases incomplete');
@@ -555,6 +562,22 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
   if (!safeRevision(castAcceptedRevision) || own(cast, 'seatCount') !== expectedPlayers
     || own(cast, 'receiptAccepted') !== true || own(cast, 'revisionsConverged') !== true
     || own(cast, 'sharedStackTop') !== true) throw new Error('cast evidence failed');
+  const priorityValue = own(row, 'priority');
+  let priority: RemotePriorityJourneyFactV1 | null = null;
+  if (expectedPlayers === 4) {
+    if (priorityValue !== null) throw new Error('four-seat priority evidence must be null');
+  } else {
+    const priorityRow = exact(priorityValue, ['startRevision', 'resolvedRevision', 'seatCount', 'receiptsAccepted', 'revisionsConverged', 'holdConverged', 'priorityCycleComplete', 'capturedTopResolved'], 'priority evidence malformed');
+    const startRevision = own(priorityRow, 'startRevision');
+    const resolvedRevision = own(priorityRow, 'resolvedRevision');
+    if (!safeRevision(startRevision) || !safeRevision(resolvedRevision) || resolvedRevision !== startRevision + 5
+      || own(priorityRow, 'seatCount') !== 2 || own(priorityRow, 'receiptsAccepted') !== true
+      || own(priorityRow, 'revisionsConverged') !== true || own(priorityRow, 'holdConverged') !== true
+      || own(priorityRow, 'priorityCycleComplete') !== true || own(priorityRow, 'capturedTopResolved') !== true) {
+      throw new Error('priority evidence failed');
+    }
+    priority = Object.freeze({ startRevision, resolvedRevision, seatCount: 2, receiptsAccepted: true, revisionsConverged: true, holdConverged: true, priorityCycleComplete: true, capturedTopResolved: true });
+  }
   const revision = exact(own(row, 'revision'), ['start', 'afterSharedMutation', 'afterReconnect', 'continuous'], 'scenario revision malformed');
   const afterSharedMutation = own(revision, 'afterSharedMutation');
   const afterReconnect = own(revision, 'afterReconnect');
@@ -576,6 +599,7 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
     phases: Object.freeze(phases.map((phase) => String(phase))),
     actionKinds: Object.freeze(actionKinds.map((kind) => String(kind))),
     cast: Object.freeze({ acceptedRevision: castAcceptedRevision, seatCount: expectedPlayers, receiptAccepted: true, revisionsConverged: true, sharedStackTop: true }),
+    priority,
     revision: Object.freeze({ start, afterSharedMutation, afterReconnect, continuous: true }),
     privateLookChoose: Object.freeze({ look: true, choose: true, crossSeatLeak: false }),
     unsupportedManual: Object.freeze({ stack: true, resolve: true }),
@@ -744,7 +768,7 @@ async function findProgressActorPage(
       continue;
     }
     const enabled = probes.filter(({ probe }) => probe.enabled);
-    if (enabled.length > 1) throw new Error('progress actor authority ambiguous');
+    if (enabled.length > 1) throw new Error('advance actor authority ambiguous');
     const selected = enabled[0];
     if (selected !== undefined) return { page: selected.page, testId: selected.testId, revision: selected.probe.revision };
     if (Date.now() >= deadline) throw new Error('progress actor control timeout');
@@ -901,6 +925,67 @@ async function waitForResolvedTopConvergence(
       setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
     );
   }
+}
+
+async function readPriorityJourneyStep(
+  pages: readonly O4p09iPageV1[],
+  actorPage: O4p09iPageV1,
+  operation: 'priority-hold' | 'priority-pass' | 'priority-resolve',
+  capturedTopObjectId: string,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[],
+): Promise<RemotePriorityJourneyObservationV1['steps'][number]> {
+  const probes = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
+  const actorIndex = pages.indexOf(actorPage);
+  const actor = probes[actorIndex];
+  if (actor === undefined || actor.localPlayerId == null || actor.publicPlayerIds === undefined || actor.prioritySettlement === null) throw new Error('priority observation missing');
+  const publicIds = actor.publicPlayerIds;
+  if (publicIds.length !== 2 || new Set(publicIds).size !== 2
+    || publicIds.some((playerId) => !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(playerId))) {
+    throw new Error('priority public seats missing');
+  }
+  const localPlayerIds = probes.map((probe) => probe.localPlayerId);
+  if (localPlayerIds.some((playerId) => playerId == null || !publicIds.includes(playerId))
+    || new Set(localPlayerIds).size !== 2
+    || probes.some((probe) => probe.publicPlayerIds === undefined
+      || probe.publicPlayerIds.length !== publicIds.length
+      || probe.publicPlayerIds.some((playerId, index) => playerId !== publicIds[index]))) {
+    throw new Error('priority seat identity diverged');
+  }
+  const seats = probes.map((probe) => {
+    if (probe.priorityHolderPlayerId === undefined || probe.priorityStewardPlayerId === undefined || probe.priorityWindowKind === undefined || probe.priorityHolds === undefined) throw new Error('priority state missing');
+    if ((probe.priorityHolderPlayerId !== null && !publicIds.includes(probe.priorityHolderPlayerId))
+      || (probe.priorityStewardPlayerId !== null && !publicIds.includes(probe.priorityStewardPlayerId))
+      || probe.priorityHolds.some((playerId) => !publicIds.includes(playerId))) {
+      throw new Error('priority state seat identity invalid');
+    }
+    return {
+      revision: probe.revision,
+      holds: probe.priorityHolds,
+      holderPlayerId: probe.priorityHolderPlayerId,
+      stewardPlayerId: probe.priorityStewardPlayerId,
+      windowKind: probe.priorityWindowKind,
+      stackCount: probe.stackCount,
+      topObjectId: probe.stackTopObjectId,
+      recentResolutionObjectId: probe.recentResolutionObjectId,
+      recentResolutionRevision: probe.recentResolutionRevision,
+    };
+  });
+  if (operation !== 'priority-resolve' && seats.some((seat) => seat.topObjectId !== capturedTopObjectId || seat.stackCount !== 1)) throw new Error('priority captured top diverged');
+  return Object.freeze({
+    operation,
+    actorPlayerId: actor.localPlayerId,
+    receipt: Object.freeze({
+      commandId: actor.prioritySettlement.commandId,
+      operation: actor.prioritySettlement.operation as 'priority-hold' | 'priority-pass' | 'priority-resolve',
+      outcome: 'accepted',
+      baseRevision: actor.prioritySettlement.baseRevision,
+      currentRevision: actor.prioritySettlement.currentRevision,
+      acceptedRevision: actor.prioritySettlement.acceptedRevision as number,
+    }),
+    seats: Object.freeze(seats),
+  });
 }
 
 /**
@@ -1541,6 +1626,14 @@ type O4p09iProbeV1 = Readonly<{
     readonly currentRevision: number;
     readonly acceptedRevision: number | null;
   }> | null;
+  readonly publicPlayerIds: readonly string[] | undefined;
+  readonly localPlayerId: string | null | undefined;
+  readonly priorityHolds: readonly string[] | undefined;
+  readonly priorityHolderPlayerId: string | null | undefined;
+  readonly priorityStewardPlayerId: string | null | undefined;
+  readonly priorityWindowKind: string | undefined;
+  readonly recentResolutionObjectId: string | null;
+  readonly recentResolutionRevision: number | null;
   readonly postResolution: string | null;
   readonly consoleErrors: number;
   readonly workerObserved: boolean;
@@ -1574,10 +1667,14 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         if ('value' in node && typeof node.value === 'string') scan(node.value);
       }
       if (leakScanNodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) leakScanComplete = false;
-      const revision = [...document.querySelectorAll('[data-testid="online-remote-connection"], [data-testid="online-assisted-priority"], [data-testid="online-pregame-revision"]')]
-        .map((node) => /更新 (\\d+)/u.exec(node.textContent ?? '')?.[1] ?? '')
-        .flatMap((value) => value === '' ? [] : [Number(value)]).at(-1) ?? 0;
+      const remoteRail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const revision = Number(remoteRail?.getAttribute('data-projection-revision') ?? '-1');
       const outcomeText = document.querySelector('[data-testid="online-remote-outcome"]')?.textContent ?? '';
+      const publicPlayerIds = remoteRail?.hasAttribute('data-public-seat-ids') ? (remoteRail.getAttribute('data-public-seat-ids') ?? '').split(',').filter(Boolean) : undefined;
+      const localPlayerId = remoteRail?.hasAttribute('data-local-player-id') ? remoteRail.getAttribute('data-local-player-id') || null : undefined;
+      const priorityHolderPlayerId = remoteRail?.hasAttribute('data-priority-holder-player-id') ? remoteRail.getAttribute('data-priority-holder-player-id') || null : undefined;
+      const priorityHolds = remoteRail?.hasAttribute('data-priority-holds') ? (remoteRail.getAttribute('data-priority-holds') ?? '').split(',').filter(Boolean) : undefined;
+      const stewardPlayerId = remoteRail?.hasAttribute('data-priority-steward-player-id') ? remoteRail.getAttribute('data-priority-steward-player-id') || null : undefined;
       const causal = document.querySelector('[data-testid="online-remote-causal"]');
       const stackCount = Number(causal?.getAttribute('data-stack-count') ?? '0');
       const stackTopObjectId = causal?.getAttribute('data-stack-top-object-id') || null;
@@ -1603,6 +1700,10 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
       };
       const postResolutionText = (document.querySelector('[data-testid="online-remote-post-resolution"]')?.textContent ?? '').trim();
       const postResolution = postResolutionText === '' ? null : postResolutionText;
+      const recentResolutionObjectId = remoteRail?.hasAttribute('data-recent-resolution-object-id') ? remoteRail.getAttribute('data-recent-resolution-object-id') || null : null;
+      const recentResolutionRevisionText = remoteRail?.hasAttribute('data-recent-resolution-revision') ? remoteRail.getAttribute('data-recent-resolution-revision') ?? '' : '';
+      const recentResolutionRevision = recentResolutionRevisionText === '' ? null : Number(recentResolutionRevisionText);
+      const priorityWindowKind = remoteRail?.hasAttribute('data-priority-window-kind') ? remoteRail.getAttribute('data-priority-window-kind') ?? '' : undefined;
       const phase = document.querySelector('[data-testid="phase-indicator"]')?.getAttribute('data-phase') ?? '';
       const eliminated = [...outcomeText.matchAll(/\\b(P\\d+)\\s*:\\s*(?:敗北|投了)/gu)].map((match) => match[1] ?? '').filter(Boolean);
       const activeSeatCount = [...outcomeText.matchAll(/\\bP\\d+\\s*:\\s*進行中/gu)].length;
@@ -1704,6 +1805,14 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         stackTopObjectId,
         castSettlement,
         prioritySettlement,
+        publicPlayerIds,
+        localPlayerId,
+        priorityHolds,
+        priorityHolderPlayerId,
+        priorityStewardPlayerId: stewardPlayerId,
+        priorityWindowKind,
+        recentResolutionObjectId,
+        recentResolutionRevision,
         postResolution,
         consoleErrors,
         workerObserved,
@@ -1740,7 +1849,6 @@ async function waitForRemoteCastEvidence(
   secretFragments: readonly string[],
 ): Promise<RemoteCastJourneyFactV1> {
   const deadline = Date.now() + timeoutMs;
-  let failureCode = 'CAST_EVIDENCE_PENDING';
   for (;;) {
     const probes = await Promise.all(pages.map((page) => probePage(page, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), workerOrigin, secretFragments)));
     const senderIndex = pages.indexOf(senderPage);
@@ -1756,8 +1864,7 @@ async function waitForRemoteCastEvidence(
       })),
     }, playerCount);
     if (checked.ok) return checked.value;
-    failureCode = checked.code;
-    if (Date.now() >= deadline) throw new Error(`cast evidence ${failureCode}`);
+    if (Date.now() >= deadline) throw new Error(`cast evidence ${checked.code}`);
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
 }
@@ -1779,6 +1886,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let initialRevision = 0;
   let manualDamageCount = 0;
   let castFact: RemoteCastJourneyFactV1 | null = null;
+  const prioritySteps: RemotePriorityJourneyObservationV1['steps'][number][] = [];
+  let priorityFact: RemotePriorityJourneyFactV1 | null = null;
+  let priorityCapturedTopObjectId: string | null = null;
   let castObjectId: string | null = null;
   let manualStackPage: O4p09iPageV1 | null = null;
   let manualStackOperation: 'entry' | 'resolve' | null = null;
@@ -1917,16 +2027,19 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         setStage('HOLD-pass-resolve');
         const capturedTopObjectId = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).stackTopObjectId;
         if (capturedTopObjectId === null) throw new Error('priority captured top missing');
+        priorityCapturedTopObjectId = capturedTopObjectId;
         // The first priority cycle is completed before entering combat. HOLD,
         // pass and resolve remain legal actions for their current seat only.
         const clearHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'none');
         const setRevision = await clickPriorityAndAwaitConvergence(pages, clearHold.page, 'online-remote-hold', clearHold.revision, workerOrigin, timeoutMs, secretFragments);
+        if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, clearHold.page, 'priority-hold', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         const setHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'owned-by-designated');
         if (setHold.revision < setRevision) throw new Error('online-remote-hold set revision stale');
         recordControl('online-remote-hold');
         const clearRevision = await clickPriorityAndAwaitConvergence(pages, setHold.page, 'online-remote-hold', setHold.revision, workerOrigin, timeoutMs, secretFragments);
         const clearedHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'none');
         if (clearedHold.revision < clearRevision) throw new Error('online-remote-hold clear revision stale');
+        if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, setHold.page, 'priority-hold', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         recordControl('online-remote-hold');
         for (let pass = 0; pass < playerCount; pass += 1) {
           const passActor = await findPriorityActorPage(
@@ -1939,6 +2052,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
             passActor.page, 'online-remote-pass',
             passActor.revision,
             workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-pass');
+          if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, passActor.page, 'priority-pass', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         }
         const resolveActor = await findPriorityActorPage(
           pages,
@@ -1951,6 +2065,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
           resolveActor.page, 'online-remote-resolve',
           resolveActor.revision,
           workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-resolve');
+        if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, resolveActor.page, 'priority-resolve', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         await waitForResolvedTopConvergence(
           pages,
           capturedTopObjectId,
@@ -2117,11 +2232,22 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     const privateLookChoose: O4p09iScenarioFactV1['privateLookChoose'] = Object.freeze({ look: postActions.privateLookControl as true, choose: chooseObserved as true, crossSeatLeak: crossSeatPrivateChoiceLeak });
     const unsupportedManual: O4p09iScenarioFactV1['unsupportedManual'] = Object.freeze({ stack: postActions.manualStackControl as true, resolve: postActions.manualResolveControl as true });
     if (castFact === null) throw new Error('cast evidence missing');
+    if (playerCount === 2) {
+      if (prioritySteps.length !== 5) throw new Error('priority evidence step count mismatch');
+      const playerIds = prioritySteps.flatMap((step) => [step.actorPlayerId, ...step.seats.flatMap((seat) => [seat.holderPlayerId, seat.stewardPlayerId, ...seat.holds].filter((id): id is string => id !== null))]);
+      const uniquePlayerIds = [...new Set(playerIds)];
+      if (priorityCapturedTopObjectId === null) throw new Error('priority captured top missing');
+      const observation = Object.freeze({ kind: 'remote-priority-journey-observation-v1' as const, playerIds: Object.freeze(uniquePlayerIds.slice(0, 2) as [string, string]), capturedTopObjectId: priorityCapturedTopObjectId, steps: Object.freeze(prioritySteps) });
+      const checked = validateRemotePriorityJourneyObservationV1(observation);
+      if (!checked.ok) throw new Error(`priority evidence ${checked.code}`);
+      priorityFact = checked.value;
+    }
     return Object.freeze({
       playerCount,
       phases: Object.freeze(MATCH_PHASES.filter((phase) => phases.has(phase))),
       actionKinds: Object.freeze(actionKinds),
       cast: castFact,
+      priority: priorityFact,
       revision: Object.freeze({ start: initialRevision, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, continuous: true }),
       privateLookChoose,
       unsupportedManual,

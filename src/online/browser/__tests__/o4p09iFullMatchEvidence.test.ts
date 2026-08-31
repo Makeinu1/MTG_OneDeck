@@ -79,6 +79,7 @@ type FakeOptions = Readonly<{
   readonly priorityHoldStuck?: 'off' | 'on';
   readonly missingPriorityReceipt?: boolean;
   readonly missingResolutionEvidence?: boolean;
+  readonly missingPriorityDomAttribute?: 'public-seat-ids' | 'local-player-id' | 'window-kind';
   readonly divergentPhaseSeat?: number;
   readonly startedSurfaceFailure?:
     | 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
@@ -426,7 +427,23 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           const prioritySettlement = options.missingPriorityReceipt !== true && priorityState !== null && priorityState.senderSeat === seatIndex
             ? { commandId: `remote-${priorityState.operation}-${String(priorityState.baseRevision)}`, operation: priorityState.operation, outcome: 'accepted', baseRevision: priorityState.baseRevision, currentRevision: priorityState.acceptedRevision, acceptedRevision: priorityState.acceptedRevision }
             : null;
-          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, stackCount: castState?.topObjectId === null ? 0 : 1, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
+          const playerIds = scenarioIndex === 0 ? ['P1', 'P2'] : ['P1', 'P2', 'P3', 'P4'];
+          const publicPlayerIds = options.missingPriorityDomAttribute === 'public-seat-ids' ? undefined : playerIds;
+          const localPlayerId = options.missingPriorityDomAttribute === 'local-player-id' ? undefined : playerIds[seatIndex] ?? null;
+          const stackCount = castState?.topObjectId === null ? 0 : 1;
+          const resolved = priorityState?.operation === 'priority-resolve' && stackCount === 0;
+          const priorityHolderPlayerId = resolved || priorityPassCounts[scenarioIndex] >= (scenarioIndex === 0 ? 2 : 4)
+            ? null
+            : `P${String(priorityActors[scenarioIndex] + 1)}`;
+          const priorityHolds = priorityHoldSeats[scenarioIndex].size === 0
+            ? []
+            : [...priorityHoldSeats[scenarioIndex]].map((index) => `P${String(index + 1)}`);
+          const priorityWindowKind = options.missingPriorityDomAttribute === 'window-kind'
+            ? undefined
+            : resolved ? 'sba-check-required' : priorityHolderPlayerId === null ? 'resolution-ready' : 'priority';
+          const recentResolutionObjectId = options.missingResolutionEvidence === true || !resolved ? null : castStates[scenarioIndex]?.topObjectId === null ? 'PC3:1' : null;
+          const recentResolutionRevision = recentResolutionObjectId === null ? null : priorityState?.acceptedRevision ?? null;
+          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, stackCount, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, publicPlayerIds, localPlayerId, priorityHolds, priorityHolderPlayerId, priorityStewardPlayerId: 'P1', priorityWindowKind, recentResolutionObjectId, recentResolutionRevision, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
       }
       return Promise.resolve(true as T);
     },
@@ -726,6 +743,9 @@ describe('O4P-09I full-match production evidence', () => {
   it.each([
     ['accepted priority receipt', { missingPriorityReceipt: true }],
     ['resolved-top projection', { missingResolutionEvidence: true }],
+    ['public-seat DOM contract', { missingPriorityDomAttribute: 'public-seat-ids' }],
+    ['local-seat DOM contract', { missingPriorityDomAttribute: 'local-player-id' }],
+    ['priority-window DOM contract', { missingPriorityDomAttribute: 'window-kind' }],
   ] as const)('fails closed when the %s evidence is missing', async (_label, options) => {
     await expect(
       runO4p09iFullMatchEvidenceV1({
@@ -843,6 +863,20 @@ describe('O4P-09I full-match production evidence', () => {
       scenarios: {
         ...summary.scenarios,
         twoPlayer: { ...summary.scenarios.twoPlayer, revision: { ...summary.scenarios.twoPlayer.revision, start: summary.scenarios.twoPlayer.revision.afterSharedMutation + 1 } },
+      },
+    })).toMatchObject({ ok: false });
+    expect(validateO4p09iFullMatchEvidenceV1({
+      ...summary,
+      scenarios: { ...summary.scenarios, twoPlayer: { ...summary.scenarios.twoPlayer, priority: null } },
+    })).toMatchObject({ ok: false });
+    expect(validateO4p09iFullMatchEvidenceV1({
+      ...summary,
+      scenarios: {
+        ...summary.scenarios,
+        twoPlayer: {
+          ...summary.scenarios.twoPlayer,
+          priority: { ...summary.scenarios.twoPlayer.priority!, resolvedRevision: summary.scenarios.twoPlayer.priority!.startRevision + 4 },
+        },
       },
     })).toMatchObject({ ok: false });
   });

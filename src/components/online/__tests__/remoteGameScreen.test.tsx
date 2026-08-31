@@ -458,7 +458,7 @@ describe('remote GameScreen adapter', () => {
         busy={false}
         onSubmitTabletopIntent={vi.fn()}
         lastCommandSettlement={{
-          commandId: 'remote-cast-pilot-1' as never,
+          commandId: 'remote-cast-pilot-1',
           baseRevision: 4,
           currentRevision: 5,
           acceptedRevision: 5,
@@ -482,6 +482,48 @@ describe('remote GameScreen adapter', () => {
     container.remove();
   });
 
+  it('exposes public priority projection facts as explicit DOM attributes', () => {
+    const projected = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: {
+          holderPlayerId: 'P1',
+          stewardPlayerId: 'P1',
+          windowKind: 'priority',
+          holds: [],
+          responseWindow: null,
+          topStackObjectId: null,
+        },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={projected}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        port={portFor(projectionToGameState(projected))}
+      />,
+    ));
+    const rail = container.querySelector<HTMLElement>('[data-testid="online-remote-game-rail"]');
+    expect(rail?.dataset).toMatchObject({
+      publicSeatIds: 'P1,P2,P3,P4',
+      localPlayerId: 'P1',
+      priorityHolderPlayerId: 'P1',
+      priorityStewardPlayerId: 'P1',
+      priorityWindowKind: 'priority',
+      priorityHolds: '',
+      recentResolutionObjectId: '',
+      recentResolutionRevision: '',
+    });
+    act(() => root.unmount());
+    container.remove();
+  });
+
   it('renders a safe accepted or rejected priority receipt without private protocol fields', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -493,7 +535,7 @@ describe('remote GameScreen adapter', () => {
         busy={false}
         onSubmitTabletopIntent={vi.fn()}
         lastCommandSettlement={{
-          commandId: `remote-priority-${outcome}` as never,
+          commandId: `remote-priority-${outcome}`,
           baseRevision: 12,
           currentRevision: outcome === 'accepted' ? 13 : 12,
           acceptedRevision: outcome === 'accepted' ? 13 : null,

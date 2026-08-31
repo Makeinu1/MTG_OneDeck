@@ -158,12 +158,18 @@ export function validateRemotePriorityJourneyObservationV1(
     || !identifier(input.capturedTopObjectId, OBJECT_ID)
     || !Array.isArray(input.steps) || input.steps.length !== 5) return failure('INVALID_OBSERVATION');
   const operations = ['priority-hold', 'priority-hold', 'priority-pass', 'priority-pass', 'priority-resolve'] as const;
-  const steps = input.steps.map((step, index) => readStep(step, operations[index] as PriorityOperationV1));
+  const steps = input.steps.map((step, index) => readStep(step, operations[index]));
   if (steps.some((step) => step === null)) return failure('STEP_OR_RECEIPT_INVALID');
   const [holdSet, holdClear, firstPass, finalPass, resolve] = steps as readonly PriorityStepObservationV1[];
   if (holdSet === undefined || holdClear === undefined || firstPass === undefined || finalPass === undefined || resolve === undefined) return failure('INVALID_OBSERVATION');
   const playerIds = input.playerIds as readonly string[];
   if (steps.some((step) => step === null || !playerIds.includes(step.actorPlayerId))) return failure('ACTOR_NOT_SEATED');
+  if (steps.some((step) => step !== null && step.seats.some((seat) =>
+    (seat.holderPlayerId !== null && !playerIds.includes(seat.holderPlayerId))
+    || (seat.stewardPlayerId !== null && !playerIds.includes(seat.stewardPlayerId))
+    || seat.holds.some((playerId) => !playerIds.includes(playerId))))) {
+    return failure('STATE_ID_NOT_SEATED');
+  }
   for (let index = 1; index < steps.length; index += 1) {
     const previous = steps[index - 1];
     const current = steps[index];
@@ -177,6 +183,11 @@ export function validateRemotePriorityJourneyObservationV1(
   if (setSeat === undefined || clearSeat === undefined || firstSeat === undefined || finalSeat === undefined || resolvedSeat === undefined) return failure('INVALID_OBSERVATION');
   if (setSeat.holds.length !== 1 || setSeat.holds[0] !== holdSet.actorPlayerId) return failure('HOLD_SET_DIVERGED');
   if (holdClear.actorPlayerId !== holdSet.actorPlayerId || clearSeat.holds.length !== 0) return failure('HOLD_CLEAR_DIVERGED');
+  if (setSeat.windowKind !== 'priority' || clearSeat.windowKind !== 'priority'
+    || setSeat.holderPlayerId === null || setSeat.holderPlayerId !== clearSeat.holderPlayerId
+    || setSeat.stewardPlayerId === null || setSeat.stewardPlayerId !== clearSeat.stewardPlayerId) {
+    return failure('HOLD_WINDOW_DIVERGED');
+  }
   if ([setSeat, clearSeat, firstSeat, finalSeat].some((seat) => seat.stackCount !== 1 || seat.topObjectId !== input.capturedTopObjectId)) return failure('CAPTURED_TOP_DIVERGED');
   if (firstPass.actorPlayerId !== clearSeat.holderPlayerId
     || firstSeat.windowKind !== 'priority'

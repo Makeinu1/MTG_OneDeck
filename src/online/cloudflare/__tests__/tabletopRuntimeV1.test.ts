@@ -5,7 +5,7 @@ import {
   claimOnlineVariableLobbySeatV4,
   createOnlineVariableLobbyV4,
 } from '../../lobby/index';
-import { projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, validateOnlineParticipantProjectionV3 } from '../../projection/index';
+import { projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, validateOnlineParticipantProjectionV3, type OnlineProjectedZoneV1 } from '../../projection/index';
 import { OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
 import { isOnlineVariableProjectionWithinFrameBudgetV1 } from '../projectionBudgetV1';
 import { ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1 } from '../security';
@@ -472,20 +472,20 @@ describe('O4P-09D server tabletop transport', () => {
         if (candidate.participantId === null) throw new Error('Missing participant projection');
         return projectOnlineVariableProtocolV3(committed, candidate.participantId);
       });
-      const stackFacts = projections.map((projection) => ({
-        revision: projection.revision,
-        count: projection.game.zones.stack.count,
-        top: projection.game.zones.stack.entries.at(-1),
-      }));
+      const stackFacts = projections.map((projection) => {
+        const stack = projection.game.zones.stack as OnlineProjectedZoneV1;
+        return { revision: projection.revision, count: stack.count, top: stack.entries.at(-1) ?? null };
+      });
       expect(stackFacts.map(({ revision }) => revision)).toEqual([initial.revision + 1, initial.revision + 1]);
       expect(stackFacts.map(({ count }) => count)).toEqual([1, 1]);
-      const projectedTopIds = stackFacts.map(({ top }) => top?.kind === 'hidden-card' ? null : top?.objectId);
-      expect(projectedTopIds[0]).not.toBeNull();
-      expect(projectedTopIds[1]).toBe(projectedTopIds[0]);
-      expect(projectedTopIds[0]).not.toBe(objectId);
-      const committedTop = projectedTopIds[0] === null
+      const projectedTopIds = stackFacts.map(({ top }) => top?.kind === 'visible-object' ? top.objectId : null);
+      const projectedTopId = projectedTopIds[0] ?? null;
+      expect(projectedTopId).not.toBeNull();
+      expect(projectedTopIds[1]).toBe(projectedTopId);
+      expect(projectedTopId).not.toBe(objectId);
+      const committedTop = projectedTopId === null
         ? undefined
-        : committed.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.objects[projectedTopIds[0]];
+        : committed.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.objects[projectedTopId];
       expect(committedTop).toMatchObject({
         kind: 'card',
         physicalCardId: sourceObject.physicalCardId,

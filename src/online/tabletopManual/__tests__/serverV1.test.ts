@@ -250,19 +250,20 @@ describe('O4P-09D authoritative tabletop binder', () => {
   });
 
   it('binds SBA outcomes only for the authoritative recipient and never through HOLD', () => {
-    const sba = cardState({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P1', grantPriorityIfStable: true });
-    const bound = bindOnlineTabletopIntentOnServerV1({ state: sba, participantId: 'player-one', envelope: sbaOutcome(false), randomize: (order) => order });
+    const sba = cardState({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P1', grantPriorityIfStable: true }) as Record<string, unknown>;
+    const room = sba.room as { readonly participants: readonly unknown[]; readonly seats: readonly unknown[] };
+    const bound = bindOnlineTabletopIntentOnServerV1({ state: sba as never, participantId: 'player-one', envelope: sbaOutcome(false), randomize: (order) => order });
     expect(bound.command.payload).toEqual({ kind: 'table-turn-progress', transition: { kind: 'sba-check-outcome', actionsWereApplied: false } });
     const wrongActor = {
       ...sba,
       room: {
-        ...sba.room,
-        participants: [...sba.room.participants, { participantId: 'player-two', role: 'player', presence: 'connected', seatIndex: 1 }],
-        seats: [...sba.room.seats, { seatIndex: 1, corePlayerId: 'P2', seatCapability: 'seat-capability-2', participantId: 'player-two', outcome: 'pending' }],
+        ...room,
+        participants: [...room.participants, { participantId: 'player-two', role: 'player', presence: 'connected', seatIndex: 1 }],
+        seats: [...room.seats, { seatIndex: 1, corePlayerId: 'P2', seatCapability: 'seat-capability-2', participantId: 'player-two', outcome: 'pending' }],
       },
     };
-    expect(() => bindOnlineTabletopIntentOnServerV1({ state: wrongActor, participantId: 'player-two', envelope: sbaOutcome(false), randomize: (order) => order })).toThrow('SBA priority recipient');
+    expect(() => bindOnlineTabletopIntentOnServerV1({ state: wrongActor as never, participantId: 'player-two', envelope: sbaOutcome(false), randomize: (order) => order })).toThrow('SBA priority recipient');
     const root = sba.coreRoot as Record<string, unknown>;
-    expect(() => bindOnlineTabletopIntentOnServerV1({ state: { ...sba, coreRoot: { ...root, tabletopManual: { priorityHolds: [{ playerId: 'P1', setRevision: 1 }] } } }, participantId: 'player-one', envelope: sbaOutcome(false), randomize: (order) => order })).toThrow('HOLD');
+    expect(() => bindOnlineTabletopIntentOnServerV1({ state: { ...sba, coreRoot: { ...root, tabletopManual: { priorityHolds: [{ playerId: 'P1', setRevision: 1 }] } } } as never, participantId: 'player-one', envelope: sbaOutcome(false), randomize: (order) => order })).toThrow('HOLD');
   });
 });
