@@ -10,12 +10,106 @@
  * or form edit on a visible element.
  */
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { relative, resolve } from 'node:path';
 import { stdout as output } from 'node:process';
 import { launchO4p06fCdpBrowserV1, type O4p06fBrowserV1, type O4p06fPageV1 } from './o4p-06f-four-browser-evidence';
+import {
+  validateRemoteCastJourneyObservationV1,
+  type RemoteCastJourneyFactV1,
+} from './remote-cast-journey-evidence';
 
 export const O4P09I_PAGES_ORIGIN_V1 = 'https://makeinu1.github.io/MTG_OneDeck/' as const;
 export const O4P09I_WORKER_ORIGIN_V1 = 'https://mtg-onedeck-online.makeinu1.workers.dev' as const;
+
+export type O4p09iProductionFailureV1 = Readonly<{
+  readonly class: 'IMPLEMENTATION' | 'ENVIRONMENT' | 'EVIDENCE';
+  readonly code: string;
+  readonly stage: string;
+}>;
+
+/** Normalize runner failures for the parent harness without exposing error text. */
+export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProductionFailureV1 {
+  const message = error instanceof Error ? error.message : '';
+  if (message.startsWith('production environment failure:'))
+    return Object.freeze({
+      class: 'ENVIRONMENT',
+      code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
+      stage: 'setup'
+    });
+  const scenario = /^production scenario stage failed: ([a-zA-Z0-9/_-]+)/u.exec(message)?.[1];
+  if (
+    scenario !== undefined &&
+    (SCENARIO_STAGES as readonly string[]).includes(scenario.split('/')[0] ?? '')
+  ) {
+    return Object.freeze({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: scenario.split('/')[0] ?? 'journey'
+    });
+  }
+  if (message.startsWith('production UI stage failed:'))
+    return Object.freeze({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_ENTRY_STAGE_FAILED',
+      stage: 'import'
+    });
+  if (/(?:console|secret|privacy)/iu.test(message))
+    return Object.freeze({
+      class: 'IMPLEMENTATION',
+      code: 'PRIVACY_OR_CONSOLE_FAILED',
+      stage: 'privacy'
+    });
+  if (/(?:cleanup|profile|summary|canonical|validation|evidence)/iu.test(message))
+    return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
+  if (
+    /(?:CDP|Chrome|WebSocket|system WebSocket|browser launch|launcher unavailable)/iu.test(message)
+  )
+    return Object.freeze({
+      class: 'ENVIRONMENT',
+      code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
+      stage: 'setup'
+    });
+  return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
+}
+
+function rethrowProductionEnvironmentFailure(error: unknown, stage: string): void {
+  if (classifyO4p09iProductionFailureV1(error).class === 'ENVIRONMENT') {
+    throw new Error(`production environment failure: ${stage}`, { cause: error });
+  }
+}
+
+export function writeO4p09iJourneyFailureV1(
+  target: unknown,
+  error: unknown,
+  temporaryRoot = tmpdir()
+): boolean {
+  const resolvedTarget = resolveO4p09iJourneyResultPathV1(target, temporaryRoot);
+  if (resolvedTarget === null) return false;
+  try {
+    writeFileSync(resolvedTarget, `${JSON.stringify(classifyO4p09iProductionFailureV1(error))}\n`, {
+      flag: 'wx',
+      mode: 0o600,
+      encoding: 'utf8'
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function resolveO4p09iJourneyResultPathV1(
+  target: unknown,
+  temporaryRoot = tmpdir()
+): string | null {
+  if (typeof target !== 'string' || target.length === 0) return null;
+  const root = resolve(temporaryRoot);
+  const resolvedTarget = resolve(target);
+  const segments = relative(root, resolvedTarget).split(/[\\/]/u);
+  if (segments.length !== 1 || segments[0] !== 'failure.json') return null;
+  return resolvedTarget;
+}
 // A real 100-card import can require several seconds of visible resolution
 // and IndexedDB persistence. Keep the production default bounded below the
 // public 120s ceiling while leaving injected test browsers fast.
@@ -37,7 +131,7 @@ const UI_SEQUENCE = Object.freeze([
   'online-remote-guided-overlay',
   'online-advance-to-main',
   'online-journey-play-land',
-  'online-journey-cast-spell',
+  'online-remote-cast',
   'online-remote-advance',
   'online-guided-declare-attacker',
   'online-manual-damage-submit',
@@ -49,7 +143,7 @@ const UI_SEQUENCE = Object.freeze([
   'online-manual-damage-submit',
 ] as const);
 const STAGE_HANDLED_UI_CONTROLS = new Set<string>([
-  'online-advance-to-main', 'online-journey-play-land', 'online-journey-cast-spell', 'online-remote-advance',
+  'online-advance-to-main', 'online-remote-sba-stable', 'online-journey-play-land', 'online-remote-cast', 'online-remote-advance',
   'online-guided-declare-attacker', 'online-manual-damage-submit', 'online-tabletop-submit-stack-entry',
   'online-tabletop-submit-manual-resolve', 'visibility-look', 'online-remote-guided-overlay', 'online-remote-manual-overlay',
 ]);
@@ -57,8 +151,8 @@ const PREGAME_SEQUENCE = Object.freeze([
   'pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready',
 ] as const);
 const REVISION_CONTROLS = new Set<string>([
-  'online-journey-play-land', 'online-journey-cast-spell', 'online-manual-damage-submit',
-  'online-remote-advance', 'online-tabletop-submit-stack-entry', 'online-tabletop-submit-manual-resolve',
+  'online-journey-play-land', 'online-remote-cast', 'online-manual-damage-submit',
+  'online-remote-advance', 'online-remote-sba-stable', 'online-tabletop-submit-stack-entry', 'online-tabletop-submit-manual-resolve',
   'visibility-confirm', 'visibility-choose-',
 ]);
 const MATCH_PHASES = Object.freeze([
@@ -72,12 +166,12 @@ const SCENARIO_STAGES = Object.freeze([
   'pregame-control', 'advance', 'land', 'cast', 'HOLD-pass-resolve', 'attacker', 'manual-damage', 'manual-stack',
   'visibility', 'private-leak-check', 'ui-action', 'post-actions', 'viewport-geometry', 'reconnect', 'finalize',
 ] as const);
-type O4p09iScenarioStageV1 = typeof SCENARIO_STAGES[number];
+type O4p09iScenarioStageV1 = (typeof SCENARIO_STAGES)[number];
 const STARTED_SURFACE_FAILURES = Object.freeze([
   'game-screen-missing/count', 'horizontal-overflow', 'opponent-leak', 'console-error', 'host-revision-missing',
   'start-rejected', 'start-pending', 'start-not-accepted',
 ] as const);
-type O4p09iStartedSurfaceFailureV1 = typeof STARTED_SURFACE_FAILURES[number];
+type O4p09iStartedSurfaceFailureV1 = (typeof STARTED_SURFACE_FAILURES)[number];
 const MAX_SUMMARY_BYTES = 131_072;
 const MAX_TEXT_BYTES = 4_096;
 const MAX_DOM_SCAN_NODES_V1 = 4_096;
@@ -114,7 +208,8 @@ export type O4p09iPageV1 = Readonly<{
   readonly evaluate: <T>(expression: string, argument?: unknown) => Promise<T>;
   readonly setViewport?: (viewport: Readonly<{ readonly width: number; readonly height: number }>) => Promise<void> | void;
   readonly close: () => Promise<void> | void;
-  readonly consoleCounts: () => Readonly<{ readonly errors: number; readonly warnings: number; readonly secretViolations?: number }>;
+  readonly consoleCounts: () => Readonly<{ readonly errors: number; readonly warnings: number; readonly secretViolations?: number;
+  }>;
   readonly setSecretFragments?: (fragments: readonly string[]) => void;
 }>;
 
@@ -232,8 +327,11 @@ export type O4p09iScenarioFactV1 = Readonly<{
   readonly playerCount: 2 | 4;
   readonly phases: readonly string[];
   readonly actionKinds: readonly string[];
-  readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true }>;
-  readonly privateLookChoose: Readonly<{ readonly look: true; readonly choose: true; readonly crossSeatLeak: false }>;
+  readonly cast: RemoteCastJourneyFactV1;
+  readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true;
+  }>;
+  readonly privateLookChoose: Readonly<{ readonly look: true; readonly choose: true; readonly crossSeatLeak: false;
+  }>;
   readonly unsupportedManual: Readonly<{ readonly stack: true; readonly resolve: true }>;
   readonly outcome: 'winner' | 'three-continue';
   readonly eliminatedSeats: readonly string[];
@@ -246,9 +344,12 @@ export type O4p09iEvidenceSummaryV1 = Readonly<{
   readonly pagesOrigin: typeof O4P09I_PAGES_ORIGIN_V1;
   readonly workerOrigin: typeof O4P09I_WORKER_ORIGIN_V1;
   readonly chromeVersion: string;
-  readonly scenarios: Readonly<{ readonly twoPlayer: O4p09iScenarioFactV1; readonly fourPlayer: O4p09iScenarioFactV1 }>;
-  readonly consoleCounts: Readonly<{ readonly errors: number; readonly warnings: number; readonly secretViolations: number }>;
-  readonly cleanup: Readonly<{ readonly contextsClosed: number; readonly pagesClosed: number; readonly profileRemoved: true }>;
+  readonly scenarios: Readonly<{ readonly twoPlayer: O4p09iScenarioFactV1; readonly fourPlayer: O4p09iScenarioFactV1;
+  }>;
+  readonly consoleCounts: Readonly<{ readonly errors: number; readonly warnings: number; readonly secretViolations: number;
+  }>;
+  readonly cleanup: Readonly<{ readonly contextsClosed: number; readonly pagesClosed: number; readonly profileRemoved: true;
+  }>;
 }>;
 
 export type O4p09iSyntheticEvidenceSummaryV1 = Readonly<Omit<O4p09iEvidenceSummaryV1, 'kind'> & {
@@ -265,8 +366,10 @@ export type O4p09iEvidenceDepsV1 = Readonly<{
 }>;
 
 function isRecord(value: unknown): value is JsonRecord {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    && (Reflect.getPrototypeOf(value) === Object.prototype || Reflect.getPrototypeOf(value) === null);
+  return (
+    value !== null && typeof value === 'object' && !Array.isArray(value)
+    && (Reflect.getPrototypeOf(value) === Object.prototype || Reflect.getPrototypeOf(value) === null)
+  );
 }
 
 function own(value: JsonRecord, key: string): unknown {
@@ -306,7 +409,9 @@ function canonical(value: unknown, depth = 0, seen = new WeakSet<object>()): Jso
 }
 
 function containsSecret(value: unknown, fragments: readonly string[], seen = new WeakSet<object>()): boolean {
-  if (typeof value === 'string') return fragments.some((fragment) => fragment.length >= 8 && value.includes(fragment)) || /^(?:seat|invite|observer|cap)[_-][A-Za-z0-9_-]{8,}$/u.test(value);
+  if (typeof value === 'string') return (
+      fragments.some((fragment) => fragment.length >= 8 && value.includes(fragment)) || /^(?:seat|invite|observer|cap)[_-][A-Za-z0-9_-]{8,}$/u.test(value)
+    );
   if (value === null || typeof value !== 'object' || seen.has(value)) return false;
   if (!isRecord(value) && !Array.isArray(value)) return true;
   seen.add(value);
@@ -351,7 +456,9 @@ function cloneGeometry(geometry: O4p09iGeometryFactV1): O4p09iGeometryFactV1 {
 }
 
 function safeRevision(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && !Object.is(value, -0) && value >= 0;
+  return (
+    typeof value === 'number' && Number.isSafeInteger(value) && !Object.is(value, -0) && value >= 0
+  );
 }
 
 function safeString(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && value.length <= 256; }
@@ -437,12 +544,17 @@ function validateViewport(value: unknown, index: number, expectedPlayers: 2 | 4)
 }
 
 function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: readonly string[]): O4p09iScenarioFactV1 {
-  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'revision', 'privateLookChoose', 'unsupportedManual', 'outcome', 'eliminatedSeats', 'viewportFacts'], 'scenario malformed');
+  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'cast', 'revision', 'privateLookChoose', 'unsupportedManual', 'outcome', 'eliminatedSeats', 'viewportFacts'], 'scenario malformed');
   if (own(row, 'playerCount') !== expectedPlayers) throw new Error('scenario player count mismatch');
   const phases = own(row, 'phases');
   if (!Array.isArray(phases) || phases.length !== MATCH_PHASES.length || phases.some((phase, index) => phase !== MATCH_PHASES[index])) throw new Error('scenario phases incomplete');
   const actionKinds = own(row, 'actionKinds');
   if (!Array.isArray(actionKinds) || actionKinds.length < 8 || actionKinds.some((kind) => typeof kind !== 'string')) throw new Error('scenario actions incomplete');
+  const cast = exact(own(row, 'cast'), ['acceptedRevision', 'seatCount', 'receiptAccepted', 'revisionsConverged', 'sharedStackTop'], 'cast evidence malformed');
+  const castAcceptedRevision = own(cast, 'acceptedRevision');
+  if (!safeRevision(castAcceptedRevision) || own(cast, 'seatCount') !== expectedPlayers
+    || own(cast, 'receiptAccepted') !== true || own(cast, 'revisionsConverged') !== true
+    || own(cast, 'sharedStackTop') !== true) throw new Error('cast evidence failed');
   const revision = exact(own(row, 'revision'), ['start', 'afterSharedMutation', 'afterReconnect', 'continuous'], 'scenario revision malformed');
   const afterSharedMutation = own(revision, 'afterSharedMutation');
   const afterReconnect = own(revision, 'afterReconnect');
@@ -463,6 +575,7 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
     playerCount: expectedPlayers,
     phases: Object.freeze(phases.map((phase) => String(phase))),
     actionKinds: Object.freeze(actionKinds.map((kind) => String(kind))),
+    cast: Object.freeze({ acceptedRevision: castAcceptedRevision, seatCount: expectedPlayers, receiptAccepted: true, revisionsConverged: true, sharedStackTop: true }),
     revision: Object.freeze({ start, afterSharedMutation, afterReconnect, continuous: true }),
     privateLookChoose: Object.freeze({ look: true, choose: true, crossSeatLeak: false }),
     unsupportedManual: Object.freeze({ stack: true, resolve: true }),
@@ -474,7 +587,8 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
   return normalized;
 }
 
-export function validateO4p09iFullMatchEvidenceV1(input: unknown, secretFragments: readonly string[] = []): Readonly<{ readonly ok: true; readonly value: O4p09iEvidenceSummaryV1 } | { readonly ok: false; readonly issues: readonly string[] }> {
+export function validateO4p09iFullMatchEvidenceV1(input: unknown, secretFragments: readonly string[] = []): Readonly<
+  | { readonly ok: true; readonly value: O4p09iEvidenceSummaryV1 } | { readonly ok: false; readonly issues: readonly string[] }> {
   try {
     const root = exact(input, ['kind', 'schemaVersion', 'pagesOrigin', 'workerOrigin', 'chromeVersion', 'scenarios', 'consoleCounts', 'cleanup'], 'summary fields malformed');
     if (containsSecret(root, secretFragments)) throw new Error('secret-bearing summary');
@@ -568,6 +682,227 @@ async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: num
   }
 }
 
+type O4p09iHoldStateV1 = 'not-applicable' | 'none' | 'own' | 'peer' | 'invalid';
+type O4p09iActorProbeV1 = Readonly<{ readonly enabled: boolean; readonly revision: number; readonly holdState: O4p09iHoldStateV1 }>;
+
+async function actorControlProbe(
+  page: O4p09iPageV1,
+  testId: string,
+  timeoutMs: number,
+  timeoutMessage: string
+): Promise<O4p09iActorProbeV1> {
+  if (timeoutMs <= 0) return { enabled: false, revision: 0, holdState: 'invalid' };
+  return Promise.race([
+    page.evaluate<O4p09iActorProbeV1>(`(() => { // priorityControlProbe:${testId}
+      const node = document.querySelector('[data-testid="${testId}"]');
+      const revision = [...document.querySelectorAll('[data-testid="online-remote-connection"], [data-testid="online-assisted-priority"], [data-testid="online-pregame-revision"]')]
+        .map((candidate) => /更新 (\\d+)/u.exec(candidate.textContent ?? '')?.[1] ?? '')
+        .flatMap((value) => value === '' ? [] : [Number(value)]).at(-1) ?? 0;
+      const holdState = (() => {
+        if (${JSON.stringify(testId)} !== 'online-remote-hold') return 'not-applicable';
+        const pressed = node instanceof HTMLButtonElement ? node.getAttribute('aria-pressed') : null;
+        const status = (document.querySelector('[data-testid="online-remote-hold-status"]')?.textContent ?? '').trim();
+        if (pressed === 'false' && status === 'HOLDなし') return 'none';
+        if (pressed === 'true' && status === 'あなたがHOLD中') return 'own';
+        if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
+        return 'invalid';
+      })();
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, revision, holdState };
+      const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+      return { enabled: !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && !node.disabled, revision, holdState };
+    })()`),
+    new Promise<never>((_resolve, reject) =>
+      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
+    )
+  ]);
+}
+
+async function findProgressActorPage(
+  pages: readonly O4p09iPageV1[],
+  timeoutMs: number
+): Promise<Readonly<{ readonly page: O4p09iPageV1; readonly testId: 'online-remote-advance' | 'online-remote-sba-stable'; readonly revision: number }>> {
+  const deadline = Date.now() + timeoutMs;
+  const testIds = ['online-remote-advance', 'online-remote-sba-stable'] as const;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error('progress actor control timeout');
+    const results = await Promise.allSettled(pages.flatMap((page) => testIds.map(async (testId) => ({
+      page,
+      testId,
+      probe: await actorControlProbe(page, testId, remaining, `${testId} actor probe timeout`),
+    }))));
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        rethrowProductionEnvironmentFailure(result.reason, 'progress-probe');
+        throw new Error('progress actor probe unavailable', { cause: result.reason });
+      }
+    }
+    const probes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    const revisions = new Set(probes.map(({ probe }) => probe.revision));
+    if (probes.length !== pages.length * testIds.length || revisions.size !== 1 || !safeRevision(probes[0]?.probe.revision ?? 0)) {
+      await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 25));
+      continue;
+    }
+    const enabled = probes.filter(({ probe }) => probe.enabled);
+    if (enabled.length > 1) throw new Error('progress actor authority ambiguous');
+    const selected = enabled[0];
+    if (selected !== undefined) return { page: selected.page, testId: selected.testId, revision: selected.probe.revision };
+    if (Date.now() >= deadline) throw new Error('progress actor control timeout');
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
+    );
+  }
+}
+
+async function findPriorityActorPage(
+  pages: readonly O4p09iPageV1[],
+  testId: string,
+  timeoutMs: number,
+  universal: boolean,
+  holdExpectation: 'none' | 'owned-by-designated' | null = null
+): Promise<{ page: O4p09iPageV1; revision: number }> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error(`${testId} actor control timeout`);
+    const results = await Promise.allSettled(
+      pages.map((page) =>
+        actorControlProbe(page, testId, remaining, `${testId} actor probe timeout`)
+      )
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        rethrowProductionEnvironmentFailure(result.reason, 'priority-probe');
+        throw new Error(`${testId} actor probe unavailable`, { cause: result.reason });
+      }
+    }
+    const probes: Array<{ page: O4p09iPageV1; probe: O4p09iActorProbeV1 }> = results.flatMap(
+      (result, index) => {
+        const page = pages[index];
+        return result.status === 'fulfilled' && page !== undefined
+          ? [{ page, probe: result.value }]
+          : [];
+      }
+    );
+    const revision = probes[0]?.probe.revision ?? 0;
+    const sameRevision =
+      probes.length === pages.length &&
+      safeRevision(revision) &&
+      probes.every(({ probe }) => probe.revision === revision);
+    if (sameRevision) {
+      const enabled = probes.filter(({ probe }) => probe.enabled).map(({ page }) => page);
+      const designatedPage = pages[0];
+      if (designatedPage === undefined) throw new Error(`${testId} actor set empty`);
+      if (universal && holdExpectation === null) throw new Error(`${testId} HOLD expectation missing`);
+      const expectedHoldStates = probes.every(({ probe }, index) => probe.holdState === (holdExpectation === 'none' ? 'none' : index === 0 ? 'own' : 'peer'));
+      if (universal && enabled.length === pages.length && expectedHoldStates) return { page: designatedPage, revision };
+      if (universal && enabled.length !== pages.length)
+        throw new Error(`${testId} actor authority incomplete`);
+      if (universal && !expectedHoldStates) throw new Error(`${testId} HOLD state mismatch`);
+      const soleActor = enabled[0];
+      if (!universal && enabled.length === 1 && soleActor !== undefined)
+        return { page: soleActor, revision };
+      if (!universal && enabled.length > 1) throw new Error(`${testId} actor authority ambiguous`);
+    }
+    if (Date.now() >= deadline)
+      throw new Error(
+        `${testId} actor control timeout (${probes.length}/${pages.length}/${String(revision)})`
+      );
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
+    );
+  }
+}
+
+async function clickPriorityAndAwaitConvergence(
+  pages: readonly O4p09iPageV1[],
+  actor: O4p09iPageV1,
+  testId: string,
+  baseline: number,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[]
+): Promise<number> {
+  const operation = testId === 'online-remote-hold'
+    ? 'priority-hold'
+    : testId === 'online-remote-pass'
+      ? 'priority-pass'
+      : testId === 'online-remote-resolve'
+        ? 'priority-resolve'
+        : null;
+  if (operation === null) throw new Error(`${testId} priority operation unknown`);
+  const actorIndex = pages.indexOf(actor);
+  if (actorIndex < 0) throw new Error(`${testId} actor is outside the scenario`);
+  await clickVisible(actor, testId, timeoutMs);
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const probes = await Promise.all(
+      pages.map((page) =>
+        probePage(
+          page,
+          Math.min(1_000, Math.max(1, deadline - Date.now())),
+          workerOrigin,
+          secretFragments
+        )
+      )
+    );
+    const revision = probes[0]?.revision ?? 0;
+    const settlement = probes[actorIndex]?.prioritySettlement ?? null;
+    if (
+      safeRevision(revision) &&
+      revision === baseline + 1 &&
+      probes.every((probe) => safeRevision(probe.revision) && probe.revision === revision) &&
+      settlement !== null &&
+      settlement.operation === operation &&
+      settlement.outcome === 'accepted' &&
+      settlement.baseRevision === baseline &&
+      settlement.currentRevision === revision &&
+      settlement.acceptedRevision === revision
+    )
+      return revision;
+    if (Date.now() >= deadline) throw new Error(`${testId} revision convergence timeout`);
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
+    );
+  }
+}
+
+async function waitForResolvedTopConvergence(
+  pages: readonly O4p09iPageV1[],
+  capturedTopObjectId: string,
+  resolvedRevision: number,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[]
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const probes = await Promise.all(
+      pages.map((page) => probePage(
+        page,
+        Math.min(1_000, Math.max(1, deadline - Date.now())),
+        workerOrigin,
+        secretFragments
+      ))
+    );
+    const resolution = probes[0]?.postResolution ?? null;
+    if (
+      resolution !== null &&
+      resolution.includes(capturedTopObjectId) &&
+      probes.every((probe) =>
+        probe.revision === resolvedRevision &&
+        probe.stackCount === 0 &&
+        probe.stackTopObjectId === null &&
+        probe.postResolution === resolution
+      )
+    ) return;
+    if (Date.now() >= deadline) throw new Error('priority resolve evidence timeout');
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
+    );
+  }
+}
+
 /**
  * Wait for the host's lobby projection to expose every configured seat as
  * deck-submitted and ready before issuing the start intent.  The player pages
@@ -615,7 +950,8 @@ async function waitForStartedSurface(page: O4p09iPageV1, host: boolean, workerOr
       else if (probe.opponentLeak) lastFailure = 'opponent-leak';
       else if (probe.consoleErrors !== 0) lastFailure = 'console-error';
       else if (host && !safeRevision(probe.revision)) lastFailure = 'host-revision-missing';
-    } catch {
+    } catch (error) {
+      rethrowProductionEnvironmentFailure(error, 'start-probe');
       // The shared surface may still be mounting after the start action. Keep
       // the probe bounded and report only the constant scenario stage on exit.
       lastFailure = 'game-screen-missing/count';
@@ -635,7 +971,8 @@ async function waitForStartedSurface(page: O4p09iPageV1, host: boolean, workerOr
             return 'game-screen-missing/count';
           })()`);
           lastFailure = terminal;
-        } catch {
+        } catch (error) {
+          rethrowProductionEnvironmentFailure(error, 'start-terminal-probe');
           // Preserve the conservative game-screen-missing/count reason when
           // the terminal DOM probe itself is unavailable.
         }
@@ -681,10 +1018,12 @@ async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 
   }
 }
 
-async function waitForSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow'> {
+async function waitForSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<
+  | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow'> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const status = await page.evaluate<'pending' | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'notification-missing' | 'error-boundary'>(`(() => { // savedDeckProbe
+    const status = await page.evaluate<
+      | 'pending' | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'notification-missing' | 'error-boundary'>(`(() => { // savedDeckProbe
       const node = document.querySelector('[data-testid="deck-save-status"]');
       const visible = (candidate) => {
         if (!(candidate instanceof HTMLElement)) return false;
@@ -710,7 +1049,8 @@ async function waitForSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<
     if (status === 'notification-missing') return 'notification-missing';
     if (Date.now() >= deadline) {
       if (page.consoleCounts().errors > 0) return 'import-runtime-error';
-      const terminal = await page.evaluate<'resolution-pending' | 'import-runtime-failed' | 'import-surface-disappeared' | 'invalid-workflow' | 'error-boundary' | 'already-online' | 'saved-state'>(`(() => { // savedDeckTerminalProbe
+      const terminal = await page.evaluate<
+        | 'resolution-pending' | 'import-runtime-failed' | 'import-surface-disappeared' | 'invalid-workflow' | 'error-boundary' | 'already-online' | 'saved-state'>(`(() => { // savedDeckTerminalProbe
         const visible = (candidate) => {
           if (!(candidate instanceof HTMLElement)) return false;
           const style = getComputedStyle(candidate); const rect = candidate.getBoundingClientRect();
@@ -747,19 +1087,23 @@ async function importDeckAndOpenOnline(page: O4p09iPageV1, deckText: string, tim
   try {
     await waitForVisible(page, 'deck-input', timeoutMs);
     await fillVisible(page, 'deck-input', deckText, timeoutMs);
-  } catch {
-    throw new Error(PRODUCTION_UI_STAGE_ERRORS.deckInput);
+  } catch (error) {
+    rethrowProductionEnvironmentFailure(error, 'deck-input');
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.deckInput, { cause: error });
   }
   try {
     await clickVisible(page, 'import-button', timeoutMs);
-  } catch {
-    throw new Error(PRODUCTION_UI_STAGE_ERRORS.importClick);
+  } catch (error) {
+    rethrowProductionEnvironmentFailure(error, 'import-click');
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.importClick, { cause: error });
   }
-  let saveStatus: 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow';
+  let saveStatus:
+    | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow';
   try {
     saveStatus = await waitForSavedDeck(page, timeoutMs);
-  } catch {
-    throw new Error(PRODUCTION_UI_STAGE_ERRORS.savedState);
+  } catch (error) {
+    rethrowProductionEnvironmentFailure(error, 'saved-state');
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.savedState, { cause: error });
   }
   if (saveStatus === 'storage-error') throw new Error(PRODUCTION_UI_STAGE_ERRORS.storageUnavailable);
   if (saveStatus === 'resolution-error') throw new Error(PRODUCTION_UI_STAGE_ERRORS.resolutionUnavailable);
@@ -785,8 +1129,9 @@ async function openOnlineFromSavedDeck(page: O4p09iPageV1, timeoutMs: number): P
     await waitForVisible(page, 'open-online-mode', timeoutMs);
     await clickVisible(page, 'open-online-mode', timeoutMs);
     await waitForVisible(page, 'public-online-app', timeoutMs);
-  } catch {
-    throw new Error(PRODUCTION_UI_STAGE_ERRORS.onlineOpen);
+  } catch (error) {
+    rethrowProductionEnvironmentFailure(error, 'online-open');
+    throw new Error(PRODUCTION_UI_STAGE_ERRORS.onlineOpen, { cause: error });
   }
 }
 
@@ -914,7 +1259,8 @@ async function readPrivateChoicePayload(page: O4p09iPageV1, timeoutMs: number): 
 /** Capture bounded rendered text, attributes, form values, and choice-control
  * content from an unauthorized seat.  Values remain memory-only in the caller;
  * host tokens are never injected into that seat's page. */
-type O4p09iDomSurfaceScanV1 = Readonly<{ readonly surfaces: readonly string[]; readonly complete: boolean }>;
+type O4p09iDomSurfaceScanV1 = Readonly<{ readonly surfaces: readonly string[]; readonly complete: boolean;
+}>;
 
 async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, timeoutMs: number): Promise<readonly string[]> {
   const raw = await Promise.race([
@@ -963,40 +1309,81 @@ async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: numb
   ]);
 }
 
-async function manualStackControlEnabled(page: O4p09iPageV1, timeoutMs: number): Promise<boolean> {
-  if (timeoutMs <= 0) return false;
-  return Promise.race([
-    page.evaluate<boolean>(`(() => { // manualStackEnabledProbe
-      const node = document.querySelector('[data-testid="online-tabletop-submit-stack-entry"]');
-      if (!(node instanceof HTMLButtonElement)) return false;
-      const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
-      return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && !node.disabled;
-    })()`),
-    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('manual stack actor probe timeout')), timeoutMs)),
-  ]);
+async function manualStackControlEnabled(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iActorProbeV1> {
+  return actorControlProbe(
+    page,
+    'online-tabletop-submit-stack-entry',
+    timeoutMs,
+    'manual stack actor probe timeout'
+  );
 }
 
-async function findManualStackActorPage(pages: readonly O4p09iPageV1[], timeoutMs: number): Promise<O4p09iPageV1> {
+async function manualResolveControlEnabled(
+  page: O4p09iPageV1,
+  timeoutMs: number
+): Promise<O4p09iActorProbeV1> {
+  return actorControlProbe(
+    page,
+    'online-tabletop-submit-manual-resolve', timeoutMs,
+    'manual resolve actor probe timeout'
+  );
+}
+
+async function findManualActorPage(pages: readonly O4p09iPageV1[], timeoutMs: number,
+  resolve: boolean
+): Promise<O4p09iPageV1> {
   const deadline = Date.now() + timeoutMs;
+  const label = resolve ? 'manual resolve' : 'manual stack';
   for (;;) {
+    const probes: Array<{ page: O4p09iPageV1; probe: O4p09iActorProbeV1 }> = [];
     for (const page of pages) {
       const beforePanel = deadline - Date.now();
-      if (beforePanel <= 0) throw new Error('manual stack actor control timeout');
+      if (beforePanel <= 0) throw new Error(`${label} actor control timeout`);
       try {
-        // The stack form lives inside the manual details panel. Open each
-        // panel before probing so only a genuinely enabled actor is selected.
         await toggleDetails(page, 'online-remote-manual-overlay', Math.min(250, beforePanel));
         const beforeProbe = deadline - Date.now();
-        if (beforeProbe <= 0) throw new Error('manual stack actor control timeout');
-        if (await manualStackControlEnabled(page, beforeProbe)) return page;
-      } catch {
-        // A seat may still be rendering its projected actor/phase. Continue
-        // polling until the bounded deadline instead of guessing an actor.
+        if (beforeProbe <= 0) throw new Error(`${label} actor control timeout`);
+        const probe = resolve
+          ? await manualResolveControlEnabled(page, beforeProbe)
+          : await manualStackControlEnabled(page, beforeProbe);
+        if (safeRevision(probe.revision)) probes.push({ page, probe });
+      } catch (error) {
+        rethrowProductionEnvironmentFailure(
+          error,
+          resolve ? 'manual-resolve-probe' : 'manual-stack-probe'
+        );
+        // Wait for all seats to expose the same projection revision; never
+        // guess an actor from a partial or stale observation.
       }
     }
-    if (Date.now() >= deadline) throw new Error('manual stack actor control timeout');
+    const revisions = new Set(probes.map(({ probe }) => probe.revision));
+    if (probes.length === pages.length && revisions.size === 1) {
+      const enabledPages = probes.filter(({ probe }) => probe.enabled).map(({ page }) => page);
+      if (enabledPages.length > 1)
+        throw new Error(
+          resolve
+            ? 'manual resolve actor authority ambiguous'
+            : 'manual stack actor authority ambiguous'
+        );
+      if (enabledPages[0] !== undefined) return enabledPages[0];
+    }
+    if (Date.now() >= deadline) throw new Error(`${label} actor control timeout`);
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
+}
+
+async function findManualStackActorPage(
+  pages: readonly O4p09iPageV1[],
+  timeoutMs: number
+): Promise<O4p09iPageV1> {
+  return findManualActorPage(pages, timeoutMs, false);
+}
+
+async function findManualResolveActorPage(
+  pages: readonly O4p09iPageV1[],
+  timeoutMs: number
+): Promise<O4p09iPageV1> {
+  return findManualActorPage(pages, timeoutMs, true);
 }
 
 async function readInvite(page: O4p09iPageV1, timeoutMs: number): Promise<string> {
@@ -1084,13 +1471,38 @@ async function waitForJourneyEvidence(page: O4p09iPageV1, playerCount: 2 | 4, wo
   }
 }
 
-async function advanceUntilPhase(page: O4p09iPageV1, targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[]): Promise<O4p09iProbeV1> {
+async function advanceUntilPhase(
+  pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void): Promise<O4p09iProbeV1> {
   const deadline = Date.now() + timeoutMs;
-  for (let attempts = 0; attempts < 12; attempts += 1) {
-    const current = await probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments);
-    if (current.phase === targetPhase) return current;
+  let attempts = 0;
+  while (attempts < 12) {
+    const snapshots = await Promise.all(
+      pages.map((page) =>
+        probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments)
+      )
+    );
+    const current = snapshots[0];
+    if (current === undefined) throw new Error('advance actor page missing');
+    const targetCount = snapshots.filter((probe) => probe.phase === targetPhase).length;
+    const matchingRevision = snapshots.every(
+      (probe) => safeRevision(probe.revision) && probe.revision === current.revision
+    );
+    if (targetCount === snapshots.length && matchingRevision) return current;
     if (Date.now() >= deadline) break;
-    await clickAndAwaitRevision(page, 'online-remote-advance', workerOrigin, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments);
+    if (targetCount > 0 || !matchingRevision) {
+      await new Promise<void>((resolvePromise) =>
+        setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
+      );
+      continue;
+    }
+    const actor = await findProgressActorPage(
+      pages,
+      Math.min(timeoutMs, Math.max(250, deadline - Date.now()))
+    );
+    await clickAndAwaitRevision(
+      actor.page, actor.testId, workerOrigin, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments);
+    recordControl(actor.testId);
+    attempts += 1;
   }
   throw new Error(`phase target ${targetPhase} not reached`);
 }
@@ -1111,6 +1523,25 @@ type O4p09iProbeV1 = Readonly<{
   readonly chooseControl: boolean;
   readonly manualStackControl: boolean;
   readonly manualResolveControl: boolean;
+  readonly stackCount: number;
+  readonly stackTopObjectId: string | null;
+  readonly castSettlement: Readonly<{
+    readonly commandId: string;
+    readonly operation: string;
+    readonly outcome: string;
+    readonly baseRevision: number;
+    readonly currentRevision: number;
+    readonly acceptedRevision: number | null;
+  }> | null;
+  readonly prioritySettlement: Readonly<{
+    readonly commandId: string;
+    readonly operation: string;
+    readonly outcome: string;
+    readonly baseRevision: number;
+    readonly currentRevision: number;
+    readonly acceptedRevision: number | null;
+  }> | null;
+  readonly postResolution: string | null;
   readonly consoleErrors: number;
   readonly workerObserved: boolean;
 }>;
@@ -1147,6 +1578,31 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         .map((node) => /更新 (\\d+)/u.exec(node.textContent ?? '')?.[1] ?? '')
         .flatMap((value) => value === '' ? [] : [Number(value)]).at(-1) ?? 0;
       const outcomeText = document.querySelector('[data-testid="online-remote-outcome"]')?.textContent ?? '';
+      const causal = document.querySelector('[data-testid="online-remote-causal"]');
+      const stackCount = Number(causal?.getAttribute('data-stack-count') ?? '0');
+      const stackTopObjectId = causal?.getAttribute('data-stack-top-object-id') || null;
+      const castResult = document.querySelector('[data-testid="online-remote-command-result"][data-operation="cast-spell"]');
+      const acceptedRevisionText = castResult?.getAttribute('data-accepted-revision') ?? '';
+      const castSettlement = castResult === null ? null : {
+        commandId: castResult.getAttribute('data-command-id') ?? '',
+        operation: castResult.getAttribute('data-operation') ?? '',
+        outcome: castResult.getAttribute('data-outcome') ?? '',
+        baseRevision: Number(castResult.getAttribute('data-base-revision') ?? '-1'),
+        currentRevision: Number(castResult.getAttribute('data-current-revision') ?? '-1'),
+        acceptedRevision: acceptedRevisionText === '' ? null : Number(acceptedRevisionText),
+      };
+      const priorityResult = document.querySelector('[data-testid="online-remote-priority-result"]');
+      const priorityAcceptedRevisionText = priorityResult?.getAttribute('data-accepted-revision') ?? '';
+      const prioritySettlement = priorityResult === null ? null : {
+        commandId: priorityResult.getAttribute('data-command-id') ?? '',
+        operation: priorityResult.getAttribute('data-operation') ?? '',
+        outcome: priorityResult.getAttribute('data-outcome') ?? '',
+        baseRevision: Number(priorityResult.getAttribute('data-base-revision') ?? '-1'),
+        currentRevision: Number(priorityResult.getAttribute('data-current-revision') ?? '-1'),
+        acceptedRevision: priorityAcceptedRevisionText === '' ? null : Number(priorityAcceptedRevisionText),
+      };
+      const postResolutionText = (document.querySelector('[data-testid="online-remote-post-resolution"]')?.textContent ?? '').trim();
+      const postResolution = postResolutionText === '' ? null : postResolutionText;
       const phase = document.querySelector('[data-testid="phase-indicator"]')?.getAttribute('data-phase') ?? '';
       const eliminated = [...outcomeText.matchAll(/\\b(P\\d+)\\s*:\\s*(?:敗北|投了)/gu)].map((match) => match[1] ?? '').filter(Boolean);
       const activeSeatCount = [...outcomeText.matchAll(/\\bP\\d+\\s*:\\s*進行中/gu)].length;
@@ -1244,6 +1700,11 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         chooseControl: document.querySelector('[data-testid^="visibility-choose-"]') !== null,
         manualStackControl: document.querySelector('[data-testid="online-tabletop-submit-stack-entry"]') !== null,
         manualResolveControl: document.querySelector('[data-testid="online-tabletop-submit-manual-resolve"]') !== null,
+        stackCount,
+        stackTopObjectId,
+        castSettlement,
+        prioritySettlement,
+        postResolution,
         consoleErrors,
         workerObserved,
       };
@@ -1253,6 +1714,52 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
   const consoleErrors = page.consoleCounts().errors;
   if (!probe.leakScanComplete) throw new Error('bounded leak scan incomplete');
   return Object.freeze({ ...probe, consoleErrors });
+}
+
+async function readRemoteCastObjectId(page: O4p09iPageV1, timeoutMs: number): Promise<string> {
+  return Promise.race([
+    page.evaluate<string>(`(() => {
+      const node = [...document.querySelectorAll('[data-testid="online-remote-cast"]')]
+        .find((candidate) => candidate instanceof HTMLButtonElement && !candidate.disabled);
+      if (!(node instanceof HTMLButtonElement)) throw new Error('cast control unavailable');
+      const objectId = node.getAttribute('data-object-id') ?? '';
+      if (objectId === '') throw new Error('cast object missing');
+      return objectId;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('cast object timeout')), timeoutMs)),
+  ]);
+}
+
+async function waitForRemoteCastEvidence(
+  pages: readonly O4p09iPageV1[],
+  senderPage: O4p09iPageV1,
+  castObjectId: string,
+  playerCount: 2 | 4,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[],
+): Promise<RemoteCastJourneyFactV1> {
+  const deadline = Date.now() + timeoutMs;
+  let failureCode = 'CAST_EVIDENCE_PENDING';
+  for (;;) {
+    const probes = await Promise.all(pages.map((page) => probePage(page, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), workerOrigin, secretFragments)));
+    const senderIndex = pages.indexOf(senderPage);
+    const senderReceipt = probes[senderIndex]?.castSettlement ?? null;
+    const checked = validateRemoteCastJourneyObservationV1({
+      kind: 'remote-cast-journey-observation-v1',
+      castObjectId,
+      senderReceipt,
+      seats: probes.map((probe) => ({
+        revision: probe.revision,
+        stackCount: probe.stackCount,
+        topObjectId: probe.stackTopObjectId,
+      })),
+    }, playerCount);
+    if (checked.ok) return checked.value;
+    failureCode = checked.code;
+    if (Date.now() >= deadline) throw new Error(`cast evidence ${failureCode}`);
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
 }
 
 async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pagesOrigin: string, workerOrigin: string, timeoutMs: number, secretFragments: string[], counters: { contextsClosed: number; pagesClosed: number }, deckTexts: readonly string[], lifetimeConsole: O4p09iConsoleAccumulatorV1): Promise<O4p09iScenarioFactV1> {
@@ -1271,7 +1778,10 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let revisionAfterReconnect: number | undefined;
   let initialRevision = 0;
   let manualDamageCount = 0;
+  let castFact: RemoteCastJourneyFactV1 | null = null;
+  let castObjectId: string | null = null;
   let manualStackPage: O4p09iPageV1 | null = null;
+  let manualStackOperation: 'entry' | 'resolve' | null = null;
   let chooseObserved = false;
   let crossSeatPrivateChoiceLeak = false;
   let stage: O4p09iScenarioStageV1 = 'import';
@@ -1291,8 +1801,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     'pregame-keep': 'pregame',
     'pregame-complete-actions': 'pregame',
     'pregame-ready': 'pregame',
+    'online-remote-sba-stable': 'response/pass/resolve',
     'online-journey-play-land': 'land',
-    'online-journey-cast-spell': 'cast',
+    'online-remote-cast': 'cast',
     'online-remote-hold': 'HOLD',
     'online-remote-pass': 'response/pass/resolve',
     'online-remote-resolve': 'response/pass/resolve',
@@ -1360,7 +1871,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       setStage('join-seat-join');
       await clickVisible(page, 'online-open-join', timeoutMs);
       await fillVisible(page, 'online-shared-invite', invite, timeoutMs);
-      if (await digestVisibleInput(page, 'online-shared-invite') !== roomFingerprint) throw new Error('join room correlation failed');
+      if ((await digestVisibleInput(page, 'online-shared-invite')) !== roomFingerprint) throw new Error('join room correlation failed');
       await clickVisible(page, 'online-join-shared', timeoutMs);
       setStage('join-seat-deck');
       await clickVisible(page, 'online-submit-deck', timeoutMs); recordControl('online-submit-deck');
@@ -1390,7 +1901,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     for (const testId of UI_SEQUENCE) {
       if (testId === 'online-advance-to-main') {
         setStage('advance');
-        await advanceUntilPhase(hostPage, 'main1', workerOrigin, timeoutMs, secretFragments);
+        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl);
         recordControl(testId);
         continue;
       }
@@ -1398,23 +1909,57 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         setStage('land');
         await selectFirstVisibleOption(hostPage, 'online-journey-land', timeoutMs);
       }
-      if (testId === 'online-journey-cast-spell') {
+      if (testId === 'online-remote-cast') {
         setStage('cast');
-        await selectFirstVisibleOption(hostPage, 'online-journey-spell', timeoutMs);
+        castObjectId = await readRemoteCastObjectId(hostPage, timeoutMs);
       }
       if (testId === 'online-remote-advance') {
         setStage('HOLD-pass-resolve');
+        const capturedTopObjectId = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).stackTopObjectId;
+        if (capturedTopObjectId === null) throw new Error('priority captured top missing');
         // The first priority cycle is completed before entering combat. HOLD,
         // pass and resolve remain legal actions for their current seat only.
-        const holdRevision = await clickAndAwaitRevision(hostPage, 'online-remote-hold', workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-hold');
-        await clickAndAwaitRevision(hostPage, 'online-remote-hold', workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-hold');
-        await clickAndAwaitRevision(hostPage, 'online-remote-pass', workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-pass');
-        for (const page of pages.slice(1)) {
-          await clickAndAwaitRevision(page, 'online-remote-pass', workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-pass');
+        const clearHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'none');
+        const setRevision = await clickPriorityAndAwaitConvergence(pages, clearHold.page, 'online-remote-hold', clearHold.revision, workerOrigin, timeoutMs, secretFragments);
+        const setHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'owned-by-designated');
+        if (setHold.revision < setRevision) throw new Error('online-remote-hold set revision stale');
+        recordControl('online-remote-hold');
+        const clearRevision = await clickPriorityAndAwaitConvergence(pages, setHold.page, 'online-remote-hold', setHold.revision, workerOrigin, timeoutMs, secretFragments);
+        const clearedHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'none');
+        if (clearedHold.revision < clearRevision) throw new Error('online-remote-hold clear revision stale');
+        recordControl('online-remote-hold');
+        for (let pass = 0; pass < playerCount; pass += 1) {
+          const passActor = await findPriorityActorPage(
+            pages, 'online-remote-pass',
+            timeoutMs,
+            false
+          );
+          await clickPriorityAndAwaitConvergence(
+            pages,
+            passActor.page, 'online-remote-pass',
+            passActor.revision,
+            workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-pass');
         }
-        await clickAndAwaitRevision(hostPage, 'online-remote-resolve', workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-resolve');
-        if (holdRevision <= 0) throw new Error('HOLD acknowledgement missing');
-        await advanceUntilPhase(hostPage, 'combat', workerOrigin, timeoutMs, secretFragments);
+        const resolveActor = await findPriorityActorPage(
+          pages,
+          'online-remote-resolve',
+          timeoutMs,
+          false
+        );
+        const resolveRevision = await clickPriorityAndAwaitConvergence(
+          pages,
+          resolveActor.page, 'online-remote-resolve',
+          resolveActor.revision,
+          workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-resolve');
+        await waitForResolvedTopConvergence(
+          pages,
+          capturedTopObjectId,
+          resolveRevision,
+          workerOrigin,
+          timeoutMs,
+          secretFragments
+        );
+        await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl);
         recordControl(testId);
         continue;
       }
@@ -1439,6 +1984,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-tabletop-submit-stack-entry') {
         setStage('manual-stack');
+        manualStackOperation = 'entry';
         manualStackPage = await findManualStackActorPage(pages, timeoutMs);
         await fillVisible(manualStackPage, 'online-tabletop-stack-entry-id', 'manual-stack-entry', timeoutMs);
         await fillVisible(manualStackPage, 'online-tabletop-stack-label', '公開手動項目', timeoutMs);
@@ -1452,14 +1998,23 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         setStage('manual-stack');
         await toggleDetails(hostPage, testId, timeoutMs);
       }
-      if (testId === 'online-tabletop-submit-manual-resolve') setStage('manual-stack');
+      if (testId === 'online-tabletop-submit-manual-resolve') {
+        setStage('manual-stack');
+        manualStackOperation = 'resolve';
+        manualStackPage = await findManualResolveActorPage(pages, timeoutMs);
+      }
       if (!STAGE_HANDLED_UI_CONTROLS.has(testId)) setStage('ui-action');
-      const actionPage = (testId === 'online-tabletop-submit-stack-entry' || testId === 'online-tabletop-submit-manual-resolve')
-        ? manualStackPage ?? hostPage
-        : hostPage;
+      const actionPage =
+        testId === 'online-tabletop-submit-stack-entry' || testId === 'online-tabletop-submit-manual-resolve'
+          ? (manualStackPage ?? hostPage)
+          : hostPage;
       const actionBaseline = REVISION_CONTROLS.has(testId) ? (await probePage(actionPage, timeoutMs, workerOrigin, secretFragments)).revision : null;
       await clickVisible(actionPage, testId, timeoutMs); recordControl(testId);
       if (actionBaseline !== null) await waitForRevisionAdvance(actionPage, workerOrigin, actionBaseline, timeoutMs, secretFragments);
+      if (testId === 'online-remote-cast') {
+        if (castObjectId === null) throw new Error('cast object missing');
+        castFact = await waitForRemoteCastEvidence(pages, hostPage, castObjectId, playerCount, workerOrigin, timeoutMs, secretFragments);
+      }
       if (testId === 'visibility-look') {
         setStage('private-leak-check');
         const confirmBaseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;
@@ -1561,10 +2116,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     setStage('finalize');
     const privateLookChoose: O4p09iScenarioFactV1['privateLookChoose'] = Object.freeze({ look: postActions.privateLookControl as true, choose: chooseObserved as true, crossSeatLeak: crossSeatPrivateChoiceLeak });
     const unsupportedManual: O4p09iScenarioFactV1['unsupportedManual'] = Object.freeze({ stack: postActions.manualStackControl as true, resolve: postActions.manualResolveControl as true });
+    if (castFact === null) throw new Error('cast evidence missing');
     return Object.freeze({
       playerCount,
       phases: Object.freeze(MATCH_PHASES.filter((phase) => phases.has(phase))),
       actionKinds: Object.freeze(actionKinds),
+      cast: castFact,
       revision: Object.freeze({ start: initialRevision, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, continuous: true }),
       privateLookChoose,
       unsupportedManual,
@@ -1572,10 +2129,21 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       eliminatedSeats: Object.freeze(uniqueEliminatedSeats),
       viewportFacts,
     });
-  } catch {
+  } catch (error) {
     const failedStage: string = stage;
-    if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`);
-    throw new Error(`production scenario stage failed: ${stage}`);
+    const message = error instanceof Error ? error.message : '';
+    if (classifyO4p09iProductionFailureV1(error).class === 'ENVIRONMENT')
+      throw new Error('production environment failure: browser', { cause: error });
+    if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`,
+        { cause: error }
+      );
+    if (failedStage === 'manual-stack' && manualStackOperation !== null)
+      throw new Error(`production scenario stage failed: manual-stack/${manualStackOperation}`, {
+        cause: error
+      });
+    throw new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
+      cause: error
+    });
   } finally {
     for (const page of pages) {
       snapshotConsole(page);
@@ -1600,7 +2168,8 @@ export async function runO4p09iFullMatchEvidenceTestDriverV1(inputDeps: O4p09iEv
   const secretFragments: string[] = [];
   const counters = { contextsClosed: 0, pagesClosed: 0 };
   const lifetimeConsole: O4p09iConsoleAccumulatorV1 = { errors: 0, warnings: 0, secretViolations: 0 };
-  let scenarios: Readonly<{ readonly twoPlayer: O4p09iScenarioFactV1; readonly fourPlayer: O4p09iScenarioFactV1 }>;
+  let scenarios: Readonly<{ readonly twoPlayer: O4p09iScenarioFactV1; readonly fourPlayer: O4p09iScenarioFactV1;
+  }>;
   try {
     const deckTexts: string[] = inputDeps.readDeck === undefined
       ? [...O4P09I_PUBLIC_DECK_TEXTS_V1]
@@ -1644,4 +2213,6 @@ async function main(): Promise<void> {
   output.write(`${JSON.stringify(canonical(summary))}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1] ?? ''}`) void main().catch(() => { process.exitCode = 1; });
+if (import.meta.url === `file://${process.argv[1] ?? ''}`) void main().catch((error: unknown) => {
+    writeO4p09iJourneyFailureV1(process.env.JOURNEY_RESULT_PATH, error);
+    process.exitCode = 1; });

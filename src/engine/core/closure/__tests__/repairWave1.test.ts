@@ -163,6 +163,19 @@ describe('O4P-01N repair wave 1', () => {
     expect(operationFailure).toMatchObject({ status: 'rejected', beforeStateDigest: expected, afterStateDigest: expected });
   });
 
+  it('rejects priority pass during any active HOLD without changing the root or digest', () => {
+    const base = makeRoot({ priorityHolder: 'P2' });
+    const root = Closure.createModeNeutralCoreRootV1({
+      ...base,
+      acceptedCommandCount: 1,
+      tabletopManual: Core.createCoreTabletopManualStateV1({ priorityHolds: [{ playerId: 'P1', setRevision: 1 }] }),
+    });
+    const digest = Closure.coreCanonicalDigestFromValueV1(root);
+    const result = Closure.applyCoreCommandV1(root, command(2, 'P2', { kind: 'priority-pass', playerId: 'P2' }));
+    expect(result).toMatchObject({ status: 'rejected', root, beforeStateDigest: digest, afterStateDigest: digest, events: [] });
+    expect(result.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'PRIORITY_HOLD_ACTIVE' })]));
+  });
+
   it('binds authority to payload and uses typed exit boundaries', () => {
     const root = makeRoot({ priorityHolder: 'P3' });
     const digest = Closure.coreCanonicalDigestFromValueV1(root);

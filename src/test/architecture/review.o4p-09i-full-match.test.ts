@@ -20,7 +20,8 @@ describe('review O4P-09I full-match production evidence', () => {
   it('registers only the bounded evidence harness and acceptance brief', () => {
     expect(existsSync(HARNESS)).toBe(true);
     expect(existsSync(BRIEF)).toBe(true);
-    const packageJson = JSON.parse(text(PACKAGE)) as { scripts?: Record<string, unknown>; dependencies?: unknown; devDependencies?: unknown };
+    const packageJson = JSON.parse(text(PACKAGE)) as { scripts?: Record<string, unknown>; dependencies?: unknown; devDependencies?: unknown;
+    };
     expect(packageJson.scripts?.['evidence:o4p-09i']).toBe('tsx scripts/online/o4p-09i-full-match-evidence.ts');
     const config = JSON.parse(text(TS_CONFIG)) as { include?: readonly string[] };
     expect(config.include).toContain('./o4p-09i-full-match-evidence.ts');
@@ -77,11 +78,21 @@ describe('review O4P-09I full-match production evidence', () => {
     expect(source).toContain('MAX_PRIVATE_CAPTURE_BYTES_V1');
     expect(source).toContain('private choice capture incomplete');
     const pollingStart = source.indexOf('async function waitForVisible');
-    const pollingEnd = source.indexOf('async function importDeckAndOpenOnline');
+    const pollingEnd = source.indexOf('type O4p09iActorProbeV1');
     const pollingSource = source.slice(pollingStart, pollingEnd);
     expect(pollingSource).toContain('for (;;)');
     expect(pollingSource).toContain('await page.evaluate<boolean>');
     expect(pollingSource).not.toContain('Promise.race');
+    const advanceActorProbe = source.slice(
+      source.indexOf('type O4p09iActorProbeV1'),
+      source.indexOf('async function findAdvanceActorPage')
+    );
+    expect(advanceActorProbe).toContain('Promise.race');
+    expect(source).toContain('advance actor authority ambiguous');
+    expect(source).toContain('manual stack actor authority ambiguous');
+    expect(source).toContain('manual resolve actor authority ambiguous');
+    expect(source).toContain('probes.length !== pages.length');
+    expect(source).toContain('probes.length === pages.length');
     const inviteControlPolling = source.slice(source.indexOf('async function clickButtonByText'), source.indexOf('async function fillVisible'));
     expect(inviteControlPolling).toContain('for (;;)');
     expect(inviteControlPolling).toContain('await page.evaluate<boolean>');
@@ -134,8 +145,9 @@ describe('review O4P-09I full-match production evidence', () => {
     expect(source).toContain('advanceUntilPhase');
     expect(source).toContain('phase-indicator');
     expect(source).toContain('online-pregame-revision');
-    expect(source).toContain("advanceUntilPhase(hostPage, 'main1'");
-    expect(source).toContain("advanceUntilPhase(hostPage, 'combat'");
+    expect(source).toContain("advanceUntilPhase(pages, 'main1'");
+    expect(source).toContain("advanceUntilPhase(pages, 'combat'");
+    expect(source).toContain('targetCount === snapshots.length && matchingRevision');
     expect(source).toContain('privateLookControl');
     expect(source).toContain('manualStackControl');
     expect(source).toContain('invite read timeout');

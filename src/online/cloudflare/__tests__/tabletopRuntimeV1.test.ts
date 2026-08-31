@@ -13,7 +13,7 @@ import { ReviewSqliteStorage } from './reviewSqliteStorage';
 
 const SID = '5da14d86-0780-4821-a799-96f64b377df4';
 const OID = 'd8ad23a1-0b43-48ea-9fbe-d89b29194509';
-const card = (): CardDef => ({ scryfallId: SID, oracleId: OID, name: 'Tabletop runtime card', lang: 'en', layout: 'normal', cmc: 1, colorIdentity: [], typeLine: 'Creature', faces: [{ name: 'Tabletop runtime card', typeLine: 'Creature' }] });
+const card = (): CardDef => ({ scryfallId: SID, oracleId: OID, name: 'Tabletop runtime card', lang: 'en', layout: 'normal', cmc: 1, colorIdentity: [], typeLine: 'Instant', faces: [{ name: 'Tabletop runtime card', typeLine: 'Instant' }] });
 
 function lobby(playerCount: 2 | 4) {
   return createOnlineVariableLobbyV4({
@@ -203,6 +203,7 @@ describe('O4P-09D server tabletop transport', () => {
       ['legacy-tap', { kind: 'table-tap', objectId: battlefieldObject, tapped: true }],
       ['legacy-counter', { kind: 'table-counter-adjust', objectId: battlefieldObject, counterKind: 'charge', delta: 1 }],
       ['legacy-token-remove', { kind: 'table-token-remove', objectId: journeyTokenId('legacy-token') }],
+      ['legacy-priority-pass', { kind: 'priority-pass', playerId: activePlayerId }],
     ];
     let randomCalls = 0;
     vi.stubGlobal('crypto', { getRandomValues: <T extends ArrayBufferView>(array: T): T => {
@@ -324,6 +325,235 @@ describe('O4P-09D server tabletop transport', () => {
       fixture.storage.close();
     }
   }, 60000);
+
+  it('accepts priority pass only for the current holder and preserves state on wrong actor or HOLD', async () => {
+    const fixture = await started(2);
+    try {
+      const object = () => new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
+      let state = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (state === null) throw new Error('Missing protocol fixture');
+      for (let index = 0; index < 12 && state.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind !== 'priority'; index += 1) {
+        const window = state.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
+        const actorPlayerId = window.kind === 'sba-check-required' ? window.priorityRecipientPlayerId : state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+        const seat = state.room.seats.find((candidate) => candidate.corePlayerId === actorPlayerId);
+        if (seat?.participantId === null || seat === undefined) throw new Error('Missing lifecycle actor seat');
+        const primitive = window.kind === 'sba-check-required' ? { kind: 'sba-check-outcome', actionsWereApplied: false } : { kind: 'priority-advance' };
+        const response = await post(object(), fixture.roomId, { ...tabletopIntentBody(state, `priority-pass-setup-${String(index)}`, primitive), participantId: seat.participantId, ['participantCapability']: seat.seatCapability });
+        expect(response.status).toBe(200);
+        state = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+        if (state === null) throw new Error('Missing advanced protocol fixture');
+      }
+      const window = state.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
+      if (window.kind !== 'priority') throw new Error('Priority window was not reached');
+      const holder = state.room.seats.find((candidate) => candidate.corePlayerId === window.holderPlayerId);
+      const other = state.room.seats.find((candidate) => candidate.corePlayerId !== window.holderPlayerId && candidate.participantId !== null);
+      if (holder?.participantId === null || holder === undefined || other?.participantId === null || other === undefined) throw new Error('Missing priority seats');
+      const body = (current: NonNullable<ReturnType<OnlineCloudflareRepository['loadVariableProtocolV2']>>, seat: typeof holder, commandId: string, primitive: Record<string, unknown>) => ({ kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, protocolVersion: current.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability, commandId, baseRevision: current.revision, mode: 'structured', primitive });
+      const accepted = await post(object(), fixture.roomId, body(state, holder, 'priority-pass-accepted', { kind: 'priority-pass' }));
+      expect(accepted.status).toBe(200);
+      const afterAccepted = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (afterAccepted === null) throw new Error('Missing accepted pass state');
+      expect(afterAccepted.revision).toBe(state.revision + 1);
+      expect(afterAccepted.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window).toMatchObject({ kind: 'priority', holderPlayerId: other.corePlayerId });
+      const digest = coreCanonicalDigestFromValueV1(afterAccepted.coreRoot);
+      const wrongActor = await post(object(), fixture.roomId, body(afterAccepted, holder, 'priority-pass-wrong-actor', { kind: 'priority-pass' }));
+      expect(wrongActor.status).toBe(400);
+      const afterWrongActor = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      expect(afterWrongActor?.revision).toBe(afterAccepted.revision);
+      expect(coreCanonicalDigestFromValueV1(afterWrongActor?.coreRoot)).toBe(digest);
+      const hold = await post(object(), fixture.roomId, body(afterAccepted, other, 'priority-pass-hold', { kind: 'priority-hold', held: true }));
+      expect(hold.status).toBe(200);
+      const held = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (held === null) throw new Error('Missing held state');
+      const heldDigest = coreCanonicalDigestFromValueV1(held.coreRoot);
+      const blocked = await post(object(), fixture.roomId, body(held, other, 'priority-pass-held', { kind: 'priority-pass' }));
+      expect(blocked.status).toBe(400);
+      const afterBlocked = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      expect(afterBlocked?.revision).toBe(held.revision);
+      expect(coreCanonicalDigestFromValueV1(afterBlocked?.coreRoot)).toBe(heldDigest);
+    } finally {
+      fixture.storage.close();
+    }
+  }, 60000);
+
+  it('binds a two-player cast to one receipt and the same shared stack projection for both seats', async () => {
+    const fixture = await started(2);
+    try {
+      let initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (initial === null) throw new Error('Missing protocol fixture');
+      const object = () => new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
+      let observedExplicitSbaOutcome = false;
+      for (let index = 0; index < 12 && initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind !== 'priority'; index += 1) {
+        const window = initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
+        const primitive = window.kind === 'sba-check-required'
+          ? { kind: 'sba-check-outcome', actionsWereApplied: false }
+          : { kind: 'priority-advance' };
+        const actorPlayerId = window.kind === 'sba-check-required'
+          ? window.priorityRecipientPlayerId
+          : initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+        const setupSeat = initial.room.seats.find((candidate) => candidate.corePlayerId === actorPlayerId);
+        if (setupSeat?.participantId === null || setupSeat === undefined) throw new Error('Missing lifecycle actor seat');
+        const setupBody = {
+          ...tabletopIntentBody(initial, `remote-cast-window-${String(index)}`, primitive),
+          participantId: setupSeat.participantId,
+          ['participantCapability']: setupSeat.seatCapability,
+        };
+        const advanced = await post(object(), fixture.roomId, setupBody);
+        expect(advanced.status).toBe(200);
+        if (window.kind === 'sba-check-required') observedExplicitSbaOutcome = true;
+        initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+        if (initial === null) throw new Error('Missing advanced protocol fixture');
+      }
+      expect(observedExplicitSbaOutcome).toBe(true);
+      expect(initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind).toBe('priority');
+      const { activePlayerId, seat } = activeSeat(initial);
+      const objectId = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.byPlayer[activePlayerId]?.hand[0];
+      if (objectId === undefined) throw new Error('Missing cast object');
+      const sourceObject = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.objects[objectId];
+      if (sourceObject?.kind !== 'card') throw new Error('Cast source must be a card object');
+      const otherSeat = initial.room.seats.find((candidate) => candidate.corePlayerId !== activePlayerId && candidate.participantId !== null);
+      if (otherSeat?.participantId === null || otherSeat === undefined) throw new Error('Missing rejecting seat');
+      const rejected = await post(object(), fixture.roomId, {
+        kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+        protocolVersion: initial.protocolVersion, roomId: fixture.roomId,
+        participantId: otherSeat.participantId, ['participantCapability']: otherSeat.seatCapability,
+        commandId: 'remote-cast-wrong-actor', baseRevision: initial.revision,
+        mode: 'structured', primitive: { kind: 'cast-spell', objectId },
+      });
+      expect(rejected.status).toBe(400);
+      const afterReject = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      expect(afterReject?.revision).toBe(initial.revision);
+      expect(coreCanonicalDigestFromValueV1(afterReject?.coreRoot)).toBe(coreCanonicalDigestFromValueV1(initial.coreRoot));
+
+      const hold = await post(object(), fixture.roomId, {
+        ...tabletopIntentBody(initial, 'remote-cast-hold', { kind: 'priority-hold', held: true }),
+        participantId: seat.participantId,
+        ['participantCapability']: seat.seatCapability,
+      });
+      expect(hold.status).toBe(200);
+      const heldState = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (heldState === null) throw new Error('Missing active-HOLD cast state');
+      const heldCast = await post(object(), fixture.roomId, {
+        ...tabletopIntentBody(heldState, 'remote-cast-held-reject', { kind: 'cast-spell', objectId }),
+        participantId: seat.participantId,
+        ['participantCapability']: seat.seatCapability,
+      });
+      expect(heldCast.status).toBe(400);
+      const afterHeldCast = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      expect(afterHeldCast?.revision).toBe(heldState.revision);
+      expect(coreCanonicalDigestFromValueV1(afterHeldCast?.coreRoot)).toBe(coreCanonicalDigestFromValueV1(heldState.coreRoot));
+      const release = await post(object(), fixture.roomId, {
+        ...tabletopIntentBody(heldState, 'remote-cast-release', { kind: 'priority-hold', held: false }),
+        participantId: seat.participantId,
+        ['participantCapability']: seat.seatCapability,
+      });
+      expect(release.status).toBe(200);
+      initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (initial === null) throw new Error('Missing released-HOLD cast state');
+
+      const accepted = await post(object(), fixture.roomId, {
+        kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+        protocolVersion: initial.protocolVersion, roomId: fixture.roomId,
+        participantId: seat.participantId, ['participantCapability']: seat.seatCapability,
+        commandId: 'remote-cast-accepted', baseRevision: initial.revision,
+        mode: 'structured', primitive: { kind: 'cast-spell', objectId },
+      });
+      const receipt = await accepted.json() as Record<string, unknown>;
+      expect(accepted.status).toBe(200);
+      expect(receipt).toMatchObject({
+        kind: 'online-command-ack-v1', commandId: 'remote-cast-accepted',
+        baseRevision: initial.revision, acceptedRevision: initial.revision + 1,
+        currentRevision: initial.revision + 1, duplicate: false,
+      });
+
+      const committed = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (committed === null) throw new Error('Missing committed cast state');
+      const projections = committed.room.seats.map((candidate) => {
+        if (candidate.participantId === null) throw new Error('Missing participant projection');
+        return projectOnlineVariableProtocolV3(committed, candidate.participantId);
+      });
+      const stackFacts = projections.map((projection) => ({
+        revision: projection.revision,
+        count: projection.game.zones.stack.count,
+        top: projection.game.zones.stack.entries.at(-1),
+      }));
+      expect(stackFacts.map(({ revision }) => revision)).toEqual([initial.revision + 1, initial.revision + 1]);
+      expect(stackFacts.map(({ count }) => count)).toEqual([1, 1]);
+      const projectedTopIds = stackFacts.map(({ top }) => top?.kind === 'hidden-card' ? null : top?.objectId);
+      expect(projectedTopIds[0]).not.toBeNull();
+      expect(projectedTopIds[1]).toBe(projectedTopIds[0]);
+      expect(projectedTopIds[0]).not.toBe(objectId);
+      const committedTop = projectedTopIds[0] === null
+        ? undefined
+        : committed.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.objects[projectedTopIds[0]];
+      expect(committedTop).toMatchObject({
+        kind: 'card',
+        physicalCardId: sourceObject.physicalCardId,
+        incarnation: sourceObject.incarnation + 1,
+      });
+    } finally {
+      fixture.storage.close();
+    }
+  }, 60000);
+
+  it.each(['wrong actor', 'wrong window', 'active HOLD', 'stale revision'] as const)(
+    'rejects SBA outcome on %s without changing the runtime state',
+    async (caseName) => {
+      const fixture = await started(2);
+      const object = () => new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
+      try {
+        let before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+        if (before === null) throw new Error('Missing SBA fixture');
+        for (let index = 0; index < 12 && before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind !== 'sba-check-required'; index += 1) {
+          const advanced = await post(object(), fixture.roomId, tabletopIntentBody(before, `sba-setup-${String(index)}`, { kind: 'priority-advance' }));
+          if (advanced.status !== 200) throw new Error(`Could not reach SBA window (${before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind})`);
+          before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+          if (before === null) throw new Error('Missing advanced SBA fixture');
+        }
+        if (before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind !== 'sba-check-required') {
+          throw new Error('Expected an SBA-check-required fixture window');
+        }
+        const recipient = before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.priorityRecipientPlayerId;
+        const recipientSeat = before.room.seats.find((candidate) => candidate.corePlayerId === recipient);
+        const otherSeat = before.room.seats.find((candidate) => candidate.corePlayerId !== recipient && candidate.participantId !== null);
+        if (recipientSeat?.participantId === null || recipientSeat === undefined || otherSeat?.participantId === null || otherSeat === undefined) throw new Error('Missing SBA fixture seats');
+
+        let body: Record<string, unknown>;
+        if (caseName === 'wrong actor') {
+          body = { ...tabletopIntentBody(before, 'sba-wrong-actor', { kind: 'sba-check-outcome', actionsWereApplied: false }), participantId: otherSeat.participantId, ['participantCapability']: otherSeat.seatCapability };
+        } else if (caseName === 'stale revision') {
+          body = { ...tabletopIntentBody(before, 'sba-stale-revision', { kind: 'sba-check-outcome', actionsWereApplied: false }), baseRevision: before.revision === 0 ? 1 : before.revision - 1 };
+        } else {
+          const accepted = await post(object(), fixture.roomId, { ...tabletopIntentBody(before, 'sba-setup', { kind: 'sba-check-outcome', actionsWereApplied: false }), participantId: recipientSeat.participantId, ['participantCapability']: recipientSeat.seatCapability });
+          expect(accepted.status).toBe(200);
+          before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+          if (before === null) throw new Error('Missing post-SBA fixture');
+          if (caseName === 'wrong window') {
+            body = { ...tabletopIntentBody(before, 'sba-wrong-window', { kind: 'sba-check-outcome', actionsWereApplied: false }), participantId: recipientSeat.participantId, ['participantCapability']: recipientSeat.seatCapability };
+          } else {
+            const hold = await post(object(), fixture.roomId, { ...tabletopIntentBody(before, 'sba-hold', { kind: 'priority-hold', held: true }), participantId: recipientSeat.participantId, ['participantCapability']: recipientSeat.seatCapability });
+            expect(hold.status).toBe(200);
+            before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+            if (before === null) throw new Error('Missing active-HOLD fixture');
+            body = { ...tabletopIntentBody(before, 'sba-active-hold', { kind: 'sba-check-outcome', actionsWereApplied: false }), participantId: recipientSeat.participantId, ['participantCapability']: recipientSeat.seatCapability };
+          }
+        }
+
+        const beforeCore = before.coreRoot;
+        const beforeDigest = coreCanonicalDigestFromValueV1(beforeCore);
+        const rejected = await post(object(), fixture.roomId, body);
+        expect(rejected.status).toBe(400);
+        const after = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+        if (after === null) throw new Error('Missing rejected SBA state');
+        expect(after.revision).toBe(before.revision);
+        expect(coreCanonicalDigestFromValueV1(after.coreRoot)).toBe(beforeDigest);
+        expect(after.coreRoot).toEqual(beforeCore);
+      } finally {
+        fixture.storage.close();
+      }
+    },
+    60000,
+  );
 
   it.each([2, 4] as const)('replays every executable high-level primitive family for a %ip room', async (playerCount) => {
     const fixture = await started(playerCount);

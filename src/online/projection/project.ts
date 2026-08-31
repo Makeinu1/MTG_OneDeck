@@ -423,7 +423,9 @@ function game(ctx: ProjectionContext, includeAssistedPriority = false): OnlinePr
   const priorityWindow = ctx.state.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
   const topStackObjectId = registry.zones.shared.stack.at(-1) ?? null;
   const topStackObject = topStackObjectId === null ? undefined : registry.objects[topStackObjectId];
-  const stewardPlayerId = topStackObjectId === null
+  const stewardPlayerId = priorityWindow.kind === 'sba-check-required'
+    ? priorityWindow.priorityRecipientPlayerId
+    : topStackObjectId === null
     ? registry.activePlayerId
     : topStackObject?.kind === 'activated-ability' || topStackObject?.kind === 'triggered-ability'
       ? topStackObject.controllerPlayerId

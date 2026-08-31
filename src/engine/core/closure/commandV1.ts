@@ -347,17 +347,23 @@ function normalizeTabletopDefinition(value: unknown, path: string, issues: CoreC
   return frozen;
 }
 function normalizeTabletopTransition(value: unknown, path: string, issues: CoreCommandValidationIssueV1[]): unknown {
-  const row = exact(value, ['kind', 'nextPosition'], path, issues, ['kind']);
+  const row = exact(value, ['kind', 'nextPosition', 'actionsWereApplied'], path, issues, ['kind']);
   if (!row) return null;
   if (row.kind === 'checkpoint' || row.kind === 'next-turn') {
-    if (Object.prototype.hasOwnProperty.call(row, 'nextPosition')) issues.push(issue('UNKNOWN_FIELD', `${path}/nextPosition`, 'This transition does not contain a next position'));
+    if (Object.prototype.hasOwnProperty.call(row, 'nextPosition') || Object.prototype.hasOwnProperty.call(row, 'actionsWereApplied')) issues.push(issue('UNKNOWN_FIELD', path, 'This transition contains fields for another kind'));
     return Object.freeze({ kind: row.kind });
   }
   if (row.kind === 'first-turn-draw-skip') {
-    if (Object.prototype.hasOwnProperty.call(row, 'nextPosition')) issues.push(issue('UNKNOWN_FIELD', `${path}/nextPosition`, 'This transition does not contain a next position'));
+    if (Object.prototype.hasOwnProperty.call(row, 'nextPosition') || Object.prototype.hasOwnProperty.call(row, 'actionsWereApplied')) issues.push(issue('UNKNOWN_FIELD', path, 'This transition contains fields for another kind'));
     return issues.some((current) => current.path.startsWith(path)) ? null : Object.freeze({ kind: 'first-turn-draw-skip' as const });
   }
+  if (row.kind === 'sba-check-outcome') {
+    if (Object.prototype.hasOwnProperty.call(row, 'nextPosition')) issues.push(issue('UNKNOWN_FIELD', `${path}/nextPosition`, 'SBA outcome does not contain a next position'));
+    if (typeof row.actionsWereApplied !== 'boolean') issues.push(issue('INVALID_TYPE', `${path}/actionsWereApplied`, 'SBA outcome must be boolean'));
+    return issues.some((current) => current.path.startsWith(path)) ? null : Object.freeze({ kind: 'sba-check-outcome' as const, actionsWereApplied: row.actionsWereApplied as boolean });
+  }
   if (row.kind !== 'position') { issues.push(issue('INVALID_LITERAL', `${path}/kind`, 'Invalid tabletop turn transition')); return null; }
+  if (Object.prototype.hasOwnProperty.call(row, 'actionsWereApplied')) issues.push(issue('UNKNOWN_FIELD', `${path}/actionsWereApplied`, 'Position transition does not contain an SBA outcome'));
   const nextPosition = plain(row.nextPosition) ? row.nextPosition : null;
   if (nextPosition === null) { issues.push(issue('INVALID_TYPE', `${path}/nextPosition`, 'Next position must be a plain record')); return null; }
   const positionFields = ['phase', 'step'] as const;

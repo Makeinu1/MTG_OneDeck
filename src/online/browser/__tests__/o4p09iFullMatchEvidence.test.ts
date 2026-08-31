@@ -1,4 +1,7 @@
 import { Script } from 'node:vm';
+import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   O4P09I_DEFAULT_TIMEOUT_MS_V1,
@@ -6,6 +9,9 @@ import {
   O4P09I_PUBLIC_DECK_TEXTS_V1,
   O4P09I_START_SURFACE_TIMEOUT_MS_V1,
   O4P09I_WORKER_ORIGIN_V1,
+  classifyO4p09iProductionFailureV1,
+  resolveO4p09iJourneyResultPathV1,
+  writeO4p09iJourneyFailureV1,
   runO4p09iFullMatchEvidenceV1 as runO4p09iFullMatchEvidenceProductionV1,
   runO4p09iFullMatchEvidenceTestDriverV1 as runO4p09iFullMatchEvidenceV1,
   validateO4p09iFullMatchEvidenceV1,
@@ -41,7 +47,8 @@ type FakeOptions = Readonly<{
   readonly privateChoiceCandidateTokenLeak?: boolean;
   readonly privateChoiceCaptureBoundExceeded?: boolean;
   readonly leakScanBoundExceeded?: boolean;
-  readonly geometryFailure?: 'vertical-collision' | 'offscreen-panel' | 'inaccessible-scroll' | 'non-scrollable' | 'focus-inaccessible' | 'obscured-battlefield' | 'clipped-primary';
+  readonly geometryFailure?:
+    | 'vertical-collision' | 'offscreen-panel' | 'inaccessible-scroll' | 'non-scrollable' | 'focus-inaccessible' | 'obscured-battlefield' | 'clipped-primary';
   readonly consoleErrors?: number;
   readonly consoleWarnings?: number;
   readonly consoleSecretViolations?: number;
@@ -55,18 +62,52 @@ type FakeOptions = Readonly<{
   readonly pregameReadyRevisionMissing?: boolean;
   readonly pregameTerminalSurfaceFailure?: boolean;
   readonly manualStackEnabledSeat?: number;
+  readonly manualStackEnabledSeats?: readonly number[];
+  readonly manualResolveEnabledSeats?: readonly number[];
   readonly manualStackEnabledProbeNeverSettles?: boolean;
-  readonly startedSurfaceFailure?: 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
+  readonly advanceEnabledSeat?: number;
+  readonly advanceEnabledSeats?: readonly number[];
+  readonly sbaEnabledSeats?: readonly number[];
+  readonly actorRevisionOffsetSeat?: number;
+  readonly actorRevisionUnsafeSeat?: number;
+  readonly priorityHoldEnabledSeats?: readonly number[];
+  readonly priorityPassEnabledSeats?: readonly number[];
+  readonly priorityResolveEnabledSeats?: readonly number[];
+  readonly priorityActorRevisionOffsetSeat?: number;
+  readonly priorityActorRevisionUnsafeSeat?: number;
+  readonly priorityEnvironmentFailure?: boolean;
+  readonly priorityHoldStuck?: 'off' | 'on';
+  readonly missingPriorityReceipt?: boolean;
+  readonly missingResolutionEvidence?: boolean;
+  readonly divergentPhaseSeat?: number;
+  readonly startedSurfaceFailure?:
+    | 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
   readonly lobbyReadyProbe?: 'delayed' | 'never';
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
   let contextIndex = 0;
   const sharedRevisions = [0, 0];
+  const sharedPhases = ['beginning', 'beginning'];
+  const progressWindows: Array<'advance' | 'sba'> = ['advance', 'advance'];
+  const progressCompletions = [0, 0];
+  const priorityActors = [0, 0];
+  const priorityPassCounts = [0, 0];
+  const priorityHoldSeats = [new Set<number>(), new Set<number>()];
+  const castStates: Array<{ topObjectId: string | null; acceptedRevision: number | null; senderSeat: number | null }> = [
+    { topObjectId: null, acceptedRevision: null, senderSeat: null },
+    { topObjectId: null, acceptedRevision: null, senderSeat: null },
+  ];
+  const prioritySettlements: Array<{
+    operation: 'priority-hold' | 'priority-pass' | 'priority-resolve';
+    baseRevision: number;
+    acceptedRevision: number;
+    senderSeat: number;
+  } | null> = [null, null];
+  const postResolutions: Array<string | null> = [null, null];
   const pregameStates = [{ phaseIndex: 0, actorIndex: 0 }, { phaseIndex: 0, actorIndex: 0 }];
   const pregameControls = ['pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready'];
   const page = (contextOrdinal: number, pageOrdinal: number): O4p09iPageV1 => {
-    let advanceClicks = 0;
     let revealButtonProbes = 0;
     let inviteReads = 0;
     let startClicks = 0;
@@ -74,12 +115,24 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let lobbyReadyProbes = 0;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
     const seatIndex = scenarioIndex === 0 ? contextOrdinal : contextOrdinal - 2;
-    let phase = 'beginning';
+    const manualStackEnabledSeats = options.manualStackEnabledSeats ?? [
+      options.manualStackEnabledSeat ?? 0
+    ];
+    const manualResolveEnabledSeats = options.manualResolveEnabledSeats ?? manualStackEnabledSeats;
+    const advanceEnabledSeats = options.advanceEnabledSeats ?? [options.advanceEnabledSeat ?? 0];
+    const actorControlRevision = (): number =>
+      options.actorRevisionUnsafeSeat === seatIndex
+        ? Number.NaN
+        : sharedRevisions[scenarioIndex] + (options.actorRevisionOffsetSeat === seatIndex ? 1 : 0);
+    const priorityControlRevision = (): number =>
+      options.priorityActorRevisionUnsafeSeat === seatIndex
+        ? Number.NaN
+        : actorControlRevision() + (options.priorityActorRevisionOffsetSeat === seatIndex ? 1 : 0);
     let viewportWidth = 1440;
     let viewportHeight = 900;
     return {
     navigate: () => Promise.resolve(),
-    evaluate: <T,>(expression: string): Promise<T> => {
+    evaluate: <T>(expression: string): Promise<T> => {
       expressions.push(expression);
       const missingControl = options.missingControl ?? '__missing__';
       if (expression.includes(`data-testid="${missingControl}"`) && !(missingControl === 'open-online-mode' && expression.includes('savedDeckProbe'))) return Promise.reject(new Error('visible control missing'));
@@ -107,10 +160,73 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('pregameTerminalSurfaceProbe')) {
         return Promise.resolve((options.pregameReadyRevisionMissing === true && options.pregameTerminalSurfaceFailure !== true) as T);
       }
-      if (expression.includes('manualStackEnabledProbe')) {
+      if (expression.includes('priorityControlProbe:online-tabletop-submit-stack-entry')) {
         if (options.manualStackEnabledProbeNeverSettles === true) return new Promise<T>(() => {});
-        return Promise.resolve((options.manualStackEnabledSeat === undefined || options.manualStackEnabledSeat === seatIndex) as T);
-      }
+          return Promise.resolve({
+            enabled: manualStackEnabledSeats.includes(seatIndex),
+            revision: actorControlRevision(),
+            holdState: 'not-applicable'
+          } as T);
+        }
+        if (expression.includes('priorityControlProbe:online-tabletop-submit-manual-resolve')) {
+          if (options.manualStackEnabledProbeNeverSettles === true) return new Promise<T>(() => {});
+          return Promise.resolve({
+            enabled: manualResolveEnabledSeats.includes(seatIndex),
+            revision: actorControlRevision(),
+            holdState: 'not-applicable'
+          } as T);
+        }
+        if (
+          expression.includes('priorityControlProbe:online-remote-') &&
+          options.priorityEnvironmentFailure === true
+        )
+          return Promise.reject(new Error('CDP command timeout'));
+        if (expression.includes('priorityControlProbe:online-remote-hold')) {
+          const enabledSeats =
+            options.priorityHoldEnabledSeats ??
+            Array.from({ length: scenarioIndex === 0 ? 2 : 4 }, (_entry, index) => index);
+          return Promise.resolve({
+            enabled: enabledSeats.includes(seatIndex),
+            revision: priorityControlRevision(),
+            holdState: priorityHoldSeats[scenarioIndex].has(seatIndex)
+              ? 'own'
+              : priorityHoldSeats[scenarioIndex].size > 0 ? 'peer' : 'none'
+          } as T);
+        }
+        if (expression.includes('priorityControlProbe:online-remote-pass')) {
+          const enabledSeats = options.priorityPassEnabledSeats ?? [priorityActors[scenarioIndex]];
+          return Promise.resolve({
+            enabled: enabledSeats.includes(seatIndex),
+            revision: priorityControlRevision(),
+            holdState: 'not-applicable'
+          } as T);
+        }
+        if (expression.includes('priorityControlProbe:online-remote-resolve')) {
+          const playerCount = scenarioIndex === 0 ? 2 : 4;
+          const enabledSeats =
+            options.priorityResolveEnabledSeats ??
+            (priorityPassCounts[scenarioIndex] >= playerCount ? [0] : []);
+          return Promise.resolve({
+            enabled: enabledSeats.includes(seatIndex),
+            revision: priorityControlRevision(),
+            holdState: 'not-applicable'
+          } as T);
+        }
+        if (expression.includes('priorityControlProbe:online-remote-advance')) {
+          return Promise.resolve({
+            enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
+            revision: actorControlRevision(),
+            holdState: 'not-applicable'
+          } as T);
+        }
+        if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
+          const enabledSeats = options.sbaEnabledSeats ?? advanceEnabledSeats;
+          return Promise.resolve({
+            enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
+            revision: actorControlRevision(),
+            holdState: 'not-applicable'
+          } as T);
+        }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
       const pregameControlIndex = pregameControls.findIndex((control) => expression.includes(`data-testid="${control}"`));
       if (pregameControlIndex >= 0) {
@@ -134,17 +250,104 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         return Promise.resolve(true as T);
       }
       if (expression.includes('alreadyOnlineSurfaceProbe')) return Promise.resolve((options.alreadyOnline === true) as T);
+      if (expression.includes('cast control unavailable') && expression.includes('data-object-id')) return Promise.resolve('PC3:0' as T);
       if (expression.includes("status.includes('提出済み')") && expression.includes("status.includes('準備完了')")) {
         if (options.lobbyReadyProbe === 'never' || (options.lobbyReadyProbe === 'delayed' && lobbyReadyProbes++ === 0)) return Promise.resolve(false as T);
         return Promise.resolve(true as T);
       }
       if (expression.includes('data-testid="online-start-game"') && expression.includes('node.click(); return true')) startClicks += 1;
-      if (expression.includes('data-testid="online-tabletop-submit-stack-entry"') && expression.includes('node.click(); return true') && options.manualStackEnabledSeat !== undefined && options.manualStackEnabledSeat !== seatIndex) return Promise.reject(new Error('manual stack actor mismatch'));
-      if (expression.includes('data-testid="online-tabletop-submit-manual-resolve"') && expression.includes('node.click(); return true') && options.manualStackEnabledSeat !== undefined && options.manualStackEnabledSeat !== seatIndex) return Promise.reject(new Error('manual resolve actor mismatch'));
+      if (expression.includes('data-testid="online-remote-hold"') && expression.includes('node.click(); return true')
+        ) {
+          const enabledSeats =
+            options.priorityHoldEnabledSeats ??
+            Array.from({ length: scenarioIndex === 0 ? 2 : 4 }, (_entry, index) => index);
+          if (!enabledSeats.includes(seatIndex))
+            return Promise.reject(new Error('HOLD actor mismatch'));
+          const heldSeats = priorityHoldSeats[scenarioIndex];
+          if (!heldSeats.has(seatIndex) && options.priorityHoldStuck !== 'off') heldSeats.add(seatIndex);
+          else if (heldSeats.has(seatIndex) && options.priorityHoldStuck !== 'on') heldSeats.delete(seatIndex);
+        }
+        if (
+          expression.includes('data-testid="online-remote-pass"') &&
+          expression.includes('node.click(); return true')
+        ) {
+          const enabledSeats = options.priorityPassEnabledSeats ?? [priorityActors[scenarioIndex]];
+          if (!enabledSeats.includes(seatIndex))
+            return Promise.reject(new Error('pass actor mismatch'));
+          priorityPassCounts[scenarioIndex] += 1;
+          priorityActors[scenarioIndex] =
+            (priorityActors[scenarioIndex] + 1) % (scenarioIndex === 0 ? 2 : 4);
+        }
+        if (
+          expression.includes('data-testid="online-remote-resolve"') &&
+          expression.includes('node.click(); return true')
+        ) {
+          const playerCount = scenarioIndex === 0 ? 2 : 4;
+          const enabledSeats =
+            options.priorityResolveEnabledSeats ??
+            (priorityPassCounts[scenarioIndex] >= playerCount ? [0] : []);
+          if (!enabledSeats.includes(seatIndex))
+            return Promise.reject(new Error('resolve actor mismatch'));
+        }
+        if (expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true') &&
+          !advanceEnabledSeats.includes(seatIndex)
+        )
+          return Promise.reject(new Error('advance actor mismatch'));
+        if (expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true') &&
+          !(options.sbaEnabledSeats ?? advanceEnabledSeats).includes(seatIndex)
+        )
+          return Promise.reject(new Error('SBA actor mismatch'));
+        if (
+          expression.includes('data-testid="online-tabletop-submit-stack-entry"') &&
+          expression.includes('node.click(); return true') &&
+          !manualStackEnabledSeats.includes(seatIndex)
+        )
+          return Promise.reject(new Error('manual stack actor mismatch'));
+        if (
+          expression.includes('data-testid="online-tabletop-submit-manual-resolve"') &&
+          expression.includes('node.click(); return true') &&
+          !manualResolveEnabledSeats.includes(seatIndex)
+        )
+          return Promise.reject(new Error('manual resolve actor mismatch'));
       if (expression.includes('node.click(); return true') || expression.includes('target.click(); return true')) sharedRevisions[scenarioIndex] += 1;
-      if (expression.includes('data-testid="online-remote-advance"')) {
-        advanceClicks += 1;
-        if (options.stagnantPhase !== true) phase = advanceClicks === 1 ? 'main1' : 'combat';
+      const priorityOperation = expression.includes('data-testid="online-remote-hold"')
+        ? 'priority-hold' as const
+        : expression.includes('data-testid="online-remote-pass"')
+          ? 'priority-pass' as const
+          : expression.includes('data-testid="online-remote-resolve"')
+            ? 'priority-resolve' as const
+            : null;
+      if (priorityOperation !== null && expression.includes('node.click(); return true')) {
+        prioritySettlements[scenarioIndex] = {
+          operation: priorityOperation,
+          baseRevision: sharedRevisions[scenarioIndex] - 1,
+          acceptedRevision: sharedRevisions[scenarioIndex],
+          senderSeat: seatIndex,
+        };
+        if (priorityOperation === 'priority-resolve') {
+          const capturedTopObjectId = castStates[scenarioIndex]?.topObjectId ?? null;
+          if (capturedTopObjectId !== null) {
+            postResolutions[scenarioIndex] = `直近の変化: 解決: オーナーの墓地 (${capturedTopObjectId}) / 更新 ${String(sharedRevisions[scenarioIndex])}`;
+            castStates[scenarioIndex] = { ...castStates[scenarioIndex], topObjectId: null };
+          }
+        }
+      }
+      if (expression.includes('data-testid="online-remote-cast"') && expression.includes('node.click(); return true')) {
+        castStates[scenarioIndex] = {
+          topObjectId: 'PC3:1',
+          acceptedRevision: sharedRevisions[scenarioIndex],
+          senderSeat: seatIndex,
+        };
+      }
+      if (expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')) {
+        progressWindows[scenarioIndex] = 'sba';
+      }
+      if (expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true')) {
+        progressWindows[scenarioIndex] = 'advance';
+        if (options.stagnantPhase !== true) {
+          sharedPhases[scenarioIndex] = progressCompletions[scenarioIndex] === 0 ? 'main1' : 'combat';
+          progressCompletions[scenarioIndex] += 1;
+        }
       }
       if (expression.includes('privateChoicePayload')) {
         const hostContext = contextOrdinal === 0 || contextOrdinal === 2;
@@ -165,12 +368,13 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('privateChoiceDomSurfaces')) {
         const leaked = options.privateChoiceCandidateLeak === true && contextOrdinal !== 0 && contextOrdinal !== 2;
         if (options.privateChoiceScanBoundExceeded === true) return Promise.resolve({ surfaces: [], complete: false } as T);
-        if ((options.privateChoiceCandidateLeakBeyondBound === true || options.privateChoiceCandidateTokenLeak === true) && contextOrdinal !== 0 && contextOrdinal !== 2) return Promise.resolve({ surfaces: Array.from({ length: options.privateChoiceCandidateLeakBeyondBound === true ? 2_049 : 1 }, (_entry, index) => index === (options.privateChoiceCandidateLeakBeyondBound === true ? 2_048 : 0) ? (options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle') : `surface-${index}`), complete: true } as T);
+        if ((options.privateChoiceCandidateLeakBeyondBound === true || options.privateChoiceCandidateTokenLeak === true) && contextOrdinal !== 0 && contextOrdinal !== 2) return Promise.resolve({ surfaces: Array.from({ length: options.privateChoiceCandidateLeakBeyondBound === true ? 2_049 : 1 }, (_entry, index) => index === (options.privateChoiceCandidateLeakBeyondBound === true ? 2_048 : 0) ? options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle'
+                    : `surface-${index}`), complete: true } as T);
         return Promise.resolve({ surfaces: leaked ? ['private-card-handle'] : [], complete: true } as T);
       }
       if (expression.includes('コードを表示')) {
         const delayed = options.asyncInviteRender === true && revealButtonProbes++ === 0;
-        return Promise.resolve((!delayed) as T);
+        return Promise.resolve(!delayed as T);
       }
       if (expression.includes('invite span')) {
         const delayed = options.asyncInviteRender === true && inviteReads++ === 0;
@@ -182,10 +386,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         const forcedStartedSurfaceFailure = options.startedSurfaceFailure !== undefined && startClicks > 0;
         const gameScreenMissing = options.startedSurfaceFailure === 'game-screen-missing/count' || options.startedSurfaceFailure === 'start-rejected' || options.startedSurfaceFailure === 'start-pending' || options.startedSurfaceFailure === 'start-not-accepted';
         const gameScreenCount = forcedStartedSurfaceFailure && gameScreenMissing ? 0 : waitingForStartedSurface ? 0 : 1;
-        const overflow = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'horizontal-overflow' ? 1 : options.overflow ?? 0;
+        const overflow = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'horizontal-overflow' ? 1 : (options.overflow ?? 0);
         const opponentLeak = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'opponent-leak' ? true : options.leak === true;
-        const consoleErrors = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'console-error' ? 1 : options.consoleErrors ?? 0;
-        const revision = options.stagnantRevision ? 0 : sharedRevisions[scenarioIndex];
+        const consoleErrors = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'console-error' ? 1 : (options.consoleErrors ?? 0);
+        const revision = options.stagnantRevision ? 0 : sharedRevisions[scenarioIndex] +
+              (options.actorRevisionOffsetSeat === seatIndex ? 1 : 0);
         const probeRevision = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'host-revision-missing' ? Number.NaN : revision;
         const handHeight = Math.min(80, Math.max(40, viewportHeight * 0.12));
         const handY = viewportHeight - handHeight - 5;
@@ -211,7 +416,17 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           scrollAccessible: geometryFailure !== 'inaccessible-scroll',
           battlefieldObscured: geometryFailure === 'obscured-battlefield',
         };
-        return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, consoleErrors, workerObserved: options.missingWorker !== true } as T);
+          const projectedPhase =
+            options.divergentPhaseSeat === seatIndex ? 'stale' : sharedPhases[scenarioIndex];
+          const castState = castStates[scenarioIndex];
+          const castSettlement = castState !== undefined && castState.acceptedRevision !== null && castState.senderSeat === seatIndex
+            ? { commandId: 'remote-cast-pilot-1', operation: 'cast-spell', outcome: 'accepted', baseRevision: castState.acceptedRevision - 1, currentRevision: castState.acceptedRevision, acceptedRevision: castState.acceptedRevision }
+            : null;
+          const priorityState = prioritySettlements[scenarioIndex];
+          const prioritySettlement = options.missingPriorityReceipt !== true && priorityState !== null && priorityState.senderSeat === seatIndex
+            ? { commandId: `remote-${priorityState.operation}-${String(priorityState.baseRevision)}`, operation: priorityState.operation, outcome: 'accepted', baseRevision: priorityState.baseRevision, currentRevision: priorityState.acceptedRevision, acceptedRevision: priorityState.acceptedRevision }
+            : null;
+          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, stackCount: castState?.topObjectId === null ? 0 : 1, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
       }
       return Promise.resolve(true as T);
     },
@@ -219,9 +434,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     close: () => Promise.resolve(),
     consoleCounts: () => ({
       errors: options.consoleErrors ?? (options.savedImportRuntimeError === true || (options.startedSurfaceFailure === 'console-error' && startClicks > 0) ? 1 : 0),
-      warnings: options.consoleWarningContext === contextOrdinal || (options.consoleWarningReplacement === true && contextOrdinal === 0 && pageOrdinal > 0) ? 1 : options.consoleWarnings ?? 0,
-      secretViolations: options.consoleSecretContext === contextOrdinal || (options.consoleSecretReplacement === true && contextOrdinal === 0 && pageOrdinal > 0) ? 1 : options.consoleSecretViolations ?? 0,
-    }),
+      warnings: options.consoleWarningContext === contextOrdinal || (options.consoleWarningReplacement === true && contextOrdinal === 0 && pageOrdinal > 0) ? 1 : (options.consoleWarnings ?? 0),
+      secretViolations: options.consoleSecretContext === contextOrdinal || (options.consoleSecretReplacement === true && contextOrdinal === 0 && pageOrdinal > 0) ? 1 : (options.consoleSecretViolations ?? 0)
+      }),
     setSecretFragments: () => undefined,
     };
   };
@@ -239,6 +454,86 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
 }
 
 describe('O4P-09I full-match production evidence', () => {
+  it('normalizes failures into a secret-free structured result', () => {
+    expect(
+      classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: advance/private-token')
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'advance' });
+    expect(
+      classifyO4p09iProductionFailureV1(new Error('Chrome launcher unavailable: private-token'))
+    ).toEqual({ class: 'ENVIRONMENT', code: 'BROWSER_ENVIRONMENT_UNAVAILABLE', stage: 'setup' });
+    expect(
+      classifyO4p09iProductionFailureV1(
+        new Error('console secret privacy violation: private-token')
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PRIVACY_OR_CONSOLE_FAILED', stage: 'privacy' });
+    const unknown = classifyO4p09iProductionFailureV1(new Error('unknown private-token'));
+    expect(unknown).toEqual({
+      class: 'EVIDENCE',
+      code: 'EVIDENCE_HARNESS_FAILED',
+      stage: 'harness'
+    });
+    expect(JSON.stringify(unknown)).not.toContain('private-token');
+    expect(
+      classifyO4p09iProductionFailureV1(new Error('browser profile cleanup incomplete'))
+    ).toEqual({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
+    expect(classifyO4p09iProductionFailureV1(new Error('browser console error'))).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PRIVACY_OR_CONSOLE_FAILED',
+      stage: 'privacy'
+    });
+  });
+
+  it('accepts only the harness-owned temporary failure path shape', () => {
+    expect(
+      resolveO4p09iJourneyResultPathV1('/private/tmp/root/failure.json', '/private/tmp/root')
+    ).toBe('/private/tmp/root/failure.json');
+    expect(
+      resolveO4p09iJourneyResultPathV1(
+        '/private/tmp/root/onedeck-journey-Ab12/failure.json',
+        '/private/tmp/root'
+      )
+    ).toBeNull();
+    expect(
+      resolveO4p09iJourneyResultPathV1(
+        '/private/tmp/root/arbitrary/failure.json',
+        '/private/tmp/root'
+      )
+    ).toBeNull();
+    expect(
+      resolveO4p09iJourneyResultPathV1('/private/tmp/outside/failure.json', '/private/tmp/root')
+    ).toBeNull();
+  });
+  it('writes only a direct temporary failure file with safe permissions', () => {
+    const root = mkdtempSync(join(tmpdir(), 'o4p09i-writer-'));
+    try {
+      expect(
+        writeO4p09iJourneyFailureV1(
+          `${root}/nested/failure.json`,
+          new Error('private-token'),
+          root
+        )
+      ).toBe(false);
+      const target = `${root}/failure.json`;
+      expect(
+        writeO4p09iJourneyFailureV1(
+          target,
+          new Error('production environment failure: browser'),
+          root
+        )
+      ).toBe(true);
+      expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({
+        class: 'ENVIRONMENT',
+        code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
+        stage: 'setup'
+      });
+      expect(statSync(target).mode & 0o777).toBe(0o600);
+      expect(writeO4p09iJourneyFailureV1(target, new Error('unknown'), root)).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
   it('keeps injected harness output separate from production attestation', async () => {
     const synthetic = await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser([]), readDeck: () => 'fixture deck', timeoutMs: 250 });
     expect(synthetic.kind).toBe('o4p-09i-full-match-test-evidence-v1');
@@ -343,7 +638,155 @@ describe('O4P-09I full-match production evidence', () => {
     expect(firstImport).toBeGreaterThan(firstDeckInput);
     expect(firstSaved).toBeGreaterThan(firstImport);
     expect(firstOnline).toBeGreaterThan(firstSaved);
+    expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('applyCommand') || /\bdispatch\s*\(/u.test(expression) || /\bfetch\s*\(/u.test(expression))).toBe(false);
+  });
+
+  it('advances from the enabled current actor page when the host does not hold the turn', async () => {
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { advanceEnabledSeat: 1 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250
+    });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
+    expect(
+      expressions.some((expression) =>
+        expression.includes('priorityControlProbe:online-remote-advance')
+      )
+    ).toBe(true);
+  });
+
+  it('fails closed when more than one seat exposes the advance actor control', async () => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { advanceEnabledSeats: [0, 1] }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: advance');
+  });
+
+  it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {
+    const expressions: string[] = [];
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser(expressions, { sbaEnabledSeats: [] }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      })
+    ).rejects.toThrow('production scenario stage failed: advance');
+    expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('data-testid="online-remote-cast"') && expression.includes('node.click(); return true'))).toBe(false);
+  });
+
+  it('rediscovers the unique priority holder and steward after every converged mutation', async () => {
+    const expressions: string[] = [];
+    await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250
+    });
+    const clicked = (testId: string): number =>
+      expressions.filter(
+        (expression) =>
+          expression.includes(`data-testid="${testId}"`) &&
+          expression.includes('node.click(); return true')
+      ).length;
+    expect(clicked('online-remote-hold')).toBe(4);
+    expect(clicked('online-remote-pass')).toBe(6);
+    expect(clicked('online-remote-resolve')).toBe(2);
+    expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-hold') && expression.includes("getAttribute('aria-pressed')") && expression.includes('online-remote-hold-status'))).toBe(true);
+  });
+
+  it.each(['off', 'on'] as const)('fails closed when HOLD is stuck %s despite revision advances', async (priorityHoldStuck) => {
+    const expressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { priorityHoldStuck }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250
+    })).rejects.toThrow('production scenario stage failed: HOLD-pass-resolve');
+    expect(expressions.some((expression) => expression.includes('data-testid="online-remote-pass"') && expression.includes('node.click(); return true'))).toBe(false);
+  });
+
+  it.each([
+    ['pass', { priorityPassEnabledSeats: [0, 1] }],
+    ['resolve', { priorityResolveEnabledSeats: [0, 1] }]
+  ] as const)('fails closed when %s authority is ambiguous', async (_label, options) => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], options),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: HOLD-pass-resolve');
+  });
+
+  it.each([
+    ['accepted priority receipt', { missingPriorityReceipt: true }],
+    ['resolved-top projection', { missingResolutionEvidence: true }],
+  ] as const)('fails closed when the %s evidence is missing', async (_label, options) => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], options),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      })
+    ).rejects.toThrow('production scenario stage failed: HOLD-pass-resolve');
+  });
+
+  it.each([
+    ['not universal', { priorityHoldEnabledSeats: [0] }],
+    ['revision divergent', { priorityActorRevisionOffsetSeat: 1 }],
+    ['revision unsafe', { priorityActorRevisionUnsafeSeat: 1 }]
+  ] as const)('does not click HOLD while the all-seat contract is %s', async (_label, options) => {
+    const expressions: string[] = [];
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser(expressions, options),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: HOLD-pass-resolve');
+    expect(
+      expressions.some(
+        (expression) =>
+          expression.includes('data-testid="online-remote-hold"') &&
+          expression.includes('node.click(); return true')
+      )
+    ).toBe(false);
+  });
+
+  it('preserves an in-scenario browser outage as a secret-free environment failure', async () => {
+    let failure: unknown;
+    try {
+      await runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { priorityEnvironmentFailure: true }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe('production environment failure: browser');
+    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+      class: 'ENVIRONMENT',
+      code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
+      stage: 'setup'
+    });
+    expect((failure as Error).message).not.toContain('CDP');
+  });
+
+  it('fails closed until every seat observes the same target phase', async () => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { divergentPhaseSeat: 1 }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: advance');
   });
 
   it('waits for the host to observe every seat ready before starting', async () => {
@@ -491,7 +934,71 @@ describe('O4P-09I full-match production evidence', () => {
       timeoutMs: 250,
     });
     expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
-    expect(expressions.some((expression) => expression.includes('manualStackEnabledProbe'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-tabletop-submit-stack-entry'))).toBe(true);
+    expect(
+      expressions.some((expression) =>
+        expression.includes('priorityControlProbe:online-tabletop-submit-manual-resolve')
+      )
+    ).toBe(true);
+  });
+
+  it('fails closed when more than one seat exposes the manual stack actor control', async () => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { manualStackEnabledSeats: [0, 1] }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: manual-stack/entry');
+  });
+
+  it('fails closed when manual resolve has duplicate actors', async () => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], {
+          manualStackEnabledSeats: [0],
+          manualResolveEnabledSeats: [0, 1]
+        }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: manual-stack/resolve');
+  });
+
+  it('does not select an actor while seat revisions diverge', async () => {
+    const expressions: string[] = [];
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser(expressions, { actorRevisionOffsetSeat: 1 }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: advance');
+    expect(
+      expressions.some(
+        (expression) =>
+          expression.includes('node.click(); return true') &&
+          expression.includes('online-remote-advance')
+      )
+    ).toBe(false);
+  });
+
+  it('does not select an actor from an incomplete safe-revision probe set', async () => {
+    const expressions: string[] = [];
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser(expressions, { actorRevisionUnsafeSeat: 1 }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: advance');
+    expect(
+      expressions.some(
+        (expression) =>
+          expression.includes('node.click(); return true') &&
+          expression.includes('online-remote-advance')
+      )
+    ).toBe(false);
   });
 
   it('fails closed when no seat exposes an enabled manual stack actor control', async () => {
@@ -500,8 +1007,8 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser(expressions, { manualStackEnabledSeat: 9 }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production scenario stage failed: manual-stack');
-    expect(expressions.some((expression) => expression.includes('manualStackEnabledProbe'))).toBe(true);
+    })).rejects.toThrow('production scenario stage failed: manual-stack/entry');
+    expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-tabletop-submit-stack-entry'))).toBe(true);
   });
 
   it('bounds a manual stack actor probe that never settles', async () => {
@@ -510,8 +1017,8 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser(expressions, { manualStackEnabledProbeNeverSettles: true }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production scenario stage failed: manual-stack');
-    expect(expressions.some((expression) => expression.includes('manualStackEnabledProbe'))).toBe(true);
+    })).rejects.toThrow('production scenario stage failed: manual-stack/entry');
+    expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-tabletop-submit-stack-entry'))).toBe(true);
   });
 
   it.each([

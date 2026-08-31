@@ -39,6 +39,7 @@ export function bindOnlineTabletopIntentOnServerV1(input: OnlineTabletopServerBi
   const registry = input.state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
   if (primitive.kind === 'move' && primitive.destination?.kind === 'stack') throw new Error('Cards enter the stack through cast-spell');
   if (primitive.kind === 'play-land' || primitive.kind === 'cast-spell') {
+    if ((input.state.coreRoot.tabletopManual?.priorityHolds ?? []).length > 0) throw new Error('Active priority HOLD blocks land play or spell cast');
     const objectId = primitive.objectId;
     if (objectId === undefined) throw new Error('Card selection is required');
     const object = registry.objects[objectId];
@@ -89,6 +90,19 @@ export function bindOnlineTabletopIntentOnServerV1(input: OnlineTabletopServerBi
   }
   if (primitive.kind === 'priority-hold') {
     return bindOnlineTabletopIntentToCoreCommandV1({ envelope, binding: { actorPlayerId, decisionMakerPlayerId: actorPlayerId, decisionContext: { kind: 'decision', decisionKey: 'assisted-priority-hold' } } });
+  }
+  if (primitive.kind === 'priority-pass') {
+    const turn = input.state.coreRoot.ruleAuthority.turnPriorityBundle;
+    if ((input.state.coreRoot.tabletopManual?.priorityHolds ?? []).length > 0) throw new Error('Active priority HOLD blocks priority pass');
+    if (turn.lifecycle.window.kind !== 'priority' || turn.lifecycle.window.holderPlayerId !== actorPlayerId) throw new Error('Only the current priority holder may pass');
+    return bindOnlineTabletopIntentToCoreCommandV1({ envelope, binding: { actorPlayerId, decisionMakerPlayerId: actorPlayerId, decisionContext: { kind: 'decision', decisionKey: 'assisted-priority-pass' } } });
+  }
+  if (primitive.kind === 'sba-check-outcome') {
+    const turn = input.state.coreRoot.ruleAuthority.turnPriorityBundle;
+    const window = turn.lifecycle.window;
+    if ((input.state.coreRoot.tabletopManual?.priorityHolds ?? []).length > 0) throw new Error('Active priority HOLD blocks SBA outcome');
+    if (window.kind !== 'sba-check-required' || window.priorityRecipientPlayerId !== actorPlayerId) throw new Error('Only the SBA priority recipient may submit an SBA outcome');
+    return bindOnlineTabletopIntentToCoreCommandV1({ envelope, binding: { actorPlayerId, decisionMakerPlayerId: actorPlayerId, decisionContext: { kind: 'decision', decisionKey: 'sba-check-outcome' } } });
   }
   if (primitive.kind === 'stack-entry') {
     const manual = input.state.coreRoot.tabletopManual;

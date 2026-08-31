@@ -241,12 +241,10 @@ export function OnlineTabletopManual({
   const [stackLabel, setStackLabel] = useState('手動スタック項目');
   const [stackSource, setStackSource] = useState('');
   const [journeyLand, setJourneyLand] = useState('');
-  const [journeySpell, setJourneySpell] = useState('');
 
   const objects = useMemo(() => projection === null ? Object.freeze([]) : objectOptions(projection), [projection]);
   const handObjects = useMemo(() => objects.filter((option) => option.zone === '手札'), [objects]);
   const landObjects = useMemo(() => handObjects.filter((option) => option.typeLine?.toLowerCase().includes('land') === true), [handObjects]);
-  const spellObjects = useMemo(() => handObjects.filter((option) => option.typeLine?.toLowerCase().includes('land') !== true), [handObjects]);
   const publicObjects = useMemo(() => projection === null ? Object.freeze([]) : battlefieldOptions(projection), [projection]);
   const players = projection?.game.players ?? [];
   const actor = projection?.corePlayerId ?? null;
@@ -268,6 +266,7 @@ export function OnlineTabletopManual({
     : priority.stewardPlayerId === actor;
   const ownHeld = (projection.game.priorityHolds ?? []).some((hold) => hold.playerId === actor);
   const hasAnyHold = (projection.game.priorityHolds ?? []).length > 0 || (priority?.holds?.length ?? 0) > 0;
+  const canAdvance = isSteward && !hasAnyHold && (priority === undefined || ['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(priority.windowKind));
   const stackTop = projection.game.zones.stack.entries.at(-1) ?? null;
   const stackTopLabel = stackTop?.kind === 'visible-object' && stackTop.definition?.name
     ? `《${stackTop.definition.name}》`
@@ -361,28 +360,22 @@ export function OnlineTabletopManual({
         <p>HOLD: {ownHeld ? '設定中' : '未設定'}（全員が設定・解除できます）</p>
         <div className="online-tabletop-manual__priority-actions">
           <ActionButton testId="online-priority-hold" disabled={disabled} onClick={() => emit({ kind: 'priority-hold', held: !ownHeld })}>{ownHeld ? 'HOLDを解除' : 'HOLDを設定'}</ActionButton>
-          <ActionButton testId="online-priority-advance" disabled={disabled || !isSteward || hasAnyHold} onClick={() => emit({ kind: 'priority-advance' })}>Advance（steward）</ActionButton>
+          <ActionButton testId="online-priority-advance" disabled={disabled || !canAdvance} onClick={() => emit({ kind: 'priority-advance' })}>Advance（steward）</ActionButton>
           <ActionButton testId="online-priority-resolve" disabled={disabled || !isSteward || hasAnyHold || priority?.windowKind !== 'resolution-ready'} onClick={() => emit({ kind: 'priority-resolve' })}>Resolve（steward）</ActionButton>
         </div>
+        {priority?.windowKind === 'sba-check-required' && <p className="online-tabletop-manual__hint">SBA確認は共有テーブル上部の専用ボタンから明示します。</p>}
         <p className="online-tabletop-manual__hint">HOLDは共有checkpointです。CRの優先権はCoreで保持され、Resolve/Advanceだけstewardに許可されます。</p>
       </section>
 
-      <section className="online-tabletop-manual__journey" data-testid="online-land-cast-journey" aria-labelledby="online-land-cast-title">
-        <h3 id="online-land-cast-title">土地 / cast（共有卓の基本旅程）</h3>
-        <p>手札から公開されたカードを選び、土地はCoreのplay-land、呪文はCoreのstack castへ送ります。適法性と効果の未対応部分は手動確認です。</p>
+      <section className="online-tabletop-manual__journey" data-testid="online-land-journey" aria-labelledby="online-land-title">
+        <h3 id="online-land-title">土地（共有卓の基本旅程）</h3>
+        <p>土地は手札から選んでCoreのplay-landへ送ります。呪文は盤面上の「唱える」だけを正本とし、支払い・対象・モードは手動確認します。</p>
         <div className="online-tabletop-manual__priority-actions">
           <select aria-label="土地を選択" data-testid="online-journey-land" value={journeyLand} onChange={(event) => setJourneyLand(event.target.value)} disabled={disabled}>
             <option value="">土地を選択</option>
             {landObjects.map((option) => <option key={option.objectId} value={option.objectId}>{option.label}</option>)}
           </select>
           <ActionButton testId="online-journey-play-land" disabled={disabled || journeyLand === ''} onClick={() => emit({ kind: 'play-land', objectId: journeyLand as CoreObjectId })}>土地を置く</ActionButton>
-        </div>
-        <div className="online-tabletop-manual__priority-actions">
-          <select aria-label="唱える呪文を選択" data-testid="online-journey-spell" value={journeySpell} onChange={(event) => setJourneySpell(event.target.value)} disabled={disabled}>
-            <option value="">呪文を選択</option>
-            {spellObjects.map((option) => <option key={option.objectId} value={option.objectId}>{option.label}</option>)}
-          </select>
-          <ActionButton testId="online-journey-cast-spell" disabled={disabled || journeySpell === ''} onClick={() => emit({ kind: 'cast-spell', objectId: journeySpell as CoreObjectId })}>呪文を唱える（手動確認）</ActionButton>
         </div>
       </section>
 

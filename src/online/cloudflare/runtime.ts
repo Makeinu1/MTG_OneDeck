@@ -170,6 +170,7 @@ function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
     return commandRecord !== null && commandRecord.actorPlayerId !== commandRecord.decisionMakerPlayerId;
   }
   if (payload.kind === 'random-zone-order' || payload.kind === 'table-shuffle') return true;
+  if (payload.kind === 'priority-pass') return true;
   // Resolution/turn-progress commands are steward-owned assisted intents;
   // accepting them on the legacy command envelope would bypass the shared
   // tabletop binder's HOLD and steward checks.
@@ -227,17 +228,16 @@ function bindVariableTabletopIntentV1(input: VariableTabletopBindingInputV1): Re
   if (seat === undefined) throw new Error('Participant is not an authorized player');
   const existing = input.findAccepted(envelope.commandId);
   let command: unknown;
-  if (existing === null && envelope.primitive.kind === 'shuffle' && envelope.baseRevision !== input.state.revision) {
+  if (existing === null && envelope.baseRevision !== input.state.revision) {
     throw new Error('Stale tabletop revision');
   }
   if (existing !== null && envelope.primitive.kind === 'shuffle') {
     const exact = shuffleDuplicateCommandV1(existing, envelope, seat.corePlayerId);
     command = exact ?? alterManualModeForReuseV1(existing, envelope.mode);
   } else {
-    // Non-shuffle retries are rebound without entropy; the protocol digest then
-    // rejects any changed primitive, mode, or base revision deterministically.
-    // The binder's current-revision guard is evaluated against the request's
-    // historical base for an exact retry; Core/protocol remains authoritative.
+    // Accepted non-shuffle retries are rebound without entropy; the protocol
+    // digest then accepts only an exact duplicate and rejects changed input.
+    // A new command id was required to match the current revision above.
     const bindState = envelope.baseRevision === input.state.revision
       ? input.state
       : Object.freeze({ ...input.state, revision: envelope.baseRevision });

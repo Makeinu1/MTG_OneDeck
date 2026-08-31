@@ -1,7 +1,9 @@
 .online-remote-rail {
   position: absolute;
   z-index: 8;
-  inset: auto 1rem calc(var(--game-hand-height, 170px) + 1rem) 1rem;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  inset: auto 1rem 1rem;
   max-height: min(46dvh, 30rem);
   overflow: auto;
   overscroll-behavior: contain;
@@ -93,6 +95,24 @@
   font-size: .72rem;
 }
 
+.online-remote-rail__command-result {
+  margin: 0;
+  padding: .3rem .45rem;
+  border-radius: .4rem;
+  color: var(--color-text, #fff);
+  background: color-mix(in srgb, var(--color-accent, #7dd3fc) 14%, transparent);
+  font-size: .72rem;
+}
+
+.online-remote-rail__sba-guidance {
+  margin: 0;
+  padding: .35rem .5rem;
+  border-inline-start: 3px solid var(--color-accent, #7dd3fc);
+  color: var(--color-muted, #a9b4c9);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
 .online-remote-rail__seats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
@@ -182,6 +202,18 @@
   color: inherit;
   background: color-mix(in srgb, var(--color-panel-raised, #202a3e) 92%, transparent);
   font-size: .76rem;
+}
+
+.online-remote-rail__card-action {
+  display: grid;
+  gap: .15rem;
+  max-width: min(18rem, 100%);
+}
+
+.online-remote-rail__card-action small {
+  color: var(--color-muted, #a9b4c9);
+  font-size: .64rem;
+  line-height: 1.25;
 }
 
 .online-remote-rail__actions button:disabled {
@@ -309,7 +341,7 @@
 
 @media (max-width: 899px) {
   .online-remote-rail {
-    inset: auto .45rem calc(var(--game-hand-height, 150px) + .45rem) .45rem;
+    inset: auto .45rem .45rem;
     padding: .5rem;
     max-height: min(40dvh, 24rem);
   }

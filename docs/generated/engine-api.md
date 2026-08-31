@@ -113,9 +113,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/core/closure/applyCommandV1.ts`
 
-- line 79: `export function coreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1): CorePlayerId | null {`
-- line 85: `export function isCoreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1, playerId: CorePlayerId): boolean {`
-- line 396: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 80: `export function coreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1): CorePlayerId | null {`
+- line 86: `export function isCoreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1, playerId: CorePlayerId): boolean {`
+- line 409: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -162,9 +162,9 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 61: `export type CoreCommandV1 = Readonly<{`
 - line 71: `export type CoreCommandValidationIssueV1 = Readonly<{ readonly code: string; readonly path: string; readonly message: string }>;`
 - line 72: `export type CoreCommandValidationResultV1 =`
-- line 415: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
-- line 522: `export class CoreCommandCreationErrorV1 extends Error {`
-- line 526: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
+- line 421: `export function validateCoreCommandV1(input: unknown): CoreCommandValidationResultV1 {`
+- line 528: `export class CoreCommandCreationErrorV1 extends Error {`
+- line 532: `export function createCoreCommandV1(input: Omit<CoreCommandV1, 'kind'>): CoreCommandV1 {`
 
 ## `src/engine/core/closure/correctionV1.ts`
 
@@ -1000,20 +1000,20 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 65: `export type CoreTabletopTokenCreatePayloadV1 = Readonly<{`
 - line 73: `export type CoreTabletopTokenRemovePayloadV1 = Readonly<{`
 - line 79: `export type CoreTabletopTurnTransitionV1 =`
-- line 85: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
-- line 90: `export type CoreTabletopShufflePayloadV1 = Readonly<{`
-- line 94: `export type CoreTabletopReorderPayloadV1 = Readonly<{`
-- line 100: `export type CoreTabletopLifePayloadV1 = Readonly<{`
-- line 106: `export type CoreTabletopControllerPayloadV1 = Readonly<{`
-- line 112: `export type CoreTabletopAttachPayloadV1 = Readonly<{`
-- line 118: `export type CoreTabletopDamagePayloadV1 = Readonly<{`
-- line 124: `export type CoreTabletopNoteSetPayloadV1 = Readonly<{`
-- line 130: `export type CoreTabletopNoteClearPayloadV1 = Readonly<{`
-- line 135: `export type CoreTabletopStackEntryPayloadV1 = Readonly<{`
-- line 142: `export type CoreTabletopManualResolvePayloadV1 = Readonly<{`
-- line 147: `export type CoreTabletopPriorityHoldPayloadV1 = Readonly<{`
-- line 152: `export type CoreTabletopCommandPayloadV1 =`
-- line 174: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
+- line 86: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
+- line 91: `export type CoreTabletopShufflePayloadV1 = Readonly<{`
+- line 95: `export type CoreTabletopReorderPayloadV1 = Readonly<{`
+- line 101: `export type CoreTabletopLifePayloadV1 = Readonly<{`
+- line 107: `export type CoreTabletopControllerPayloadV1 = Readonly<{`
+- line 113: `export type CoreTabletopAttachPayloadV1 = Readonly<{`
+- line 119: `export type CoreTabletopDamagePayloadV1 = Readonly<{`
+- line 125: `export type CoreTabletopNoteSetPayloadV1 = Readonly<{`
+- line 131: `export type CoreTabletopNoteClearPayloadV1 = Readonly<{`
+- line 136: `export type CoreTabletopStackEntryPayloadV1 = Readonly<{`
+- line 143: `export type CoreTabletopManualResolvePayloadV1 = Readonly<{`
+- line 148: `export type CoreTabletopPriorityHoldPayloadV1 = Readonly<{`
+- line 153: `export type CoreTabletopCommandPayloadV1 =`
+- line 175: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
 
 ## `src/engine/core/tabletop/manualStateV1.ts`
 

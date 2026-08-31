@@ -10,7 +10,7 @@ export type OnlineTabletopPrimitiveKindV1 =
   | 'move' | 'draw' | 'shuffle' | 'reorder' | 'tap' | 'counter' | 'mana' | 'life'
   | 'token-create' | 'token-remove' | 'controller' | 'attach' | 'damage'
   | 'note-set' | 'note-clear' | 'stack-entry' | 'manual-resolve'
-  | 'priority-hold' | 'priority-advance' | 'priority-resolve' | 'play-land' | 'cast-spell'
+  | 'priority-hold' | 'priority-pass' | 'priority-advance' | 'priority-resolve' | 'sba-check-outcome' | 'play-land' | 'cast-spell'
   | OnlineTabletopDisabledKindV1;
 
 export type OnlineTabletopPrimitiveV1 = Readonly<{
@@ -37,6 +37,7 @@ export type OnlineTabletopPrimitiveV1 = Readonly<{
   readonly definitionId?: string;
   readonly definition?: unknown;
   readonly held?: boolean;
+  readonly actionsWereApplied?: boolean;
 }>;
 
 export type OnlineTabletopIntentEnvelopeV1 = Readonly<{

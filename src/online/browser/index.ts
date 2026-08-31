@@ -14,6 +14,7 @@ export type {
   OnlineBrowserSharedUndoIntentV1,
   OnlineBrowserManualCombatDamageIntentV1,
   OnlineBrowserIssueCodeV1,
+  OnlineBrowserCommandSettlementV1,
   OnlineBrowserPendingCommandV1,
   OnlineBrowserPhaseV1,
   OnlineBrowserScheduleHandleV1,

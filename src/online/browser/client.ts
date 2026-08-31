@@ -7,6 +7,7 @@ import {
 import { CURRENT_CONTRACT_VERSIONS, validateBuildId } from '../../versioning/index';
 import type {
   OnlineBrowserCancelScheduleV1,
+  OnlineBrowserCommandSettlementV1,
   OnlineBrowserCommandIntentV1,
   OnlineBrowserIssueCodeV1,
   OnlineBrowserPendingCommandV1,
@@ -465,6 +466,7 @@ export function createOnlineBrowserWebSocketClientV1(
   let lastProjectedRevision = -1;
   let currentReadyRevision: number | null = null;
   let acceptedServerBuildId: string | null = null;
+  let lastCommandSettlement: OnlineBrowserCommandSettlementV1 | null = null;
   const pending: PendingEntryV1[] = [];
   const settled = new Map<string, string>();
   const listeners = new Set<OnlineBrowserSubscriptionV1>();
@@ -481,6 +483,7 @@ export function createOnlineBrowserWebSocketClientV1(
     knownRevision,
     projection,
     pendingCommands: redactedPending(),
+    lastCommandSettlement,
     recoveryAttempt,
     issueCode,
   });
@@ -494,6 +497,7 @@ export function createOnlineBrowserWebSocketClientV1(
       knownRevision,
       projection,
       pendingCommands: redactedPending(),
+      lastCommandSettlement,
       recoveryAttempt,
       issueCode,
     });
@@ -837,7 +841,22 @@ export function createOnlineBrowserWebSocketClientV1(
       knownRevision = Math.max(knownRevision, currentRevision, isAck ? ownDataValue(record, 'acceptedRevision') as number : 0);
       const requiresProjectionResync = isAck && currentRevision > lastProjectedRevision;
       pending.splice(index, 1);
-      if (!isAck) issueCode = issueCodeFrom(ownDataValue(record, 'issues'), false) ?? 'SOCKET_ERROR';
+      const settlementIssue = isAck
+        ? null
+        : issueCodeFrom(ownDataValue(record, 'issues'), false) ?? 'SOCKET_ERROR';
+      issueCode = settlementIssue;
+      if (settledEntry !== undefined) {
+        lastCommandSettlement = Object.freeze({
+          commandId: settledEntry.commandId as OnlineBrowserCommandSettlementV1['commandId'],
+          baseRevision: settledEntry.baseRevision,
+          currentRevision,
+          acceptedRevision: isAck ? ownDataValue(record, 'acceptedRevision') as number : null,
+          commandKind: settledEntry.kind,
+          operation: settledEntry.kind === 'tabletop' ? settledEntry.tabletop.primitive.kind : null,
+          outcome: isAck ? 'accepted' : 'rejected',
+          issueCode: settlementIssue,
+        });
+      }
       publish();
       if (requiresProjectionResync) handleProjectionRequest(socket, epoch);
       else if (!isAck && ownDataValue(record, 'resyncRequired') === true) handleProjectionRequest(socket, epoch);

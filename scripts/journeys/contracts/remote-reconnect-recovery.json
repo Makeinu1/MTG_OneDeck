@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "journeyId": "O4P-REMOTE-RECONNECT-RECOVERY",
+  "canonicalRoute": [
+    "connected Remote seat",
+    "disconnect and presence transition",
+    "reconnect and state recovery",
+    "shared receipt and converged projection"
+  ],
+  "eligibility": {
+    "authority": "server/Core authoritative",
+    "advisoryBoundary": "the client may request reconnect and render recovery status, but must not infer game state or priority progression"
+  },
+  "semantics": {
+    "supported": [
+      "reconnect recovery is bounded by a server-issued session identity",
+      "stale or revoked recovery requests fail without mutating the shared game state"
+    ],
+    "deferred": [
+      "UNDECIDED: whether disconnect/presence changes consume a revision",
+      "UNDECIDED: whether successful reconnect must explicitly show rejoined",
+      "UNDECIDED: which operations or priority progression are allowed while a seat is disconnected"
+    ]
+  },
+  "outcomes": {
+    "unavailable": "a disconnected or expired seat receives a safe recovery status without a game-state mutation",
+    "accepted": "a resolved reconnect policy restores the authorized seat to the canonical shared projection",
+    "rejected": "stale, revoked, or mismatched recovery requests leave revision and Core state unchanged",
+    "failed": "ambiguous presence revision, rejoined indication, or disconnected-seat operation policy reaches implementation"
+  },
+  "legacyRetirement": {
+    "sameSlice": [
+      "any reconnect adapter that infers policy from client-local state"
+    ],
+    "retained": [
+      "existing lobby credential recovery until game-session semantics are decided"
+    ]
+  },
+  "acceptance": {
+    "positive": [
+      "the resolved reconnect policy is proven by both seats against the same canonical revision and projection"
+    ],
+    "negative": [
+      "the design gate stops before local or live stages while any reconnect semantic remains undecided"
+    ]
+  },
+  "nextSlices": [
+    "resolve presence revision policy",
+    "resolve explicit rejoined receipt policy",
+    "resolve disconnected-seat operation and priority policy"
+  ]
+}

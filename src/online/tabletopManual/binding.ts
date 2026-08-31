@@ -25,6 +25,8 @@ export function bindOnlineTabletopIntentToCoreCommandV1(input: { readonly envelo
     case 'attach': payload = { kind: 'table-attach', objectId: p.objectId as CoreObjectId, targetObjectId: p.targetObjectId ?? null, manualMode: mode }; break;
     case 'damage': payload = { kind: 'table-damage-mark', objectId: p.objectId as CoreObjectId, amount: p.amount as number, manualMode: mode }; break;
     case 'priority-hold': payload = { kind: 'table-priority-hold', held: p.held as boolean }; break;
+    case 'priority-pass': payload = { kind: 'priority-pass', playerId: binding.actorPlayerId }; break;
+    case 'sba-check-outcome': payload = { kind: 'table-turn-progress', transition: { kind: 'sba-check-outcome', actionsWereApplied: p.actionsWereApplied as boolean } }; break;
     case 'note-set': payload = { kind: 'table-note-set', noteId: p.noteId as string, text: p.text as string, manualMode: mode }; break;
     case 'note-clear': payload = { kind: 'table-note-clear', noteId: p.noteId as string, manualMode: mode }; break;
     case 'stack-entry': payload = { kind: 'table-stack-entry', entryId: p.entryId as string, label: p.label as string, sourceObjectId: p.sourceObjectId ?? null, manualMode: mode }; break;

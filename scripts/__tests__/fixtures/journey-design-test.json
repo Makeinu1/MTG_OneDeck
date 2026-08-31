@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "journeyId": "TEST-01",
+  "canonicalRoute": ["surface", "binder", "Core"],
+  "eligibility": {
+    "authority": "server",
+    "advisoryBoundary": "projection only"
+  },
+  "semantics": {
+    "supported": ["targetless cast"],
+    "deferred": ["targeted cast"]
+  },
+  "outcomes": {
+    "unavailable": "no attempt",
+    "accepted": "shared revision",
+    "rejected": "unchanged",
+    "failed": "stop"
+  },
+  "legacyRetirement": {
+    "sameSlice": ["old cast"],
+    "retained": ["manual move"]
+  },
+  "acceptance": {
+    "positive": ["same stack"],
+    "negative": ["stale rejects"]
+  },
+  "nextSlices": ["response"]
+}

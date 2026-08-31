@@ -85,6 +85,17 @@ export type OnlineBrowserPendingCommandV1 = Readonly<{
   readonly baseRevision: OnlineProtocolRevisionV1;
 }>;
 
+export type OnlineBrowserCommandSettlementV1 = Readonly<{
+  readonly commandId: OnlineProtocolCommandIdV1;
+  readonly baseRevision: OnlineProtocolRevisionV1;
+  readonly currentRevision: OnlineProtocolRevisionV1;
+  readonly acceptedRevision: OnlineProtocolRevisionV1 | null;
+  readonly commandKind: 'command' | 'tabletop' | 'visibility' | 'sharedUndo' | 'manualCombatDamage';
+  readonly operation: string | null;
+  readonly outcome: 'accepted' | 'rejected';
+  readonly issueCode: OnlineBrowserIssueCodeV1 | null;
+}>;
+
 export type OnlineBrowserSubmitErrorCodeV1 =
   | 'INVALID_COMMAND'
   | 'OUTBOX_FULL'
@@ -116,6 +127,8 @@ export type OnlineBrowserStateV1 = Readonly<{
   readonly knownRevision: OnlineProtocolRevisionV1;
   readonly projection: OnlineParticipantProjectionV1 | null;
   readonly pendingCommands: readonly OnlineBrowserPendingCommandV1[];
+  /** Latest validated response for a command submitted by this participant. */
+  readonly lastCommandSettlement: OnlineBrowserCommandSettlementV1 | null;
   readonly recoveryAttempt: number;
   readonly issueCode: OnlineBrowserIssueCodeV1 | null;
 }>;

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "journeyId": "O4P-CAST-PILOT",
+  "canonicalRoute": [
+    "Action Rail",
+    "OnlineTabletopIntentV1",
+    "server binder",
+    "Protocol/Core",
+    "V4 projection"
+  ],
+  "eligibility": {
+    "authority": "server/Core authoritative",
+    "advisoryBoundary": "UI uses projection-derived advisory eligibility; it never authorizes a command"
+  },
+  "semantics": {
+    "supported": [
+      "visible own-hand targetless cast",
+      "manual confirmation",
+      "explicit server-bound SBA outcome reported by the projected priority recipient"
+    ],
+    "deferred": ["mana", "targets", "modes", "additional costs", "alternative costs"]
+  },
+  "outcomes": {
+    "unavailable": "disabled or unavailable control makes no attempt and shows a reason",
+    "accepted": "sender receives an accepted receipt and both seats observe the accepted revision and the same next-incarnation stack object for the cast physical card",
+    "rejected": "sender receives a rejection and shared state does not change",
+    "failed": "missing or divergent shared stack evidence, automatic stable-SBA assumption, or an unreachable SBA window fails the journey"
+  },
+  "legacyRetirement": {
+    "sameSlice": ["Manual overlay cast selector/button and obsolete cast-surface expectations"],
+    "retained": ["Manual fallback for unsupported card semantics"]
+  },
+  "acceptance": {
+    "positive": [
+      "explicit no-SBA tabletop confirmation advances the Core lifecycle before cast",
+      "sender accepted receipt",
+      "both seats same accepted revision",
+      "both seats show the same next-incarnation top stack object for the cast physical card"
+    ],
+    "negative": [
+      "disabled/unavailable no-attempt with visible reason",
+      "SBA outcome from the wrong actor, wrong window, active HOLD, or stale revision is rejected without state change",
+      "automatic no-SBA assumption fails",
+      "one-seat or divergent stack fails"
+    ]
+  },
+  "nextSlices": ["reconnect/reject/recovery"]
+}

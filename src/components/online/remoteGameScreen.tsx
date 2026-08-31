@@ -6,18 +6,18 @@ import type { DropIntent } from '../game/dragIntent';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import type { CardDef, ManaColor } from '../../types/card';
 import type { OnlineParticipantProjectionV1, OnlineProjectedZoneEntryV1 } from '../../online/projection';
+import type { OnlineBrowserCommandSettlementV1 } from '../../online/browser';
 import type { OnlineTabletopIntentEnvelopeV1, OnlineTabletopPrimitiveV1 } from '../../online/tabletopManual';
 import './remoteGameScreen.css';
 
 type SubmitTabletopIntent = (intent: OnlineTabletopIntentEnvelopeV1) => void | Promise<void>;
-type SubmitPersonalAction = (action: unknown) => void;
 
 export type RemoteGameScreenPortInput = Readonly<{
   readonly projection: OnlineParticipantProjectionV1 | null;
   readonly interactionState: 'ready' | 'updating' | 'offline';
   readonly busy: boolean;
   readonly onSubmitTabletopIntent: SubmitTabletopIntent;
-  readonly onSubmitPersonalAction: SubmitPersonalAction;
+  readonly lastCommandSettlement?: OnlineBrowserCommandSettlementV1 | null;
   /** Optional server-bound shared undo callback; no snapshot crosses this boundary. */
   readonly onSubmitSharedUndo?: () => void | Promise<void>;
 }>;
@@ -124,30 +124,61 @@ export function remoteHandActionAllowed(
   objectId: string,
   action: 'cast-spell' | 'play-land',
 ): boolean {
+  return remoteHandActionEligibility(projection, objectId, action).allowed;
+}
+
+export type RemoteHandActionEligibilityV1 = Readonly<{
+  readonly allowed: boolean;
+  readonly reason:
+    | 'allowed'
+    | 'card-unavailable'
+    | 'hold-active'
+    | 'priority-not-held'
+    | 'land-limit'
+    | 'wrong-window';
+  readonly message: string;
+}>;
+
+/** Projection-derived affordance only; the server/Core binder is authoritative. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function remoteHandActionEligibility(
+  projection: OnlineParticipantProjectionV1,
+  objectId: string,
+  action: 'cast-spell' | 'play-land',
+): RemoteHandActionEligibilityV1 {
   const actor = projection.corePlayerId;
-  if (actor === null) return false;
-  if (hasPlayPermission(projection, actor, objectId, action)) return true;
-  const definition = handDefinition(projection, objectId);
-  if (definition === null) return false;
-  const own = projection.game.players.find((player) => player.playerId === actor);
-  if (own === undefined) return false;
+  const unavailable = (reason: Exclude<RemoteHandActionEligibilityV1['reason'], 'allowed'>, message: string): RemoteHandActionEligibilityV1 => Object.freeze({ allowed: false, reason, message });
+  const allowed = (message: string): RemoteHandActionEligibilityV1 => Object.freeze({ allowed: true, reason: 'allowed', message });
+  if (actor === null) return unavailable('card-unavailable', 'このカードは現在の投影から操作できません。');
   const priority = projection.game.assistedPriority;
   const anyHold = (priority?.holds?.length ?? 0) > 0 || (projection.game.priorityHolds?.length ?? 0) > 0;
-  const holder = priority?.holderPlayerId ?? projection.game.turn.activePlayerId;
-  if (anyHold || holder !== actor) return false;
+  if (anyHold) return unavailable('hold-active', 'HOLD中のため、解除されるまで操作できません。');
+  if (hasPlayPermission(projection, actor, objectId, action)) return allowed('追加の許可があります。最終判定はサーバーで行います。');
+  const definition = handDefinition(projection, objectId);
+  if (definition === null) return unavailable('card-unavailable', 'このカードは現在の投影から操作できません。');
+  const own = projection.game.players.find((player) => player.playerId === actor);
+  if (own === undefined) return unavailable('card-unavailable', 'プレイヤー状態を確認できません。');
+  const holder = priority === undefined ? projection.game.turn.activePlayerId : priority.holderPlayerId;
+  if (holder !== actor) return unavailable('priority-not-held', '現在は相手の優先権です。');
   if (action === 'play-land') {
-    return /\bLand\b/u.test(definition.typeLine)
+    const permitted = /\bLand\b/u.test(definition.typeLine)
       && projection.game.turn.activePlayerId === actor
       && (projection.game.turn.position.phase === 'precombat-main' || projection.game.turn.position.phase === 'postcombat-main')
       && projection.game.zones.stack.count === 0
       && own.landsPlayedThisTurn < 1;
+    return permitted
+      ? allowed('土地を置けます。最終判定はサーバーで行います。')
+      : unavailable(own.landsPlayedThisTurn >= 1 ? 'land-limit' : 'wrong-window', own.landsPlayedThisTurn >= 1 ? 'このターンの土地プレイ上限です。' : '土地を置けるメイン・フェイズではありません。');
   }
   const instantOrFlash = /\bInstant\b/u.test(definition.typeLine)
     || definition.keywords.some((keyword) => keyword.toLowerCase() === 'flash');
-  if (instantOrFlash) return true;
-  return projection.game.zones.stack.count === 0
+  if (instantOrFlash) return allowed('応答可能です。支払い・対象・モードは手動確認し、最終判定はサーバーで行います。');
+  const permitted = projection.game.zones.stack.count === 0
     && projection.game.turn.activePlayerId === actor
     && phaseIsMain(projection.game.turn.position.phase);
+  return permitted
+    ? allowed('唱えられます。支払い・対象・モードは手動確認し、最終判定はサーバーで行います。')
+    : unavailable('wrong-window', 'この呪文を唱えられるメイン・フェイズではありません。');
 }
 
 type RemoteCausalExtras = Readonly<{
@@ -627,7 +658,7 @@ export function useRemoteGameScreenInteractionPort(input: RemoteGameScreenPortIn
     const priority = projection.game.assistedPriority;
     const anyHold = (priority?.holds?.length ?? 0) > 0 || (projection.game.priorityHolds?.length ?? 0) > 0;
     const steward = priority?.stewardPlayerId ?? (projection.game.zones.stack.count === 0 ? projection.game.turn.activePlayerId : null);
-    const holder = priority?.holderPlayerId ?? projection.game.turn.activePlayerId;
+    const holder = priority === undefined ? projection.game.turn.activePlayerId : priority.holderPlayerId;
     const canPass = holder === actor && !anyHold;
     const windowKind = priority?.windowKind ?? '';
     const canAdvance = !anyHold && steward === actor && (priority === undefined || ['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(windowKind));
@@ -660,7 +691,7 @@ export function useRemoteGameScreenInteractionPort(input: RemoteGameScreenPortIn
     port.requestResolveAll = () => { if (canResolve) submit({ kind: 'priority-resolve' }); };
     port.advancePhase = () => {
       if (canAdvance) submit({ kind: 'priority-advance' });
-      else if (canPass) input.onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: actor, baseRevision: projection.revision });
+      else if (canPass) submit({ kind: 'priority-pass' });
     };
     port.advanceTurn = port.advancePhase;
     port.performDrop = (intent: DropIntent) => {
@@ -701,7 +732,7 @@ export function RemoteGameScreenActionRail({
   interactionState,
   busy,
   onSubmitTabletopIntent,
-  onSubmitPersonalAction,
+  lastCommandSettlement,
   port,
 }: RemoteGameScreenPortInput & Readonly<{ readonly port: GameScreenInteractionPort }>): ReactNode {
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
@@ -715,8 +746,8 @@ export function RemoteGameScreenActionRail({
     const cardId = entry.objectId;
     const isLand = /\bLand\b/u.test(entry.definition.typeLine);
     const action = isLand ? 'play-land' as const : 'cast' as const;
-    const permitted = remoteHandActionAllowed(projection, cardId, action === 'play-land' ? 'play-land' : 'cast-spell');
-    return [{ cardId, label: entry.definition.name, action, permitted }];
+    const eligibility = remoteHandActionEligibility(projection, cardId, action === 'play-land' ? 'play-land' : 'cast-spell');
+    return [{ cardId, label: entry.definition.name, action, eligibility }];
   });
   const stackTop = projection.game.zones.stack.entries.at(-1);
   const extras = causalExtras(projection);
@@ -728,11 +759,29 @@ export function RemoteGameScreenActionRail({
   const anyHold = (priority?.holds?.length ?? 0) > 0 || (projection.game.priorityHolds?.length ?? 0) > 0;
   const disabled = interactionState !== 'ready' || busy;
   const steward = priority?.stewardPlayerId ?? (projection.game.zones.stack.count === 0 ? projection.game.turn.activePlayerId : null);
-  const holder = priority?.holderPlayerId ?? projection.game.turn.activePlayerId;
+  const holder = priority === undefined ? projection.game.turn.activePlayerId : priority.holderPlayerId;
   const canPass = holder === local && !anyHold;
   const canAdvance = !anyHold && steward === local && (priority === undefined || ['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(priority.windowKind));
+  const canReportSba = !anyHold && steward === local && priority?.windowKind === 'sba-check-required';
   const stackTopObjectId = stackTop !== undefined && stackTop.kind !== 'hidden-card' ? stackTop.objectId : null;
   const canResolve = !anyHold && steward === local && priority?.windowKind === 'resolution-ready' && priority.topStackObjectId === stackTopObjectId;
+  const castSettlement = lastCommandSettlement?.commandKind === 'tabletop' && lastCommandSettlement.operation === 'cast-spell'
+    ? lastCommandSettlement
+    : null;
+  const sbaSettlement = lastCommandSettlement?.commandKind === 'tabletop' && lastCommandSettlement.operation === 'sba-check-outcome'
+    ? lastCommandSettlement
+    : null;
+  const prioritySettlement = lastCommandSettlement?.commandKind === 'tabletop'
+    && (lastCommandSettlement.operation === 'priority-hold'
+      || lastCommandSettlement.operation === 'priority-pass'
+      || lastCommandSettlement.operation === 'priority-resolve')
+    ? lastCommandSettlement
+    : null;
+  const prioritySettlementLabel = prioritySettlement?.operation === 'priority-hold'
+    ? 'HOLD操作'
+    : prioritySettlement?.operation === 'priority-pass'
+      ? '優先権のパス'
+      : 'スタックの解決';
   const latestNote = projection.game.notes?.at(-1);
   const opponentSeats = projection.game.players
     .filter((player) => player.playerId !== local)
@@ -803,7 +852,7 @@ export function RemoteGameScreenActionRail({
         <span data-testid="online-remote-hold-status">{holdLabel}</span>
         {priority?.stewardPlayerId && <span>steward: {priority.stewardPlayerId}</span>}
       </div>
-      <div className="online-remote-rail__causal" data-testid="online-remote-causal">
+      <div className="online-remote-rail__causal" data-testid="online-remote-causal" data-stack-count={projection.game.zones.stack.count} data-stack-top-object-id={stackTopObjectId ?? ''}>
         <span>スタック {projection.game.zones.stack.count}件</span>
         {sourceLabel && <span>発生源: {sourceLabel}</span>}
         {(targetLabels.length > 0 || targetPlayerLabels.length > 0) && <span>対象: {[...targetLabels, ...targetPlayerLabels].join(' / ')}{targetIds.length + targetPlayerIds.length > 3 ? ` 他${targetIds.length + targetPlayerIds.length - 3}件` : ''}</span>}
@@ -812,6 +861,63 @@ export function RemoteGameScreenActionRail({
         {postResolutionDelta && <span data-testid="online-remote-post-resolution">直近の変化: {postResolutionDelta}</span>}
         {latestNote && <span>直近: {latestNote.text}</span>}
       </div>
+      {castSettlement !== null && (
+        <p
+          className="online-remote-rail__command-result"
+          data-testid="online-remote-command-result"
+          data-command-id={castSettlement.commandId}
+          data-operation="cast-spell"
+          data-outcome={castSettlement.outcome}
+          data-base-revision={castSettlement.baseRevision}
+          data-current-revision={castSettlement.currentRevision}
+          data-accepted-revision={castSettlement.acceptedRevision ?? ''}
+          role="status"
+          aria-live="polite"
+        >
+          {castSettlement.outcome === 'accepted'
+            ? `唱える操作を受理しました（更新 ${String(castSettlement.acceptedRevision)}）。`
+            : '唱える操作は拒否されました。盤面を更新せず、現在の表示を確認してください。'}
+        </p>
+      )}
+      {priority?.windowKind === 'sba-check-required' && (
+        <p className="online-remote-rail__sba-guidance" data-testid="online-remote-sba-guidance">
+          状況起因処理（SBA）は自動判定しません。卓で共有状態へ反映した結果を、現在の優先権受領者が明示してください。
+        </p>
+      )}
+      {sbaSettlement !== null && (
+        <p
+          className="online-remote-rail__command-result"
+          data-testid="online-remote-sba-result"
+          data-command-id={sbaSettlement.commandId}
+          data-outcome={sbaSettlement.outcome}
+          data-current-revision={sbaSettlement.currentRevision}
+          data-accepted-revision={sbaSettlement.acceptedRevision ?? ''}
+          role="status"
+          aria-live="polite"
+        >
+          {sbaSettlement.outcome === 'accepted'
+            ? 'SBA確認結果を共有テーブルへ記録しました。'
+            : 'SBA確認結果は拒否されました。共有状態は変更されていません。'}
+        </p>
+      )}
+      {prioritySettlement !== null && (
+        <p
+          className="online-remote-rail__command-result"
+          data-testid="online-remote-priority-result"
+          data-command-id={prioritySettlement.commandId}
+          data-operation={prioritySettlement.operation ?? ''}
+          data-outcome={prioritySettlement.outcome}
+          data-base-revision={prioritySettlement.baseRevision}
+          data-current-revision={prioritySettlement.currentRevision}
+          data-accepted-revision={prioritySettlement.acceptedRevision ?? ''}
+          role="status"
+          aria-live="polite"
+        >
+          {prioritySettlement.outcome === 'accepted'
+            ? `${prioritySettlementLabel}を共有しました（更新 ${String(prioritySettlement.acceptedRevision)}）。`
+            : `${prioritySettlementLabel}は拒否されました。共有状態は変更されていません。`}
+        </p>
+      )}
       {facts.combat && (
         <section className="online-remote-rail__combat" data-testid="online-remote-combat" aria-label="共有戦闘">
           <strong>戦闘 {facts.combat.step === 'declare-attackers' ? '攻撃指定' : 'ブロック指定'}</strong>
@@ -864,16 +970,37 @@ export function RemoteGameScreenActionRail({
         })}
       </div>
       <div className="online-remote-rail__actions">
-        {ownHandActions.slice(0, 8).map((entry) => (
-          <button key={entry.cardId} type="button" data-testid={`online-remote-${entry.action}`} disabled={disabled || !entry.permitted} onClick={() => port.performDrop({ kind: entry.action, cardId: entry.cardId })}>
-            {entry.action === 'play-land' ? '土地' : '唱える'} 《{entry.label}》
-          </button>
-        ))}
+        {ownHandActions.slice(0, 8).map((entry) => {
+          const descriptionId = `online-remote-${entry.action}-${entry.cardId.replaceAll(/[^A-Za-z0-9_-]/gu, '-')}-availability`;
+          return (
+            <span className="online-remote-rail__card-action" key={entry.cardId}>
+              <button
+                type="button"
+                data-testid={entry.eligibility.allowed ? `online-remote-${entry.action}` : `online-remote-${entry.action}-unavailable`}
+                data-object-id={entry.cardId}
+                disabled={disabled || !entry.eligibility.allowed}
+                aria-describedby={descriptionId}
+                onClick={() => port.performDrop({ kind: entry.action, cardId: entry.cardId })}
+              >
+                {entry.action === 'play-land' ? '土地' : '唱える'} 《{entry.label}》
+              </button>
+              <small id={descriptionId} data-testid={`online-remote-${entry.action}-availability`} data-availability={entry.eligibility.reason}>{entry.eligibility.message}</small>
+            </span>
+          );
+        })}
         <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-hold" aria-pressed={ownHeld} disabled={disabled} onClick={() => {
           const intent = { kind: 'online-tabletop-intent-envelope-v1' as const, schemaVersion: 1 as const, commandId: nextCommandId(projection.revision), baseRevision: projection.revision, mode: 'structured' as const, primitive: { kind: 'priority-hold' as const, held: !ownHeld } };
           void onSubmitTabletopIntent(intent);
         }}>{ownHeld ? 'HOLD解除' : 'HOLD'}</button>
-        <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-pass" disabled={disabled || !canPass} onClick={() => onSubmitPersonalAction({ kind: 'priority-pass', actorPlayerId: local, baseRevision: projection.revision })}>優先権をパス</button>
+        <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-pass" disabled={disabled || !canPass} onClick={() => {
+          void onSubmitTabletopIntent(buildIntent(projection, { kind: 'priority-pass' }));
+        }}>優先権をパス</button>
+        <button type="button" className="online-remote-rail__primary-action" data-testid="online-remote-sba-stable" disabled={disabled || !canReportSba} onClick={() => {
+          void onSubmitTabletopIntent(buildIntent(projection, { kind: 'sba-check-outcome', actionsWereApplied: false }));
+        }}>適用すべきSBAなし（卓で確認）</button>
+        <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-sba-applied" disabled={disabled || !canReportSba} onClick={() => {
+          void onSubmitTabletopIntent(buildIntent(projection, { kind: 'sba-check-outcome', actionsWereApplied: true }));
+        }}>SBAを共有状態へ適用済み（再確認）</button>
         <button type="button" className="online-remote-rail__primary-action" data-testid="online-remote-advance" disabled={disabled || anyHold || (!canAdvance && !canPass)} onClick={() => port.advancePhase()}>次の判断へ</button>
         <button type="button" className="online-remote-rail__primary-action" data-testid="online-remote-resolve" disabled={disabled || !canResolve} onClick={() => port.requestResolveTop()}>スタックを解決</button>
         <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled={!port.canUndo} onClick={() => port.undo()} aria-label={port.canUndo ? '共有チェックポイントへ1手戻す' : undoAuthorized ? 'UNDO unavailable (checkpoint unavailable or HOLD active)' : 'UNDO unavailable (steward only)'}>{port.canUndo ? 'UNDO（1手戻す）' : 'UNDO unavailable (checkpoint/steward)'}</button>

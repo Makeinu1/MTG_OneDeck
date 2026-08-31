@@ -28,6 +28,28 @@ function hold(baseRevision = 0): OnlineTabletopIntentEnvelopeV1 {
   return { kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, commandId: 'hold-command', baseRevision, mode: 'structured', primitive: { kind: 'priority-hold', held: true } };
 }
 
+function pass(baseRevision = 0): OnlineTabletopIntentEnvelopeV1 {
+  return { kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, commandId: 'pass-command', baseRevision, mode: 'structured', primitive: { kind: 'priority-pass' } };
+}
+
+function priorityState(holder: 'P1' | 'P2' = 'P1', holds: readonly { playerId: 'P1' | 'P2'; setRevision: number }[] = []): never {
+  const base = stewardState();
+  return {
+    ...base,
+    coreRoot: {
+      ...(base.coreRoot as Record<string, unknown>),
+      tabletopManual: { priorityHolds: holds },
+      ruleAuthority: {
+        ...((base.coreRoot as Record<string, unknown>).ruleAuthority as Record<string, unknown>),
+        turnPriorityBundle: {
+          lifecycle: { window: { kind: 'priority', cycleStartPlayerId: 'P1', holderPlayerId: holder, passedPlayerIds: holder === 'P1' ? [] : ['P1'] } },
+          stackBundle: { objectRegistry: { activePlayerId: 'P1', turnOrder: ['P1', 'P2'], zones: { shared: { stack: [] } } } },
+        },
+      },
+    },
+  } as never;
+}
+
 function advance(baseRevision = 0): OnlineTabletopIntentEnvelopeV1 {
   return { kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, commandId: 'advance-command', baseRevision, mode: 'structured', primitive: { kind: 'priority-advance' } };
 }
@@ -68,6 +90,10 @@ function castSpell(baseRevision = 0): OnlineTabletopIntentEnvelopeV1 {
 
 function manualResolve(baseRevision = 0): OnlineTabletopIntentEnvelopeV1 {
   return { kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, commandId: 'manual-resolve-command', baseRevision, mode: 'structured', primitive: { kind: 'manual-resolve', entryId: 'manual-entry' } };
+}
+
+function sbaOutcome(actionsWereApplied: boolean, baseRevision = 0): OnlineTabletopIntentEnvelopeV1 {
+  return { kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, commandId: 'sba-outcome-command', baseRevision, mode: 'structured', primitive: { kind: 'sba-check-outcome', actionsWereApplied } };
 }
 
 function firstTurnUpkeepState(playerCount: 2 | 4): never {
@@ -167,6 +193,13 @@ describe('O4P-09D authoritative tabletop binder', () => {
     expect(bound.command.decisionMakerPlayerId).toBe('P1');
   });
 
+  it('binds priority pass to the current actor and rejects wrong actor or HOLD', () => {
+    const bound = bindOnlineTabletopIntentOnServerV1({ state: priorityState(), participantId: 'player-one', envelope: pass(), randomize: (order) => order });
+    expect(bound.command.payload).toEqual({ kind: 'priority-pass', playerId: 'P1' });
+    expect(() => bindOnlineTabletopIntentOnServerV1({ state: priorityState(), participantId: 'player-two', envelope: pass(), randomize: (order) => order })).toThrow('Only the current priority holder may pass');
+    expect(() => bindOnlineTabletopIntentOnServerV1({ state: priorityState('P1', [{ playerId: 'P2', setRevision: 1 }]), participantId: 'player-one', envelope: pass(), randomize: (order) => order })).toThrow('HOLD');
+  });
+
   it('rejects Advance from a non-steward player before Core command creation', () => {
     expect(() => bindOnlineTabletopIntentOnServerV1({ state: stewardState() as never, participantId: 'player-two', envelope: advance(), randomize: (order) => order })).toThrow('Only the current stack steward may advance or resolve');
   });
@@ -186,6 +219,13 @@ describe('O4P-09D authoritative tabletop binder', () => {
     expect(() => bindOnlineTabletopIntentOnServerV1({ state: cardState({ kind: 'turn-based-action-required', action: 'precombat-main-actions', playerId: 'P1' }, 'Sorcery'), participantId: 'player-one', envelope: castSpell(), randomize: (order) => order })).toThrow('must hold priority');
     expect(() => bindOnlineTabletopIntentOnServerV1({ state: cardState({ kind: 'priority', holderPlayerId: 'P1' }, 'Sorcery', 'combat'), participantId: 'player-one', envelope: castSpell(), randomize: (order) => order })).toThrow('empty main-phase stack');
     expect(bindOnlineTabletopIntentOnServerV1({ state: cardState({ kind: 'priority', holderPlayerId: 'P1' }, 'Instant', 'combat'), participantId: 'player-one', envelope: castSpell(), randomize: (order) => order }).command.payload.kind).toBe('stack-commit-card-spell');
+    const held = cardState({ kind: 'priority', holderPlayerId: 'P1' }, 'Instant', 'combat') as Record<string, unknown>;
+    expect(() => bindOnlineTabletopIntentOnServerV1({
+      state: { ...held, coreRoot: { ...(held.coreRoot as Record<string, unknown>), tabletopManual: { priorityHolds: [{ playerId: 'P2', setRevision: 1 }] } } } as never,
+      participantId: 'player-one',
+      envelope: castSpell(),
+      randomize: (order) => order,
+    })).toThrow('HOLD');
   });
 
   it('uses the first-turn draw skip only for two-player upkeep', () => {
@@ -207,5 +247,22 @@ describe('O4P-09D authoritative tabletop binder', () => {
     expect(bound.command.payload).toMatchObject({ kind: 'table-manual-resolve', entryId: 'manual-entry' });
     const heldRoot = { ...coreRoot, tabletopManual: { stackEntries: [{ id: 'manual-entry', authorPlayerId: 'P1', sourceObjectId: null }], priorityHolds: [{ playerId: 'P1', setRevision: 1 }] } };
     expect(() => bindOnlineTabletopIntentOnServerV1({ state: { ...base, coreRoot: heldRoot } as never, participantId: 'player-one', envelope: manualResolve(), randomize: (order) => order })).toThrow('HOLD');
+  });
+
+  it('binds SBA outcomes only for the authoritative recipient and never through HOLD', () => {
+    const sba = cardState({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P1', grantPriorityIfStable: true });
+    const bound = bindOnlineTabletopIntentOnServerV1({ state: sba, participantId: 'player-one', envelope: sbaOutcome(false), randomize: (order) => order });
+    expect(bound.command.payload).toEqual({ kind: 'table-turn-progress', transition: { kind: 'sba-check-outcome', actionsWereApplied: false } });
+    const wrongActor = {
+      ...sba,
+      room: {
+        ...sba.room,
+        participants: [...sba.room.participants, { participantId: 'player-two', role: 'player', presence: 'connected', seatIndex: 1 }],
+        seats: [...sba.room.seats, { seatIndex: 1, corePlayerId: 'P2', seatCapability: 'seat-capability-2', participantId: 'player-two', outcome: 'pending' }],
+      },
+    };
+    expect(() => bindOnlineTabletopIntentOnServerV1({ state: wrongActor, participantId: 'player-two', envelope: sbaOutcome(false), randomize: (order) => order })).toThrow('SBA priority recipient');
+    const root = sba.coreRoot as Record<string, unknown>;
+    expect(() => bindOnlineTabletopIntentOnServerV1({ state: { ...sba, coreRoot: { ...root, tabletopManual: { priorityHolds: [{ playerId: 'P1', setRevision: 1 }] } } }, participantId: 'player-one', envelope: sbaOutcome(false), randomize: (order) => order })).toThrow('HOLD');
   });
 });

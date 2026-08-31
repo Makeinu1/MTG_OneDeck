@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../../online/workbench/fixtures/o4p-04a-personal-workbench-v1.json';
 import type { OnlineParticipantProjectionV1 } from '../../../online/projection';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../../../online/tabletopManual';
-import { projectionToGameState, remoteHandActionAllowed, RemoteGameScreenActionRail, useRemoteGameScreenInteractionPort } from '../remoteGameScreen';
+import { projectionToGameState, remoteHandActionAllowed, remoteHandActionEligibility, RemoteGameScreenActionRail, useRemoteGameScreenInteractionPort } from '../remoteGameScreen';
 import type { GameScreenInteractionPort } from '../../game/gameScreenInteractionPort';
 import { GameScreen } from '../../game/GameScreen';
 import { DEFAULT_KEYBINDINGS } from '../../../data/keybindings';
@@ -51,6 +51,7 @@ describe('remote GameScreen adapter', () => {
   it('exposes land/cast/HOLD/resolve controls through the shared surface rail', () => {
     const state = projectionToGameState(projection);
     const port = portFor(state);
+    const onSubmitTabletopIntent = vi.fn<(intent: OnlineTabletopIntentEnvelopeV1) => void>();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -59,16 +60,89 @@ describe('remote GameScreen adapter', () => {
         projection={projection}
         interactionState="ready"
         busy={false}
-        onSubmitTabletopIntent={vi.fn()}
-        onSubmitPersonalAction={vi.fn()}
+        onSubmitTabletopIntent={onSubmitTabletopIntent}
         port={port}
       />,
     ));
     expect(container.querySelector('[data-testid="online-remote-game-rail"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="online-remote-hold"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="online-remote-pass"]')).not.toBeNull();
+    const pass = container.querySelector<HTMLButtonElement>('[data-testid="online-remote-pass"]');
+    expect(pass?.disabled).toBe(false);
+    act(() => pass?.click());
+    expect(onSubmitTabletopIntent).toHaveBeenCalledWith(expect.objectContaining({
+      baseRevision: projection.revision,
+      primitive: { kind: 'priority-pass' },
+    }));
     act(() => root.unmount());
     container.remove();
+  });
+
+  it('reports an SBA outcome explicitly only for the projected priority recipient', () => {
+    const sbaProjection = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: {
+          holderPlayerId: null,
+          stewardPlayerId: 'P1',
+          windowKind: 'sba-check-required',
+          holds: [],
+          responseWindow: null,
+          topStackObjectId: null,
+        },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const onSubmitTabletopIntent = vi.fn<(intent: OnlineTabletopIntentEnvelopeV1) => void>();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={sbaProjection}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={onSubmitTabletopIntent}
+        port={portFor(projectionToGameState(sbaProjection))}
+      />,
+    ));
+    expect(container.querySelector('[data-testid="online-remote-sba-guidance"]')?.textContent).toContain('自動判定しません');
+    const stable = container.querySelector<HTMLButtonElement>('[data-testid="online-remote-sba-stable"]');
+    const applied = container.querySelector<HTMLButtonElement>('[data-testid="online-remote-sba-applied"]');
+    expect(stable?.disabled).toBe(false);
+    expect(applied?.disabled).toBe(false);
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="online-remote-advance"]')?.disabled).toBe(true);
+    expect(container.querySelectorAll('[data-testid="online-remote-cast"]')).toHaveLength(0);
+    act(() => stable?.click());
+    act(() => applied?.click());
+    expect(onSubmitTabletopIntent.mock.calls.map(([intent]) => intent.primitive)).toEqual([
+      { kind: 'sba-check-outcome', actionsWereApplied: false },
+      { kind: 'sba-check-outcome', actionsWereApplied: true },
+    ]);
+    act(() => root.unmount());
+    container.remove();
+
+    const wrongRecipient = {
+      ...sbaProjection,
+      game: {
+        ...sbaProjection.game,
+        assistedPriority: { ...sbaProjection.game.assistedPriority, stewardPlayerId: 'P2' },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const deniedContainer = document.createElement('div');
+    document.body.appendChild(deniedContainer);
+    const deniedRoot = createRoot(deniedContainer);
+    act(() => deniedRoot.render(
+      <RemoteGameScreenActionRail
+        projection={wrongRecipient}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        port={portFor(projectionToGameState(wrongRecipient))}
+      />,
+    ));
+    expect(deniedContainer.querySelector<HTMLButtonElement>('[data-testid="online-remote-sba-stable"]')?.disabled).toBe(true);
+    act(() => deniedRoot.unmount());
+    deniedContainer.remove();
   });
 
   it('keeps the remote cockpit status and manual fallback discoverable while a participant holds priority', () => {
@@ -95,7 +169,6 @@ describe('remote GameScreen adapter', () => {
         interactionState="ready"
         busy={false}
         onSubmitTabletopIntent={vi.fn()}
-        onSubmitPersonalAction={vi.fn()}
         port={portFor(projectionToGameState(projected))}
       />,
     ));
@@ -121,7 +194,7 @@ describe('remote GameScreen adapter', () => {
     const manualSummary = document.createElement('summary');
     manualSummary.textContent = 'manual';
     manual.append(manualSummary);
-    act(() => root.render(<RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(projection))} />));
+    act(() => root.render(<RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} port={portFor(projectionToGameState(projection))} />));
     container.append(guided, manual);
     const links = container.querySelectorAll<HTMLAnchorElement>('.online-remote-rail__manual-link');
     act(() => links[0]?.click());
@@ -140,14 +213,12 @@ describe('remote GameScreen adapter', () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     const onSubmitTabletopIntent = vi.fn();
-    const onSubmitPersonalAction = vi.fn();
     function Harness() {
       const port = useRemoteGameScreenInteractionPort({
         projection,
         interactionState: 'ready',
         busy: false,
         onSubmitTabletopIntent,
-        onSubmitPersonalAction,
       });
       return (
         <GameScreen
@@ -159,7 +230,6 @@ describe('remote GameScreen adapter', () => {
               interactionState="ready"
               busy={false}
               onSubmitTabletopIntent={onSubmitTabletopIntent}
-              onSubmitPersonalAction={onSubmitPersonalAction}
               port={port}
             />
           )}
@@ -187,7 +257,7 @@ describe('remote GameScreen adapter', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    act(() => root.render(<RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={port} />));
+    act(() => root.render(<RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} port={port} />));
     expect(container.querySelectorAll('.online-remote-rail__opponent-lane')).toHaveLength(players.length - 1);
     act(() => root.unmount());
     container.remove();
@@ -204,11 +274,10 @@ describe('remote GameScreen adapter', () => {
     const state = projectionToGameState(heldProjection);
     const port = portFor(state);
     const onSubmitTabletopIntent = vi.fn();
-    const onSubmitPersonalAction = vi.fn();
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    act(() => root.render(<RemoteGameScreenActionRail projection={heldProjection} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} onSubmitPersonalAction={onSubmitPersonalAction} port={port} />));
+    act(() => root.render(<RemoteGameScreenActionRail projection={heldProjection} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} port={port} />));
     expect(container.querySelector<HTMLButtonElement>('[data-testid="online-remote-advance"]')?.disabled).toBe(true);
     expect(container.querySelector<HTMLButtonElement>('[data-testid="online-remote-resolve"]')?.disabled).toBe(true);
     act(() => root.unmount());
@@ -218,7 +287,7 @@ describe('remote GameScreen adapter', () => {
     const commandContainer = document.createElement('div');
     document.body.appendChild(commandContainer);
     const commandRoot = createRoot(commandContainer);
-    act(() => commandRoot.render(<RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={commandSpy} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(projection))} />));
+    act(() => commandRoot.render(<RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={commandSpy} port={portFor(projectionToGameState(projection))} />));
     act(() => commandContainer.querySelector<HTMLButtonElement>('[data-testid="online-remote-hold"]')?.click());
     const emitted = commandSpy.mock.calls[0]?.[0];
     expect(emitted?.baseRevision).toBe(12);
@@ -258,7 +327,6 @@ describe('remote GameScreen adapter', () => {
         interactionState: 'ready',
         busy,
         onSubmitTabletopIntent,
-        onSubmitPersonalAction: vi.fn(),
       });
       return null;
     }
@@ -302,8 +370,8 @@ describe('remote GameScreen adapter', () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     function Harness() {
-      const port = useRemoteGameScreenInteractionPort({ projection, interactionState: 'ready', busy: false, onSubmitTabletopIntent, onSubmitPersonalAction: vi.fn() });
-      return <RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} onSubmitPersonalAction={vi.fn()} port={port} />;
+      const port = useRemoteGameScreenInteractionPort({ projection, interactionState: 'ready', busy: false, onSubmitTabletopIntent });
+      return <RemoteGameScreenActionRail projection={projection} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} port={port} />;
     }
     act(() => root.render(<Harness />));
     const cast = container.querySelector<HTMLButtonElement>('[data-testid="online-remote-cast"]');
@@ -326,6 +394,130 @@ describe('remote GameScreen adapter', () => {
     } as unknown as OnlineParticipantProjectionV1;
     expect(remoteHandActionAllowed(responseProjection, 'PC4:0', 'cast-spell')).toBe(true);
     expect(remoteHandActionAllowed(responseProjection, 'PC3:0', 'cast-spell')).toBe(false);
+    expect(remoteHandActionEligibility(responseProjection, 'PC3:0', 'cast-spell')).toMatchObject({
+      allowed: false,
+      reason: 'wrong-window',
+    });
+
+    const onSubmitTabletopIntent = vi.fn();
+    let currentPort: GameScreenInteractionPort | null = null;
+    function Harness({ candidate = responseProjection }: Readonly<{ candidate?: OnlineParticipantProjectionV1 }>) {
+      currentPort = useRemoteGameScreenInteractionPort({
+        projection: candidate,
+        interactionState: 'ready',
+        busy: false,
+        onSubmitTabletopIntent,
+      });
+      return <RemoteGameScreenActionRail projection={candidate} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} port={currentPort} />;
+    }
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<Harness />));
+    const unavailable = [...container.querySelectorAll<HTMLButtonElement>('[data-testid="online-remote-cast-unavailable"]')]
+      .find((button) => button.dataset.objectId === 'PC3:0');
+    expect(unavailable?.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="online-remote-cast-availability"][data-availability="wrong-window"]')?.textContent).toContain('メイン・フェイズ');
+
+    act(() => currentPort?.performDrop({ kind: 'cast', cardId: 'PC3:0' }));
+    expect(onSubmitTabletopIntent).not.toHaveBeenCalled();
+
+    const heldPermissionProjection = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: { ...projection.game.assistedPriority, holds: ['P2'] },
+        playPermissions: [{
+          permissionId: 'cast-through-effect',
+          allowedPlayerId: 'P1',
+          action: 'cast-spell',
+          subject: { kind: 'object', objectId: 'PC3:0', expectedZone: { kind: 'player-zone', playerId: 'P1', zone: 'hand' } },
+          duration: { kind: 'single-use' },
+        }],
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    expect(remoteHandActionEligibility(heldPermissionProjection, 'PC3:0', 'cast-spell')).toMatchObject({
+      allowed: false,
+      reason: 'hold-active',
+    });
+    act(() => root.render(<Harness candidate={heldPermissionProjection} />));
+    act(() => currentPort?.performDrop({ kind: 'cast', cardId: 'PC3:0' }));
+    expect(onSubmitTabletopIntent).not.toHaveBeenCalled();
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('renders a validated cast receipt without exposing private protocol state', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={projection}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        lastCommandSettlement={{
+          commandId: 'remote-cast-pilot-1' as never,
+          baseRevision: 4,
+          currentRevision: 5,
+          acceptedRevision: 5,
+          commandKind: 'tabletop',
+          operation: 'cast-spell',
+          outcome: 'accepted',
+          issueCode: null,
+        }}
+        port={portFor(projectionToGameState(projection))}
+      />,
+    ));
+    const status = container.querySelector<HTMLElement>('[data-testid="online-remote-command-result"]');
+    expect(status?.dataset).toMatchObject({
+      commandId: 'remote-cast-pilot-1',
+      outcome: 'accepted',
+      acceptedRevision: '5',
+    });
+    expect(status?.textContent).toContain('唱える操作を受理');
+    expect(status?.textContent).not.toMatch(/capability|coreRoot|receiptDigest/u);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('renders a safe accepted or rejected priority receipt without private protocol fields', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const render = (outcome: 'accepted' | 'rejected') => root.render(
+      <RemoteGameScreenActionRail
+        projection={projection}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        lastCommandSettlement={{
+          commandId: `remote-priority-${outcome}` as never,
+          baseRevision: 12,
+          currentRevision: outcome === 'accepted' ? 13 : 12,
+          acceptedRevision: outcome === 'accepted' ? 13 : null,
+          commandKind: 'tabletop',
+          operation: 'priority-pass',
+          outcome,
+          issueCode: outcome === 'accepted' ? null : 'STALE_REVISION',
+        }}
+        port={portFor(projectionToGameState(projection))}
+      />,
+    );
+    act(() => render('accepted'));
+    const accepted = container.querySelector<HTMLElement>('[data-testid="online-remote-priority-result"]');
+    expect(accepted?.dataset).toMatchObject({ operation: 'priority-pass', outcome: 'accepted', acceptedRevision: '13' });
+    expect(accepted?.textContent).toContain('優先権のパスを共有');
+    expect(accepted?.textContent).not.toMatch(/capability|coreRoot|receiptDigest|STALE_REVISION/u);
+
+    act(() => render('rejected'));
+    const rejected = container.querySelector<HTMLElement>('[data-testid="online-remote-priority-result"]');
+    expect(rejected?.dataset).toMatchObject({ operation: 'priority-pass', outcome: 'rejected', acceptedRevision: '' });
+    expect(rejected?.textContent).toContain('共有状態は変更されていません');
+    expect(rejected?.textContent).not.toMatch(/capability|coreRoot|receiptDigest|STALE_REVISION/u);
+    act(() => root.unmount());
+    container.remove();
   });
 
   it('routes a concealed public permanent to its projected controller seat', () => {
@@ -359,7 +551,7 @@ describe('remote GameScreen adapter', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    act(() => root.render(<RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(projected))} />));
+    act(() => root.render(<RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} port={portFor(projectionToGameState(projected))} />));
     expect(container.querySelector('.online-remote-rail__opponent-lane[data-focused="true"]')?.textContent).toContain('P2');
     expect(container.querySelector('[data-testid="online-remote-causal"]')?.textContent).toContain('裏向きの公開オブジェクト');
     expect(container.querySelector('[data-testid="online-remote-causal"]')?.textContent).toContain('対象:');
@@ -399,8 +591,8 @@ describe('remote GameScreen adapter', () => {
     document.body.appendChild(container);
     const root = createRoot(container);
     function Harness() {
-      const port = useRemoteGameScreenInteractionPort({ projection: projected, interactionState: 'ready', busy: false, onSubmitTabletopIntent, onSubmitPersonalAction: vi.fn(), onSubmitSharedUndo });
-      return <RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} onSubmitPersonalAction={vi.fn()} onSubmitSharedUndo={onSubmitSharedUndo} port={port} />;
+      const port = useRemoteGameScreenInteractionPort({ projection: projected, interactionState: 'ready', busy: false, onSubmitTabletopIntent, onSubmitSharedUndo });
+      return <RemoteGameScreenActionRail projection={projected} interactionState="ready" busy={false} onSubmitTabletopIntent={onSubmitTabletopIntent} onSubmitSharedUndo={onSubmitSharedUndo} port={port} />;
     }
     act(() => root.render(<Harness />));
     expect(container.querySelector('[data-testid="online-remote-combat"]')?.textContent).toContain('攻撃指定');
@@ -430,7 +622,7 @@ describe('remote GameScreen adapter', () => {
     const twoContainer = document.createElement('div');
     document.body.appendChild(twoContainer);
     const twoRoot = createRoot(twoContainer);
-    act(() => twoRoot.render(<RemoteGameScreenActionRail projection={twoPlayer} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(twoPlayer))} />));
+    act(() => twoRoot.render(<RemoteGameScreenActionRail projection={twoPlayer} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} port={portFor(projectionToGameState(twoPlayer))} />));
     expect(twoContainer.querySelector('[data-testid="online-remote-outcome"]')?.textContent).toContain('勝者: P1');
     expect(twoContainer.querySelectorAll('.online-remote-rail__opponent-lane')).toHaveLength(1);
     act(() => twoRoot.unmount());
@@ -443,7 +635,7 @@ describe('remote GameScreen adapter', () => {
     const fourContainer = document.createElement('div');
     document.body.appendChild(fourContainer);
     const fourRoot = createRoot(fourContainer);
-    act(() => fourRoot.render(<RemoteGameScreenActionRail projection={fourPlayer} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} onSubmitPersonalAction={vi.fn()} port={portFor(projectionToGameState(fourPlayer))} />));
+    act(() => fourRoot.render(<RemoteGameScreenActionRail projection={fourPlayer} interactionState="ready" busy={false} onSubmitTabletopIntent={vi.fn()} port={portFor(projectionToGameState(fourPlayer))} />));
     expect(fourContainer.querySelector('[data-testid="online-remote-outcome"]')?.textContent).toContain('P2: 敗北');
     expect(fourContainer.querySelectorAll('.online-remote-rail__opponent-lane')).toHaveLength(3);
     act(() => fourRoot.unmount());

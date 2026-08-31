@@ -15,6 +15,7 @@ import { passCorePriorityV1 } from '../turn/priorityPassV1';
 import { startCorePriorityCycleV1 } from '../turn/priorityPassV1';
 import { completeCoreResolutionAfterRemovalV1 } from '../turn/resolutionBoundaryV1';
 import { createCoreTurnPriorityBundleV1 } from '../turn/turnPriorityBundleV1';
+import { recordCoreSbaCheckOutcomeV1 } from '../turn/sbaTriggerBoundaryV1';
 import { createModeNeutralCoreTurnLifecycleSliceV1 } from '../turn/turnLifecycleV1';
 import { reconcileCorePlayerExitV1, type CorePlayerExitReferenceBundleV1 } from '../player-lifecycle/playerExitReconciliationV1';
 import { applyCoreControlEffectV1, createModeNeutralCoreControlSliceV1 } from '../rules/controlEffectV1';
@@ -232,6 +233,18 @@ function handleTabletopTurnProgress(
 ): HandlerResult {
   const lifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle;
   const registry = stackBundle(root).objectRegistry;
+  if (transition.transition.kind === 'sba-check-outcome') {
+    const window = lifecycle.window;
+    if (window.kind !== 'sba-check-required') adapterFailure('WINDOW_MISMATCH', '/payload/transition', 'SBA outcome requires an SBA-check-required window');
+    if (window.priorityRecipientPlayerId !== actorPlayerId) adapterFailure('UNAUTHORIZED_ACTOR', '/actorPlayerId', 'Only the SBA priority recipient may submit the outcome');
+    if ((root.tabletopManual?.priorityHolds ?? []).length > 0) adapterFailure('PRIORITY_HOLD_ACTIVE', '/payload/transition', 'Active priority HOLD blocks SBA outcome');
+    const nextTurn = recordCoreSbaCheckOutcomeV1(root.ruleAuthority.turnPriorityBundle, { actionsWereApplied: transition.transition.actionsWereApplied });
+    return {
+      root: replaceStackBundle(root, nextTurn.stackBundle, nextTurn.lifecycle),
+      payloads: [{ kind: 'table-turn-progressed', transition: Object.freeze({ kind: transition.transition.kind, actionsWereApplied: transition.transition.actionsWereApplied }) }],
+      warnings: [],
+    };
+  }
   if (registry.activePlayerId !== actorPlayerId) adapterFailure('INACTIVE_ACTOR', '/actorPlayerId', 'Only the active player may progress the turn');
   let workingRoot = root;
   const payloads: CoreDomainEventPayloadV1[] = [];
@@ -461,6 +474,9 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
   try {
     const payload = checked.payload; let handled: HandlerResult;
     if (payload.kind === 'stack-commit-card-spell') {
+      if ((current.tabletopManual?.priorityHolds ?? []).length > 0) {
+        adapterFailure('PRIORITY_HOLD_ACTIVE', '/payload', 'Active priority HOLD blocks spell cast');
+      }
       const priorityWindow = current.ruleAuthority.turnPriorityBundle.lifecycle.window;
       if (priorityWindow.kind !== 'priority' || priorityWindow.holderPlayerId !== checked.actorPlayerId) {
         adapterFailure('PRIORITY_REQUIRED', '/actorPlayerId', 'The actor must hold priority to cast a spell');
@@ -558,7 +574,11 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
       }
       handled = { root: nextRoot, payloads, warnings: [] };
     }
-    else if (payload.kind === 'priority-pass') { const result = passCorePriorityV1({ stackBundle: stackBundle(current), lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle }, payload.playerId); handled = { root: replaceStackBundle(current, result.stackBundle, result.lifecycle), payloads: [{ kind: 'priority-changed', holderPlayerId: result.lifecycle['window'].kind === 'priority' ? result.lifecycle['window'].holderPlayerId : null, windowKind: result.lifecycle['window'].kind }], warnings: [] }; }
+    else if (payload.kind === 'priority-pass') {
+      if ((current.tabletopManual?.priorityHolds ?? []).length > 0) adapterFailure('PRIORITY_HOLD_ACTIVE', '/payload', 'Active priority HOLD blocks priority pass');
+      const result = passCorePriorityV1({ stackBundle: stackBundle(current), lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle }, payload.playerId);
+      handled = { root: replaceStackBundle(current, result.stackBundle, result.lifecycle), payloads: [{ kind: 'priority-changed', holderPlayerId: result.lifecycle['window'].kind === 'priority' ? result.lifecycle['window'].holderPlayerId : null, windowKind: result.lifecycle['window'].kind }], warnings: [] };
+    }
     else if (payload.kind === 'search-open') { const result = preOpenedSearch === null ? openCoreSearchSessionV1(current.ruleAuthority, payload.sessionKey, payload.input) : { value: preOpenedSearch }; handled = { root: replaceAuthority(current, { searchSessions: (result.value as typeof current.ruleAuthority).searchSessions }), payloads: [{ kind: 'search-session-changed', sessionKey: payload.sessionKey, operation: 'open', selectedCount: 0 }], warnings: [] }; }
     else if (payload.kind === 'search-complete') {
       const result = completeCoreSearchSessionV1(current.ruleAuthority, payload.sessionKey, payload.selectedObjectIds);
@@ -624,7 +644,7 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     else if (payload.kind === 'player-exit') handled = handlePlayerExit(current, payload);
     else if (payload.kind === 'random-zone-order') { const registry = stackBundle(current).objectRegistry; const order = zoneIds(registry, payload.zone); const issues = validateCoreRandomZoneOrderV1(payload, order); if (issues.length) adapterFailure(issues[0]?.code ?? 'INVALID_RANDOM_ORDER', issues[0]?.path ?? '/payload', issues[0]?.message ?? 'Invalid random zone order'); const nextOrder = applyCoreRecordedZoneOrderV1(order, payload); const nextRegistry = registryWith(registry, { zones: zonesWith(registry, payload.zone, nextOrder) }); const manualMode = payload.manualMode === 'structured' || payload.manualMode === 'freeform' ? payload.manualMode : undefined; handled = { root: updateRegistryInRoot(current, nextRegistry), payloads: [{ kind: 'zone-randomized', randomDecisionId: payload.randomDecisionId, zoneKind: payload.zone.zone, count: payload.afterOrder.length, ...(manualMode === undefined ? {} : { manualMode }) }], warnings: [] }; }
     else if (payload.kind === 'correct-player-life') { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); const registry = stackBundle(current).objectRegistry; const player = registry.players[payload.playerId]; if (!player) throw new Error('Correction player is not registered'); const players = { ...registry.players, [payload.playerId]: { ...player, life: payload.replacementLifeTotal } }; handled = { root: updateRegistryInRoot(current, registryWith(registry, { players })), payloads: [{ kind: 'manual-correction-applied', correction: 'player-life' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
-    else if (payload.kind === 'table-turn-progress') { requireSteward(current, checked.actorPlayerId, '/actorPlayerId'); handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload); }
+    else if (payload.kind === 'table-turn-progress') { if (payload.transition.kind !== 'sba-check-outcome') requireSteward(current, checked.actorPlayerId, '/actorPlayerId'); handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload); }
     else if (payload.kind === 'table-shuffle') adapterFailure('SHUFFLE_REQUIRES_SERVER_RANDOM', '/payload', 'Shuffle must be bound to a server-authoritative random order');
     else if (isTabletopPayload(payload)) {
       const result = applyCoreTabletopPayloadV1(current, checked.actorPlayerId, payload);

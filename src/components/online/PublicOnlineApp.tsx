@@ -181,7 +181,6 @@ export function PublicOnlineApp({
     interactionState,
     busy: tabletopBusy,
     onSubmitTabletopIntent: controller.submitTabletopIntent,
-    onSubmitPersonalAction: controller.submitPersonalAction,
     onSubmitSharedUndo: () => { void controller.submitSharedUndo(remoteProjection?.revision); },
   });
   const chooseDeck = (id: string) => {
@@ -660,7 +659,7 @@ export function PublicOnlineApp({
                 interactionState={interactionState}
                 busy={tabletopBusy}
                 onSubmitTabletopIntent={controller.submitTabletopIntent}
-                onSubmitPersonalAction={controller.submitPersonalAction}
+                lastCommandSettlement={snapshot.player.lastCommandSettlement}
                 onSubmitSharedUndo={() => { void controller.submitSharedUndo(snapshot.player?.projection?.revision); }}
                 port={remoteInteractionPort}
               />

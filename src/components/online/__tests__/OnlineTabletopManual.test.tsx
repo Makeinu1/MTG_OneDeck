@@ -232,6 +232,20 @@ describe('OnlineTabletopManual', () => {
     unmount(mounted.root);
   });
 
+  it('does not expose generic Advance as the SBA confirmation route', () => {
+    const sbaProjection = {
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: { holderPlayerId: null, stewardPlayerId: 'P1', windowKind: 'sba-check-required', holds: [], responseWindow: null, topStackObjectId: null },
+      },
+    } as unknown as OnlineParticipantProjectionV1;
+    const mounted = mount({ projection: sbaProjection });
+    expect(mounted.container.querySelector<HTMLButtonElement>('[data-testid="online-priority-advance"]')?.disabled).toBe(true);
+    expect(mounted.container.textContent).toContain('SBA確認は共有テーブル上部の専用ボタン');
+    unmount(mounted.root);
+  });
+
   it('requires an active empty-stack checkpoint for source-less manual stack entries', () => {
     const mounted = mount();
     expect(mounted.container.querySelector<HTMLButtonElement>('[data-testid="online-tabletop-submit-stack-entry"]')?.disabled).toBe(true);

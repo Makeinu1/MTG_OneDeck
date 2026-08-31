@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "journeys": [
+    {
+      "id": "O4P-09I",
+      "goal": "本番経路で2人戦を完走し、4人戦の継続性と非公開情報の分離を証明する",
+      "designSource": "research/cr-grounding/o4p-09i-acceptance-brief.draft.md",
+      "acceptanceSource": "research/cr-grounding/o4p-09i-acceptance-brief.draft.md",
+      "localStages": [
+        {
+          "id": "evidence-contract",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "scripts/__tests__/fingerprint.test.mjs",
+            "scripts/__tests__/journey-harness.test.mjs",
+            "src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts",
+            "src/test/architecture/review.o4p-09i-full-match.test.ts"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "EVIDENCE",
+          "failureCode": "EVIDENCE_CONTRACT_FAILED"
+        },
+        {
+          "id": "runtime-path",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "src/components/online/__tests__/remoteGameScreen.test.tsx",
+            "src/components/online/__tests__/OnlineTabletopManual.test.tsx",
+            "src/online/browser/__tests__/browserClientV1.test.ts",
+            "src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts",
+            "src/online/tabletopManual/__tests__/serverV1.test.ts",
+            "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
+          ],
+          "timeoutMs": 300000,
+          "failureClass": "IMPLEMENTATION",
+          "failureCode": "RUNTIME_PATH_FAILED"
+        }
+      ],
+      "liveStage": {
+        "id": "production-journey",
+        "runner": "tsx-entry",
+        "script": "evidence:o4p-09i",
+        "timeoutMs": 900000,
+        "failureClass": "IMPLEMENTATION",
+        "failureCode": "PRODUCTION_JOURNEY_FAILED"
+      }
+    },
+    {
+      "id": "O4P-CAST-PILOT",
+      "goal": "2人Remoteの自分の手札からのtargetless castを正規経路で成立させ、拒否・不在・旧経路退役を検証する",
+      "designSource": "scripts/journeys/contracts/remote-cast-pilot.json",
+      "acceptanceSource": "scripts/journeys/contracts/remote-cast-pilot.json",
+      "localStages": [
+        {
+          "id": "remote-cast-contract",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "scripts/__tests__/fingerprint.test.mjs",
+            "scripts/__tests__/journey-harness.test.mjs",
+            "src/online/browser/__tests__/remoteCastJourneyV1.test.ts",
+            "src/test/architecture/review.remote-cast-pilot.test.ts"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "EVIDENCE",
+          "failureCode": "REMOTE_CAST_CONTRACT_FAILED"
+        },
+        {
+          "id": "remote-cast-runtime",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "src/components/online/__tests__/remoteGameScreen.test.tsx",
+            "src/components/online/__tests__/OnlineTabletopManual.test.tsx",
+            "src/online/browser/__tests__/browserClientV1.test.ts",
+            "src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts",
+            "src/online/tabletopManual/__tests__/serverV1.test.ts",
+            "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
+          ],
+          "timeoutMs": 300000,
+          "failureClass": "IMPLEMENTATION",
+          "failureCode": "REMOTE_CAST_RUNTIME_FAILED"
+        }
+      ],
+      "liveStage": {
+        "id": "remote-cast-production",
+        "runner": "tsx-entry",
+        "script": "evidence:o4p-09i",
+        "timeoutMs": 900000,
+        "failureClass": "IMPLEMENTATION",
+        "failureCode": "REMOTE_CAST_PRODUCTION_FAILED"
+      }
+    },
+    {
+      "id": "O4P-HOLD-RESPONSE-RESOLVE",
+      "goal": "2人Remoteのcast後にHOLD、応答またはpass、共有stack解決までを一つの正規経路で成立させ、旧pass経路とsilent no-opを退役させる",
+      "designSource": "scripts/journeys/contracts/remote-hold-response-resolve.json",
+      "acceptanceSource": "scripts/journeys/contracts/remote-hold-response-resolve.json",
+      "localStages": [
+        {
+          "id": "remote-priority-contract",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "scripts/__tests__/fingerprint.test.mjs",
+            "scripts/__tests__/journey-harness.test.mjs",
+            "src/online/browser/__tests__/remotePriorityJourneyV1.test.ts",
+            "src/test/architecture/review.remote-priority-pilot.test.ts"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "EVIDENCE",
+          "failureCode": "REMOTE_PRIORITY_CONTRACT_FAILED"
+        },
+        {
+          "id": "remote-priority-runtime",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "src/components/online/__tests__/remoteGameScreen.test.tsx",
+            "src/online/browser/__tests__/browserClientV1.test.ts",
+            "src/online/tabletopManual/__tests__/serverV1.test.ts",
+            "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
+          ],
+          "timeoutMs": 300000,
+          "failureClass": "IMPLEMENTATION",
+          "failureCode": "REMOTE_PRIORITY_RUNTIME_FAILED"
+        },
+        {
+          "id": "remote-priority-core",
+          "runner": "vitest",
+          "project": "core",
+          "files": [
+            "src/engine/core/turn/__tests__/priorityPassV1.test.ts",
+            "src/engine/core/closure/__tests__/rootV1.test.ts"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "IMPLEMENTATION",
+          "failureCode": "REMOTE_PRIORITY_CORE_FAILED"
+        }
+      ],
+      "liveStage": {
+        "id": "remote-priority-production",
+        "runner": "tsx-entry",
+        "script": "evidence:o4p-09i",
+        "timeoutMs": 900000,
+        "failureClass": "IMPLEMENTATION",
+        "failureCode": "REMOTE_PRIORITY_PRODUCTION_FAILED"
+      }
+    },
+    {
+      "id": "O4P-REMOTE-RECONNECT-RECOVERY",
+      "goal": "2人Remoteの切断・再接続・拒否・復旧を、未決定のpresenceとpriority意味論を解消してから成立させる",
+      "designSource": "scripts/journeys/contracts/remote-reconnect-recovery.json",
+      "acceptanceSource": "scripts/journeys/contracts/remote-reconnect-recovery.json",
+      "localStages": [
+        {
+          "id": "remote-reconnect-contract",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "scripts/__tests__/journey-harness.test.mjs"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "EVIDENCE",
+          "failureCode": "REMOTE_RECONNECT_CONTRACT_FAILED"
+        }
+      ],
+      "liveStage": {
+        "id": "remote-reconnect-production",
+        "runner": "tsx-entry",
+        "script": "evidence:o4p-09i",
+        "timeoutMs": 900000,
+        "failureClass": "IMPLEMENTATION",
+        "failureCode": "REMOTE_RECONNECT_PRODUCTION_FAILED"
+      }
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "journeyId": "O4P-HOLD-RESPONSE-RESOLVE",
+  "canonicalRoute": [
+    "Action Rail",
+    "OnlineTabletopIntentV1",
+    "server binder",
+    "Mode-Neutral Core priority lifecycle",
+    "V4 projection and safe receipt"
+  ],
+  "eligibility": {
+    "authority": "server/Core authoritative",
+    "advisoryBoundary": "UI exposes HOLD to every player, pass only to the projected priority holder, and Resolve only to the projected steward; every command is rechecked by the server and Core"
+  },
+  "semantics": {
+    "supported": [
+      "every player may assert or clear HOLD",
+      "the current priority holder may answer with a visible own-hand targetless Instant or Flash spell or explicitly pass",
+      "all seated players passing over a nonempty stack reaches resolution-ready for the captured top object",
+      "only the current stack steward may resolve that captured top object"
+    ],
+    "deferred": [
+      "automatic mana payment",
+      "targets",
+      "modes",
+      "additional or alternative costs",
+      "automatic Oracle resolution beyond the existing Core or an explicit Manual Resolve"
+    ]
+  },
+  "outcomes": {
+    "unavailable": "the control makes no attempt and shows the projected reason when HOLD, priority, steward, connection, or stack-top requirements are not met",
+    "accepted": "the sender receives a safe tabletop receipt and both seats observe the accepted revision, priority progression, captured stack top, and post-resolution shared state",
+    "rejected": "stale, wrong-actor, HOLD-blocked, wrong-steward, or wrong-top operations leave revision and Core state unchanged",
+    "failed": "an ordinary-command priority bypass, silent no-op, divergent seat projection, uncaptured top resolution, or missing receipt fails the journey"
+  },
+  "legacyRetirement": {
+    "sameSlice": [
+      "Remote GameScreen priority pass through onSubmitPersonalAction",
+      "ordinary online-command priority pass accepted by the public runtime",
+      "Remote surface expectations that permit the PersonalWorkbench pass adapter"
+    ],
+    "retained": [
+      "PersonalWorkbench compatibility assets outside the production GameScreen route",
+      "Manual Stack and Manual Resolve for unsupported card semantics"
+    ]
+  },
+  "acceptance": {
+    "positive": [
+      "HOLD set and clear converge for both seats",
+      "each accepted tabletop pass advances exactly one revision and the projected priority holder",
+      "all seated passes converge on resolution-ready for the same stack top",
+      "steward Resolve advances exactly one revision and both seats observe the same stack removal and recent resolution"
+    ],
+    "negative": [
+      "HOLD blocks pass, response cast, advance, resolve, and SBA outcome without a client attempt when projected",
+      "server and Core reject wrong-holder, active-HOLD, stale-revision, wrong-steward, and wrong-top operations without state change",
+      "ordinary online-command priority-pass cannot bypass the tabletop server binder",
+      "non-steward and lower-stack controls cannot resolve the current top"
+    ]
+  },
+  "nextSlices": ["reconnect/reject/recovery"]
+}

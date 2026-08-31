@@ -22,6 +22,7 @@ import {
 import { AmbientMacroFixture } from './AmbientMacroFixture';
 import { PregameFixture } from './PregameFixture';
 import { TabletopManualFixture } from './TabletopManualFixture';
+import { RemoteGameScreenFixture } from './RemoteGameScreenFixture';
 import './tabletopPrototype.css';
 
 function queryValue(name: string): string | null {
@@ -37,6 +38,7 @@ const requestedScenario = queryValue('scenario');
 const isAmbientMacroFixture = requestedScenario === 'ambient-macro';
 const isPregameFixture = requestedScenario === 'pregame';
 const isTabletopManualFixture = requestedScenario === 'tabletop-manual';
+const isRemoteGameFixture = requestedScenario === 'remote-game';
 const scenario = fixtureScenario();
 const tabletopMode = resolveTabletopPrototypeMode(queryValue('tabletop'));
 applyTabletopPrototypeMode(document.documentElement, tabletopMode);
@@ -130,6 +132,10 @@ if (isAmbientMacroFixture) {
   document.documentElement.dataset.fixtureScenario = 'tabletop-manual';
   document.title = 'MTG OneDeck — tabletop manual fixture';
   createRoot(rootElement).render(<TabletopManualFixture />);
+} else if (isRemoteGameFixture) {
+  document.documentElement.dataset.fixtureScenario = 'remote-game';
+  document.title = 'MTG OneDeck — Remote GameScreen fixture';
+  createRoot(rootElement).render(<RemoteGameScreenFixture />);
 } else {
   void renderFixture().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : 'fixtureの表示に失敗しました。';

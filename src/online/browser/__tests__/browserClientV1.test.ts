@@ -199,6 +199,17 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(JSON.stringify(frame)).not.toContain('order');
     socket.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: intent.commandId, baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: false });
     expect(client.getSnapshot().pendingCommands).toEqual([]);
+    expect(client.getSnapshot().lastCommandSettlement).toEqual({
+      commandId: intent.commandId,
+      baseRevision: 0,
+      currentRevision: 1,
+      acceptedRevision: 1,
+      commandKind: 'tabletop',
+      operation: 'shuffle',
+      outcome: 'accepted',
+      issueCode: null,
+    });
+    expect(Object.isFrozen(client.getSnapshot().lastCommandSettlement)).toBe(true);
     socket.frame(projectionResponseAt(1));
     expect(client.getSnapshot().phase).toBe('open');
     const normal = { commandId: 'browser-after-tabletop' as never, baseRevision: 1, command: command(2) };
@@ -417,6 +428,12 @@ describe('O4P-06D ordinary browser client coverage', () => {
       issues: [{ code: 'STALE_REVISION', path: '/baseRevision', message: 'stale' }],
     });
     expect(client.getSnapshot()).toMatchObject({ phase: 'resyncing', issueCode: 'STALE_REVISION', pendingCommands: [] });
+    expect(client.getSnapshot().lastCommandSettlement).toMatchObject({
+      commandId: 'reject-command',
+      outcome: 'rejected',
+      acceptedRevision: null,
+      issueCode: 'STALE_REVISION',
+    });
     expect(socket.sent.length).toBe(beforeReject + 1);
     const refreshed = projectionResponse();
     socket.frame({ ...refreshed, revision: 1, knownRevision: 1, projection: { ...refreshed.projection, revision: 1 } });
