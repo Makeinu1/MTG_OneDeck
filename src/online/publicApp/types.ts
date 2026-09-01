@@ -212,7 +212,6 @@ export type PublicOnlineControllerV3 = Readonly<{
   readonly retry: () => Promise<void>;
   readonly displayDeckName: (name: string, index: number) => string;
   readonly copyInvite: (invite: string) => Promise<boolean>;
-  readonly submitPersonalAction: (action: unknown) => void;
   readonly submitGuidedAction: (action: unknown) => void;
   readonly submitTabletopIntent: (intent: OnlineTabletopIntentEnvelopeV1) => Promise<void>;
   readonly submitVisibilityIntent: (intent: OnlineVisibilityIntentEnvelopeV1) => Promise<void>;

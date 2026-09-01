@@ -44,5 +44,5 @@
       "one-seat or divergent stack fails"
     ]
   },
-  "nextSlices": ["reconnect/reject/recovery"]
+  "nextSlices": ["HOLD/response/resolve"]
 }

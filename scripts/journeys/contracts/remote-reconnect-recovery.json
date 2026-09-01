@@ -66,9 +66,6 @@
     ]
   },
   "nextSlices": [
-    "enforce disconnected-participant rejection on every production variable-v2 mutation path",
-    "propagate authoritative rejoined status through the browser state to the Remote player surface",
-    "bind dedicated reconnect and rejection evidence plus old-route guards into the local journey loop",
     "bind the same reconnect facts to an exact-fingerprint production journey before release"
   ]
 }

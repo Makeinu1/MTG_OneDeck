@@ -5,7 +5,6 @@ import {
   type OnlineBrowserWebSocketClientV1,
 } from '../browser/index';
 import {
-  bindPersonalWorkbenchActionV1,
   bindSharedUndoIntentV1,
   type OnlineDisplayPairingSessionV1,
 } from '../displayPairing/index';
@@ -591,7 +590,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
     } finally { publish({ busy: null }); }
   };
   const retry = async (): Promise<void> => { if (retryOperation !== null) await retryOperation(); else await refresh(); };
-  const submitAction = (action: unknown, guided: boolean): void => {
+  const submitGuidedAction = (action: unknown): void => {
     const client = playerClient;
     if (client === null || secrets === null || snapshot.roomId === null) return;
     const personal = client.getSnapshot().projection;
@@ -607,9 +606,7 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
     };
     try {
       const commandId = generatedId('command') as never;
-      const frame = guided
-        ? bindOnlineGuidedCommandActionV1({ session, action, commandId })
-        : bindPersonalWorkbenchActionV1({ session, action, commandId });
+      const frame = bindOnlineGuidedCommandActionV1({ session, action, commandId });
       if (frame.kind === 'online-command-envelope-v1') client.submit({ commandId: frame.commandId, baseRevision: frame.baseRevision, command: frame.command });
     } catch {
       publish({ error: '操作を送信できませんでした。' });
@@ -720,5 +717,5 @@ export function createPublicOnlineControllerV3(): PublicOnlineControllerV3 {
           (secrets !== null && secretFragment(name, [secrets.seatCapability, secrets.tableCapability]))) return fallback;
       return name;
     } catch { return fallback; }
-  }, copyInvite: async (invite: string) => { try { if (!navigator.clipboard) return false; await navigator.clipboard.writeText(invite); return true; } catch { return false; } }, submitPersonalAction: (action: unknown) => submitAction(action, false), submitGuidedAction: (action: unknown) => submitAction(action, true), disconnect });
+  }, copyInvite: async (invite: string) => { try { if (!navigator.clipboard) return false; await navigator.clipboard.writeText(invite); return true; } catch { return false; } }, submitGuidedAction, disconnect });
 }

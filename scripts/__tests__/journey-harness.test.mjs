@@ -7,7 +7,9 @@ import { describe, expect, test, vi } from 'vitest';
 import {
   classifyStageFailure,
   inspectJourneyCandidate,
+  main,
   runJourneyPhase,
+  runRemotePilotSequence,
   runJourneyTurn,
   resolveLocalSandboxExecutable,
   safeChildEnvironment,
@@ -53,6 +55,72 @@ const candidate = Object.freeze({
 });
 
 describe('journey harness', () => {
+  function sequenceFixture(cwd) {
+    const ids = ['O4P-CAST-PILOT', 'O4P-HOLD-RESPONSE-RESOLVE', 'O4P-REMOTE-RECONNECT-RECOVERY'];
+    const journeys = ids.map((id, index) => {
+      const designSource = `design-${index}.json`;
+      writeFileSync(join(cwd, designSource), JSON.stringify({
+        schemaVersion: 1, journeyId: id, canonicalRoute: ['surface', 'server', 'Core'],
+        eligibility: { authority: 'server', advisoryBoundary: 'projection only' },
+        semantics: { supported: ['bounded operation'], deferred: ['future operation'] },
+        outcomes: { unavailable: 'no attempt', accepted: 'shared result', rejected: 'unchanged', failed: 'stop' },
+        legacyRetirement: { sameSlice: ['old route'], retained: ['manual fallback'] },
+        acceptance: { positive: ['accepted result'], negative: ['rejected result'] }, nextSlices: ['next slice'],
+      }));
+      return { id, goal: `goal ${id}`, designSource, acceptanceSource: designSource,
+        localStages: [{ ...localStage, id: `stage-${index}` }], liveStage };
+    });
+    return { schemaVersion: 1, journeys };
+  }
+
+  test('runs the remote pilot sequence in fixed order with one shared candidate and aggregates success', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'onedeck-sequence-'));
+    try {
+      const registry = sequenceFixture(cwd);
+      const seen = [];
+      const result = runRemotePilotSequence({
+        registry, phase: 'local', candidate, cwd, localSandboxExecutable: '/sandbox-exec',
+        currentFingerprint: () => candidate.fingerprint,
+        createTemporaryDirectory: () => mkdtempSync(join(cwd, 'run-')),
+        spawn: () => { seen.push(true); return { status: 0, signal: null, error: null, stdout: '', stderr: '' }; },
+      });
+      expect(result).toMatchObject({ kind: 'journey-sequence-result-v1', schemaVersion: 1, programId: 'O4P-REMOTE-PILOT-V1', phase: 'local', status: 'passed', nextAction: 'REQUEST_EXTERNAL_AUTHORITY' });
+      expect(result.journeyIds).toEqual(['O4P-CAST-PILOT', 'O4P-HOLD-RESPONSE-RESOLVE', 'O4P-REMOTE-RECONNECT-RECOVERY']);
+      expect(result.journeys.map((entry) => entry.journeyId)).toEqual(result.journeyIds);
+      expect(result.journeys.every((entry) => entry.candidate === candidate)).toBe(true);
+      expect(result.completedJourneys).toEqual(result.journeyIds);
+      expect(seen).toHaveLength(3);
+    } finally { rmSync(cwd, { recursive: true, force: true }); }
+  });
+
+  test('does not spawn a local stage when sequence design preflight fails', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'onedeck-sequence-design-'));
+    try {
+      const registry = sequenceFixture(cwd);
+      registry.journeys[1].designSource = 'missing-design.json';
+      const spawn = vi.fn();
+      const result = runRemotePilotSequence({ registry, phase: 'local', candidate, cwd, localSandboxExecutable: '/sandbox-exec', spawn });
+      expect(result).toMatchObject({ status: 'failed', failedJourneyId: 'O4P-HOLD-RESPONSE-RESOLVE', failure: { class: 'DESIGN', nextAction: 'RETURN_TO_DESIGN' } });
+      expect(result.journeys.map((entry) => entry.journeyId)).toEqual([
+        'O4P-CAST-PILOT',
+        'O4P-HOLD-RESPONSE-RESOLVE',
+      ]);
+      expect(result.completedJourneys).toEqual([]);
+      expect(spawn).not.toHaveBeenCalled();
+      expect(() => runRemotePilotSequence({ registry, phase: 'live', candidate })).toThrow(
+        'remote pilot sequence supports inspect or local only',
+      );
+      expect(() => runRemotePilotSequence({ registry, phase: 'local', candidate, allowExternalWrite: true })).toThrow(
+        'remote pilot sequence does not accept external authority flags',
+      );
+      const error = vi.fn();
+      expect(main([
+        '--journey', 'O4P-CAST-PILOT', '--sequence', 'O4P-REMOTE-PILOT-V1',
+      ], { cwd, write: vi.fn(), error })).toBe(2);
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('mutually exclusive'));
+    } finally { rmSync(cwd, { recursive: true, force: true }); }
+  });
+
   test('stops before any stage when the machine design source is missing', () => {
     const spawn = vi.fn();
     const result = runJourneyTurn({
@@ -248,6 +316,20 @@ describe('journey harness', () => {
       status: 'blocked',
     });
     expect(first.evidence).toEqual(second.evidence);
+    const timeoutError = Object.assign(new Error('private timeout detail'), { code: 'ETIMEDOUT' });
+    const timeout = classifyStageFailure({
+      stage: localStage,
+      result: { status: null, signal: 'SIGTERM', error: timeoutError, stdout: '', stderr: '' },
+      environmentAttempt: 1,
+    });
+    expect(timeout).toMatchObject({
+      class: 'ENVIRONMENT',
+      code: 'CHILD_PROCESS_TIMEOUT',
+      evidence: ['stage:evidence-contract', 'timeout-ms:1000'],
+      nextAction: 'RETRY_ENVIRONMENT',
+      status: 'retryable',
+    });
+    expect(JSON.stringify(timeout)).not.toContain('private timeout detail');
   });
 
   test('classifies sandbox-exec application failure without confusing a child exit 71', () => {

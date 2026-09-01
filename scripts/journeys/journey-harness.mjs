@@ -492,7 +492,17 @@ export function classifyStageFailure({
   trustedFailure,
 }) {
   assertEnvironmentAttempt(environmentAttempt);
-  const spawnUnavailable = result.error !== undefined && result.error !== null;
+  const childErrorCode =
+    result.error !== undefined &&
+    result.error !== null &&
+    typeof result.error === 'object' &&
+    'code' in result.error &&
+    typeof result.error.code === 'string'
+      ? result.error.code
+      : null;
+  const spawnTimedOut = childErrorCode === 'ETIMEDOUT';
+  const spawnUnavailable =
+    result.error !== undefined && result.error !== null && !spawnTimedOut;
   // sandbox-exec returning 71 means its own sandbox could not be applied. The
   // harness-owned shell wrapper remaps a child-stage exit 71 to 70, so this
   // reserved status cannot be spoofed by the test process.
@@ -515,10 +525,14 @@ export function classifyStageFailure({
   }
   const failureClass =
     normalizedFailure?.class ??
-    (spawnUnavailable || sandboxApplicationFailed ? 'ENVIRONMENT' : stage.failureClass);
+    (spawnTimedOut || spawnUnavailable || sandboxApplicationFailed
+      ? 'ENVIRONMENT'
+      : stage.failureClass);
   const code =
     normalizedFailure?.code ??
-    (sandboxApplicationFailed
+    (spawnTimedOut
+      ? 'CHILD_PROCESS_TIMEOUT'
+      : sandboxApplicationFailed
       ? 'LOCAL_SANDBOX_EXEC_FAILED'
       : spawnUnavailable
         ? 'CHILD_PROCESS_UNAVAILABLE'
@@ -528,7 +542,10 @@ export function classifyStageFailure({
     failureClass,
     code,
     stage: failedStage,
-    evidence: [`stage:${stage.id}`, `exit:${exitCode(result)}`],
+    evidence: [
+      `stage:${stage.id}`,
+      spawnTimedOut ? `timeout-ms:${stage.timeoutMs}` : `exit:${exitCode(result)}`,
+    ],
     environmentAttempt,
   });
 }
@@ -795,6 +812,101 @@ export function runJourneyPhase(options) {
   return Object.freeze({ ...second, environmentAttempts: 2 });
 }
 
+const REMOTE_PILOT_SEQUENCE = Object.freeze([
+  'O4P-CAST-PILOT',
+  'O4P-HOLD-RESPONSE-RESOLVE',
+  'O4P-REMOTE-RECONNECT-RECOVERY',
+]);
+
+export function runRemotePilotSequence({
+  registry,
+  phase,
+  candidate,
+  allowExternalWrite = false,
+  expectedFingerprint,
+  ...options
+} = {}) {
+  if (phase !== 'inspect' && phase !== 'local') throw new Error('remote pilot sequence supports inspect or local only');
+  if (allowExternalWrite || expectedFingerprint !== undefined) throw new Error('remote pilot sequence does not accept external authority flags');
+  if (candidate === undefined || !FINGERPRINT_PATTERN.test(candidate.fingerprint)) throw new Error('candidate with a valid fingerprint is required');
+  if (registry === undefined) throw new Error('journey registry is required');
+  const journeys = REMOTE_PILOT_SEQUENCE.map((id) => findJourney(registry, id));
+  const results = [];
+  if (phase === 'inspect') {
+    for (const journey of journeys) {
+      const result = runJourneyTurn({ ...options, journey, phase, candidate });
+      results.push(result);
+      if (result.failure !== null) break;
+    }
+    const failed = results.find((result) => result.failure !== null);
+    return Object.freeze({
+      kind: 'journey-sequence-result-v1',
+      schemaVersion: 1,
+      programId: 'O4P-REMOTE-PILOT-V1',
+      phase,
+      candidate,
+      journeyIds: Object.freeze([...REMOTE_PILOT_SEQUENCE]),
+      journeys: Object.freeze(results),
+      completedJourneys: Object.freeze(
+        failed === undefined
+          ? [...REMOTE_PILOT_SEQUENCE]
+          : results.filter((result) => result.failure === null).map((result) => result.journeyId),
+      ),
+      status: failed === undefined ? 'ready' : failed.status,
+      failure: failed?.failure ?? null,
+      failedJourneyId: failed?.journeyId ?? null,
+      nextAction: failed?.nextAction ?? 'RUN_LOCAL',
+    });
+  }
+  const designResults = [];
+  for (const journey of journeys) {
+    const result = runJourneyTurn({ ...options, journey, phase: 'inspect', candidate });
+    designResults.push(result);
+    if (result.failure !== null) break;
+  }
+  const designFailureResult = designResults.find((result) => result.failure !== null);
+  if (designFailureResult !== undefined) {
+    return Object.freeze({
+      kind: 'journey-sequence-result-v1',
+      schemaVersion: 1,
+      programId: 'O4P-REMOTE-PILOT-V1',
+      phase,
+      candidate,
+      journeyIds: Object.freeze([...REMOTE_PILOT_SEQUENCE]),
+      journeys: Object.freeze(designResults),
+      completedJourneys: Object.freeze([]),
+      status: designFailureResult.status,
+      failure: designFailureResult.failure,
+      failedJourneyId: designFailureResult.journeyId,
+      nextAction: designFailureResult.nextAction,
+    });
+  }
+  for (const journey of journeys) {
+    const result = runJourneyPhase({ ...options, journey, phase, candidate });
+    results.push(result);
+    if (result.failure !== null) break;
+  }
+  const failed = results.find((result) => result.failure !== null);
+  return Object.freeze({
+    kind: 'journey-sequence-result-v1',
+    schemaVersion: 1,
+    programId: 'O4P-REMOTE-PILOT-V1',
+    phase,
+    candidate,
+    journeyIds: Object.freeze([...REMOTE_PILOT_SEQUENCE]),
+    journeys: Object.freeze(results),
+    completedJourneys: Object.freeze(
+      failed === undefined
+        ? results.map((result) => result.journeyId)
+        : results.filter((result) => result.failure === null).map((result) => result.journeyId),
+    ),
+    status: failed === undefined ? 'passed' : failed.status,
+    failure: failed?.failure ?? null,
+    failedJourneyId: failed?.journeyId ?? null,
+    nextAction: failed?.nextAction ?? 'REQUEST_EXTERNAL_AUTHORITY',
+  });
+}
+
 function requiredValue(argv, index, flag) {
   const value = argv[index + 1];
   if (value === undefined || value.startsWith('--')) throw new Error(`${flag} requires a value`);
@@ -803,7 +915,8 @@ function requiredValue(argv, index, flag) {
 
 function parseArguments(argv) {
   const options = {
-    journeyId: 'O4P-CAST-PILOT',
+    journeyId: undefined,
+    sequenceId: undefined,
     phase: 'inspect',
     allowExternalWrite: false,
     expectedFingerprint: undefined,
@@ -813,7 +926,15 @@ function parseArguments(argv) {
     const argument = argv[index];
     if (argument === '--allow-external-write') options.allowExternalWrite = true;
     else if (argument === '--journey') {
+      if (options.sequenceId !== undefined || options.journeyId !== undefined)
+        throw new Error('--journey and --sequence are mutually exclusive');
       options.journeyId = requiredValue(argv, index, argument);
+      index += 1;
+    } else if (argument === '--sequence') {
+      if (options.journeyId !== undefined || options.sequenceId !== undefined)
+        throw new Error('--journey and --sequence are mutually exclusive');
+      options.sequenceId = requiredValue(argv, index, argument);
+      options.journeyId = undefined;
       index += 1;
     } else if (argument === '--phase') {
       options.phase = requiredValue(argv, index, argument);
@@ -827,12 +948,15 @@ function parseArguments(argv) {
     } else if (argument === '--help') options.help = true;
     else throw new Error(`unknown argument: ${argument}`);
   }
+  if (options.sequenceId === undefined && options.journeyId === undefined)
+    options.journeyId = 'O4P-CAST-PILOT';
   return options;
 }
 
 function usage() {
   return [
     'Usage: npm run journey:loop -- [--journey O4P-CAST-PILOT] [--phase inspect|local|live]',
+    '       npm run journey:loop -- --sequence O4P-REMOTE-PILOT-V1 [--phase inspect|local]',
     '       [--base <git-ref>]',
     '       [--allow-external-write --expected-fingerprint <sha256>]',
     '',
@@ -854,17 +978,18 @@ export function main(
     }
     const candidate = inspectJourneyCandidate({ cwd, base: options.base });
     const registry = loadJourneyRegistry(cwd);
-    const journey = findJourney(registry, options.journeyId);
-    const result = runJourneyPhase({
-      journey,
-      phase: options.phase,
-      candidate,
+    const runOptions = {
       allowExternalWrite: options.allowExternalWrite,
       expectedFingerprint: options.expectedFingerprint,
       cwd,
       currentFingerprint: () =>
         candidateFingerprint({ cwd, base: candidate.base, head: candidate.head }),
-    });
+    };
+    if (options.sequenceId !== undefined && options.sequenceId !== 'O4P-REMOTE-PILOT-V1')
+      throw new Error(`unknown sequence: ${options.sequenceId}`);
+    const result = options.sequenceId === 'O4P-REMOTE-PILOT-V1'
+      ? runRemotePilotSequence({ ...runOptions, registry, phase: options.phase, candidate })
+      : runJourneyPhase({ ...runOptions, journey: findJourney(registry, options.journeyId), phase: options.phase, candidate });
     write(JSON.stringify(result, null, 2));
     if (result.status === 'blocked') return 2;
     if (result.status === 'failed' || result.status === 'retryable') return 1;

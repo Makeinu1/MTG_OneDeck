@@ -35,12 +35,12 @@
   },
   "legacyRetirement": {
     "sameSlice": [
-      "Remote GameScreen priority pass through onSubmitPersonalAction",
+      "PublicOnlineControllerV3 submitPersonalAction and Remote GameScreen priority pass through that PersonalWorkbench adapter",
       "ordinary online-command priority pass accepted by the public runtime",
-      "Remote surface expectations that permit the PersonalWorkbench pass adapter"
+      "Remote surface or controller expectations that permit the PersonalWorkbench pass adapter"
     ],
     "retained": [
-      "PersonalWorkbench compatibility assets outside the production GameScreen route",
+      "Standalone PersonalWorkbench view and DisplayPairing prototype assets outside PublicOnlineControllerV3 and the production GameScreen route",
       "Manual Stack and Manual Resolve for unsupported card semantics"
     ]
   },

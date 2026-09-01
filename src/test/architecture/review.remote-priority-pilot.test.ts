@@ -29,12 +29,15 @@ describe('Remote HOLD/pass/resolve canonical route', () => {
 
   it('rejects the retired ordinary-command bypass and keeps one converged browser proof', () => {
     const runtime = read('src/online/cloudflare/runtime.ts');
+    const client = read('src/online/publicApp/v3.ts');
     const evidence = read('scripts/online/o4p-09i-full-match-evidence.ts');
     const validator = read('scripts/online/remote-priority-journey-evidence.ts');
     const visualMain = read('src/dev/visualFixtures/main.tsx');
     const visualFixture = read('src/dev/visualFixtures/RemoteGameScreenFixture.tsx');
 
     expect(runtime).toContain("if (payload.kind === 'priority-pass') return true");
+    expect(client).not.toContain('bindPersonalWorkbenchActionV1');
+    expect(client).not.toContain('submitPersonalAction');
     expect(evidence).toContain("'online-remote-pass'");
     expect(evidence).toContain("'online-remote-resolve'");
     expect(validator).toContain("['priority-hold', 'priority-hold', 'priority-pass', 'priority-pass', 'priority-resolve']");

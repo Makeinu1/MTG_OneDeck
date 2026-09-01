@@ -38,6 +38,10 @@ describe('O4P-08D Judge: program completion boundary', () => {
     expect(client).toContain('online-forming-lobby-ready-v4');
     expect(client).toContain('online-forming-lobby-start-v4');
     expect(client).toContain('/websocket');
+    expect(client).toContain('bindOnlineGuidedCommandActionV1');
+    expect(client).toContain('submitGuidedAction');
+    expect(client).not.toContain('bindPersonalWorkbenchActionV1');
+    expect(client).not.toContain('submitPersonalAction');
     expect(client).not.toContain('Math.random');
     expect(client).not.toMatch(/submitPersonalAction:\s*\(\)\s*=>\s*undefined/u);
     expect(client).not.toMatch(/submitGuidedAction:\s*\(\)\s*=>\s*undefined/u);

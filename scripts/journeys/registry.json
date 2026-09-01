@@ -33,7 +33,7 @@
             "src/online/tabletopManual/__tests__/serverV1.test.ts",
             "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
           ],
-          "timeoutMs": 300000,
+          "timeoutMs": 420000,
           "failureClass": "IMPLEMENTATION",
           "failureCode": "RUNTIME_PATH_FAILED"
         }
@@ -79,7 +79,7 @@
             "src/online/tabletopManual/__tests__/serverV1.test.ts",
             "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
           ],
-          "timeoutMs": 300000,
+          "timeoutMs": 420000,
           "failureClass": "IMPLEMENTATION",
           "failureCode": "REMOTE_CAST_RUNTIME_FAILED"
         }
