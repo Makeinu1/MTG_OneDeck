@@ -34,15 +34,34 @@ export type O4p09iProductionFailureV1 = Readonly<{
   readonly stage: string;
 }>;
 
+const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
+  browser: 'browser',
+  'visible-ui-operation': 'visible-ui-operation',
+  'progress-probe': 'progress-probe',
+  'priority-probe': 'priority-probe',
+  'start-probe': 'start-probe',
+  'start-terminal-probe': 'start-terminal-probe',
+  'deck-input': 'deck-input',
+  'import-click': 'import-click',
+  'saved-state': 'saved-state',
+  'online-open': 'online-open',
+  'manual-resolve-probe': 'manual-resolve-probe',
+  'manual-stack-probe': 'manual-stack-probe'
+} as const);
+
 /** Normalize runner failures for the parent harness without exposing error text. */
 export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProductionFailureV1 {
   const message = error instanceof Error ? error.message : '';
-  if (message.startsWith('production environment failure:'))
+  if (message.startsWith('production environment failure:')) {
+    const detail = message.slice('production environment failure:'.length).trim();
     return Object.freeze({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
-      stage: 'setup'
+      stage: Object.hasOwn(ENVIRONMENT_FAILURE_STAGES, detail)
+        ? ENVIRONMENT_FAILURE_STAGES[detail as keyof typeof ENVIRONMENT_FAILURE_STAGES]
+        : 'setup'
     });
+  }
   const scenario = /^production scenario stage failed: ([a-zA-Z0-9/_-]+)/u.exec(message)?.[1];
   if (
     scenario !== undefined &&
@@ -733,7 +752,7 @@ async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: num
         if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) return 'none';
         return [...node.querySelectorAll('button')].some((button) => !button.disabled) ? 'retryable-error' : 'error';
       })()`);
-      if (failure === 'retryable-error') throw new Error('production environment failure: retryable UI operation');
+      if (failure === 'retryable-error') throw new Error('production environment failure: visible-ui-operation');
       if (failure === 'error') throw new Error('visible operation rejected');
     }
     if (Date.now() >= deadline) throw new Error(`visible control ${testId} timeout`);
@@ -2413,8 +2432,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   } catch (error) {
     const failedStage: string = stage;
     const message = error instanceof Error ? error.message : '';
-    if (classifyO4p09iProductionFailureV1(error).class === 'ENVIRONMENT')
-      throw new Error('production environment failure: browser', { cause: error });
+    const failure = classifyO4p09iProductionFailureV1(error);
+    if (failure.class === 'ENVIRONMENT')
+      throw new Error(`production environment failure: ${failure.stage}`, { cause: error });
     if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`,
         { cause: error }
       );

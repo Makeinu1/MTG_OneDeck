@@ -526,6 +526,12 @@ describe('O4P-09I full-match production evidence', () => {
       classifyO4p09iProductionFailureV1(new Error('Chrome launcher unavailable: private-token'))
     ).toEqual({ class: 'ENVIRONMENT', code: 'BROWSER_ENVIRONMENT_UNAVAILABLE', stage: 'setup' });
     expect(
+      classifyO4p09iProductionFailureV1(new Error('production environment failure: priority-probe'))
+    ).toEqual({ class: 'ENVIRONMENT', code: 'BROWSER_ENVIRONMENT_UNAVAILABLE', stage: 'priority-probe' });
+    expect(
+      classifyO4p09iProductionFailureV1(new Error('production environment failure: private-token'))
+    ).toEqual({ class: 'ENVIRONMENT', code: 'BROWSER_ENVIRONMENT_UNAVAILABLE', stage: 'setup' });
+    expect(
       classifyO4p09iProductionFailureV1(
         new Error('console secret privacy violation: private-token')
       )
@@ -588,7 +594,7 @@ describe('O4P-09I full-match production evidence', () => {
       expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({
         class: 'ENVIRONMENT',
         code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
-        stage: 'setup'
+        stage: 'browser'
       });
       expect(statSync(target).mode & 0o777).toBe(0o600);
       expect(writeO4p09iJourneyFailureV1(target, new Error('unknown'), root)).toBe(false);
@@ -835,11 +841,11 @@ describe('O4P-09I full-match production evidence', () => {
       failure = error;
     }
     expect(failure).toBeInstanceOf(Error);
-    expect((failure as Error).message).toBe('production environment failure: browser');
+    expect((failure as Error).message).toBe('production environment failure: progress-probe');
     expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
-      stage: 'setup'
+      stage: 'progress-probe'
     });
     expect((failure as Error).message).not.toContain('CDP');
   });
@@ -1006,7 +1012,7 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser([], { roomCreationRetryableError: true }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production environment failure: browser');
+    })).rejects.toThrow('production environment failure: visible-ui-operation');
   });
 
   it('waits for the shared game surface after start before recording host revision', async () => {
