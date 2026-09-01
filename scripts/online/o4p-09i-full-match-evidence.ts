@@ -1624,12 +1624,6 @@ async function waitForPregameTransition(page: O4p09iPageV1, workerOrigin: string
   }
 }
 
-async function clickAndAwaitRevision(page: O4p09iPageV1, testId: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[] = []): Promise<number> {
-  const before = await probePage(page, timeoutMs, workerOrigin, secretFragments);
-  await clickVisible(page, testId, timeoutMs);
-  return waitForRevisionAdvance(page, workerOrigin, before.revision, timeoutMs, secretFragments);
-}
-
 async function waitForJourneyEvidence(page: O4p09iPageV1, playerCount: 2 | 4, workerOrigin: string, baseline: number, timeoutMs: number, secretFragments: readonly string[]): Promise<O4p09iProbeV1> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
