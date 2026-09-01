@@ -2266,6 +2266,8 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       if (testId === 'online-remote-guided-overlay' || testId === 'online-remote-manual-overlay') {
         setStage('manual-stack');
         await toggleDetails(hostPage, testId, timeoutMs);
+        recordControl(testId);
+        continue;
       }
       if (testId === 'online-tabletop-submit-manual-resolve') {
         setStage('manual-stack');
