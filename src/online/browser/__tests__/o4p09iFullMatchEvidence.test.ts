@@ -79,6 +79,10 @@ type FakeOptions = Readonly<{
   readonly priorityHoldStuck?: 'off' | 'on';
   readonly missingPriorityReceipt?: boolean;
   readonly missingResolutionEvidence?: boolean;
+  readonly missingRejoined?: boolean;
+  readonly peerPresenceStuck?: boolean;
+  readonly reconnectDigestDivergentSeat?: number;
+  readonly reconnectPrivateLeakSeat?: number;
   readonly missingPriorityDomAttribute?: 'public-seat-ids' | 'local-player-id' | 'window-kind';
   readonly divergentPhaseSeat?: number;
   readonly startedSurfaceFailure?:
@@ -89,6 +93,8 @@ type FakeOptions = Readonly<{
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
   let contextIndex = 0;
   const sharedRevisions = [0, 0];
+  const disconnectedSeats = [new Set<number>(), new Set<number>()];
+  const recoveredScenarios = [false, false];
   const sharedPhases = ['beginning', 'beginning'];
   const progressWindows: Array<'advance' | 'sba'> = ['advance', 'advance'];
   const progressCompletions = [0, 0];
@@ -114,6 +120,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let startClicks = 0;
     let startedSurfaceProbes = 0;
     let lobbyReadyProbes = 0;
+    let authoritativeRejoined = false;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
     const seatIndex = scenarioIndex === 0 ? contextOrdinal : contextOrdinal - 2;
     const manualStackEnabledSeats = options.manualStackEnabledSeats ?? [
@@ -310,7 +317,14 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           !manualResolveEnabledSeats.includes(seatIndex)
         )
           return Promise.reject(new Error('manual resolve actor mismatch'));
-      if (expression.includes('node.click(); return true') || expression.includes('target.click(); return true')) sharedRevisions[scenarioIndex] += 1;
+      const recoveryNavigation =
+        pageOrdinal > 0 && expression.includes('data-testid="open-online-mode"');
+      if (
+        (expression.includes('node.click(); return true') ||
+          expression.includes('target.click(); return true')) &&
+        !recoveryNavigation
+      )
+        sharedRevisions[scenarioIndex] += 1;
       const priorityOperation = expression.includes('data-testid="online-remote-hold"')
         ? 'priority-hold' as const
         : expression.includes('data-testid="online-remote-pass"')
@@ -350,6 +364,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           progressCompletions[scenarioIndex] += 1;
         }
       }
+      if (expression.includes('privateHandPayload')) {
+        const tokens = [`private-hand-object-${scenarioIndex}-${seatIndex}`];
+        const serialized = JSON.stringify(tokens);
+        return Promise.resolve({ tokens, serialized, complete: true, bytes: serialized.length } as T);
+      }
       if (expression.includes('privateChoicePayload')) {
         const hostContext = contextOrdinal === 0 || contextOrdinal === 2;
         if (options.privateChoiceCaptureBoundExceeded === true && hostContext && pageOrdinal === 0) return Promise.resolve({ identifiers: [], candidateHandles: [], serialized: '', complete: false, roots: 129, attributes: 0, values: 0, tokens: 0, bytes: 0 } as T);
@@ -369,6 +388,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('privateChoiceDomSurfaces')) {
         const leaked = options.privateChoiceCandidateLeak === true && contextOrdinal !== 0 && contextOrdinal !== 2;
         if (options.privateChoiceScanBoundExceeded === true) return Promise.resolve({ surfaces: [], complete: false } as T);
+        if (options.reconnectPrivateLeakSeat === seatIndex && recoveredScenarios[scenarioIndex]) {
+          return Promise.resolve({ surfaces: [`private-hand-object-${scenarioIndex}-0`], complete: true } as T);
+        }
         if ((options.privateChoiceCandidateLeakBeyondBound === true || options.privateChoiceCandidateTokenLeak === true) && contextOrdinal !== 0 && contextOrdinal !== 2) return Promise.resolve({ surfaces: Array.from({ length: options.privateChoiceCandidateLeakBeyondBound === true ? 2_049 : 1 }, (_entry, index) => index === (options.privateChoiceCandidateLeakBeyondBound === true ? 2_048 : 0) ? options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle'
                     : `surface-${index}`), complete: true } as T);
         return Promise.resolve({ surfaces: leaked ? ['private-card-handle'] : [], complete: true } as T);
@@ -383,6 +405,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       }
       if (expression.includes('inviteFingerprintProbe')) return Promise.resolve('0d4a7e5bd65dbfd5c46b1d6a579fa5384ca7d9cc4cd6591e58da18bc087b3a77' as T);
       if (expression.includes('gameScreens')) {
+        if (pageOrdinal > 0 && disconnectedSeats[scenarioIndex].has(seatIndex)) {
+          disconnectedSeats[scenarioIndex].delete(seatIndex);
+          recoveredScenarios[scenarioIndex] = true;
+          authoritativeRejoined = options.missingRejoined !== true;
+        }
         const waitingForStartedSurface = options.asyncStartProbe === true && startClicks > 0 && startedSurfaceProbes++ === 0;
         const forcedStartedSurfaceFailure = options.startedSurfaceFailure !== undefined && startClicks > 0;
         const gameScreenMissing = options.startedSurfaceFailure === 'game-screen-missing/count' || options.startedSurfaceFailure === 'start-rejected' || options.startedSurfaceFailure === 'start-pending' || options.startedSurfaceFailure === 'start-not-accepted';
@@ -443,12 +470,21 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             : resolved ? 'sba-check-required' : priorityHolderPlayerId === null ? 'resolution-ready' : 'priority';
           const recentResolutionObjectId = options.missingResolutionEvidence === true || !resolved ? null : castStates[scenarioIndex]?.topObjectId === null ? 'PC3:1' : null;
           const recentResolutionRevision = recentResolutionObjectId === null ? null : priorityState?.acceptedRevision ?? null;
-          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, stackCount, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, publicPlayerIds, localPlayerId, priorityHolds, priorityHolderPlayerId, priorityStewardPlayerId: 'P1', priorityWindowKind, recentResolutionObjectId, recentResolutionRevision, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
+          const disconnectedPlayerIds = [...disconnectedSeats[scenarioIndex]].sort((left, right) => left - right).map((index) => `P${String(index + 1)}`);
+          const digestPrefix = `${scenarioIndex.toString(16)}${(probeRevision % 16).toString(16)}${disconnectedPlayerIds.map((id) => id.slice(1)).join('')}`;
+          const baseDigest = digestPrefix.padEnd(64, 'a').slice(0, 64);
+          const sharedPublicDigest = options.reconnectDigestDivergentSeat === seatIndex && recoveredScenarios[scenarioIndex]
+            ? `${baseDigest[0] === 'f' ? 'e' : 'f'}${baseDigest.slice(1)}`
+            : baseDigest;
+          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, stackCount, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, publicPlayerIds, localPlayerId, disconnectedPlayerIds, recoveryOutcome: authoritativeRejoined ? 'rejoined' : null, sharedPublicDigest, priorityHolds, priorityHolderPlayerId, priorityStewardPlayerId: 'P1', priorityWindowKind, recentResolutionObjectId, recentResolutionRevision, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
       }
       return Promise.resolve(true as T);
     },
     setViewport: (viewport) => { viewportWidth = viewport.width; viewportHeight = viewport.height; },
-    close: () => Promise.resolve(),
+    close: () => {
+      if (pageOrdinal === 0 && options.peerPresenceStuck !== true) disconnectedSeats[scenarioIndex].add(seatIndex);
+      return Promise.resolve();
+    },
     consoleCounts: () => ({
       errors: options.consoleErrors ?? (options.savedImportRuntimeError === true || (options.startedSurfaceFailure === 'console-error' && startClicks > 0) ? 1 : 0),
       warnings: options.consoleWarningContext === contextOrdinal || (options.consoleWarningReplacement === true && contextOrdinal === 0 && pageOrdinal > 0) ? 1 : (options.consoleWarnings ?? 0),
@@ -862,6 +898,20 @@ describe('O4P-09I full-match production evidence', () => {
       ...summary,
       scenarios: {
         ...summary.scenarios,
+        twoPlayer: { ...summary.scenarios.twoPlayer, reconnect: { ...summary.scenarios.twoPlayer.reconnect, recoveredSeatRejoined: false } },
+      },
+    })).toMatchObject({ ok: false });
+    expect(validateO4p09iFullMatchEvidenceV1({
+      ...summary,
+      scenarios: {
+        ...summary.scenarios,
+        twoPlayer: { ...summary.scenarios.twoPlayer, reconnect: { ...summary.scenarios.twoPlayer.reconnect, privateAudienceIsolated: false } },
+      },
+    })).toMatchObject({ ok: false });
+    expect(validateO4p09iFullMatchEvidenceV1({
+      ...summary,
+      scenarios: {
+        ...summary.scenarios,
         twoPlayer: { ...summary.scenarios.twoPlayer, revision: { ...summary.scenarios.twoPlayer.revision, start: summary.scenarios.twoPlayer.revision.afterSharedMutation + 1 } },
       },
     })).toMatchObject({ ok: false });
@@ -879,6 +929,16 @@ describe('O4P-09I full-match production evidence', () => {
         },
       },
     })).toMatchObject({ ok: false });
+  });
+
+  it.each([
+    ['missing authoritative rejoined', { missingRejoined: true }],
+    ['missing peer disconnected presence', { peerPresenceStuck: true }],
+    ['divergent shared public digest', { reconnectDigestDivergentSeat: 1 }],
+    ['private audience leak after reconnect', { reconnectPrivateLeakSeat: 1 }],
+  ] as const)('fails reconnect evidence for %s', async (_label, options) => {
+    await expect(runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser([], options), readDeck: () => 'fixture deck', timeoutMs: 250 }))
+      .rejects.toThrow('production scenario stage failed: reconnect');
   });
 
   it.each([

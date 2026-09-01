@@ -115,6 +115,12 @@ function validateInternal(input: unknown): OnlineVariableRoomV2 {
     if (!exact(raw, ['participantId', 'role', 'presence', 'seatIndex']) || !id(raw.participantId) || !['player', 'table', 'spectator'].includes(raw.role as string) || !['connected', 'disconnected'].includes(raw.presence as string)) fail('Invalid variable Room participant');
     const expected = participants[index];
     if (raw.role !== 'player' || raw.seatIndex !== index || expected?.participantId !== raw.participantId) fail('Variable Room participants must be dense players');
+    participants[index] = Object.freeze({
+      participantId: raw.participantId,
+      role: 'player' as const,
+      presence: raw.presence as 'connected' | 'disconnected',
+      seatIndex: index as OnlineVariableRoomSeatIndexV2,
+    });
   }
   const complete = seats.every((seat) => seat.participantId !== null && seat.acceptedDeck && seat.ready);
   if ((input.lifecycle === 'ready' || input.lifecycle === 'started' || input.lifecycle === 'active') && !complete) fail('Variable Room lifecycle is not ready');
@@ -137,6 +143,29 @@ export function createOnlineVariableRoomV2(input: CreateOnlineVariableRoomV2Inpu
 }
 
 function cloneWith(room: OnlineVariableRoomV2, patch: Partial<OnlineVariableRoomV2>): OnlineVariableRoomV2 { return validateInternal({ ...room, ...patch }); }
+
+export function disconnectOnlineVariableRoomParticipantV2(roomInput: unknown, participantId: string): OnlineVariableRoomV2 {
+  const room = validateInternal(roomInput);
+  if (!id(participantId)) fail('Invalid variable Room participant');
+  const index = room.participants.findIndex((participant) => participant.participantId === participantId);
+  const participant = room.participants[index];
+  if (participant === undefined) fail('Variable Room participant not found');
+  if (participant.presence === 'disconnected') return room;
+  return cloneWith(room, { participants: room.participants.map((entry, entryIndex) => entryIndex === index ? { ...entry, presence: 'disconnected' as const } : entry) });
+}
+
+export function rejoinOnlineVariableRoomParticipantV2(roomInput: unknown, participantId: string): OnlineVariableRoomV2 {
+  const room = validateInternal(roomInput);
+  if (!id(participantId)) fail('Invalid variable Room participant');
+  const index = room.participants.findIndex((participant) => participant.participantId === participantId);
+  const participant = room.participants[index];
+  if (participant === undefined) fail('Variable Room participant not found');
+  if (participant.seatIndex === null) fail('Variable Room player seat missing');
+  const seat = room.seats[participant.seatIndex];
+  if (seat === undefined || seat.outcome !== 'pending') fail('Variable Room player cannot rejoin');
+  if (participant.presence === 'connected') return room;
+  return cloneWith(room, { participants: room.participants.map((entry, entryIndex) => entryIndex === index ? { ...entry, presence: 'connected' as const } : entry) });
+}
 
 export function joinOnlineVariableRoomV2(roomInput: unknown, input: Readonly<{ readonly participantId: string; readonly seatCapability: string }>): OnlineVariableRoomV2 {
   const room = validateInternal(roomInput);

@@ -65,6 +65,7 @@ describe('remote GameScreen adapter', () => {
       />,
     ));
     expect(container.querySelector('[data-testid="online-remote-game-rail"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="online-remote-game-rail"]')?.getAttribute('data-shared-public-digest')).toMatch(/^[0-9a-f]{64}$/u);
     expect(container.querySelector('[data-testid="online-remote-hold"]')).not.toBeNull();
     const pass = container.querySelector<HTMLButtonElement>('[data-testid="online-remote-pass"]');
     expect(pass?.disabled).toBe(false);
@@ -73,6 +74,59 @@ describe('remote GameScreen adapter', () => {
       baseRevision: projection.revision,
       primitive: { kind: 'priority-pass' },
     }));
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('shows only the authoritative rejoined recovery outcome', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={projection}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        recoveryOutcome="rejoined"
+        port={portFor(projectionToGameState(projection))}
+      />,
+    ));
+    const status = container.querySelector('[data-testid="online-remote-connection"]');
+    expect(status?.getAttribute('data-recovery-outcome')).toBe('rejoined');
+    expect(status?.textContent).toContain('再接続しました');
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={projection}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        recoveryOutcome={null}
+        port={portFor(projectionToGameState(projection))}
+      />,
+    ));
+    expect(container.querySelector('[data-testid="online-remote-connection"]')?.textContent).not.toContain('再接続しました');
+    const disconnectedProjection = {
+      ...projection,
+      room: {
+        ...projection.room,
+        participants: projection.room.participants.map((participant, index) => index === 1
+          ? { ...participant, presence: 'disconnected' as const }
+          : participant),
+      },
+    } as OnlineParticipantProjectionV1;
+    act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={disconnectedProjection}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        port={portFor(projectionToGameState(disconnectedProjection))}
+      />,
+    ));
+    const presence = container.querySelector('[data-testid="online-remote-presence"]');
+    expect(presence?.getAttribute('data-disconnected-player-ids')).not.toBe('');
+    expect(presence?.textContent).toContain('切断中');
     act(() => root.unmount());
     container.remove();
   });

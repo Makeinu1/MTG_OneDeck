@@ -129,6 +129,8 @@ export type OnlineBrowserStateV1 = Readonly<{
   readonly pendingCommands: readonly OnlineBrowserPendingCommandV1[];
   /** Latest validated response for a command submitted by this participant. */
   readonly lastCommandSettlement: OnlineBrowserCommandSettlementV1 | null;
+  /** Latest authoritative recovery outcome for this transport connection. */
+  readonly recoveryOutcome: 'rejoined' | null;
   readonly recoveryAttempt: number;
   readonly issueCode: OnlineBrowserIssueCodeV1 | null;
 }>;

@@ -467,6 +467,7 @@ export function createOnlineBrowserWebSocketClientV1(
   let currentReadyRevision: number | null = null;
   let acceptedServerBuildId: string | null = null;
   let lastCommandSettlement: OnlineBrowserCommandSettlementV1 | null = null;
+  let recoveryOutcome: OnlineBrowserStateV1['recoveryOutcome'] = null;
   const pending: PendingEntryV1[] = [];
   const settled = new Map<string, string>();
   const listeners = new Set<OnlineBrowserSubscriptionV1>();
@@ -484,6 +485,7 @@ export function createOnlineBrowserWebSocketClientV1(
     projection,
     pendingCommands: redactedPending(),
     lastCommandSettlement,
+    recoveryOutcome,
     recoveryAttempt,
     issueCode,
   });
@@ -498,6 +500,7 @@ export function createOnlineBrowserWebSocketClientV1(
       projection,
       pendingCommands: redactedPending(),
       lastCommandSettlement,
+      recoveryOutcome,
       recoveryAttempt,
       issueCode,
     });
@@ -514,6 +517,7 @@ export function createOnlineBrowserWebSocketClientV1(
     currentSocket = null;
     phase = 'failed';
     issueCode = code;
+    recoveryOutcome = null;
     closeSocket(socket);
     publish();
   };
@@ -611,6 +615,7 @@ export function createOnlineBrowserWebSocketClientV1(
     }
     phase = 'recovering';
     issueCode = reason;
+    recoveryOutcome = null;
     recoveryAttempt += 1;
     publish();
     const delay = ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1[recoveryAttempt - 1];
@@ -706,7 +711,7 @@ export function createOnlineBrowserWebSocketClientV1(
         || !nonNegativeInteger(ownDataValue(record, 'revision'))) { issueCode = 'INVALID_FRAME'; publish(); return; }
       if (phase !== 'open' && phase !== 'resyncing') return;
       const revision = ownDataValue(record, 'revision') as number;
-      if (revision <= lastProjectedRevision) return;
+      if (revision < lastProjectedRevision) return;
       if (revision > knownRevision) {
         knownRevision = revision;
         publish();
@@ -781,6 +786,7 @@ export function createOnlineBrowserWebSocketClientV1(
         || (ownDataValue(record, 'clientBuildIdMatch') !== true && ownDataValue(record, 'clientBuildIdMatch') !== false)
         || !['synchronized', 'snapshot-required', 'rejoined'].includes(String(ownDataValue(record, 'reason')))) { issueCode = 'INVALID_FRAME'; publish(); return; }
       const revision = ownDataValue(record, 'revision') as number;
+      const resyncReason = ownDataValue(record, 'reason');
       if (currentReadyRevision !== null && revision < currentReadyRevision) {
         failConnection(socket, epoch, 'INVALID_FRAME');
         return;
@@ -806,6 +812,7 @@ export function createOnlineBrowserWebSocketClientV1(
       recoveryAttempt = 0;
       phase = 'open';
       issueCode = null;
+      if (resyncReason === 'rejoined') recoveryOutcome = 'rejoined';
       publish();
       replayPending(socket, epoch);
       return;
@@ -871,6 +878,7 @@ export function createOnlineBrowserWebSocketClientV1(
     connectionEpoch += 1;
     const epoch = connectionEpoch;
     phase = 'connecting';
+    recoveryOutcome = null;
     projectionRequestSent = false;
     currentReadyRevision = null;
     publish();
@@ -932,6 +940,7 @@ export function createOnlineBrowserWebSocketClientV1(
     }
     phase = 'closed';
     issueCode = null;
+    recoveryOutcome = null;
     publish();
   };
 

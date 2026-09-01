@@ -6,11 +6,13 @@ import {
   handleOnlineClientHelloV1,
   validateOnlineCommandEnvelopeV1,
   validateOnlineProtocolStateV1,
+  validateOnlineVariableProtocolStateV2,
+  type OnlineCommandRejectV1,
   type OnlineVariableProtocolStateV2,
 } from '../protocol/index';
 import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, projectOnlineVariableProtocolV4 } from '../projection/index';
 import { projectOnlinePregameV1, validateOnlinePregameCommandEnvelopeV1 } from '../pregame/index';
-import { disconnectOnlineRoomParticipantV1 } from '../room/index';
+import { disconnectOnlineRoomParticipantV1, disconnectOnlineVariableRoomParticipantV2, rejoinOnlineVariableRoomParticipantV2 } from '../room/index';
 import { ConflictError, OnlineCloudflareRepository } from './persistence';
 import { assertNoConfiguredCapabilityFragmentV1 } from './codec';
 import {
@@ -301,6 +303,31 @@ function isSocketRole(value: unknown): value is OnlineCloudflareSocketRoleV1 {
 function transitionResponseRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+function participantNotConnectedReject(
+  state: OnlineVariableProtocolStateV2,
+  input: Record<string, unknown>,
+  participantId: string,
+): OnlineCommandRejectV1 {
+  const commandId = ownDataString(input, 'commandId');
+  const baseRevision = ownDataValue(input, 'baseRevision');
+  return Object.freeze({
+    kind: 'online-command-reject-v1',
+    protocolVersion: state.protocolVersion,
+    roomId: state.room.roomId as OnlineCommandRejectV1['roomId'],
+    participantId: participantId as OnlineCommandRejectV1['participantId'],
+    commandId: commandId as OnlineCommandRejectV1['commandId'],
+    baseRevision: typeof baseRevision === 'number' && Number.isSafeInteger(baseRevision) ? baseRevision : null,
+    currentRevision: state.revision,
+    duplicate: false,
+    resyncRequired: false,
+    issues: Object.freeze([{ code: 'PARTICIPANT_NOT_CONNECTED' as const, path: '/participantId', message: 'Participant is not connected' }]),
+  });
+}
+
+function isParticipantNotConnectedError(error: unknown): boolean {
+  return error instanceof Error && error.message === 'PARTICIPANT_NOT_CONNECTED';
 }
 
 function ownDataValue(value: Record<string, unknown>, key: string): unknown {
@@ -660,7 +687,27 @@ export class OnlineRoomDurableObject {
               return jsonResponse({ kind: kind.endsWith('-v3') ? 'online-forming-lobby-shared-claimed-v3' : 'online-forming-lobby-shared-claimed-v4', schemaVersion: kind.endsWith('-v3') ? 3 : 4, roomId: route.roomId, participantId: body.participantId, seatCapability: claimed.seatCapability, projection: projectOnlineVariableLobbyV4(claimed.lobby) });
             }
             if (kind === 'online-forming-lobby-recover-v5' && isExactRecord(body, ['kind', 'schemaVersion', 'participantId', 'seatCapability']) && body.schemaVersion === 5 && typeof body.participantId === 'string' && typeof body.seatCapability === 'string') {
-              const seat = variableLobby.seats.find((candidate) => candidate.participantId === body.participantId && candidate.seatCapability === body.seatCapability); if (seat === undefined) throw new Error('CREDENTIAL_KICKED'); const isHost = body.participantId === variableLobby.hostParticipantId;
+              let isHost = body.participantId === variableLobby.hostParticipantId;
+              if (startedVariable !== null) {
+                // Once the canonical variable protocol exists, the lobby seat token is
+                // only the immutable capability identity.  The submitted token must
+                // first be admitted by the current security grant (which rejects
+                // retired and expired network credentials generically), then map back
+                // to that immutable seat and the pending participant relation.
+                const admission = this.security.consumeHttpAction(startedVariable, body.participantId, body.seatCapability, 'projected-snapshot', this.now());
+                if (!admission.ok) return genericError(securityStatus(admission) ?? 401);
+                const participant = startedVariable.room.participants.find((candidate) => candidate.participantId === body.participantId);
+                const seat = participant === undefined || participant.seatIndex === null ? undefined : startedVariable.room.seats[participant.seatIndex];
+                const lobbySeat = participant === undefined || participant.seatIndex === null ? undefined : variableLobby.seats[participant.seatIndex];
+                if (participant?.role !== 'player' || seat === undefined || lobbySeat === undefined || participant.seatIndex === null
+                  || seat.participantId !== body.participantId || seat.seatCapability !== admission.authorization.protocolCapability
+                  || lobbySeat.participantId !== body.participantId || lobbySeat.seatCapability !== admission.authorization.protocolCapability
+                  || seat.outcome !== 'pending') return genericError(401);
+                isHost = admission.authorization.authority === 'host';
+              } else {
+                const seat = variableLobby.seats.find((candidate) => candidate.participantId === body.participantId && candidate.seatCapability === body.seatCapability);
+                if (seat === undefined) throw new Error('CREDENTIAL_KICKED');
+              }
               const pregameState = this.repository.loadPregameV1(route.roomId);
               const pregame = pregameState === null ? null : projectOnlinePregameV1(pregameState, body.participantId);
               return jsonResponse({ kind: 'online-forming-lobby-recovered-v5', schemaVersion: 5, roomId: route.roomId, participantId: body.participantId, playerCount: variableLobby.configuration.playerCount, startingLife: variableLobby.configuration.startingLife, ...(isHost ? { admissionOpen: variableLobby.admissionOpen, inviteCode: encodeOnlineSharedInviteCodeV3(route.roomId, variableLobby.admissionCapability), tableParticipantId: variableLobby.tableParticipantId, ['tableCapability']: variableLobby.tableCapability } : {}), projection: projectOnlineVariableLobbyV4(variableLobby), pregame });
@@ -935,6 +982,9 @@ export class OnlineRoomDurableObject {
             });
             internalMessage = bound;
           } catch (error: unknown) {
+            if (state.kind === 'online-protocol-state-v2' && isParticipantNotConnectedError(error)) {
+              return publicProtocolResponse(participantNotConnectedReject(state, body, participantId));
+            }
             return genericError(error instanceof ConflictError ? 409 : 400);
           }
         }
@@ -944,7 +994,10 @@ export class OnlineRoomDurableObject {
             const envelope = extractVisibilityIntentV1(body);
             const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(route.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
             internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
-          } catch { return genericError(400); }
+          } catch (error: unknown) {
+            if (isParticipantNotConnectedError(error)) return publicProtocolResponse(participantNotConnectedReject(state, body, participantId));
+            return genericError(400);
+          }
         }
         if (sharedUndoIntent) {
           if (state.kind !== 'online-protocol-state-v2') return genericError(426);
@@ -1160,7 +1213,11 @@ export class OnlineRoomDurableObject {
             frame,
             findAccepted: (commandId) => this.repository.findVariableAcceptedCommandV2(state.room.roomId, participantId, commandId),
           });
-        } catch {
+        } catch (error: unknown) {
+          if (state.kind === 'online-protocol-state-v2' && isParticipantNotConnectedError(error)) {
+            this.sendApplicationValue(socket, participantNotConnectedReject(state, frame, participantId));
+            return;
+          }
           this.sendError(socket, 'INVALID_MESSAGE');
           return;
         }
@@ -1170,7 +1227,14 @@ export class OnlineRoomDurableObject {
           const envelope = extractVisibilityIntentV1(frame);
           const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(state.room.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
           internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
-        } catch { this.sendError(socket, 'INVALID_MESSAGE'); return; }
+        } catch (error: unknown) {
+          if (isParticipantNotConnectedError(error)) {
+            this.sendApplicationValue(socket, participantNotConnectedReject(state, frame, participantId));
+            return;
+          }
+          this.sendError(socket, 'INVALID_MESSAGE');
+          return;
+        }
       }
       if ((kind === 'online-tabletop-intent-envelope-v1' || kind === 'online-visibility-intent-v1') && state.kind !== 'online-protocol-state-v2') {
         this.sendError(socket, 'INVALID_MESSAGE');
@@ -1408,16 +1472,31 @@ export class OnlineRoomDurableObject {
   private handleVariableProjection(socket: OnlineCloudflareWebSocket, frame: OnlineCloudflareWebSocketFrameV1, state: OnlineVariableProtocolStateV2): void {
     const participantId = frameStringField(frame, 'participantId'); const clientBuildId = frameStringField(frame, 'clientBuildId'); const record = transitionResponseRecord(frame); const knownRevision = record?.knownRevision;
     if (participantId === null || clientBuildId === null || typeof knownRevision !== 'number' || !Number.isSafeInteger(knownRevision) || knownRevision < 0) { this.sendError(socket, 'INVALID_MESSAGE'); return; }
-    const role = state.room.participants.some((entry) => entry.participantId === participantId) ? 'player' : 'table';
+    const participant = state.room.participants.find((entry) => entry.participantId === participantId);
+    const role = participant === undefined ? 'table' : 'player';
+    let projectedState = state;
+    let reason: 'synchronized' | 'snapshot-required' | 'rejoined' = knownRevision === state.revision ? 'synchronized' : 'snapshot-required';
+    if (participant?.presence === 'disconnected') {
+      if (participant.seatIndex === null) { this.sendError(socket, 'CAPABILITY_REJECTED'); return; }
+      const seat = state.room.seats[participant.seatIndex];
+      if (seat === undefined || seat.outcome !== 'pending') { this.sendError(socket, 'CAPABILITY_REJECTED'); return; }
+      const room = rejoinOnlineVariableRoomParticipantV2(state.room, participantId);
+      const checked = validateOnlineVariableProtocolStateV2({ ...state, room });
+      if (!checked.ok) { this.sendError(socket, 'INTERNAL_ERROR'); return; }
+      this.repository.persistVariableSameRevision(state, checked.value);
+      projectedState = checked.value;
+      reason = 'rejoined';
+      this.broadcastRevision(projectedState.room.roomId, projectedState.revision);
+    }
     // Existing O4P-08C clients remain on the compact v2 wire; the shipped v3
     // browser identifies itself with the D client build and receives the full
     // exact-roster projection. Both generations are validated client-side.
     const projection = clientBuildId === 'o4p-09f-client'
-      ? projectOnlineVariableProtocolV4(state, participantId)
+      ? projectOnlineVariableProtocolV4(projectedState, participantId)
       : clientBuildId === 'o4p-08d-client'
-        ? projectOnlineVariableProtocolV3(state, participantId)
-      : projectOnlineVariableProtocolV2(state, participantId);
-    this.sendApplicationValue(socket, Object.freeze({ kind: 'online-projected-snapshot-v1', protocolVersion: state.protocolVersion, status: 'accepted', roomId: state.room.roomId, participantId, role, knownRevision, revision: state.revision, serverBuildId: state.serverBuildId, clientBuildIdMatch: clientBuildId === state.serverBuildId, reason: knownRevision === state.revision ? 'synchronized' : 'snapshot-required', projection, issues: Object.freeze([]) }));
+        ? projectOnlineVariableProtocolV3(projectedState, participantId)
+      : projectOnlineVariableProtocolV2(projectedState, participantId);
+    this.sendApplicationValue(socket, Object.freeze({ kind: 'online-projected-snapshot-v1', protocolVersion: projectedState.protocolVersion, status: 'accepted', roomId: projectedState.room.roomId, participantId, role, knownRevision, revision: projectedState.revision, serverBuildId: projectedState.serverBuildId, clientBuildIdMatch: clientBuildId === projectedState.serverBuildId, reason, projection, issues: Object.freeze([]) }));
   }
 
   private handleVariableCommand(
@@ -1494,6 +1573,10 @@ export class OnlineRoomDurableObject {
     if (JSON.stringify(previous) !== JSON.stringify(next)) this.repository.persistSameRevision(previous, next);
   }
 
+  private persistVariablePresenceIfChanged(previous: OnlineVariableProtocolStateV2, next: OnlineVariableProtocolStateV2): void {
+    if (JSON.stringify(previous) !== JSON.stringify(next)) this.repository.persistVariableSameRevision(previous, next);
+  }
+
   private sendApplicationValue(socket: OnlineCloudflareWebSocket, value: unknown): void {
     const serialized = serializeOnlineCloudflareWebSocketValueV1(value);
     if (serialized === null) throw new Error('Application response is not serializable');
@@ -1532,18 +1615,30 @@ export class OnlineRoomDurableObject {
       return;
     }
     let sockets: readonly OnlineCloudflareWebSocket[];
-    if (state.kind === 'online-protocol-state-v2') return;
     try {
       sockets = this.state.getWebSockets();
+      const now = this.now();
+      const securitySnapshot = this.security.read(state);
       for (const candidate of sockets) {
         if (candidate === socket) continue;
         const other = this.attachment(candidate);
-        if (other?.authenticated && other.roomId === attachment.roomId && other.participantId === attachment.participantId) return;
+        if (!other?.authenticated || other.roomId !== attachment.roomId || other.participantId !== attachment.participantId || other.capabilityGeneration === null) continue;
+        const grant = securitySnapshot.grants.find((candidateGrant) => candidateGrant.participantId === other.participantId);
+        if (grant?.generation === other.capabilityGeneration && other.capabilityExpiresAt !== null && now < grant.expiresAt && now < other.capabilityExpiresAt) return;
       }
     } catch {
       return;
     }
     try {
+      if (state.kind === 'online-protocol-state-v2') {
+        const room = disconnectOnlineVariableRoomParticipantV2(state.room, attachment.participantId);
+        const validation = validateOnlineVariableProtocolStateV2({ ...state, room });
+        if (validation.ok) {
+          this.persistVariablePresenceIfChanged(state, validation.value);
+          this.broadcastRevision(state.room.roomId, state.revision);
+        }
+        return;
+      }
       const room = disconnectOnlineRoomParticipantV1(state.room, attachment.participantId);
       const validation = validateOnlineProtocolStateV1({ ...state, room });
       if (validation.ok) this.persistPresenceIfChanged(state, validation.value);

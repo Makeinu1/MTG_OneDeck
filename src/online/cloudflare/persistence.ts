@@ -333,7 +333,7 @@ function isCheckpointDigest(value: unknown): value is string {
   return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 }
 
-function comparablePresenceState(serialized: string): string {
+function comparablePresenceState(serialized: string, ignoreLifecycle = true): string {
   let parsed: unknown;
   try {
     parsed = JSON.parse(serialized);
@@ -351,7 +351,11 @@ function comparablePresenceState(serialized: string): string {
     copy.presence = '__presence__';
     return copy;
   });
-  parsed.room = { ...room, lifecycle: '__lifecycle__', participants: comparableParticipants };
+  parsed.room = {
+    ...room,
+    ...(ignoreLifecycle ? { lifecycle: '__lifecycle__' } : {}),
+    participants: comparableParticipants,
+  };
   return JSON.stringify(parsed);
 }
 
@@ -834,7 +838,7 @@ export class OnlineCloudflareRepository {
         const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value, true); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
       }
     }
-    if (JSON.stringify(replay) !== row.state_json) throw new Error('Variable journal replay mismatch');
+    if (comparablePresenceState(JSON.stringify(replay), false) !== comparablePresenceState(row.state_json, false)) throw new Error('Variable journal replay mismatch');
     return checked.value;
   }
 
@@ -895,8 +899,26 @@ export class OnlineCloudflareRepository {
     if (inputRoomId !== roomId || typeof participantId !== 'string' || typeof providedSeatValue !== 'string') return null;
     const seat = state.protocolState.room.seats.find((candidate) => candidate.participantId === participantId && candidate['seatCapability'] === providedSeatValue);
     if (seat === undefined) return null;
+    let operationState = state;
+    const canonicalParticipant = this.loadVariableProtocolV2(roomId)?.room.participants.find((candidate) => candidate.participantId === participantId);
+    if (canonicalParticipant?.presence === 'disconnected') {
+      const checkedPresenceState = validateOnlinePregameStateV1({
+        ...state,
+        protocolState: {
+          ...state.protocolState,
+          room: {
+            ...state.protocolState.room,
+            participants: state.protocolState.room.participants.map((candidate) => candidate.participantId === participantId
+              ? { ...candidate, presence: 'disconnected' as const }
+              : candidate),
+          },
+        },
+      });
+      if (!checkedPresenceState.ok) throw new Error('Invalid Pregame presence projection');
+      operationState = checkedPresenceState.value;
+    }
     const checkedEnvelope = validateOnlinePregameCommandEnvelopeV1(input);
-    const transition = handleOnlinePregameCommandEnvelopeV1(state, checkedEnvelope.ok ? checkedEnvelope.value : input);
+    const transition = handleOnlinePregameCommandEnvelopeV1(operationState, checkedEnvelope.ok ? checkedEnvelope.value : input);
     if (transition.response.kind === 'online-pregame-command-ack-v1' && !transition.response.duplicate) {
       if (transition.state.phase === 'complete' && !isOnlineVariableProjectionWithinFrameBudgetV1(transition.state.protocolState)) throw new Error('Variable projection exceeds frame budget');
       const previousJson = JSON.stringify(state);
@@ -980,6 +1002,33 @@ export class OnlineCloudflareRepository {
     this.storage.transactionSync(() => {
       this.storage.sql.exec(INSERT_JOURNAL, next.value.revision, raw.commandId, raw.participantId, raw.baseRevision, commandJson);
       const updated = this.storage.sql.exec<{ readonly singleton: unknown }>('UPDATE online_variable_room_state SET revision = ?, room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton', next.value.revision, next.value.room.lifecycle, nextJson, previous.value.room.roomId, previous.value.revision, previousJson).toArray();
+      if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
+    });
+  }
+
+  persistVariableSameRevision(previousInput: OnlineVariableProtocolStateV2, nextInput: OnlineVariableProtocolStateV2): void {
+    const previous = validateOnlineVariableProtocolStateV2(previousInput);
+    const next = validateOnlineVariableProtocolStateV2(nextInput);
+    if (!previous.ok || !next.ok) throw new Error('Invalid variable presence transition');
+    const previousJson = JSON.stringify(previous.value);
+    const nextJson = JSON.stringify(next.value);
+    if (previous.value.room.roomId !== next.value.room.roomId
+      || previous.value.revision !== next.value.revision
+      || previous.value.room.lifecycle !== next.value.room.lifecycle
+      || comparablePresenceState(previousJson, false) !== comparablePresenceState(nextJson, false)) {
+      throw new Error('Variable presence state changes outside the allowed boundary');
+    }
+    const current = this.loadVariableProtocolV2(previous.value.room.roomId);
+    if (current === null || JSON.stringify(current) !== previousJson) throw new ConflictError();
+    this.storage.transactionSync(() => {
+      const updated = this.storage.sql.exec<{ readonly singleton: unknown }>(
+        'UPDATE online_variable_room_state SET room_lifecycle = ?, state_json = ? WHERE singleton = 1 AND schema_version = 2 AND room_id = ? AND revision = ? AND state_json = ? RETURNING singleton',
+        next.value.room.lifecycle,
+        nextJson,
+        next.value.room.roomId,
+        next.value.revision,
+        previousJson,
+      ).toArray();
       if (updated.length !== 1 || updated[0]?.singleton !== 1) throw new ConflictError();
     });
   }

@@ -42,7 +42,7 @@ export {
 export { validateOnlineProtocolStateV1, createOnlineProtocolStateV1 } from './state';
 export { OnlineProtocolCreationErrorV1, OnlineProtocolOperationErrorV1 } from './errors';
 export { handleOnlineClientHelloV1 } from './hello';
-export { handleOnlineCommandEnvelopeV1 } from './command';
+export { handleOnlineCommandEnvelopeV1, onlineCanonicalDigestFromValueV1 } from './command';
 export { handleOnlineSnapshotRequestV1 } from './snapshot';
 
 export {

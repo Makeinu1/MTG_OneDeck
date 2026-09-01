@@ -165,6 +165,39 @@
           "timeoutMs": 180000,
           "failureClass": "EVIDENCE",
           "failureCode": "REMOTE_RECONNECT_CONTRACT_FAILED"
+        },
+        {
+          "id": "remote-reconnect-server",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "src/test/architecture/review.remote-reconnect-pilot.test.ts",
+            "src/online/protocol/__tests__/sharedUndoV2.test.ts",
+            "src/online/tabletopManual/__tests__/serverV1.test.ts",
+            "src/online/visibilityDecisions/__tests__/binding.test.ts",
+            "src/online/pregame/__tests__/pregameLifecycleV1.test.ts",
+            "src/online/projection/__tests__/review.o4p-02d-audience-projection.test.ts",
+            "src/online/cloudflare/__tests__/review.o4p-03c-capability-abuse-control.test.ts",
+            "src/online/cloudflare/__tests__/review.o4p-08a-membership-runtime.test.ts",
+            "src/online/cloudflare/__tests__/variableRuntimeV4.test.ts"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "IMPLEMENTATION",
+          "failureCode": "REMOTE_RECONNECT_SERVER_FAILED"
+        },
+        {
+          "id": "remote-reconnect-browser",
+          "runner": "vitest",
+          "project": "dom",
+          "files": [
+            "src/online/browser/__tests__/browserClientV1.test.ts",
+            "src/online/browser/__tests__/review.o4p-06d-browser-websocket-recovery.test.ts",
+            "src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts",
+            "src/components/online/__tests__/remoteGameScreen.test.tsx"
+          ],
+          "timeoutMs": 180000,
+          "failureClass": "EVIDENCE",
+          "failureCode": "REMOTE_RECONNECT_BROWSER_FAILED"
         }
       ],
       "liveStage": {

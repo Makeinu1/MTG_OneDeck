@@ -73,6 +73,7 @@ describe('O4P-05D production-release closure boundary', () => {
     expect(tracked.sort()).toEqual([...PREDECESSOR_REVIEW_PATHS, REVIEW_PATH].sort());
     expect([
       [],
+      ['src/test/architecture/review.remote-reconnect-pilot.test.ts'],
       ['src/test/architecture/review.o4p-09-roadmap-registration.test.ts'],
       ['src/test/architecture/review.o4p-08-roadmap-registration.test.ts'],
       [

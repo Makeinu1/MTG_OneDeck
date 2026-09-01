@@ -2,51 +2,73 @@
   "schemaVersion": 1,
   "journeyId": "O4P-REMOTE-RECONNECT-RECOVERY",
   "canonicalRoute": [
-    "connected Remote seat",
-    "disconnect and presence transition",
-    "reconnect and state recovery",
-    "shared receipt and converged projection"
+    "authenticated connected Remote seat on the canonical server projection",
+    "the last authenticated socket for one Remote player closes and records disconnected presence at the unchanged Core revision",
+    "recovery hello authenticates the server-issued roomId, participantId, and seatCapability tuple without changing presence",
+    "the first authorized variable-v2 projection request atomically records connected presence and returns online-projected-snapshot-v1 with reason rejoined",
+    "a same-revision server notice forces every connected peer to request a fresh authoritative projection",
+    "both seats converge on the same canonical revision and shared public projection subset before controls reopen"
   ],
   "eligibility": {
-    "authority": "server/Core authoritative",
-    "advisoryBoundary": "the client may request reconnect and render recovery status, but must not infer game state or priority progression"
+    "authority": "Core state, server room presence, and the server capability grant are authoritative; localStorage only carries the server-issued recovery tuple",
+    "advisoryBoundary": "browser phase, connection epoch, cached projection, and UI state cannot authorize recovery, infer success, or advance priority"
   },
   "semantics": {
     "supported": [
-      "reconnect recovery is bounded by a server-issued session identity",
-      "stale or revoked recovery requests fail without mutating the shared game state"
+      "ordinary disconnect and reconnect change room presence only and do not add a Core command, accepted receipt, checkpoint, or revision",
+      "one of multiple authenticated sockets closing does not disconnect the identity; only the last authenticated socket closing changes presence",
+      "the recovery identity is the exact server-issued roomId, participantId, and seatCapability tuple for the same pending player seat",
+      "ordinary transport loss retains the recovery tuple while explicit leave, terminal invalidation, expiry, revocation, or a missing seat clears or rejects it",
+      "production variable-v2 hello authenticates without changing presence; its first authorized projection request performs the disconnected-to-connected same-revision compare-and-set and that accepted snapshot alone carries reason rejoined",
+      "successful recovery exposes a visible 再接続しました status only from the accepted server snapshot reason rejoined; connection epoch, hello acceptance, or phase alone is not success evidence",
+      "a same-revision server notice is an authoritative presence-refresh trigger; clients disable gameplay while fetching it and reopen controls only after the fresh projection is accepted",
+      "a disconnected participant cannot submit an online command, tabletop intent, visibility intent, shared undo, manual combat damage, or priority action; the server rejects it as PARTICIPANT_NOT_CONNECTED with revision, Core state, receipts, and checkpoint unchanged",
+      "connected seats retain only normal server and Core eligibility; they cannot proxy, auto-pass, auto-skip, or force an action for a disconnected seat",
+      "when priority belongs to a disconnected seat the game waits for authenticated recovery or an explicit server-authorized player exit"
     ],
     "deferred": [
-      "UNDECIDED: whether disconnect/presence changes consume a revision",
-      "UNDECIDED: whether successful reconnect must explicitly show rejoined",
-      "UNDECIDED: which operations or priority progression are allowed while a seat is disconnected"
+      "automatic disconnect timers, bot substitution, forced pass, and forced concession remain prohibited outside an explicit later product decision",
+      "replacement of the established lobby recovery storage schema is outside this game-session slice"
     ]
   },
   "outcomes": {
-    "unavailable": "a disconnected or expired seat receives a safe recovery status without a game-state mutation",
-    "accepted": "a resolved reconnect policy restores the authorized seat to the canonical shared projection",
-    "rejected": "stale, revoked, or mismatched recovery requests leave revision and Core state unchanged",
-    "failed": "ambiguous presence revision, rejoined indication, or disconnected-seat operation policy reaches implementation"
+    "unavailable": "a disconnected seat remains visibly unavailable and cannot mutate the game until authenticated recovery completes",
+    "accepted": "the authorized seat receives explicit server-originated rejoined status at the unchanged presence revision and both seats converge on the same revision and shared public projection subset; audience-private fields remain seat-specific",
+    "rejected": "a disconnected command or superseded-generation, revoked, expired, missing-seat, room-mismatched, participant-mismatched, or capability-mismatched recovery credential leaves revision and Core state unchanged; a lower known Core revision remains eligible for an authoritative snapshot; bounded rate, audit, and lease security records may change",
+    "failed": "silent command acceptance, a revision change caused only by presence, inferred reconnect success, missing rejoined status, proxy priority progression, or divergent projections fails the journey"
   },
   "legacyRetirement": {
     "sameSlice": [
-      "any reconnect adapter that infers policy from client-local state"
+      "Remote reconnect success inferred from connectionEpoch, browser phase, or cached projection",
+      "variable-v2 command paths that accept game-changing input from a disconnected participant",
+      "variable-v2 hello or projection paths that synthesize reconnect success without the same-revision presence compare-and-set",
+      "the variable-v2 disconnect early-return that skips last-socket presence persistence",
+      "PersonalWorkbench, guided-action, or local GameApplication adapters used as Remote reconnect authority"
     ],
     "retained": [
-      "existing lobby credential recovery until game-session semantics are decided"
+      "the versioned public lobby recovery record and server validation that carry the recovery tuple",
+      "bounded browser transport retry and pending-command replay after authoritative resynchronization",
+      "manual gameplay primitives for unsupported card semantics after the seat is connected"
     ]
   },
   "acceptance": {
     "positive": [
-      "the resolved reconnect policy is proven by both seats against the same canonical revision and projection"
+      "the peer observes disconnected then connected presence without a Core revision change",
+      "the recovered seat displays 再接続しました only from an accepted server reason rejoined",
+      "both seats recover the same revision and equal shared public projection subset before gameplay resumes while their private audience fields remain isolated",
+      "normal priority ownership and HOLD state survive the presence-only recovery"
     ],
     "negative": [
-      "the design gate stops before local or live stages while any reconnect semantic remains undecided"
+      "a disconnected participant command is rejected before application with revision, Core state, receipts, and checkpoint unchanged",
+      "closing one of multiple authenticated sockets leaves the identity connected and does not block its remaining socket",
+      "superseded-generation, revoked, expired, missing-seat, room-mismatched, participant-mismatched, and capability-mismatched recovery credentials return a generic non-oracle failure without credential echo or canonical-game mutation; a stale known Core revision alone is not an identity failure",
+      "missing rejoined reason, presence-only revision drift, one-seat recovery, projection divergence, silent no-op, proxy action, auto-pass, and auto-skip fail evidence"
     ]
   },
   "nextSlices": [
-    "resolve presence revision policy",
-    "resolve explicit rejoined receipt policy",
-    "resolve disconnected-seat operation and priority policy"
+    "enforce disconnected-participant rejection on every production variable-v2 mutation path",
+    "propagate authoritative rejoined status through the browser state to the Remote player surface",
+    "bind dedicated reconnect and rejection evidence plus old-route guards into the local journey loop",
+    "bind the same reconnect facts to an exact-fingerprint production journey before release"
   ]
 }

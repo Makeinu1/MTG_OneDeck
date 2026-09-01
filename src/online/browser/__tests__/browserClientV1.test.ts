@@ -118,7 +118,7 @@ function harness() {
   return { client, sockets, scheduled };
 }
 
-function openClient(client: Browser.OnlineBrowserWebSocketClientV1, socket: TestSocket): void {
+function openClient(client: Browser.OnlineBrowserWebSocketClientV1, socket: TestSocket, reason?: 'synchronized' | 'snapshot-required' | 'rejoined'): void {
   socket.open();
   socket.frame({
     kind: 'online-cloudflare-websocket-ready-v1',
@@ -140,7 +140,8 @@ function openClient(client: Browser.OnlineBrowserWebSocketClientV1, socket: Test
     clientBuildIdMatch: true,
     issues: [],
   });
-  socket.frame(projectionResponse());
+  const response = projectionResponse();
+  socket.frame(reason === undefined ? response : { ...response, reason });
   expect(client.getSnapshot().phase).toBe('open');
 }
 
@@ -410,6 +411,34 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(settled.pendingCommands).toEqual([]);
     second.frame(ack);
     expect(client.getSnapshot()).toBe(settled);
+  });
+
+  it('surfaces reconnect success only from the validated server rejoined reason', () => {
+    const { client, sockets, scheduled } = harness();
+    client.connect();
+    const first = sockets[0];
+    if (first === undefined) throw new Error('Missing first socket');
+    openClient(client, first, 'synchronized');
+    expect(client.getSnapshot().recoveryOutcome).toBeNull();
+    const beforePresenceNotice = first.sent.length;
+    first.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 0 });
+    expect(first.sent).toHaveLength(beforePresenceNotice + 1);
+    expect(JSON.parse(first.sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-projection-request-v1', knownRevision: 0 });
+    first.frame(projectionResponse());
+    expect(client.getSnapshot()).toMatchObject({ phase: 'open', recoveryOutcome: null });
+
+    first.closeUnexpectedly();
+    expect(client.getSnapshot()).toMatchObject({ phase: 'recovering', recoveryOutcome: null });
+    scheduled[0]?.task();
+    const second = sockets[1];
+    if (second === undefined) throw new Error('Missing recovery socket');
+    openClient(client, second, 'rejoined');
+    expect(client.getSnapshot()).toMatchObject({ phase: 'open', recoveryOutcome: 'rejoined' });
+
+    second.closeUnexpectedly();
+    expect(client.getSnapshot()).toMatchObject({ phase: 'recovering', recoveryOutcome: null });
+    client.disconnect();
+    expect(client.getSnapshot()).toMatchObject({ phase: 'closed', recoveryOutcome: null });
   });
 
   it('settles a resync-required reject and emits one projection request', () => {

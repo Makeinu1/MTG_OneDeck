@@ -10,8 +10,10 @@ import {
   type OnlinePregameStateV1,
 } from '../../pregame/index';
 import { ConflictError, OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
-import { createAuthenticatedOnlineCloudflareSocketAttachmentV1 } from '../index';
+import { createAuthenticatedOnlineCloudflareSocketAttachmentV1, createOnlineCloudflareSocketAttachmentV1 } from '../index';
 import { handleOnlineVariableCommandEnvelopeV2, handleOnlineVariableSharedUndoIntentV2 } from '../../protocol/index';
+import { disconnectOnlineVariableRoomParticipantV2 } from '../../room/index';
+import { ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1 } from '../security';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
 
 const SID = '5da14d86-0780-4821-a799-96f64b377df4';
@@ -82,6 +84,67 @@ async function startedRepository(playerCount: 2 | 4): Promise<Readonly<{
 }
 
 describe('O4P-08C variable runtime persistence', () => {
+  it('persists only the last-socket disconnect and rejoins on the first authorized projection at the same revision', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (initial === null) throw new Error('Missing reconnect fixture');
+    const recoveringSeat = initial.room.seats[0];
+    const peerSeat = initial.room.seats[1];
+    if (recoveringSeat?.participantId === null || recoveringSeat === undefined || peerSeat?.participantId === null || peerSeat === undefined) throw new Error('Missing reconnect seats');
+    const now = Date.now();
+    const socket = (participantId: string, connectionId: number) => {
+      let attachment: unknown = createAuthenticatedOnlineCloudflareSocketAttachmentV1(fixture.roomId, participantId, 'player', connectionId, 0, now + 60_000, now);
+      const sent: string[] = [];
+      return { sent, send: (data: string) => { sent.push(data); }, serializeAttachment: (value: unknown) => { attachment = value; }, deserializeAttachment: () => attachment };
+    };
+    const first = socket(recoveringSeat.participantId, 1);
+    const second = socket(recoveringSeat.participantId, 2);
+    const peer = socket(peerSeat.participantId, 3);
+    const sockets: Array<typeof first> = [first, second, peer];
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => sockets });
+
+    object.webSocketClose(first);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.room.participants[0]?.presence).toBe('connected');
+    sockets.splice(sockets.indexOf(first), 1);
+    object.webSocketClose(second);
+    sockets.splice(sockets.indexOf(second), 1);
+    const disconnected = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (disconnected === null) throw new Error('Missing disconnected reconnect fixture');
+    const disconnectedJson = JSON.stringify(disconnected);
+    expect(disconnected).toMatchObject({ revision: initial.revision, room: { participants: [{ presence: 'disconnected' }, { presence: 'connected' }] } });
+    const peerMessages: unknown[] = peer.sent.map((entry): unknown => JSON.parse(entry) as unknown);
+    expect(peerMessages).toContainEqual(expect.objectContaining({ kind: 'online-cloudflare-revision-v1', revision: initial.revision }));
+
+    let recoveryAttachment: unknown = createOnlineCloudflareSocketAttachmentV1(fixture.roomId, 4, now);
+    const recoverySent: string[] = [];
+    const recovery = { sent: recoverySent, send: (data: string) => { recoverySent.push(data); }, serializeAttachment: (value: unknown) => { recoveryAttachment = value; }, deserializeAttachment: () => recoveryAttachment };
+    sockets.push(recovery);
+    object.webSocketMessage(recovery, JSON.stringify({ kind: 'online-client-hello-v1', protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: recoveringSeat.participantId, ['participantCapability']: recoveringSeat.seatCapability, clientBuildId: 'o4p-09f-client' }));
+    expect(JSON.parse(recoverySent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-server-hello-v1', status: 'accepted', revision: initial.revision });
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.room.participants[0]?.presence).toBe('disconnected');
+    object.webSocketMessage(recovery, JSON.stringify({ kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: recoveringSeat.participantId, ['participantCapability']: recoveringSeat.seatCapability, commandId: 'disconnected-ws-command', baseRevision: initial.revision, mode: 'structured', primitive: { kind: 'priority-pass' } }));
+    expect(JSON.parse(recoverySent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-reject-v1', currentRevision: initial.revision, issues: [{ code: 'PARTICIPANT_NOT_CONNECTED' }] });
+    object.webSocketMessage(recovery, JSON.stringify({ kind: 'online-visibility-intent-v1', schemaVersion: 1, protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: recoveringSeat.participantId, ['participantCapability']: recoveringSeat.seatCapability, commandId: 'disconnected-visibility-command', baseRevision: initial.revision, look: { subject: { kind: 'top-of-library', count: 1 }, viewerPlayerIds: [recoveringSeat.corePlayerId], duration: { kind: 'next-command' } } }));
+    expect(JSON.parse(recoverySent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-reject-v1', currentRevision: initial.revision, issues: [{ code: 'PARTICIPANT_NOT_CONNECTED' }] });
+    const httpResponse = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: recoveringSeat.participantId, ['participantCapability']: recoveringSeat.seatCapability, commandId: 'disconnected-http-command', baseRevision: initial.revision, mode: 'structured', primitive: { kind: 'priority-pass' } }) }));
+    expect(httpResponse.status).toBe(200);
+    expect(await httpResponse.json()).toMatchObject({ kind: 'online-command-reject-v1', currentRevision: initial.revision, issues: [{ code: 'PARTICIPANT_NOT_CONNECTED' }] });
+    expect(JSON.stringify(fixture.repository.loadVariableProtocolV2(fixture.roomId))).toBe(disconnectedJson);
+    const lifecycleDrift = { ...disconnected, room: { ...disconnected.room, lifecycle: 'finished' as const } };
+    expect(() => fixture.repository.persistVariableSameRevision(disconnected, lifecycleDrift)).toThrow('Variable presence state changes outside the allowed boundary');
+    expect(JSON.stringify(fixture.repository.loadVariableProtocolV2(fixture.roomId))).toBe(disconnectedJson);
+    object.webSocketMessage(recovery, JSON.stringify({ kind: 'online-projection-request-v1', protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: recoveringSeat.participantId, ['participantCapability']: recoveringSeat.seatCapability, knownRevision: initial.revision, clientBuildId: 'o4p-09f-client', decisionContext: null }));
+    const recovered = JSON.parse(recoverySent.at(-1) ?? '{}') as { readonly projection?: { readonly room?: { readonly participants?: readonly unknown[] } } };
+    expect(recovered).toMatchObject({ kind: 'online-projected-snapshot-v1', status: 'accepted', reason: 'rejoined', revision: initial.revision });
+    expect(recovered.projection?.room?.participants).toEqual(expect.arrayContaining([
+      expect.objectContaining({ participantId: recoveringSeat.participantId, presence: 'connected' }),
+      expect.objectContaining({ participantId: peerSeat.participantId, presence: 'connected' }),
+    ]));
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toMatchObject({ revision: initial.revision, room: { participants: [{ presence: 'connected' }, { presence: 'connected' }] } });
+    fixture.storage.close();
+  }, 90000);
+
   it.each([[2, 40], [4, 40]] as const)('accepts exactly configured seats and starts %ip/%i', async (playerCount, startingLife) => {
     const storage = new ReviewSqliteStorage(); const repository = new OnlineCloudflareRepository(storage); repository.migrateApplicationSchema(); let current = lobby(playerCount, startingLife); const participants = ['host']; const caps = current.seats.map((seat) => seat.seatCapability);
     for (let index = 1; index < playerCount; index += 1) { const claimed = claimOnlineVariableLobbySeatV4(current, `player-${index + 1}`, current.admissionCapability); current = claimed.lobby; participants.push(`player-${index + 1}`); }
@@ -357,6 +420,49 @@ describe('O4P-08C variable runtime persistence', () => {
     fixture.storage.close();
   }, 30000);
 
+  it('returns the Pregame application reject for canonical disconnected presence without mutation', async () => {
+    const fixture = await startedRepository(2);
+    const protocol = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    const pregame = fixture.repository.loadPregameV1(fixture.roomId);
+    if (protocol === null || pregame === null || pregame.currentPlayerId === null) throw new Error('Missing disconnected Pregame fixture');
+    const actor = protocol.room.seats.find((candidate) => candidate.corePlayerId === pregame.currentPlayerId);
+    if (actor === undefined || actor.participantId === null) throw new Error('Missing disconnected Pregame actor');
+    const disconnectedRoom = disconnectOnlineVariableRoomParticipantV2(protocol.room, actor.participantId);
+    fixture.repository.persistVariableSameRevision(protocol, { ...protocol, room: disconnectedRoom });
+    const disconnectedProtocol = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    const pregameBefore = fixture.repository.loadPregameV1(fixture.roomId);
+    if (disconnectedProtocol === null || pregameBefore === null) throw new Error('Missing persisted disconnected Pregame fixture');
+    const coreDigest = coreCanonicalDigestFromValueV1(disconnectedProtocol.coreRoot);
+    const checkpointBefore = fixture.storage.all('SELECT checkpoint_revision, state_json FROM online_recovery_checkpoint');
+    const acceptedBefore = fixture.storage.all('SELECT * FROM online_accepted_command');
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => Date.now() });
+    const response = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/pregame`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        kind: 'online-pregame-command-envelope-v1', schemaVersion: 1, roomId: fixture.roomId,
+        participantId: actor.participantId, ['participantCapability']: actor.seatCapability,
+        commandId: 'runtime-pregame-disconnected', baseRevision: pregameBefore.revision,
+        command: { kind: 'confirm-commanders' },
+      }),
+    }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      response: {
+        kind: 'online-pregame-command-reject-v1',
+        commandId: 'runtime-pregame-disconnected',
+        currentRevision: pregameBefore.revision,
+        issues: [{ code: 'PARTICIPANT_NOT_CONNECTED', path: '/participantId' }],
+      },
+    });
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(disconnectedProtocol);
+    expect(fixture.repository.loadPregameV1(fixture.roomId)).toEqual(pregameBefore);
+    expect(coreCanonicalDigestFromValueV1(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.coreRoot)).toBe(coreDigest);
+    expect(fixture.storage.all('SELECT checkpoint_revision, state_json FROM online_recovery_checkpoint')).toEqual(checkpointBefore);
+    expect(fixture.storage.all('SELECT * FROM online_accepted_command')).toEqual(acceptedBefore);
+    fixture.storage.close();
+  }, 30000);
+
   it.each([2, 4] as const)('keeps local and production Pregame transitions identical for %ip', async (playerCount) => {
     const fixture = await startedRepository(playerCount);
     const remoteInitial = fixture.repository.loadPregameV1(fixture.roomId);
@@ -448,6 +554,97 @@ describe('O4P-08C variable runtime persistence', () => {
     const oldRecovery = await post({ kind: 'online-forming-lobby-recover-v5', schemaVersion: 5, participantId: 'player-2', seatCapability: initial.seats[1]?.seatCapability }); expect(oldRecovery.status).toBe(410); expect(await oldRecovery.json()).toMatchObject({ kind: 'online-public-error-v3', code: 'CREDENTIAL_KICKED' });
     const resetStart = await post({ kind: 'online-forming-lobby-start-v4', schemaVersion: 4, hostParticipantId: 'host', seatCapability: initial.seats[0]?.seatCapability }); expect(resetStart.status).toBe(409); expect(await resetStart.json()).toMatchObject({ kind: 'online-public-error-v3', code: 'PLAYERS_NOT_READY' });
     const leave = await post({ kind: 'online-forming-lobby-leave-v3', schemaVersion: 3, participantId: 'host', seatCapability: initial.seats[0]?.seatCapability }); expect(leave.status).toBe(200); expect(await leave.json()).toMatchObject({ closed: true });
+  }, 30000);
+
+  it('requires the current security grant for started v5 recovery and leaves canonical state unchanged on rejection', async () => {
+    const fixture = await startedRepository(2);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    const pregame = fixture.repository.loadPregameV1(fixture.roomId);
+    const lobbyBefore = fixture.repository.loadVariableLobbyV4(fixture.roomId);
+    if (initial === null || pregame === null || lobbyBefore === null) throw new Error('Missing recovery authority fixture');
+    const seat = initial.room.seats[0];
+    if (seat === undefined || seat.participantId === null) throw new Error('Missing recovery seat');
+    const now = Date.now();
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => now });
+    const post = (value: Record<string, unknown>) => object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) }));
+    const recover = (participantId: string, token: string) => post({ kind: 'online-forming-lobby-recover-v5', schemaVersion: 5, participantId, seatCapability: token });
+    const oldToken = seat.seatCapability;
+    const rotatedToken = `rotated_recovery_${'x'.repeat(32)}`;
+    const rotated = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/capabilities`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-cloudflare-capability-rotate-v1', schemaVersion: 1, participantId: seat.participantId, currentCapability: oldToken, nextCapability: rotatedToken }) }));
+    expect(rotated.status).toBe(200);
+    const assertUnchanged = () => {
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(initial);
+      expect(fixture.repository.loadPregameV1(fixture.roomId)).toEqual(pregame);
+      expect(fixture.repository.loadVariableLobbyV4(fixture.roomId)).toEqual(lobbyBefore);
+    };
+    const oldRecovery = await recover(seat.participantId, oldToken);
+    expect(oldRecovery.status).toBe(401);
+    expect(await oldRecovery.json()).toEqual({ kind: 'online-cloudflare-error-v1' });
+    const oldRecoveryBody = JSON.stringify(await (await recover(seat.participantId, oldToken)).json());
+    expect(oldRecoveryBody).not.toMatch(/inviteCode|tableParticipantId|tableCapability|admission|rotated_recovery|seat_/);
+    assertUnchanged();
+    const currentRecovery = await recover(seat.participantId, rotatedToken);
+    expect(currentRecovery.status).toBe(200);
+    const currentRecoveryBody = await currentRecovery.json() as unknown;
+    if (currentRecoveryBody === null || typeof currentRecoveryBody !== 'object' || Array.isArray(currentRecoveryBody)) throw new Error('Missing current recovery body');
+    const currentRecoveryRecord = currentRecoveryBody as Record<string, unknown>;
+    expect(currentRecoveryRecord.kind).toBe('online-forming-lobby-recovered-v5');
+    expect(currentRecoveryRecord.participantId).toBe(seat.participantId);
+    expect(typeof currentRecoveryRecord.inviteCode).toBe('string');
+    expect(currentRecoveryRecord.tableParticipantId).toBe('table-runtime');
+    expect(typeof currentRecoveryRecord.tableCapability).toBe('string');
+    assertUnchanged();
+    const mismatch = await recover('not-the-seat', rotatedToken);
+    expect(mismatch.status).toBe(401);
+    expect(await mismatch.json()).toEqual({ kind: 'online-cloudflare-error-v1' });
+    assertUnchanged();
+    const wrongCapability = await recover(seat.participantId, `seat_${'z'.repeat(40)}`);
+    expect(wrongCapability.status).toBe(401);
+    expect(await wrongCapability.json()).toEqual({ kind: 'online-cloudflare-error-v1' });
+    assertUnchanged();
+    const expiredObject = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => now + ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1 + 1 });
+    const expired = await expiredObject.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/lobby`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-forming-lobby-recover-v5', schemaVersion: 5, participantId: seat.participantId, seatCapability: rotatedToken }) }));
+    expect(expired.status).toBe(401);
+    expect(await expired.json()).toEqual({ kind: 'online-cloudflare-error-v1' });
+    assertUnchanged();
+    fixture.storage.close();
+  }, 30000);
+
+  it('ignores superseded and expired sockets when deciding the last current connection', async () => {
+    const fixture = await startedRepository(2);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (initial === null) throw new Error('Missing socket validity fixture');
+    const seat = initial.room.seats[0];
+    if (seat === undefined || seat.participantId === null) throw new Error('Missing socket validity seat');
+    const now = Date.now();
+    const rotatedToken = `rotated_socket_${'x'.repeat(32)}`;
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => now });
+    const rotate = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/capabilities`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-cloudflare-capability-rotate-v1', schemaVersion: 1, participantId: seat.participantId, currentCapability: seat.seatCapability, nextCapability: rotatedToken }) }));
+    expect(rotate.status).toBe(200);
+    const socket = (generation: number, expiresAt: number) => {
+      let attachment: unknown = createAuthenticatedOnlineCloudflareSocketAttachmentV1(fixture.roomId, seat.participantId as string, 'player', generation + 1, generation, expiresAt, now);
+      return { send: (...args: string[]): undefined => { void args; return undefined; }, serializeAttachment: (value: unknown) => { attachment = value; }, deserializeAttachment: () => attachment };
+    };
+    const stale = socket(0, now + ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1);
+    const current = socket(1, now + ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1);
+    const sockets: Array<typeof stale> = [stale, current];
+    const rotatedObject = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => sockets, now: () => now });
+    rotatedObject.webSocketClose(current);
+    sockets.splice(sockets.indexOf(current), 1);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.room.participants[0]?.presence).toBe('disconnected');
+    const recoverySent: string[] = [];
+    let recoveryAttachment: unknown = createOnlineCloudflareSocketAttachmentV1(fixture.roomId, 99, now);
+    const recovery = { send: (...args: string[]): undefined => { const data = args[0]; if (data !== undefined) recoverySent.push(data); return undefined; }, serializeAttachment: (value: unknown) => { recoveryAttachment = value; }, deserializeAttachment: () => recoveryAttachment };
+    sockets.push(recovery);
+    rotatedObject.webSocketMessage(recovery, JSON.stringify({ kind: 'online-client-hello-v1', protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, participantCapability: rotatedToken, clientBuildId: 'o4p-09f-client' }));
+    rotatedObject.webSocketMessage(recovery, JSON.stringify({ kind: 'online-projection-request-v1', protocolVersion: initial.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, participantCapability: rotatedToken, knownRevision: initial.revision, clientBuildId: 'o4p-09f-client', decisionContext: null }));
+    expect(JSON.parse(recoverySent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-projected-snapshot-v1', status: 'accepted', reason: 'rejoined', revision: initial.revision });
+    const expiredSocket = socket(1, now + ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1);
+    const expiredSockets: Array<typeof expiredSocket> = [expiredSocket];
+    const expiredObject = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => expiredSockets, now: () => now + ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1 + 1 });
+    expiredObject.webSocketClose(expiredSocket);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.room.participants[0]?.presence).toBe('disconnected');
+    fixture.storage.close();
   }, 30000);
 
   it('persists an accepted command through the variable HTTP gameplay transport', async () => {

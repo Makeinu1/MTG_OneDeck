@@ -660,6 +660,7 @@ export function PublicOnlineApp({
                 busy={tabletopBusy}
                 onSubmitTabletopIntent={controller.submitTabletopIntent}
                 lastCommandSettlement={snapshot.player.lastCommandSettlement}
+                recoveryOutcome={snapshot.player.recoveryOutcome}
                 onSubmitSharedUndo={() => { void controller.submitSharedUndo(snapshot.player?.projection?.revision); }}
                 port={remoteInteractionPort}
               />

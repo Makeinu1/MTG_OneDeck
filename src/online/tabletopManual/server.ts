@@ -32,6 +32,10 @@ export function bindOnlineTabletopIntentOnServerV1(input: OnlineTabletopServerBi
   if (input.state.room.lifecycle !== 'active') throw new Error('Tabletop room is not active');
   const participant = input.state.room.participants.find((entry) => entry.participantId === input.participantId);
   if (participant === undefined || participant.role !== 'player' || participant.seatIndex === null) throw new Error('Participant is not an authorized player');
+  // Presence is authoritative room metadata.  Reject before any binder work
+  // (including server entropy for shuffle) so a disconnected seat cannot
+  // consume randomness or manufacture a game-changing command.
+  if (participant.presence !== 'connected') throw new Error('PARTICIPANT_NOT_CONNECTED');
   const seat = input.state.room.seats[participant.seatIndex];
   if (seat === undefined || seat.outcome !== 'pending') throw new Error('Participant seat is unavailable');
   const actorPlayerId = seat.corePlayerId;

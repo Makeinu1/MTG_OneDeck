@@ -3,6 +3,7 @@ import * as Core from '../../../engine/core/index';
 import { buildVariableRoomGenesisV3 } from '../../genesis/index';
 import * as Pregame from '../index';
 import type { OnlineVariableProtocolStateV2 } from '../../protocol/index';
+import { disconnectOnlineVariableRoomParticipantV2 } from '../../room/index';
 
 const card = (scryfallId: string, oracleId: string, name: string, typeLine: string) => ({ scryfallId, oracleId, name, lang: 'en' as const, layout: 'normal' as const, cmc: 2, colorIdentity: [], typeLine, faces: [{ name, typeLine, oracleText: '' }] });
 
@@ -56,6 +57,35 @@ function start(initial: OnlineVariableProtocolStateV2, startingPlayerId: Core.Co
   return result.value;
 }
 describe('Online Pregame lifecycle ordinary coverage', () => {
+  it('rejects a disconnected participant without changing Pregame or Core state', () => {
+    const state = start(genesis(2), 'P2' as Core.CorePlayerId);
+    const actor = seat(state, 'P2' as Core.CorePlayerId);
+    const disconnectedRoom = disconnectOnlineVariableRoomParticipantV2(state.protocolState.room, actor.participantId);
+    const checked = Pregame.validateOnlinePregameStateV1({
+      ...state,
+      protocolState: { ...state.protocolState, room: disconnectedRoom },
+    });
+    expect(checked).toMatchObject({ ok: true });
+    if (!checked.ok) throw new Error('Disconnected Pregame fixture rejected');
+    const before = JSON.stringify(checked.value);
+    const coreDigest = Core.coreCanonicalDigestFromValueV1(checked.value.protocolState.coreRoot);
+    const transition = Pregame.handleOnlinePregameCommandEnvelopeV1(
+      checked.value,
+      envelope(checked.value, 'P2' as Core.CorePlayerId, 'disconnected-pregame', { kind: 'confirm-commanders' }),
+    );
+    expect(transition.response).toMatchObject({
+      kind: 'online-pregame-command-reject-v1',
+      commandId: 'disconnected-pregame',
+      currentRevision: 0,
+      resyncRequired: false,
+      issues: [{ code: 'PARTICIPANT_NOT_CONNECTED', path: '/participantId' }],
+    });
+    expect(JSON.stringify(transition.state)).toBe(before);
+    expect(transition.state.revision).toBe(0);
+    expect(transition.state.journal).toEqual([]);
+    expect(Core.coreCanonicalDigestFromValueV1(transition.state.protocolState.coreRoot)).toBe(coreDigest);
+  });
+
   it('completes the two-player phase path, rejects stale/unauthorized mutation, replays, and preserves projection privacy', () => {
     const initial = genesis(2);
     let state = start(initial, 'P2' as Core.CorePlayerId);

@@ -48,6 +48,8 @@ export {
   setOnlineVariableRoomPlayerReadyV2,
   startOnlineVariableRoomV2,
   activateOnlineVariableRoomV2,
+  disconnectOnlineVariableRoomParticipantV2,
+  rejoinOnlineVariableRoomParticipantV2,
   createOnlineRoomV2,
   validateOnlineRoomV2,
 } from './variable';

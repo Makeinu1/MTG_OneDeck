@@ -10,6 +10,7 @@ function record(value: unknown): AnyRecord | null { return value !== null && typ
 function participantSeat(state: OnlineVariableProtocolStateV2, participantId: string) {
   const participant = state.room.participants.find((entry) => entry.participantId === participantId);
   if (!participant || participant.role !== 'player' || participant.seatIndex === null) throw new Error('authorization');
+  if (participant.presence !== 'connected') throw new Error('PARTICIPANT_NOT_CONNECTED');
   const seat = state.room.seats[participant.seatIndex]; if (!seat) throw new Error('authorization');
   return seat;
 }

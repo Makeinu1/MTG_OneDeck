@@ -337,6 +337,15 @@ export type O4p09iScenarioFactV1 = Readonly<{
   readonly priority: RemotePriorityJourneyFactV1 | null;
   readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true;
   }>;
+  readonly reconnect: Readonly<{
+    readonly revision: number;
+    readonly peerObservedDisconnected: true;
+    readonly recoveredSeatRejoined: true;
+    readonly presenceConverged: true;
+    readonly sharedPublicDigestConverged: true;
+    readonly privateAudienceIsolated: true;
+    readonly priorityStatePreserved: true;
+  }>;
   readonly privateLookChoose: Readonly<{ readonly look: true; readonly choose: true; readonly crossSeatLeak: false;
   }>;
   readonly unsupportedManual: Readonly<{ readonly stack: true; readonly resolve: true }>;
@@ -551,7 +560,7 @@ function validateViewport(value: unknown, index: number, expectedPlayers: 2 | 4)
 }
 
 function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: readonly string[]): O4p09iScenarioFactV1 {
-  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'cast', 'priority', 'revision', 'privateLookChoose', 'unsupportedManual', 'outcome', 'eliminatedSeats', 'viewportFacts'], 'scenario malformed');
+  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'cast', 'priority', 'revision', 'reconnect', 'privateLookChoose', 'unsupportedManual', 'outcome', 'eliminatedSeats', 'viewportFacts'], 'scenario malformed');
   if (own(row, 'playerCount') !== expectedPlayers) throw new Error('scenario player count mismatch');
   const phases = own(row, 'phases');
   if (!Array.isArray(phases) || phases.length !== MATCH_PHASES.length || phases.some((phase, index) => phase !== MATCH_PHASES[index])) throw new Error('scenario phases incomplete');
@@ -582,7 +591,15 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
   const afterSharedMutation = own(revision, 'afterSharedMutation');
   const afterReconnect = own(revision, 'afterReconnect');
   const start = own(revision, 'start');
-  if (!safeRevision(start) || !safeRevision(afterSharedMutation) || !safeRevision(afterReconnect) || start > afterSharedMutation || afterReconnect < afterSharedMutation || own(revision, 'continuous') !== true) throw new Error('scenario revision continuity failed');
+  if (!safeRevision(start) || !safeRevision(afterSharedMutation) || !safeRevision(afterReconnect) || start > afterSharedMutation || afterReconnect !== afterSharedMutation || own(revision, 'continuous') !== true) throw new Error('scenario revision continuity failed');
+  const reconnect = exact(own(row, 'reconnect'), ['revision', 'peerObservedDisconnected', 'recoveredSeatRejoined', 'presenceConverged', 'sharedPublicDigestConverged', 'privateAudienceIsolated', 'priorityStatePreserved'], 'reconnect evidence malformed');
+  if (own(reconnect, 'revision') !== afterReconnect
+    || own(reconnect, 'peerObservedDisconnected') !== true
+    || own(reconnect, 'recoveredSeatRejoined') !== true
+    || own(reconnect, 'presenceConverged') !== true
+    || own(reconnect, 'sharedPublicDigestConverged') !== true
+    || own(reconnect, 'privateAudienceIsolated') !== true
+    || own(reconnect, 'priorityStatePreserved') !== true) throw new Error('reconnect evidence failed');
   const privateFacts = exact(own(row, 'privateLookChoose'), ['look', 'choose', 'crossSeatLeak'], 'private choice facts malformed');
   if (own(privateFacts, 'look') !== true || own(privateFacts, 'choose') !== true || own(privateFacts, 'crossSeatLeak') !== false) throw new Error('private choice leak');
   const unsupported = exact(own(row, 'unsupportedManual'), ['stack', 'resolve'], 'manual fallback facts malformed');
@@ -601,6 +618,7 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
     cast: Object.freeze({ acceptedRevision: castAcceptedRevision, seatCount: expectedPlayers, receiptAccepted: true, revisionsConverged: true, sharedStackTop: true }),
     priority,
     revision: Object.freeze({ start, afterSharedMutation, afterReconnect, continuous: true }),
+    reconnect: Object.freeze({ revision: afterReconnect, peerObservedDisconnected: true, recoveredSeatRejoined: true, presenceConverged: true, sharedPublicDigestConverged: true, privateAudienceIsolated: true, priorityStatePreserved: true }),
     privateLookChoose: Object.freeze({ look: true, choose: true, crossSeatLeak: false }),
     unsupportedManual: Object.freeze({ stack: true, resolve: true }),
     outcome: outcome as 'winner' | 'three-continue',
@@ -1341,6 +1359,32 @@ async function readPrivateChoicePayload(page: O4p09iPageV1, timeoutMs: number): 
   return Object.freeze({ identifiers, candidateHandles, serialized: raw.serialized, digest: sha256(raw.serialized), complete: true, roots: raw.roots, attributes: raw.attributes, values: raw.values, tokens: raw.tokens, bytes: raw.bytes });
 }
 
+type O4p09iPrivateHandPayloadV1 = Readonly<{
+  readonly tokens: readonly string[];
+  readonly digest: string;
+}>;
+
+/** Capture only opaque object handles rendered in this seat's own hand. Raw
+ * handles remain process-local and are used to prove that recovery restores
+ * the same private audience without exposing it to a peer. */
+async function readPrivateHandPayload(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iPrivateHandPayloadV1> {
+  const raw = await Promise.race([
+    page.evaluate<Readonly<{ readonly tokens: readonly string[]; readonly serialized: string; readonly complete: boolean; readonly bytes: number }>>(`(() => { // privateHandPayload
+      const root = document.querySelector('[data-testid="hand-cards"]');
+      const cards = root === null ? [] : [...root.querySelectorAll('[data-layout-card-id]')];
+      const complete = cards.length > 0 && cards.length < ${String(MAX_PRIVATE_ROOTS_V1)};
+      const tokens = cards.slice(0, ${String(MAX_PRIVATE_ROOTS_V1)}).map((card) => card.getAttribute('data-layout-card-id') ?? '').filter((token) => token !== '').sort();
+      const serialized = JSON.stringify(tokens);
+      return { tokens, serialized, complete: complete && tokens.length === cards.length && new Set(tokens).size === tokens.length, bytes: new TextEncoder().encode(serialized).byteLength };
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private hand probe timeout')), timeoutMs)),
+  ]);
+  if (raw.complete !== true || !Array.isArray(raw.tokens) || raw.tokens.length === 0 || raw.tokens.length >= MAX_PRIVATE_ROOTS_V1
+    || raw.tokens.some((token) => typeof token !== 'string' || token.length === 0 || token.length > MAX_TEXT_BYTES)
+    || !Number.isSafeInteger(raw.bytes) || raw.bytes >= MAX_PRIVATE_CAPTURE_BYTES_V1) throw new Error('private hand capture incomplete');
+  return Object.freeze({ tokens: Object.freeze(raw.tokens.slice()), digest: sha256(raw.serialized) });
+}
+
 /** Capture bounded rendered text, attributes, form values, and choice-control
  * content from an unauthorized seat.  Values remain memory-only in the caller;
  * host tokens are never injected into that seat's page. */
@@ -1628,6 +1672,9 @@ type O4p09iProbeV1 = Readonly<{
   }> | null;
   readonly publicPlayerIds: readonly string[] | undefined;
   readonly localPlayerId: string | null | undefined;
+  readonly disconnectedPlayerIds: readonly string[];
+  readonly recoveryOutcome: 'rejoined' | null;
+  readonly sharedPublicDigest: string;
   readonly priorityHolds: readonly string[] | undefined;
   readonly priorityHolderPlayerId: string | null | undefined;
   readonly priorityStewardPlayerId: string | null | undefined;
@@ -1672,6 +1719,11 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
       const outcomeText = document.querySelector('[data-testid="online-remote-outcome"]')?.textContent ?? '';
       const publicPlayerIds = remoteRail?.hasAttribute('data-public-seat-ids') ? (remoteRail.getAttribute('data-public-seat-ids') ?? '').split(',').filter(Boolean) : undefined;
       const localPlayerId = remoteRail?.hasAttribute('data-local-player-id') ? remoteRail.getAttribute('data-local-player-id') || null : undefined;
+      const presence = document.querySelector('[data-testid="online-remote-presence"]');
+      const disconnectedPlayerIds = (presence?.getAttribute('data-disconnected-player-ids') ?? '').split(',').filter(Boolean);
+      const recovery = document.querySelector('[data-testid="online-remote-connection"]')?.getAttribute('data-recovery-outcome') ?? '';
+      const recoveryOutcome = recovery === 'rejoined' ? 'rejoined' : null;
+      const sharedPublicDigest = remoteRail?.getAttribute('data-shared-public-digest') ?? '';
       const priorityHolderPlayerId = remoteRail?.hasAttribute('data-priority-holder-player-id') ? remoteRail.getAttribute('data-priority-holder-player-id') || null : undefined;
       const priorityHolds = remoteRail?.hasAttribute('data-priority-holds') ? (remoteRail.getAttribute('data-priority-holds') ?? '').split(',').filter(Boolean) : undefined;
       const stewardPlayerId = remoteRail?.hasAttribute('data-priority-steward-player-id') ? remoteRail.getAttribute('data-priority-steward-player-id') || null : undefined;
@@ -1807,6 +1859,9 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         prioritySettlement,
         publicPlayerIds,
         localPlayerId,
+        disconnectedPlayerIds,
+        recoveryOutcome,
+        sharedPublicDigest,
         priorityHolds,
         priorityHolderPlayerId,
         priorityStewardPlayerId: stewardPlayerId,
@@ -1823,6 +1878,63 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
   const consoleErrors = page.consoleCounts().errors;
   if (!probe.leakScanComplete) throw new Error('bounded leak scan incomplete');
   return Object.freeze({ ...probe, consoleErrors });
+}
+
+function priorityPresenceSignature(probe: O4p09iProbeV1): string {
+  return JSON.stringify({
+    holder: probe.priorityHolderPlayerId,
+    steward: probe.priorityStewardPlayerId,
+    window: probe.priorityWindowKind,
+    holds: probe.priorityHolds,
+    stackCount: probe.stackCount,
+    stackTopObjectId: probe.stackTopObjectId,
+  });
+}
+
+async function waitForPeerDisconnected(
+  pages: readonly O4p09iPageV1[],
+  playerId: string,
+  revision: number,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[],
+): Promise<readonly O4p09iProbeV1[]> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const probes = await Promise.all(pages.map((page) => probePage(page, Math.min(1_000, timeoutMs), workerOrigin, secretFragments)));
+    const digests = probes.map((probe) => probe.sharedPublicDigest);
+    if (probes.length > 0
+      && probes.every((probe) => probe.revision === revision && probe.disconnectedPlayerIds.includes(playerId))
+      && digests.every((digest) => /^[0-9a-f]{64}$/u.test(digest) && digest === digests[0])) return Object.freeze(probes);
+    if (Date.now() >= deadline) throw new Error('peer disconnected presence not observed');
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
+async function waitForReconnectConvergence(
+  pages: readonly O4p09iPageV1[],
+  recoveredPage: O4p09iPageV1,
+  revision: number,
+  sharedPublicDigest: string,
+  prioritySignature: string,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[],
+): Promise<readonly O4p09iProbeV1[]> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const probes = await Promise.all(pages.map((page) => probePage(page, Math.min(1_000, timeoutMs), workerOrigin, secretFragments)));
+    const recovered = probes[pages.indexOf(recoveredPage)];
+    const rejoined = recovered?.recoveryOutcome === 'rejoined';
+    const revisions = probes.every((probe) => probe.revision === revision);
+    const presence = probes.every((probe) => probe.disconnectedPlayerIds.length === 0);
+    const digests = probes.every((probe) => probe.sharedPublicDigest === sharedPublicDigest);
+    const priority = probes.every((probe) => priorityPresenceSignature(probe) === prioritySignature);
+    if (rejoined && revisions && presence && digests && priority) return Object.freeze(probes);
+    const lastFailure = `rejoined=${String(rejoined)},revision=${String(revisions)},presence=${String(presence)},digest=${String(digests)},priority=${String(priority)}`;
+    if (Date.now() >= deadline) throw new Error(`reconnect convergence not observed/${lastFailure}`);
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
 }
 
 async function readRemoteCastObjectId(page: O4p09iPageV1, timeoutMs: number): Promise<string> {
@@ -2196,19 +2308,42 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     setStage('reconnect');
     const disconnectedPage = pages[0];
     if (disconnectedPage === undefined) throw new Error('reconnect page missing');
+    const beforeReconnectProbes = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
+    const beforeReconnect = beforeReconnectProbes[0];
+    if (beforeReconnect === undefined || beforeReconnect.localPlayerId === null || beforeReconnect.localPlayerId === undefined) throw new Error('reconnect seat identity missing');
+    const disconnectedPlayerId = beforeReconnect.localPlayerId;
+    const sharedPublicDigestBeforeReconnect = beforeReconnect.sharedPublicDigest;
+    const prioritySignatureBeforeReconnect = priorityPresenceSignature(beforeReconnect);
+    const privateHandBeforeReconnect = await readPrivateHandPayload(disconnectedPage, timeoutMs);
+    if (!/^[0-9a-f]{64}$/u.test(sharedPublicDigestBeforeReconnect)
+      || beforeReconnectProbes.some((probe) => probe.revision !== revisionBeforeReconnect
+        || probe.disconnectedPlayerIds.length !== 0
+        || probe.sharedPublicDigest !== sharedPublicDigestBeforeReconnect
+        || priorityPresenceSignature(probe) !== prioritySignatureBeforeReconnect)) throw new Error('pre-reconnect convergence missing');
+    for (const peer of pages.slice(1)) {
+      const surfaces = await readUnauthorizedDomSurfaces(peer, timeoutMs);
+      if (privateHandBeforeReconnect.tokens.some((token) => surfaces.some((surface) => surface.includes(token)))) throw new Error('pre-reconnect private audience leak');
+    }
     snapshotConsole(disconnectedPage);
     await disconnectedPage.close(); counters.pagesClosed += 1;
+    await waitForPeerDisconnected(pages.slice(1), disconnectedPlayerId, revisionBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
     const replacement = await contexts[0]?.createPage();
     if (replacement === undefined) throw new Error('reconnect page missing');
     pages[0] = replacement;
     pageSetSecret(replacement, secretFragments);
     await replacement.navigate(pagesOrigin);
     await openOnlineFromSavedDeck(replacement, timeoutMs);
-    const recovered = await probePage(replacement, timeoutMs, workerOrigin, secretFragments);
-    const recoveredPeers = await Promise.all(pages.slice(1).map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
-    const recoveredProbes = Object.freeze([recovered, ...recoveredPeers]);
+    const recoveredProbes = await waitForReconnectConvergence(pages, replacement, revisionBeforeReconnect, sharedPublicDigestBeforeReconnect, prioritySignatureBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
+    const recovered = recoveredProbes[0];
+    if (recovered === undefined) throw new Error('reconnect recovery probe missing');
+    const recoveredPrivateHand = await readPrivateHandPayload(replacement, timeoutMs);
+    if (recoveredPrivateHand.digest !== privateHandBeforeReconnect.digest) throw new Error('reconnect private audience mismatch');
+    for (const peer of pages.slice(1)) {
+      const surfaces = await readUnauthorizedDomSurfaces(peer, timeoutMs);
+      if (privateHandBeforeReconnect.tokens.some((token) => surfaces.some((surface) => surface.includes(token)))) throw new Error('reconnect private audience leak');
+    }
     revisionAfterReconnect = recovered.revision;
-    if (!safeRevision(revisionAfterReconnect) || revisionAfterReconnect < revisionBeforeReconnect) throw new Error('reconnect continuity probe failed');
+    if (!safeRevision(revisionAfterReconnect) || revisionAfterReconnect !== revisionBeforeReconnect) throw new Error('reconnect continuity probe failed');
     if (recoveredProbes.some((probe) => probe.gameScreens !== 1 || probe.overflow !== 0 || probe.opponentLeak || probe.consoleErrors !== 0 || !probe.workerObserved || probe.revision !== revisionAfterReconnect)) throw new Error('reconnect continuity probe failed');
     const observedEliminatedSeats = recoveredProbes.flatMap((probe) => probe.eliminatedSeats);
     const uniqueEliminatedSeats = [...new Set(observedEliminatedSeats)];
@@ -2242,6 +2377,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       if (!checked.ok) throw new Error(`priority evidence ${checked.code}`);
       priorityFact = checked.value;
     }
+    const reconnectFact: O4p09iScenarioFactV1['reconnect'] = Object.freeze({ revision: revisionAfterReconnect, peerObservedDisconnected: true, recoveredSeatRejoined: true, presenceConverged: true, sharedPublicDigestConverged: true, privateAudienceIsolated: true, priorityStatePreserved: true });
     return Object.freeze({
       playerCount,
       phases: Object.freeze(MATCH_PHASES.filter((phase) => phases.has(phase))),
@@ -2249,6 +2385,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       cast: castFact,
       priority: priorityFact,
       revision: Object.freeze({ start: initialRevision, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, continuous: true }),
+      reconnect: reconnectFact,
       privateLookChoose,
       unsupportedManual,
       outcome: observedOutcome,

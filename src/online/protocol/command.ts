@@ -2,6 +2,11 @@ import {
   applyCoreCommandV1,
   coreCanonicalDigestFromValueV1,
 } from '../../engine/core/index';
+
+/** Stable digest boundary for online projection consumers. */
+export function onlineCanonicalDigestFromValueV1(value: unknown): string {
+  return coreCanonicalDigestFromValueV1(value);
+}
 import { reconcileOnlineRoomCoreLifecycleV1 } from '../room/index';
 import { CURRENT_CONTRACT_VERSIONS } from '../../versioning/index';
 import {

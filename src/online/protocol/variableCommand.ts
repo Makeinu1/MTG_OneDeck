@@ -170,6 +170,7 @@ export function handleOnlineVariableSharedUndoIntentV2(
   const participant = state.room.participants.find((entry) => entry.participantId === intent.participantId);
   const seat = participant === undefined || participant.role !== 'player' || participant.seatIndex === null ? undefined : state.room.seats[participant.seatIndex];
   if (seat === undefined || seat.seatCapability !== intent.participantCapability) return undoReject(state, intent, 'AUTHORIZATION_REJECTED', 'Shared undo participant authorization failed');
+  if (participant?.presence !== 'connected') return undoReject(state, intent, 'PARTICIPANT_NOT_CONNECTED', 'Participant is not connected');
   const existing = state.receipts.find((receipt) => receipt.participantId === intent.participantId && receipt.commandId === intent.commandId);
   if (existing !== undefined) {
     if (existing.requestDigest !== coreCanonicalDigestFromValueV1(intent)) return undoReject(state, intent, 'COMMAND_ID_REUSE_MISMATCH', 'Command ID reuse mismatch');
@@ -254,6 +255,7 @@ export function handleOnlineVariableManualCombatDamageIntentV2(
   const participant = state.room.participants.find((entry) => entry.participantId === intent.participantId);
   const seat = participant === undefined || participant.role !== 'player' || participant.seatIndex === null ? undefined : state.room.seats[participant.seatIndex];
   if (seat === undefined || seat.seatCapability !== intent.participantCapability) return manualDamageReject(state, intent, 'AUTHORIZATION_REJECTED', 'Manual combat damage participant authorization failed');
+  if (participant?.presence !== 'connected') return manualDamageReject(state, intent, 'PARTICIPANT_NOT_CONNECTED', 'Participant is not connected');
   const existing = state.receipts.find((receipt) => receipt.participantId === intent.participantId && receipt.commandId === intent.commandId);
   const digest = coreCanonicalDigestFromValueV1(intent);
   if (existing !== undefined) {
@@ -344,6 +346,7 @@ export function handleOnlineVariableCommandEnvelopeV2(
   const capabilities = [...state.room.seats.map((entry) => entry.seatCapability), ...state.observerAuthorizations.map((entry) => entry.observerCapability)];
   const inspection = inspectGraphForConfiguredCapability(message.command, capabilities);
   if (inspection !== 'clear') return reject(state, inspection === 'contains-configured-capability' ? 'INVALID_CAPABILITY' : 'INVALID_DESCRIPTOR', 'Command contains invalid protocol data', message);
+  if (participant?.presence !== 'connected') return reject(state, 'PARTICIPANT_NOT_CONNECTED', 'Participant is not connected', message);
   const digest = requestDigest(message);
   const existing = state.receipts.find((entry) => entry.participantId === message.participantId && entry.commandId === message.commandId);
   if (existing !== undefined) {

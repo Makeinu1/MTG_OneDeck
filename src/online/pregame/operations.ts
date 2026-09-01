@@ -298,6 +298,8 @@ export function handleOnlinePregameCommandEnvelopeV1(stateInput: unknown, envelo
   if (envelope.roomId !== state.protocolState.room.roomId) return rejectValid('ROOM_MISMATCH', '/roomId', envelope.commandId);
   const seat = roomSeat(state, envelope.participantId);
   if (seat === undefined || seat.participantId === null || seat.seatCapability !== envelope.participantCapability) return rejectValid('AUTHORIZATION_REJECTED', '', envelope.commandId);
+  const participant = state.protocolState.room.participants.find((entry) => entry.participantId === envelope.participantId);
+  if (participant?.presence !== 'connected') return rejectValid('PARTICIPANT_NOT_CONNECTED', '/participantId', envelope.commandId);
   const digest = requestDigest(envelope);
   const existing = state.journal.find((entry) => entry.commandId === envelope.commandId);
   if (existing !== undefined) {

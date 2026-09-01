@@ -16,6 +16,7 @@ import {
   handleOnlineVariableCommandEnvelopeV2,
   handleOnlineVariableManualCombatDamageIntentV2,
   handleOnlineVariableSharedUndoIntentV2,
+  validateOnlineVariableProtocolStateV2,
   validateOnlineSharedUndoIntentV1,
   type OnlineCommandEnvelopeV1,
   type OnlineSharedUndoIntentV1,
@@ -92,7 +93,35 @@ function combatDamageStateFixture(): OnlineVariableProtocolStateV2 {
   return createOnlineVariableProtocolStateV2({ serverBuildId: initial.serverBuildId, room: initial.room, coreRoot });
 }
 
+function disconnectSeat(state: OnlineVariableProtocolStateV2, seatIndex: number): OnlineVariableProtocolStateV2 {
+  const participantId = state.room.seats[seatIndex]?.participantId;
+  if (participantId === null || participantId === undefined) throw new Error('Missing participant fixture');
+  const checked = validateOnlineVariableProtocolStateV2({
+    ...state,
+    room: {
+      ...state.room,
+      participants: state.room.participants.map((participant) => participant.participantId === participantId
+        ? { ...participant, presence: 'disconnected' as const }
+        : participant),
+    },
+  });
+  if (!checked.ok) throw new Error('Invalid disconnected fixture');
+  return checked.value;
+}
+
 describe('O4P-09G shared undo protocol', () => {
+  it('rejects every variable mutation path for a disconnected participant without state change', () => {
+    const initial = disconnectSeat(combatDamageStateFixture(), 3);
+    const before = JSON.stringify(initial);
+    const command = handleOnlineVariableCommandEnvelopeV2(initial, envelope(initial, 3, { kind: 'table-priority-hold', held: true }, 'disconnected-command'));
+    const undo = handleOnlineVariableSharedUndoIntentV2(initial, undoIntent(initial, 'disconnected-undo', initial.revision, 3), true);
+    const damage = handleOnlineVariableManualCombatDamageIntentV2(initial, damageIntent(initial, 'disconnected-damage', 'P1' as Core.CorePlayerId, 3), true);
+    for (const transition of [command, undo, damage]) {
+      expect(transition.response).toMatchObject({ kind: 'online-command-reject-v1', issues: [{ code: 'PARTICIPANT_NOT_CONNECTED' }] });
+      expect(JSON.stringify(transition.state)).toBe(before);
+    }
+  });
+
   it('accepts one shared rollback and closes stale, untrusted, reuse, and HOLD paths', () => {
     const initial = stateFixture();
     const activePlayerId = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;

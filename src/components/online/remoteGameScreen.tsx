@@ -5,7 +5,7 @@ import { GameCard } from '../game/GameCard';
 import type { DropIntent } from '../game/dragIntent';
 import type { GameState, PlayerId, ZoneId } from '../../engine/types';
 import type { CardDef, ManaColor } from '../../types/card';
-import type { OnlineParticipantProjectionV1, OnlineProjectedZoneEntryV1 } from '../../online/projection';
+import { onlineCanonicalDigestFromValueV1, type OnlineParticipantProjectionV1, type OnlineProjectedZoneEntryV1 } from '../../online/projection';
 import type { OnlineTabletopIntentEnvelopeV1, OnlineTabletopPrimitiveV1 } from '../../online/tabletopManual';
 import './remoteGameScreen.css';
 
@@ -27,6 +27,7 @@ export type RemoteGameScreenPortInput = Readonly<{
   readonly busy: boolean;
   readonly onSubmitTabletopIntent: SubmitTabletopIntent;
   readonly lastCommandSettlement?: RemoteCommandSettlementV1 | null;
+  readonly recoveryOutcome?: 'rejoined' | null;
   /** Optional server-bound shared undo callback; no snapshot crosses this boundary. */
   readonly onSubmitSharedUndo?: () => void | Promise<void>;
 }>;
@@ -742,6 +743,7 @@ export function RemoteGameScreenActionRail({
   busy,
   onSubmitTabletopIntent,
   lastCommandSettlement,
+  recoveryOutcome,
   port,
 }: RemoteGameScreenPortInput & Readonly<{ readonly port: GameScreenInteractionPort }>): ReactNode {
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
@@ -832,6 +834,11 @@ export function RemoteGameScreenActionRail({
   const postResolutionDelta = extras.recentResolution?.slice(0, 160) ?? null;
   const undoAuthorized = extras.undoAuthorizedPlayerId === local;
   const seatOutcomes = projection.room.seats.map((seat) => ({ playerId: seat.corePlayerId, outcome: seat.outcome }));
+  const disconnectedPlayerIds = projection.room.participants.flatMap((participant) => {
+    if (participant.role !== 'player' || participant.presence !== 'disconnected' || participant.seatIndex === null) return [];
+    const seat = projection.room.seats[participant.seatIndex];
+    return seat === undefined ? [] : [seat.corePlayerId];
+  });
   const outcomeLabel = (outcome: string): string => outcome === 'conceded' ? '投了' : outcome === 'defeated' ? '敗北' : '進行中';
   const connectionLabel = interactionState === 'ready' ? '接続済み' : interactionState === 'updating' ? '再同期中' : 'オフライン';
   const phaseLabel = projection.game.turn.position.phase === 'precombat-main'
@@ -850,6 +857,38 @@ export function RemoteGameScreenActionRail({
     ? ownHeld ? 'あなたがHOLD中' : '他プレイヤーがHOLD中'
     : 'HOLDなし';
   const publicSeatIds = projection.room.seats.map((seat) => seat.corePlayerId).join(',');
+  const sharedPublicDigest = onlineCanonicalDigestFromValueV1({
+    kind: 'remote-shared-public-projection-v1',
+    revision: projection.revision,
+    room: {
+      lifecycle: projection.room.lifecycle,
+      participants: projection.room.participants.flatMap((participant) => {
+        if (participant.role !== 'player' || participant.seatIndex === null) return [];
+        const seat = projection.room.seats[participant.seatIndex];
+        return seat === undefined ? [] : [{ playerId: seat.corePlayerId, presence: participant.presence }];
+      }),
+      seats: projection.room.seats.map((seat) => ({ playerId: seat.corePlayerId, outcome: seat.outcome })),
+    },
+    game: {
+      turn: projection.game.turn,
+      players: projection.game.players,
+      zones: {
+        byPlayer: projection.game.zones.byPlayer.map((group) => ({
+          playerId: group.playerId,
+          libraryCount: group.zones.library.count,
+          handCount: group.zones.hand.count,
+          graveyard: group.zones.graveyard,
+        })),
+        battlefield: projection.game.zones.battlefield,
+        stack: projection.game.zones.stack,
+        exile: projection.game.zones.exile,
+        command: projection.game.zones.command,
+      },
+      assistedPriority: projection.game.assistedPriority ?? null,
+      priorityHolds: projection.game.priorityHolds ?? [],
+      notes: projection.game.notes ?? [],
+    },
+  });
   const priorityHolds = priority?.holds ?? projection.game.priorityHolds?.map((hold) => hold.playerId) ?? [];
   const recentResolution = (projection.game.assistedPriority as unknown as Readonly<{
     readonly recentResolution?: Readonly<{ readonly objectId: string | null; readonly acceptedRevision: number }> | null;
@@ -862,6 +901,7 @@ export function RemoteGameScreenActionRail({
       data-projection-revision={projection.revision}
       data-public-seat-ids={publicSeatIds}
       data-local-player-id={local}
+      data-shared-public-digest={sharedPublicDigest}
       data-priority-holder-player-id={priority?.holderPlayerId ?? ''}
       data-priority-steward-player-id={priority?.stewardPlayerId ?? ''}
       data-priority-window-kind={priority?.windowKind ?? ''}
@@ -871,13 +911,26 @@ export function RemoteGameScreenActionRail({
     >
       <header className="online-remote-rail__header">
         <h2 id="online-remote-rail-title">共有テーブル</h2>
-        <span data-testid="online-remote-connection" role="status" aria-live="polite">{connectionLabel} / 更新 {projection.revision}</span>
+        <span
+          data-testid="online-remote-connection"
+          data-recovery-outcome={recoveryOutcome ?? ''}
+          role="status"
+          aria-live="polite"
+        >
+          {recoveryOutcome === 'rejoined' && '再接続しました / '}{connectionLabel} / 更新 {projection.revision}
+        </span>
       </header>
       <div className="online-remote-rail__state" data-testid="online-remote-state" aria-live="polite">
         <span>手番: {projection.game.turn.activePlayerId} / {phaseLabel}</span>
         <span>優先権: {priorityLabel}</span>
         <span data-testid="online-remote-hold-status">{holdLabel}</span>
         {priority?.stewardPlayerId && <span>steward: {priority.stewardPlayerId}</span>}
+        <span
+          data-testid="online-remote-presence"
+          data-disconnected-player-ids={disconnectedPlayerIds.join(',')}
+        >
+          {disconnectedPlayerIds.length === 0 ? '全席接続中' : `切断中: ${disconnectedPlayerIds.join(' / ')}`}
+        </span>
       </div>
       <div className="online-remote-rail__causal" data-testid="online-remote-causal" data-stack-count={projection.game.zones.stack.count} data-stack-top-object-id={stackTopObjectId ?? ''}>
         <span>スタック {projection.game.zones.stack.count}件</span>

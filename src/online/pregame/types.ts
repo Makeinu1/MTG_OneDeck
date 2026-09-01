@@ -60,6 +60,7 @@ export type OnlinePregameResponseIssueV1 = Readonly<{
     | 'INVALID_COMMAND'
     | 'ROOM_MISMATCH'
     | 'AUTHORIZATION_REJECTED'
+    | 'PARTICIPANT_NOT_CONNECTED'
     | 'STALE_REVISION'
     | 'COMMAND_ID_REUSE_MISMATCH'
     | 'INVALID_PHASE'

@@ -58,7 +58,7 @@ describe('review O4P-09I full-match production evidence', () => {
     expect(source).toContain('pageGeometries');
     expect(source).toContain('seatRects');
     expect(source).toContain('boardRects');
-    expect(source).toContain('recoveredPeers');
+    expect(source).toContain('recoveredProbes');
     expect(source).toContain('roomFingerprint');
     expect(source).toContain('MAX_DOM_SCAN_NODES_V1');
     expect(source).toContain('MAX_DOM_SCAN_ATTRIBUTES_V1');

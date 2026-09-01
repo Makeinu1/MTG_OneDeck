@@ -170,6 +170,22 @@ function abilityStewardState(): never {
 }
 
 describe('O4P-09D authoritative tabletop binder', () => {
+  it('rejects disconnected players before server entropy or command binding', () => {
+    let calls = 0;
+    const disconnected = state() as Record<string, unknown>;
+    disconnected.room = {
+      ...(disconnected.room as Record<string, unknown>),
+      participants: [{ participantId: 'player-one', role: 'player', presence: 'disconnected', seatIndex: 0 }],
+    };
+    expect(() => bindOnlineTabletopIntentOnServerV1({
+      state: disconnected as never,
+      participantId: 'player-one',
+      envelope: shuffle(),
+      randomize: (order) => { calls += 1; return order; },
+    })).toThrow('PARTICIPANT_NOT_CONNECTED');
+    expect(calls).toBe(0);
+  });
+
   it('does not draw entropy for a stale request', () => {
     let calls = 0;
     expect(() => bindOnlineTabletopIntentOnServerV1({ state: state(1), participantId: 'player-one', envelope: shuffle(), randomize: (order) => { calls += 1; return order; } })).toThrow();

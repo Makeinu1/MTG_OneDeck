@@ -38,6 +38,7 @@ export type {
   OnlineProjectionValidationResultV1,
 } from './types';
 export { validateOnlineProjectionRequestV1 } from './request';
+export { onlineCanonicalDigestFromValueV1 } from '../protocol/index';
 export {
   validateOnlineParticipantProjectionV1,
   validateOnlineParticipantProjectionV2,
