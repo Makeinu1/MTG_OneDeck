@@ -28,8 +28,14 @@ scope choice, or ambiguity needs adjudication.
    major CR semantics, or release/deploy infrastructure. Give the reviewer the
    relevant files and acceptance claim, not implementation history. Resolve
    findings before release; routine low-risk edits need no ceremonial audit.
-5. Once stable, run `npm run check` once. A correction requires rechecking only
-   claims invalidated by that correction and then the final check when needed.
+5. During development, repeat only relevant targeted tests. For an exact candidate
+   sent to the current deploy-pages CI, do not run local `npm run check`; CI's
+   `npm run check:release` (which runs `npm run check`, the forbidden-diff scan,
+   and the build) is the sole full-strength suite. Run local `npm run check` once
+   only for local-only completion, changes that do not use CI, or an explicit
+   request for local full assurance. If CI fails, fail closed without deploying;
+   fix the root cause, recheck only invalidated targeted evidence, push a new SHA,
+   and rerun CI. Never automatically retry an external write.
 
 ## Meaning and safety
 

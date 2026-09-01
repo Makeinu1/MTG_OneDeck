@@ -1,6 +1,6 @@
 ---
 name: mtg-onedeck-release
-description: Prepare or perform an authorized MTG OneDeck release through one local check, exact-SHA push/deploy, and one CI/Pages verification.
+description: Prepare or perform an authorized MTG OneDeck release through targeted local checks, exact-SHA push, and one CI/Pages verification.
 ---
 
 # MTG OneDeck release
@@ -15,18 +15,25 @@ the release tied to one exact commit.
    `git status`, `HEAD`, and the intended remote branch. Stop if the checkout is
    dirty, the commit is not the intended one, or commit/push/deploy authority is
    absent. Resolve any required review before continuing.
-2. **One read-only release check** — Without editing or staging files, inspect
-   the release diff and run the repository's final check once (`npm run check`).
-   Record its result. If a correction changes a checked claim, recheck that
-   claim and perform the final check again; do not repeat it for reporting only.
-3. **Exact-SHA push/deploy** — Only with explicit authority, commit the named
-   files, push the exact verified SHA to the intended branch, and deploy through
-   the repository's configured path. Stop before any external write when
-   authority or the exact SHA is unclear.
+2. **Targeted pre-push validation** — Without editing or staging files, inspect
+   the release diff and repeat only relevant targeted tests. For an exact
+   candidate sent to the current deploy-pages CI, do not run local `npm run
+   check`; CI's `npm run check:release` runs `npm run check`, the forbidden-diff
+   scan, and the build, and is the sole full-strength suite. A local-only
+   completion, a change that does not use CI, or an explicit request for local
+   full assurance may run local `npm run check` once. If a correction changes a
+   checked claim, recheck only the invalidated targeted evidence.
+3. **Exact-SHA push** — Only with explicit authority, commit the named files and
+   push the exact candidate SHA to the intended branch; the repository's
+   configured CI path gates and performs the Pages deploy. Because the repository
+   deploys from a direct push to `main`, this CI is a deploy gate rather than a
+   pre-merge branch gate. Stop before any external write when authority or the
+   exact SHA is unclear.
 4. **Verify once** — Inspect the matching CI run, Pages HTTP response, and served
-   asset/version once. Report success or the concrete failure. Do not claim a
-   release from local checks alone, and do not retry external writes without a
-   new, explicit decision.
+   asset/version once. CI failure is fail-closed: do not deploy or automatically
+   retry an external write. Stop, fix the root cause, recheck only invalidated
+   targeted evidence, push a new SHA with authority, and rerun CI. Report
+   success or the concrete failure; do not claim a release from local checks alone.
 
 ## Resume
 

@@ -57,8 +57,13 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
   新test frameworkやtest infrastructureを作らない。要求されていない境界をtestしない。
 - 追加前に「どのacceptanceを証明するか」「既存testが見逃すregressionか」「実装より単純か」
   を答える。test codeが実装より長い・複雑なら過剰設計として、より小さい証明を選ぶ。
-- 実装が安定したら`npm run check`を一度実行する。失敗時はroot causeを直し、無効になった
-  主張だけを再確認してから必要な最終checkを行う。無関係な証拠をやり直して緑を水増ししない。
+- 開発中は関連する targeted tests のみを反復する。exact candidate を現行CIへ送るreleaseでは
+  localの`npm run check`を実行せず、`.github/workflows/deploy-pages.yml`の
+  `npm run check:release`（`npm run check`、forbidden diff scan、buildを含む）を唯一の
+  full-strength gateとする。CI failureはfail-closedでdeployせず停止し、root cause修正後は
+  無効になったtargeted evidenceだけを再確認して新しいSHAをpushしCIを再実行する。外部writeの
+  自動retryはしない。local-only completion、CIを使わない変更、またはlocal full assuranceの
+  明示要求の場合だけ、localの`npm run check`を一度実行してよい。
 
 ## エンジンと CR
 
@@ -75,9 +80,10 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
 
 ## 完了の定義
 
-プレイヤー成果が契約どおりに得られ、必要な targeted tests と一度の `npm run check` が
-緑で、該当する独立レビューが HIGH/BLOCKER なしで、権限のない外部書込みを行っていない
-こと。完了前に、意図とacceptanceを満たす最小解であること、変更fileが必要最小限であること、
+プレイヤー成果が契約どおりに得られ、必要な targeted tests と選択した検証経路（現行CIへ
+exact SHAを送るreleaseならCIの full-strength gate、local-only completion等なら必要に応じた
+一度のlocal `npm run check`）が緑で、該当する独立レビューが HIGH/BLOCKER なしで、権限のない
+外部書込みを行っていないこと。完了前に、意図とacceptanceを満たす最小解であること、変更fileが必要最小限であること、
 新規testが現在のbehaviorだけを固定していること、依存・余分なdirectory・debug code・第二実装が
 残っていないことを確認する。作業を大きく見せるための追加作業はせず、変更・検証・defer・
 未解決点を簡潔に報告する。
