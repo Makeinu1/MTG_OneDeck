@@ -25,9 +25,9 @@ export default defineConfig({
           name: 'dom',
           include: configDefaults.include,
           environment: 'jsdom',
-          // Visual-fixture suites build large jsdom trees. Keep this lane serial so their
-          // assertion timeouts do not become machine-load dependent.
-          fileParallelism: false,
+          // Bound jsdom workers so visual fixtures cannot consume the whole host.
+          fileParallelism: true,
+          maxWorkers: '50%',
           exclude: [...configDefaults.exclude, '.claude/**', 'src/engine/**'],
         },
       },
