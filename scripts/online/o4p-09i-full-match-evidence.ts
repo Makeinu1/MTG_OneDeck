@@ -1460,18 +1460,24 @@ async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, timeoutMs: number
 }
 
 async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: number): Promise<void> {
-  await Promise.race([
-    page.evaluate<boolean>(`(() => {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error(`details ${testId} timeout`);
+    const opened = await Promise.race([
+      page.evaluate<boolean>(`(() => { // detailsPanelReadyProbe:${testId}
       const details = document.querySelector('[data-testid="${testId}"]');
-      if (!(details instanceof HTMLDetailsElement)) throw new Error('visible details missing');
+      if (!(details instanceof HTMLDetailsElement)) return false;
       const style = getComputedStyle(details); const rect = details.getBoundingClientRect();
-      if (details.hidden || details.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0) throw new Error('visible details hidden');
+      if (details.hidden || details.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0) return false;
       if (!details.open) details.querySelector('summary')?.click();
-      if (!details.open) throw new Error('visible details did not open');
-      return true;
+      return details.open;
     })()`),
-    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`details ${testId} timeout`)), timeoutMs)),
-  ]);
+      new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`details ${testId} timeout`)), remaining)),
+    ]);
+    if (opened) return;
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
 }
 
 async function manualStackControlEnabled(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iActorProbeV1> {

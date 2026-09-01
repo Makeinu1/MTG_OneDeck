@@ -62,6 +62,7 @@ type FakeOptions = Readonly<{
   readonly asyncStartProbe?: boolean;
   readonly pregameReadyRevisionMissing?: boolean;
   readonly pregameTerminalSurfaceFailure?: boolean;
+  readonly delayedDetailsMount?: boolean;
   readonly manualStackEnabledSeat?: number;
   readonly manualStackEnabledSeats?: readonly number[];
   readonly manualResolveEnabledSeats?: readonly number[];
@@ -121,6 +122,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let startClicks = 0;
     let startedSurfaceProbes = 0;
     let lobbyReadyProbes = 0;
+    let detailsProbes = 0;
     let authoritativeRejoined = false;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
     const seatIndex = scenarioIndex === 0 ? contextOrdinal : contextOrdinal - 2;
@@ -171,6 +173,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       }
       if (expression.includes('pregameTerminalSurfaceProbe')) {
         return Promise.resolve((options.pregameReadyRevisionMissing === true && options.pregameTerminalSurfaceFailure !== true) as T);
+      }
+      if (expression.includes('detailsPanelReadyProbe:')) {
+        detailsProbes += 1;
+        return Promise.resolve((options.delayedDetailsMount !== true || detailsProbes > 1) as T);
       }
       if (expression.includes('priorityControlProbe:online-tabletop-submit-stack-entry')) {
         if (options.manualStackEnabledProbeNeverSettles === true) return new Promise<T>(() => {});
@@ -606,6 +612,16 @@ describe('O4P-09I full-match production evidence', () => {
     const synthetic = await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser([]), readDeck: () => 'fixture deck', timeoutMs: 250 });
     expect(synthetic.kind).toBe('o4p-09i-full-match-test-evidence-v1');
     await expect(runO4p09iFullMatchEvidenceProductionV1({ browser: fakeBrowser([]), readDeck: () => 'fixture deck', timeoutMs: 250 })).rejects.toThrow('production evidence does not accept injected seams');
+  });
+
+  it('waits for a delayed production panel mount within the existing deadline', async () => {
+    const expressions: string[] = [];
+    await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { delayedDetailsMount: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250
+    });
+    expect(expressions.filter((expression) => expression.includes('detailsPanelReadyProbe:')).length).toBeGreaterThan(1);
   });
 
   it('provides four distinct non-sensitive 100-card public deck inputs', () => {
