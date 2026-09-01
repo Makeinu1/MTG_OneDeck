@@ -25,9 +25,9 @@ export default defineConfig({
           name: 'dom',
           include: configDefaults.include,
           environment: 'jsdom',
-          // Bound jsdom workers so visual fixtures cannot consume the whole host.
+          // Two jsdom workers retain parallelism without starving fixed-time architecture checks.
           fileParallelism: true,
-          maxWorkers: '50%',
+          maxWorkers: 2,
           exclude: [...configDefaults.exclude, '.claude/**', 'src/engine/**'],
         },
       },

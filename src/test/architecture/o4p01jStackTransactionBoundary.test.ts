@@ -469,7 +469,7 @@ describe('O4P-01J-L atomic stack transaction architecture boundary', () => {
     const units = collectProductionUnits(sourceRoot);
     const program = createProgramFromUnits(units);
     expect(analyzeProgram(program, units)).toEqual([]);
-  });
+  }, 10_000);
 
   it('uses Compiler API AST traversal for every import form and returns all violations in fixed order', () => {
     const units = fixtureUnits();
