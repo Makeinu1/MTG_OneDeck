@@ -1751,7 +1751,8 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
       }
       if (leakScanNodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) leakScanComplete = false;
       const remoteRail = document.querySelector('[data-testid="online-remote-game-rail"]');
-      const revision = Number(remoteRail?.getAttribute('data-projection-revision') ?? '-1');
+      const pregameRevision = document.querySelector('[data-testid="online-pregame-revision"]');
+      const revision = Number(remoteRail?.getAttribute('data-projection-revision') ?? pregameRevision?.getAttribute('data-projection-revision') ?? '-1');
       const outcomeText = document.querySelector('[data-testid="online-remote-outcome"]')?.textContent ?? '';
       const publicPlayerIds = remoteRail?.hasAttribute('data-public-seat-ids') ? (remoteRail.getAttribute('data-public-seat-ids') ?? '').split(',').filter(Boolean) : undefined;
       const localPlayerId = remoteRail?.hasAttribute('data-local-player-id') ? remoteRail.getAttribute('data-local-player-id') || null : undefined;

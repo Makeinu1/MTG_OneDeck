@@ -120,7 +120,7 @@ export function PregameLayer({ port }: Readonly<{ readonly port: OnlinePregamePr
             <p className="pregame-layer__eyebrow">COMMANDER PREGAME</p>
             <h1 id="pregame-title">{phaseLabels[projection.phase]}</h1>
           </div>
-          <span aria-live="polite" data-testid="online-pregame-revision">更新 {projection.revision}</span>
+          <span aria-live="polite" data-testid="online-pregame-revision" data-projection-revision={projection.revision}>更新 {projection.revision}</span>
         </header>
 
         <section className="pregame-layer__order" aria-label="開始プレイヤーとターン順">

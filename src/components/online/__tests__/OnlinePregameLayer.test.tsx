@@ -90,6 +90,7 @@ describe('PregameLayer', () => {
   it('exposes a stable revision marker for shared evidence probes', () => {
     const markup = renderToStaticMarkup(<PregameLayer port={port(projection('commander-reveal', P1))} />);
     expect(markup).toContain('data-testid="online-pregame-revision"');
+    expect(markup).toContain('data-projection-revision="3"');
     expect(markup).toContain('更新 3');
   });
 
