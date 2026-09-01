@@ -533,6 +533,11 @@ describe('O4P-09I full-match production evidence', () => {
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'advance' });
     expect(
       classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: advance/four-player-main1')
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'advance/four-player-main1' });
+    expect(
+      classifyO4p09iProductionFailureV1(
         new Error('production scenario stage failed: start-probe/start-pending')
       )
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'start-probe/start-pending' });

@@ -49,6 +49,10 @@ const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
   'manual-stack-probe': 'manual-stack-probe'
 } as const);
 
+const ADVANCE_FAILURE_STAGES = Object.freeze([
+  'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
+] as const);
+
 /** Normalize runner failures for the parent harness without exposing error text. */
 export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProductionFailureV1 {
   const message = error instanceof Error ? error.message : '';
@@ -71,6 +75,7 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
     const detail = scenario.slice(rootStage.length + 1);
     const stage = rootStage === 'start-probe' && (STARTED_SURFACE_FAILURES as readonly string[]).includes(detail)
       || rootStage === 'manual-stack' && (detail === 'entry' || detail === 'resolve')
+      || rootStage === 'advance' && (ADVANCE_FAILURE_STAGES as readonly string[]).includes(detail)
       ? scenario
       : rootStage;
     return Object.freeze({
@@ -2045,6 +2050,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let castObjectId: string | null = null;
   let manualStackPage: O4p09iPageV1 | null = null;
   let manualStackOperation: 'entry' | 'resolve' | null = null;
+  let advanceOperation: (typeof ADVANCE_FAILURE_STAGES)[number] | null = null;
   let chooseObserved = false;
   let crossSeatPrivateChoiceLeak = false;
   let stage: O4p09iScenarioStageV1 = 'import';
@@ -2165,7 +2171,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     for (const testId of UI_SEQUENCE) {
       if (testId === 'online-advance-to-main') {
         setStage('advance');
+        advanceOperation = playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
         await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl);
+        advanceOperation = null;
         recordControl(testId);
         continue;
       }
@@ -2228,7 +2236,10 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
           timeoutMs,
           secretFragments
         );
+        setStage('advance');
+        advanceOperation = playerCount === 2 ? 'two-player-combat' : 'four-player-combat';
         await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl);
+        advanceOperation = null;
         recordControl(testId);
         continue;
       }
@@ -2447,6 +2458,10 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       );
     if (failedStage === 'manual-stack' && manualStackOperation !== null)
       throw new Error(`production scenario stage failed: manual-stack/${manualStackOperation}`, {
+        cause: error
+      });
+    if (failedStage === 'advance' && advanceOperation !== null)
+      throw new Error(`production scenario stage failed: advance/${advanceOperation}`, {
         cause: error
       });
     throw new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
