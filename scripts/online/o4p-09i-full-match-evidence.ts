@@ -2082,7 +2082,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let manualStackPage: O4p09iPageV1 | null = null;
   let manualStackOperation: 'entry' | 'resolve' | null = null;
   let advanceOperation: (typeof ADVANCE_FAILURE_STAGES)[number] | null = null;
-  let advanceCheckpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number] | null = null;
+  const advanceCheckpoint: { value: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number] | null } = { value: null };
   let chooseObserved = false;
   let crossSeatPrivateChoiceLeak = false;
   let stage: O4p09iScenarioStageV1 = 'import';
@@ -2204,9 +2204,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       if (testId === 'online-advance-to-main') {
         setStage('advance');
         advanceOperation = playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
-        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint = checkpoint; });
+        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint.value = checkpoint; });
         advanceOperation = null;
-        advanceCheckpoint = null;
+        advanceCheckpoint.value = null;
         recordControl(testId);
         continue;
       }
@@ -2271,9 +2271,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         );
         setStage('advance');
         advanceOperation = playerCount === 2 ? 'two-player-combat' : 'four-player-combat';
-        await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint = checkpoint; });
+        await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint.value = checkpoint; });
         advanceOperation = null;
-        advanceCheckpoint = null;
+        advanceCheckpoint.value = null;
         recordControl(testId);
         continue;
       }
@@ -2495,7 +2495,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         cause: error
       });
     if (failedStage === 'advance' && advanceOperation !== null)
-      throw new Error(`production scenario stage failed: advance/${advanceOperation}${advanceCheckpoint === null ? '' : `/${advanceCheckpoint}`}`, {
+      throw new Error(`production scenario stage failed: advance/${advanceOperation}${advanceCheckpoint.value === null ? '' : `/${advanceCheckpoint.value}`}`, {
         cause: error
       });
     throw new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
