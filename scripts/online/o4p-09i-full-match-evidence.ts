@@ -1468,10 +1468,14 @@ async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: numb
       page.evaluate<boolean>(`(() => { // detailsPanelReadyProbe:${testId}
       const details = document.querySelector('[data-testid="${testId}"]');
       if (!(details instanceof HTMLDetailsElement)) return false;
+      if (!details.open) {
+        const link = [...document.querySelectorAll('a[href]')].find((node) =>
+          node instanceof HTMLAnchorElement && node.getAttribute('href') === '#${testId}'
+        );
+        link?.click();
+      }
       const style = getComputedStyle(details); const rect = details.getBoundingClientRect();
-      if (details.hidden || details.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0) return false;
-      if (!details.open) details.querySelector('summary')?.click();
-      return details.open;
+      return details.open && !details.hidden && details.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
     })()`),
       new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`details ${testId} timeout`)), remaining)),
     ]);
