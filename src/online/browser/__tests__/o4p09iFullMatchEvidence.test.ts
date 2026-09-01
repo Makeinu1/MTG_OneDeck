@@ -37,6 +37,7 @@ type FakeOptions = Readonly<{
   readonly overflow?: number;
   readonly stagnantRevision?: boolean;
   readonly stagnantPhase?: boolean;
+  readonly twoPlayerActionsBeforeMain?: number;
   readonly fourPlayerActionsBeforeMain?: number;
   readonly missingWinner?: boolean;
   readonly missingWorker?: boolean;
@@ -373,8 +374,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true')) {
         progressActionCounts[scenarioIndex] += 1;
         progressWindows[scenarioIndex] = 'advance';
-        const actionsRequired = scenarioIndex === 1 && progressCompletions[scenarioIndex] === 0
-          ? options.fourPlayerActionsBeforeMain ?? 2
+        const actionsRequired = progressCompletions[scenarioIndex] === 0
+          ? scenarioIndex === 0
+            ? options.twoPlayerActionsBeforeMain ?? 2
+            : options.fourPlayerActionsBeforeMain ?? 2
           : 2;
         if (options.stagnantPhase !== true && progressActionCounts[scenarioIndex] >= actionsRequired) {
           sharedPhases[scenarioIndex] = progressCompletions[scenarioIndex] === 0 ? 'main1' : 'combat';
@@ -758,13 +761,14 @@ describe('O4P-09I full-match production evidence', () => {
     ).toBe(true);
   });
 
-  it('keeps bounded four-player progress running through all fourteen actions before main', async () => {
+  it('keeps bounded production progress running through ten two-player and fourteen four-player actions before main', async () => {
     const expressions: string[] = [];
     const summary = await runO4p09iFullMatchEvidenceV1({
-      browser: fakeBrowser(expressions, { fourPlayerActionsBeforeMain: 14 }),
+      browser: fakeBrowser(expressions, { twoPlayerActionsBeforeMain: 10, fourPlayerActionsBeforeMain: 14 }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250
     });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
     expect(summary.scenarios.fourPlayer.playerCount).toBe(4);
     const firstProgressClick = expressions.findIndex((expression) =>
       expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')
@@ -776,6 +780,7 @@ describe('O4P-09I full-match production evidence', () => {
     expect(expressions.slice(lastActorProbe + 1, firstProgressClick).some((expression) =>
       expression.includes('const root = document.documentElement')
     )).toBe(false);
+    expect(expressions[firstProgressClick + 1]).toContain('priorityControlProbe:online-remote-advance');
   });
 
   it('fails closed when more than one seat exposes the advance actor control', async () => {

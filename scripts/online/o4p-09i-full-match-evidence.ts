@@ -1602,6 +1602,23 @@ async function waitForRevisionAdvance(page: O4p09iPageV1, workerOrigin: string, 
   }
 }
 
+async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string, baseline: number, timeoutMs: number): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error('visible progress acknowledgement timeout');
+    let probe: O4p09iActorProbeV1;
+    try {
+      probe = await actorControlProbe(page, testId, Math.min(1_000, remaining), `${testId} acknowledgement timeout`);
+    } catch (error) {
+      rethrowProductionEnvironmentFailure(error, 'progress-probe');
+      throw error;
+    }
+    if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(50, Math.max(1, deadline - Date.now()))));
+  }
+}
+
 /**
  * Pregame's final ready click can unmount the pregame layer before the normal
  * revision marker is rendered on the started surface.  Preserve the strict
@@ -1674,8 +1691,7 @@ async function advanceUntilPhase(
     );
     const actionTimeoutMs = Math.min(timeoutMs, Math.max(250, deadline - Date.now()));
     await clickVisible(actor.page, actor.testId, actionTimeoutMs);
-    await waitForRevisionAdvance(
-      actor.page, workerOrigin, actor.revision, actionTimeoutMs, secretFragments);
+    await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actionTimeoutMs);
     recordControl(actor.testId);
   }
   throw new Error(`phase target ${targetPhase} not reached`);
