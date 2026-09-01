@@ -264,7 +264,7 @@ iter1 の adjudication から裁定した系統的ギャップ3つをカタロ�
 ④再抽出して churn と不一致率の低下を確認。**これは分類器(compiler)修正を伴うため次反復(Codex)で実施**。
 
 ### iter4 裁定(2026-06-23・改善ループ)— 帰属確定 + 分類器修正
-正本 = [`research/llm-oracle/adjudication.json`](../research/llm-oracle/adjudication.json)(Fable 裁定・oracleId キー)。
+正本 = [`research/archive/llm-oracle/adjudication.json`](../research/archive/llm-oracle/adjudication.json)(Fable 裁定・oracleId キー)。
 iter1 の暫定読みを per-card で確定し、**§7 一変数(物差し=LLM予測を凍結・ルール=分類器のみ改変)**で修正へ繋ぐ。
 
 **帰属分布(§4-2 KPI 初確定・35件)**: `compiler 21 / oracle 9 / ambiguous 5 / substrate 0`。
@@ -506,7 +506,7 @@ cast 列挙型 FN を `scripts/lib/eventClassify.ts` で閉鎖(`castEnumeratedSp
 
 ### 物差し iter1 結果(M0-O2・LLM-oracle 盲予測・2026-06-23・監査合格)
 契約 = [`oracle-harness.md`](oracle-harness.md) §7。別主体(gpt-5-codex clean-room)が oracleText のみから族/観測者/介在条件を盲予測 →
-`eventClassify` と3軸独立集合差で比較。正本 = [`research/event-oracle/adjudication.json`](../research/event-oracle/adjudication.json)。機械4点緑(Fable 独立)+ `review.event-oracle` 16/16 + 全 760 緑。
+`eventClassify` と3軸独立集合差で比較。正本 = [`research/archive/event-oracle/adjudication.json`](../research/archive/event-oracle/adjudication.json)。機械4点緑(Fable 独立)+ `review.event-oracle` 16/16 + 全 760 緑。
 - **KPI(サンプル203)**: familyDiscrepancyRate **10.84%** / observerDiscrepancyRate **18.23%** / interveningIfDiscrepancyRate **0%** / unverifiableRate **0%**。
   ゴールド校正 = supported 全族で **precision=recall=100%**(物差しは人手 gold18 で完全校正)。
 - **帰属(46不一致)**: `substrate 0 / compiler 21 / oracle 24 / ambiguous 1`。**substrate 0 = スライス2 ESO(族/観測者/介在条件の3軸)は健全**。介在条件は完全一致で state 次元の欠落なし。

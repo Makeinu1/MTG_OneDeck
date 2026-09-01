@@ -30,7 +30,7 @@ function requireFile(path, label) {
 
 function localLinks(path) {
   const text = readFileSync(path, 'utf8');
-  for (const match of text.matchAll(/\[[^]]*\]\(([^)]+)\)/g)) {
+  for (const match of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
     const raw = match[1].trim();
     const target = raw.split(/[?#]/, 1)[0];
     if (!target || /^(?:https?:|mailto:|#)/.test(target)) continue;
@@ -351,6 +351,7 @@ function run() {
   checkLegacyInventory(inventory, clauseIds, new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id)));
   for (const path of [
     join(root, 'README.md'), join(root, 'docs/README.md'), join(root, 'docs/acceptance.md'), join(root, 'docs/engine-spec.md'),
+    join(root, 'docs/engine-state-ontology.md'),
     ...((manifest?.contracts ?? []).map((entry) => join(root, entry.path)).filter((path) => extname(path) === '.md')),
   ]) if (existsSync(path)) localLinks(path);
   const generated = execFileSync(process.execPath, [join(root, 'scripts/checks/generate-engine-api.mjs'), '--check'], { encoding: 'utf8' });
