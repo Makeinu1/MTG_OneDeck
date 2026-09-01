@@ -983,6 +983,7 @@ describe('O4P-09I full-match production evidence', () => {
 
   it.each([
     [{ missingControl: 'online-create-shared' }, 'production scenario stage failed: create-room'],
+    [{ missingControl: 'online-invite-link-copy' }, 'production scenario stage failed: create-room'],
     [{ missingControl: 'online-remote-hold' }, 'production scenario stage failed: HOLD-pass-resolve'],
   ] as const)('reports only the finite scenario stage for a UI failure', async (options, message) => {
     await expect(runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser([], options), readDeck: () => 'fixture deck', timeoutMs: 250 })).rejects.toThrow(message);

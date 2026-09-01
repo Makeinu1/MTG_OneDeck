@@ -2071,6 +2071,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (lobby.gameScreens > 1 || lobby.overflow !== 0 || lobby.opponentLeak || lobby.consoleErrors !== 0) throw new Error('production lobby probe failed');
     setStage('create-room');
     await clickVisible(hostPage, 'online-create-shared', timeoutMs); recordControl('online-create-shared');
+    await waitForVisible(hostPage, 'online-invite-link-copy', timeoutMs);
     setStage('reveal-invite');
     await clickButtonByText(hostPage, 'コードを表示', timeoutMs);
     setStage('read-invite');
