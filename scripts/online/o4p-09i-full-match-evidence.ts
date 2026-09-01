@@ -1669,8 +1669,10 @@ async function advanceUntilPhase(
       pages,
       Math.min(timeoutMs, Math.max(250, deadline - Date.now()))
     );
-    await clickAndAwaitRevision(
-      actor.page, actor.testId, workerOrigin, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments);
+    const actionTimeoutMs = Math.min(timeoutMs, Math.max(250, deadline - Date.now()));
+    await clickVisible(actor.page, actor.testId, actionTimeoutMs);
+    await waitForRevisionAdvance(
+      actor.page, workerOrigin, actor.revision, actionTimeoutMs, secretFragments);
     recordControl(actor.testId);
   }
   throw new Error(`phase target ${targetPhase} not reached`);

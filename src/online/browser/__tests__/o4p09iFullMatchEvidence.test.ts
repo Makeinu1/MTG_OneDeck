@@ -753,12 +753,23 @@ describe('O4P-09I full-match production evidence', () => {
   });
 
   it('keeps bounded four-player progress running through all fourteen actions before main', async () => {
+    const expressions: string[] = [];
     const summary = await runO4p09iFullMatchEvidenceV1({
-      browser: fakeBrowser([], { fourPlayerActionsBeforeMain: 14 }),
+      browser: fakeBrowser(expressions, { fourPlayerActionsBeforeMain: 14 }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250
     });
     expect(summary.scenarios.fourPlayer.playerCount).toBe(4);
+    const firstProgressClick = expressions.findIndex((expression) =>
+      expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')
+    );
+    const lastActorProbe = expressions.slice(0, firstProgressClick).findLastIndex((expression) =>
+      expression.includes('priorityControlProbe:online-remote-')
+    );
+    expect(firstProgressClick).toBeGreaterThan(lastActorProbe);
+    expect(expressions.slice(lastActorProbe + 1, firstProgressClick).some((expression) =>
+      expression.includes('const root = document.documentElement')
+    )).toBe(false);
   });
 
   it('fails closed when more than one seat exposes the advance actor control', async () => {
