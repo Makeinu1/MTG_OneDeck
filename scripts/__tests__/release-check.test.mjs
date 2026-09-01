@@ -143,7 +143,7 @@ describe('release-check', () => {
     }
   });
 
-  test('preserves numeric check exit codes and skips forbidden after failure', () => {
+  test('preserves numeric check exit codes after a green forbidden scan', () => {
     const repo = repository();
     try {
       let forbiddenCalled = false;
@@ -158,7 +158,7 @@ describe('release-check', () => {
         },
       }));
       expect(result).toMatchObject({ exitCode: 17, stage: 'check' });
-      expect(forbiddenCalled).toBe(false);
+      expect(forbiddenCalled).toBe(true);
     } finally {
       rmSync(repo.cwd, { recursive: true, force: true });
     }
@@ -168,16 +168,22 @@ describe('release-check', () => {
     const repo = repository();
     try {
       let received;
+      let spawned = false;
       const result = runReleaseCheck(quietOptions({
         cwd: repo.cwd,
         base: repo.base,
         head: repo.head,
+        spawn: () => {
+          spawned = true;
+          return { status: 0 };
+        },
         forbidden: ({ diff }) => {
           received = diff;
           return 23;
         },
       }));
       expect(result).toMatchObject({ exitCode: 23, stage: 'forbidden', diff: received });
+      expect(spawned).toBe(false);
     } finally {
       rmSync(repo.cwd, { recursive: true, force: true });
     }

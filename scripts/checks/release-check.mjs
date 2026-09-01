@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Read-only release gate. It validates a clean checkout and exact HEAD, then
- * runs the ordinary semantic checks and the explicit-diff safety scan. The
+ * runs the explicit-diff safety scan before the ordinary semantic checks. The
  * gate never edits tracked files (build output remains the normal ignored
  * dist/ artifact).
  */
@@ -170,14 +170,14 @@ export function runReleaseCheck({
   assertCleanCheckout(cwd);
   const headSha = assertHead(cwd, head);
   const diff = resolveDiff(cwd, base, headSha);
-  const checkArgs = ['run', 'check'];
-  if (buildBase) checkArgs.push('--', `--build-base=${buildBase}`);
-  const check = runChildStage('check', () => spawn('npm', checkArgs, { cwd, stdio: 'inherit', shell: false }), { error });
-  if (check.exitCode !== 0) return { exitCode: check.exitCode, stage: 'check', diff };
   if (diff) {
     const forbiddenExitCode = runForbiddenStage(forbidden, { cwd, diff }, { error });
     if (forbiddenExitCode !== 0) return { exitCode: forbiddenExitCode, stage: 'forbidden', diff };
   }
+  const checkArgs = ['run', 'check'];
+  if (buildBase) checkArgs.push('--', `--build-base=${buildBase}`);
+  const check = runChildStage('check', () => spawn('npm', checkArgs, { cwd, stdio: 'inherit', shell: false }), { error });
+  if (check.exitCode !== 0) return { exitCode: check.exitCode, stage: 'check', diff };
   try {
     assertCleanCheckout(cwd);
   } catch (cause) {
