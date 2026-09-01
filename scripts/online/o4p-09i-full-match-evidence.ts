@@ -52,6 +52,9 @@ const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
 const ADVANCE_FAILURE_STAGES = Object.freeze([
   'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
 ] as const);
+const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
+  'seat-convergence', 'actor-selection', 'click', 'revision-ack', 'target-convergence',
+] as const);
 
 /** Normalize runner failures for the parent harness without exposing error text. */
 export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProductionFailureV1 {
@@ -73,9 +76,14 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
   ) {
     const rootStage = scenario.split('/')[0] ?? 'journey';
     const detail = scenario.slice(rootStage.length + 1);
+    const advanceDetail = detail.split('/');
+    const safeAdvanceDetail = (ADVANCE_FAILURE_STAGES as readonly string[]).includes(advanceDetail[0] ?? '')
+      && (advanceDetail.length === 1
+        || advanceDetail.length === 2
+          && (ADVANCE_FAILURE_CHECKPOINTS as readonly string[]).includes(advanceDetail[1] ?? ''));
     const stage = rootStage === 'start-probe' && (STARTED_SURFACE_FAILURES as readonly string[]).includes(detail)
       || rootStage === 'manual-stack' && (detail === 'entry' || detail === 'resolve')
-      || rootStage === 'advance' && (ADVANCE_FAILURE_STAGES as readonly string[]).includes(detail)
+      || rootStage === 'advance' && safeAdvanceDetail
       ? scenario
       : rootStage;
     return Object.freeze({
@@ -1663,9 +1671,11 @@ async function waitForJourneyEvidence(page: O4p09iPageV1, playerCount: 2 | 4, wo
 }
 
 async function advanceUntilPhase(
-  pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void): Promise<O4p09iProbeV1> {
+  pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void,
+  setCheckpoint: (checkpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number]) => void): Promise<O4p09iProbeV1> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
+    setCheckpoint('seat-convergence');
     const snapshots = await Promise.all(
       pages.map((page) =>
         probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments)
@@ -1678,19 +1688,24 @@ async function advanceUntilPhase(
       (probe) => safeRevision(probe.revision) && probe.revision === current.revision
     );
     if (targetCount === snapshots.length && matchingRevision) return current;
-    if (Date.now() >= deadline) break;
     if (targetCount > 0 || !matchingRevision) {
+      setCheckpoint('target-convergence');
+      if (Date.now() >= deadline) break;
       await new Promise<void>((resolvePromise) =>
         setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
       );
       continue;
     }
+    setCheckpoint('actor-selection');
+    if (Date.now() >= deadline) break;
     const actor = await findProgressActorPage(
       pages,
       Math.min(timeoutMs, Math.max(250, deadline - Date.now()))
     );
     const actionTimeoutMs = Math.min(timeoutMs, Math.max(250, deadline - Date.now()));
+    setCheckpoint('click');
     await clickVisible(actor.page, actor.testId, actionTimeoutMs);
+    setCheckpoint('revision-ack');
     await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actionTimeoutMs);
     recordControl(actor.testId);
   }
@@ -2067,6 +2082,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let manualStackPage: O4p09iPageV1 | null = null;
   let manualStackOperation: 'entry' | 'resolve' | null = null;
   let advanceOperation: (typeof ADVANCE_FAILURE_STAGES)[number] | null = null;
+  let advanceCheckpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number] | null = null;
   let chooseObserved = false;
   let crossSeatPrivateChoiceLeak = false;
   let stage: O4p09iScenarioStageV1 = 'import';
@@ -2188,8 +2204,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       if (testId === 'online-advance-to-main') {
         setStage('advance');
         advanceOperation = playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
-        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl);
+        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint = checkpoint; });
         advanceOperation = null;
+        advanceCheckpoint = null;
         recordControl(testId);
         continue;
       }
@@ -2254,8 +2271,9 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         );
         setStage('advance');
         advanceOperation = playerCount === 2 ? 'two-player-combat' : 'four-player-combat';
-        await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl);
+        await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint = checkpoint; });
         advanceOperation = null;
+        advanceCheckpoint = null;
         recordControl(testId);
         continue;
       }
@@ -2477,7 +2495,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         cause: error
       });
     if (failedStage === 'advance' && advanceOperation !== null)
-      throw new Error(`production scenario stage failed: advance/${advanceOperation}`, {
+      throw new Error(`production scenario stage failed: advance/${advanceOperation}${advanceCheckpoint === null ? '' : `/${advanceCheckpoint}`}`, {
         cause: error
       });
     throw new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
