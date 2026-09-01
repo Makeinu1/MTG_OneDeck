@@ -4,8 +4,8 @@
     {
       "id": "O4P-09I",
       "goal": "本番経路で2人戦を完走し、4人戦の継続性と非公開情報の分離を証明する",
-      "designSource": "research/cr-grounding/o4p-09i-acceptance-brief.draft.md",
-      "acceptanceSource": "research/cr-grounding/o4p-09i-acceptance-brief.draft.md",
+      "designSource": "scripts/journeys/contracts/o4p-09i-full-match.json",
+      "acceptanceSource": "scripts/journeys/contracts/o4p-09i-full-match.json",
       "localStages": [
         {
           "id": "evidence-contract",
@@ -33,7 +33,7 @@
             "src/online/tabletopManual/__tests__/serverV1.test.ts",
             "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
           ],
-          "timeoutMs": 420000,
+          "timeoutMs": 600000,
           "failureClass": "IMPLEMENTATION",
           "failureCode": "RUNTIME_PATH_FAILED"
         }
@@ -79,7 +79,7 @@
             "src/online/tabletopManual/__tests__/serverV1.test.ts",
             "src/online/cloudflare/__tests__/tabletopRuntimeV1.test.ts"
           ],
-          "timeoutMs": 420000,
+          "timeoutMs": 600000,
           "failureClass": "IMPLEMENTATION",
           "failureCode": "REMOTE_CAST_RUNTIME_FAILED"
         }

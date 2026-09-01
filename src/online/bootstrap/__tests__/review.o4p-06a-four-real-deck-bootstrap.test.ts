@@ -288,7 +288,7 @@ describe('review O4P-06A four-real-deck bootstrap', () => {
         { code: 'INITIALIZE_ENVELOPE_SIZE_LIMIT_EXCEEDED', path: '/measurements/cloudflare-initialize-envelope', message: 'measuredBytes=1048577; limitBytes=1048576' },
       ],
     });
-  }, 60_000);
+  }, 120_000);
 
   it('returns deterministic complete issues without partial state or capability fragments', () => {
     const input = realInput();

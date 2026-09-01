@@ -27,6 +27,7 @@ export const JOURNEY_FAILURE_CLASSES = Object.freeze([
 
 export const JOURNEY_NEXT_ACTIONS = Object.freeze([
   'RUN_LOCAL',
+  'STAGE_CANDIDATE',
   'RETURN_TO_DESIGN',
   'FIX_PRODUCT',
   'REPAIR_EVIDENCE',
@@ -563,12 +564,24 @@ function readCurrentFingerprint(reader) {
   }
 }
 
+function candidateIndexAligned(cwd) {
+  const unstaged = spawnSync('git', ['diff', '--quiet', '--'], { cwd, stdio: 'ignore' });
+  if (unstaged.status !== 0) return false;
+  const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  return untracked.status === 0 && untracked.stdout.length === 0;
+}
+
 export function inspectJourneyCandidate({
   cwd = DEFAULT_ROOT,
   base,
   collectChanges = collectChangedFiles,
   resolveDomains = resolveDomainSelection,
   fingerprint = candidateFingerprint,
+  indexAligned = candidateIndexAligned,
 } = {}) {
   const changes = collectChanges({ cwd, base });
   const domains = resolveDomains({ root: cwd, files: changes.files });
@@ -579,6 +592,7 @@ export function inspectJourneyCandidate({
     changedFiles: Object.freeze([...changes.files]),
     selectedDomains: Object.freeze([...domains.selectedDomains]),
     escalation: domains.escalation,
+    indexAligned: indexAligned(cwd),
   });
 }
 
@@ -622,6 +636,22 @@ export function runJourneyTurn({
       completedStages: Object.freeze([]),
       failure: design.failure,
       nextAction: design.failure.nextAction,
+    });
+  }
+  if (candidate.indexAligned !== true) {
+    const failure = fixedFailure({
+      failureClass: 'AUTHORITY',
+      code: 'CANDIDATE_INDEX_NOT_ALIGNED',
+      stage: 'candidate-freeze',
+      evidence: ['candidate:index-not-aligned'],
+      nextAction: 'STAGE_CANDIDATE',
+    });
+    return Object.freeze({
+      ...baseResult,
+      status: failure.status,
+      completedStages: Object.freeze([]),
+      failure,
+      nextAction: failure.nextAction,
     });
   }
   if (phase === 'inspect')

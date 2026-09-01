@@ -52,6 +52,7 @@ const candidate = Object.freeze({
   changedFiles: Object.freeze(['scripts/journeys/journey-harness.mjs']),
   selectedDomains: Object.freeze(['build-tooling']),
   escalation: 'full',
+  indexAligned: true,
 });
 
 describe('journey harness', () => {
@@ -118,6 +119,30 @@ describe('journey harness', () => {
         '--journey', 'O4P-CAST-PILOT', '--sequence', 'O4P-REMOTE-PILOT-V1',
       ], { cwd, write: vi.fn(), error })).toBe(2);
       expect(error).toHaveBeenCalledWith(expect.stringContaining('mutually exclusive'));
+    } finally { rmSync(cwd, { recursive: true, force: true }); }
+  });
+
+  test('stops the remote pilot sequence at the first local execution failure', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'onedeck-sequence-failure-'));
+    try {
+      const registry = sequenceFixture(cwd);
+      const spawn = vi.fn()
+        .mockReturnValueOnce({ status: 0, signal: null, error: null, stdout: '', stderr: '' })
+        .mockReturnValueOnce({ status: 1, signal: null, error: null, stdout: '', stderr: '' });
+      const result = runRemotePilotSequence({
+        registry, phase: 'local', candidate, cwd, localSandboxExecutable: '/sandbox-exec',
+        currentFingerprint: () => candidate.fingerprint, spawn,
+      });
+      expect(spawn).toHaveBeenCalledTimes(2);
+      expect(result).toMatchObject({
+        status: 'failed',
+        failedJourneyId: 'O4P-HOLD-RESPONSE-RESOLVE',
+        completedJourneys: ['O4P-CAST-PILOT'],
+      });
+      expect(result.journeys.map((entry) => entry.journeyId)).toEqual([
+        'O4P-CAST-PILOT',
+        'O4P-HOLD-RESPONSE-RESOLVE',
+      ]);
     } finally { rmSync(cwd, { recursive: true, force: true }); }
   });
 
@@ -210,12 +235,22 @@ describe('journey harness', () => {
           escalation: candidate.escalation,
         }),
         fingerprint: () => candidate.fingerprint,
+        indexAligned: () => true,
       });
     expect(inspect()).toEqual(inspect());
     expect(runJourneyTurn({ journey, phase: 'inspect', candidate: inspect() })).toMatchObject({
       status: 'ready',
       nextAction: 'RUN_LOCAL',
       failure: null,
+    });
+    expect(runJourneyTurn({
+      journey,
+      phase: 'inspect',
+      candidate: { ...candidate, indexAligned: false },
+    })).toMatchObject({
+      status: 'blocked',
+      nextAction: 'STAGE_CANDIDATE',
+      failure: { class: 'AUTHORITY', code: 'CANDIDATE_INDEX_NOT_ALIGNED' },
     });
   });
 

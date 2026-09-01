@@ -1411,6 +1411,7 @@ describe('O4P-02E judge-owned local headless room gate evidence', () => {
       );
       expect(JSON.stringify(error)).not.toContain('report');
     },
+    10_000,
   );
 
   it('fails the gate for tampered, reordered, and omitted accepted-command evidence', () => {

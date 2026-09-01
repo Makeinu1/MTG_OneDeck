@@ -7,6 +7,8 @@ const HARNESS = resolve(ROOT, 'scripts/online/o4p-09i-full-match-evidence.ts');
 const TS_CONFIG = resolve(ROOT, 'scripts/online/tsconfig.json');
 const PACKAGE = resolve(ROOT, 'package.json');
 const BRIEF = resolve(ROOT, 'research/cr-grounding/o4p-09i-acceptance-brief.draft.md');
+const CONTRACT = resolve(ROOT, 'scripts/journeys/contracts/o4p-09i-full-match.json');
+const REGISTRY = resolve(ROOT, 'scripts/journeys/registry.json');
 const CDP = resolve(ROOT, 'scripts/online/o4p-06f-four-browser-evidence.ts');
 
 function text(path: string): string { return readFileSync(path, 'utf8'); }
@@ -17,9 +19,17 @@ function evaluatedPayloads(source: string): readonly string[] {
 }
 
 describe('review O4P-09I full-match production evidence', () => {
-  it('registers only the bounded evidence harness and acceptance brief', () => {
+  it('registers only the bounded evidence harness and machine contract', () => {
     expect(existsSync(HARNESS)).toBe(true);
     expect(existsSync(BRIEF)).toBe(true);
+    expect(existsSync(CONTRACT)).toBe(true);
+    const registry = JSON.parse(text(REGISTRY)) as {
+      journeys?: readonly { id?: unknown; designSource?: unknown; acceptanceSource?: unknown }[];
+    };
+    expect(registry.journeys?.find((entry) => entry.id === 'O4P-09I')).toMatchObject({
+      designSource: 'scripts/journeys/contracts/o4p-09i-full-match.json',
+      acceptanceSource: 'scripts/journeys/contracts/o4p-09i-full-match.json',
+    });
     const packageJson = JSON.parse(text(PACKAGE)) as { scripts?: Record<string, unknown>; dependencies?: unknown; devDependencies?: unknown;
     };
     expect(packageJson.scripts?.['evidence:o4p-09i']).toBe('tsx scripts/online/o4p-09i-full-match-evidence.ts');

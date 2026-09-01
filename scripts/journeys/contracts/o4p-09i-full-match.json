@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "journeyId": "O4P-09I",
+  "canonicalRoute": [
+    "deployed Pages player surface in isolated Chrome contexts",
+    "visible player controls and OnlineTabletopIntent server binders",
+    "server-authoritative Mode-Neutral Core state and audience projections",
+    "two-player complete match followed by four-player continuity and reconnect",
+    "secret-free production summary and independent Arena-80 review"
+  ],
+  "eligibility": {
+    "authority": "server capabilities, Core state, accepted receipts, and audience projections are authoritative",
+    "advisoryBoundary": "the evidence runner may click and inspect visible production UI only; it cannot inject commands, call reducers, mutate the Worker directly, or infer success from browser-local state"
+  },
+  "semantics": {
+    "supported": [
+      "two-player room and deck entry through Pregame, land, cast, HOLD, response or pass, resolve, combat, private Look and Choose, explicit Manual fallback, reconnect, elimination, and winner",
+      "four-player fixed-seat continuity through a shared mutation and one-seat reconnect while the other three seats remain usable at the authoritative revision",
+      "responsive evidence at 375x812, 812x375, and 1440x900 with one GameScreen, no horizontal overflow, no console errors, and accessible primary controls"
+    ],
+    "deferred": [
+      "unsupported compound effects and secret choices without an existing trusted server-bound primitive remain explicit Manual boundaries",
+      "spectator-only behavior and O4P-09J",
+      "automatic mana, target, mode, additional-cost, alternative-cost, and Oracle resolution semantics outside existing Core support"
+    ]
+  },
+  "outcomes": {
+    "unavailable": "a missing, disabled, clipped, off-screen, unauthorized, or ambiguous control stops the journey without a command attempt",
+    "accepted": "an explicitly authorized exact-fingerprint production run emits a validated secret-free summary for the complete two-player match and four-player continuity, then receives an independent score of at least 70 in every major category and at least 80 for the continuous journey",
+    "rejected": "stale, wrong-actor, wrong-steward, HOLD-blocked, disconnected, unauthorized, or audience-incompatible operations leave canonical game state unchanged and expose no private material",
+    "failed": "a missing phase, stale or divergent revision, silent no-op, direct injection, cross-seat leak, console error, responsive obstruction, cleanup failure, or synthetic-only production claim fails closed"
+  },
+  "legacyRetirement": {
+    "sameSlice": [
+      "the prose-only O4P-09I brief as executable design authority",
+      "developer command injection, direct Worker mutation, Core reducer calls, or browser-local state used as production evidence",
+      "headless, replay, or injected-browser results presented as a completed production player journey",
+      "a second GameScreen or parallel online state used to complete the match"
+    ],
+    "retained": [
+      "the human-readable O4P-09I brief as non-executable rationale",
+      "the injected browser seam for deterministic tests only",
+      "explicit Manual Stack, Manual Resolve, Manual Damage, and guided choices for unsupported semantics"
+    ]
+  },
+  "acceptance": {
+    "positive": [
+      "the two-player production journey visibly completes every required semantic phase through winner on Display A without a developer escape hatch",
+      "the four-player production journey preserves fixed seats, matching authoritative revision, continued operation for three peers, and private audience isolation across one-seat reconnect",
+      "every viewport probe has one GameScreen, zero horizontal overflow, zero console errors, reachable primary actions, bounded panels, accessible scrolling, and visible battlefield context",
+      "the emitted summary validates cleanup of six isolated contexts, eight pages, and the temporary browser profile without emitting invites, deck material, capabilities, private choice handles, or raw private errors",
+      "fresh-context review scores every major category at least 70 and the continuous full journey at least 80"
+    ],
+    "negative": [
+      "missing action acknowledgement, revision regression, divergent seat projection, silent no-op, proxy action, auto-pass, auto-skip, or inferred reconnect success fails evidence",
+      "wrong actor, wrong steward, active HOLD, stale revision, disconnected participant, wrong stack top, or unauthorized audience input is rejected without canonical state change",
+      "any invite, capability, deck, private choice, cross-seat audience leak, console error, direct injection, or cleanup failure invalidates the run",
+      "synthetic browser, headless protocol, replay, local test, audit count, or green check alone cannot satisfy production completion"
+    ]
+  },
+  "nextSlices": [
+    "run the exact-fingerprint production journey with explicit external authority and complete independent Arena-80 visual review"
+  ]
+}

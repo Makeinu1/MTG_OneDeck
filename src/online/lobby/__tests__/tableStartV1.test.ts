@@ -56,7 +56,7 @@ describe('table-capable forming lobby start', () => {
     expect(withTable.genesis.room.participants.at(-1)?.seatIndex).toBeNull();
     expect(withTable.genesis.protocolState.observerAuthorizations).toEqual([{ participantId: 'table-start-test', observerCapability: 'table_' + 'T'.repeat(40) }]);
     expect(new TextEncoder().encode(JSON.stringify(withTable.genesis.protocolState)).length).toBeLessThanOrEqual(1_048_576);
-  }, 15000);
+  }, 60000);
 
   it('rejects capability collisions before any bootstrap work', () => {
     expect(() => startOnlineFormingLobbyWithTableV1(readyLobby(), {

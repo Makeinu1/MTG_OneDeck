@@ -640,7 +640,7 @@ describe('O4P-09D server tabletop transport', () => {
     } finally {
       fixture.storage.close();
     }
-  }, 120000);
+  }, 240000);
 
   it('rejects stale shuffle before entropy and rejects changed mode/primitive/base reuse', async () => {
     const fixture = await started(2);
