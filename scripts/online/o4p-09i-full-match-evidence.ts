@@ -48,10 +48,16 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
     scenario !== undefined &&
     (SCENARIO_STAGES as readonly string[]).includes(scenario.split('/')[0] ?? '')
   ) {
+    const rootStage = scenario.split('/')[0] ?? 'journey';
+    const detail = scenario.slice(rootStage.length + 1);
+    const stage = rootStage === 'start-probe' && (STARTED_SURFACE_FAILURES as readonly string[]).includes(detail)
+      || rootStage === 'manual-stack' && (detail === 'entry' || detail === 'resolve')
+      ? scenario
+      : rootStage;
     return Object.freeze({
       class: 'IMPLEMENTATION',
       code: 'PLAYER_JOURNEY_STAGE_FAILED',
-      stage: scenario.split('/')[0] ?? 'journey'
+      stage
     });
   }
   if (message.startsWith('production UI stage failed:'))
