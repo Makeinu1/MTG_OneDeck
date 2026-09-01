@@ -58,6 +58,7 @@ type FakeOptions = Readonly<{
   readonly consoleSecretReplacement?: boolean;
   readonly closeFailure?: boolean;
   readonly asyncInviteRender?: boolean;
+  readonly roomCreationRetryableError?: boolean;
   readonly asyncStartProbe?: boolean;
   readonly pregameReadyRevisionMissing?: boolean;
   readonly pregameTerminalSurfaceFailure?: boolean;
@@ -146,6 +147,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes(`data-testid="${missingControl}"`) && !(missingControl === 'open-online-mode' && expression.includes('savedDeckProbe'))) return Promise.reject(new Error('visible control missing'));
       const hiddenControl = options.hiddenControl ?? '__hidden__';
       if (expression.includes(`data-testid="${hiddenControl}"`)) return Promise.reject(new Error('visible control hidden'));
+      if (expression.includes('visibleControlProbe:online-invite-link-copy')) return Promise.resolve((options.roomCreationRetryableError !== true) as T);
+      if (expression.includes('visibleControlProbe:')) return Promise.resolve(true as T);
+      if (expression.includes('visibleFailureStateProbe:online-error')) return Promise.resolve((options.roomCreationRetryableError === true ? 'retryable-error' : 'none') as T);
       if (expression.includes('import-screen__save-status--error') && !expression.includes('savedDeckProbe')) return Promise.resolve((options.savedStateError === true ? 'storage-error' : 'ready') as T);
       if (expression.includes('savedDeckProbe')) {
         if (options.savedStateError === true) return Promise.resolve('storage-error' as T);
@@ -995,6 +999,14 @@ describe('O4P-09I full-match production evidence', () => {
     expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
     expect(expressions.filter((expression) => expression.includes('コードを表示')).length).toBeGreaterThan(1);
     expect(expressions.filter((expression) => expression.includes('invite span')).length).toBeGreaterThan(1);
+  });
+
+  it('classifies a visible retryable room creation failure as an environment stop', async () => {
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { roomCreationRetryableError: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production environment failure: browser');
   });
 
   it('waits for the shared game surface after start before recording host revision', async () => {

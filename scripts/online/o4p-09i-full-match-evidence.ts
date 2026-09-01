@@ -712,19 +712,30 @@ async function fillVisible(page: O4p09iPageV1, testId: string, value: string, ti
   ]);
 }
 
-async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: number, text = ''): Promise<void> {
+async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: number, failureTestId = ''): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     // Keep each CDP command synchronous and short. A page-side polling promise
     // can outlive the adapter's command deadline by a few milliseconds and
     // surface an opaque CDP timeout instead of the intended stage failure.
-    const visible = await page.evaluate<boolean>(`(() => {
+    const visible = await page.evaluate<boolean>(`(() => { // visibleControlProbe:${testId}
       const node = document.querySelector('[data-testid="${testId}"]');
       if (!(node instanceof HTMLElement)) return false;
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
-      return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && (${JSON.stringify(text)} === '' || (node.textContent ?? '').includes(${JSON.stringify(text)}));
+      return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
     })()`);
     if (visible) return;
+    if (failureTestId !== '') {
+      const failure = await page.evaluate<'retryable-error' | 'error' | 'none'>(`(() => { // visibleFailureStateProbe:${failureTestId}
+        const node = document.querySelector('[data-testid="${failureTestId}"]');
+        if (!(node instanceof HTMLElement)) return 'none';
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) return 'none';
+        return [...node.querySelectorAll('button')].some((button) => !button.disabled) ? 'retryable-error' : 'error';
+      })()`);
+      if (failure === 'retryable-error') throw new Error('production environment failure: retryable UI operation');
+      if (failure === 'error') throw new Error('visible operation rejected');
+    }
     if (Date.now() >= deadline) throw new Error(`visible control ${testId} timeout`);
     await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
@@ -2071,7 +2082,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (lobby.gameScreens > 1 || lobby.overflow !== 0 || lobby.opponentLeak || lobby.consoleErrors !== 0) throw new Error('production lobby probe failed');
     setStage('create-room');
     await clickVisible(hostPage, 'online-create-shared', timeoutMs); recordControl('online-create-shared');
-    await waitForVisible(hostPage, 'online-invite-link-copy', timeoutMs);
+    await waitForVisible(hostPage, 'online-invite-link-copy', timeoutMs, 'online-error');
     setStage('reveal-invite');
     await clickButtonByText(hostPage, 'コードを表示', timeoutMs);
     setStage('read-invite');
