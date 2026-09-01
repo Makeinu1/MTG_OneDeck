@@ -1645,8 +1645,7 @@ async function waitForJourneyEvidence(page: O4p09iPageV1, playerCount: 2 | 4, wo
 async function advanceUntilPhase(
   pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void): Promise<O4p09iProbeV1> {
   const deadline = Date.now() + timeoutMs;
-  let attempts = 0;
-  while (attempts < 12) {
+  for (;;) {
     const snapshots = await Promise.all(
       pages.map((page) =>
         probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments)
@@ -1673,7 +1672,6 @@ async function advanceUntilPhase(
     await clickAndAwaitRevision(
       actor.page, actor.testId, workerOrigin, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments);
     recordControl(actor.testId);
-    attempts += 1;
   }
   throw new Error(`phase target ${targetPhase} not reached`);
 }

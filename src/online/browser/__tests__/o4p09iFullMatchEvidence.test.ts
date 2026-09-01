@@ -37,6 +37,7 @@ type FakeOptions = Readonly<{
   readonly overflow?: number;
   readonly stagnantRevision?: boolean;
   readonly stagnantPhase?: boolean;
+  readonly fourPlayerActionsBeforeMain?: number;
   readonly missingWinner?: boolean;
   readonly missingWorker?: boolean;
   readonly leak?: boolean;
@@ -100,6 +101,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const sharedPhases = ['beginning', 'beginning'];
   const progressWindows: Array<'advance' | 'sba'> = ['advance', 'advance'];
   const progressCompletions = [0, 0];
+  const progressActionCounts = [0, 0];
   const priorityActors = [0, 0];
   const priorityPassCounts = [0, 0];
   const priorityHoldSeats = [new Set<number>(), new Set<number>()];
@@ -365,13 +367,19 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         };
       }
       if (expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')) {
+        progressActionCounts[scenarioIndex] += 1;
         progressWindows[scenarioIndex] = 'sba';
       }
       if (expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true')) {
+        progressActionCounts[scenarioIndex] += 1;
         progressWindows[scenarioIndex] = 'advance';
-        if (options.stagnantPhase !== true) {
+        const actionsRequired = scenarioIndex === 1 && progressCompletions[scenarioIndex] === 0
+          ? options.fourPlayerActionsBeforeMain ?? 2
+          : 2;
+        if (options.stagnantPhase !== true && progressActionCounts[scenarioIndex] >= actionsRequired) {
           sharedPhases[scenarioIndex] = progressCompletions[scenarioIndex] === 0 ? 'main1' : 'combat';
           progressCompletions[scenarioIndex] += 1;
+          progressActionCounts[scenarioIndex] = 0;
         }
       }
       if (expression.includes('privateHandPayload')) {
@@ -740,6 +748,15 @@ describe('O4P-09I full-match production evidence', () => {
         expression.includes('priorityControlProbe:online-remote-advance')
       )
     ).toBe(true);
+  });
+
+  it('keeps bounded four-player progress running through all fourteen actions before main', async () => {
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { fourPlayerActionsBeforeMain: 14 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250
+    });
+    expect(summary.scenarios.fourPlayer.playerCount).toBe(4);
   });
 
   it('fails closed when more than one seat exposes the advance actor control', async () => {
