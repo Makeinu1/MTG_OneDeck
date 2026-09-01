@@ -463,6 +463,37 @@ describe('journey harness', () => {
     });
   });
 
+  test('stops a live environment failure without repeating production side effects', () => {
+    const spawn = vi.fn((_command, _args, options) => {
+      writeFileSync(options.env.JOURNEY_RESULT_PATH, JSON.stringify({
+        class: 'ENVIRONMENT',
+        code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
+        stage: 'setup',
+      }), { mode: 0o600 });
+      return { status: 1, signal: null, error: null, stdout: '', stderr: '' };
+    });
+    const result = runJourneyPhase({
+      journey,
+      phase: 'live',
+      candidate,
+      allowExternalWrite: true,
+      expectedFingerprint: candidate.fingerprint,
+      currentFingerprint: () => candidate.fingerprint,
+      spawn,
+    });
+    expect(spawn).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      status: 'blocked',
+      environmentAttempts: 1,
+      nextAction: 'STOP_FOR_ENVIRONMENT',
+      failure: {
+        class: 'ENVIRONMENT',
+        environmentAttempt: 1,
+        code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
+      },
+    });
+  });
+
   test('ignores stdout markers and accepts only a trusted normalized design result', () => {
     const spoofed = classifyStageFailure({
       stage: liveStage,

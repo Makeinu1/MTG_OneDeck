@@ -835,6 +835,22 @@ export function runJourneyTurn({
 
 export function runJourneyPhase(options) {
   const first = runJourneyTurn({ ...options, environmentAttempt: 1 });
+  if (options.phase === 'live' && first.failure?.class === 'ENVIRONMENT') {
+    const failure = fixedFailure({
+      failureClass: first.failure.class,
+      code: first.failure.code,
+      stage: first.failure.stage,
+      evidence: first.failure.evidence,
+      nextAction: 'STOP_FOR_ENVIRONMENT',
+    });
+    return Object.freeze({
+      ...first,
+      status: failure.status,
+      failure,
+      nextAction: failure.nextAction,
+      environmentAttempts: 1,
+    });
+  }
   if (first.failure?.class !== 'ENVIRONMENT' || first.nextAction !== 'RETRY_ENVIRONMENT') {
     return Object.freeze({ ...first, environmentAttempts: 1 });
   }
@@ -991,7 +1007,7 @@ function usage() {
     '       [--allow-external-write --expected-fingerprint <sha256>]',
     '',
     'inspect and local execute only repository tests with a restricted environment.',
-    'environment failures retry once in the same candidate-bound invocation, then stop.',
+    'local environment failures retry once; live environment failures stop after one attempt.',
     'live requires explicit external-write authority bound to the inspected fingerprint.',
   ].join('\n');
 }
