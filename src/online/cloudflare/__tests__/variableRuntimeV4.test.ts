@@ -181,23 +181,6 @@ describe('O4P-08C variable runtime persistence', () => {
     storage.close();
   }, 30000);
 
-  it.each([2, 4] as const)('completes the persisted Pregame handoff to turn one for %ip', async (playerCount) => {
-    const fixture = await startedRepository(playerCount);
-    const initial = fixture.repository.loadPregameV1(fixture.roomId);
-    expect(initial).toMatchObject({ phase: 'commander-reveal', revision: 0 });
-    const complete = completePregame(fixture.repository, fixture.roomId);
-    expect(complete.phase).toBe('complete');
-    expect(complete.protocolState.room.lifecycle).toBe('active');
-    expect(complete.protocolState.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle).toMatchObject({
-      turnNumber: 1,
-      position: { phase: 'beginning', step: 'untap' },
-    });
-    const reconstructed = new OnlineCloudflareRepository(fixture.storage, false).loadPregameV1(fixture.roomId);
-    expect(reconstructed).toEqual(complete);
-    expect(JSON.stringify(fixture.repository.projectPregameV1(fixture.roomId, 'host'))).not.toMatch(/(?:randomPlan|libraryPlans|journal|seat_[A-Za-z0-9_-]{8})/);
-    fixture.storage.close();
-  }, 90000);
-
   it('rejects unauthorized, stale, reused, and conflicting Pregame commands without mutation', async () => {
     const fixture = await startedRepository(2);
     const state = fixture.repository.loadPregameV1(fixture.roomId);
@@ -467,6 +450,7 @@ describe('O4P-08C variable runtime persistence', () => {
     const fixture = await startedRepository(playerCount);
     const remoteInitial = fixture.repository.loadPregameV1(fixture.roomId);
     if (remoteInitial === null) throw new Error('Missing remote Pregame state');
+    expect(remoteInitial).toMatchObject({ phase: 'commander-reveal', revision: 0 });
     const initialRows = fixture.storage.sql.exec<{ readonly initial_state_json: unknown }>('SELECT initial_state_json FROM online_pregame_state WHERE singleton = 1').toArray();
     const initialJson = initialRows[0]?.initial_state_json;
     if (typeof initialJson !== 'string') throw new Error('Missing persisted Pregame initial state');
@@ -525,10 +509,14 @@ describe('O4P-08C variable runtime persistence', () => {
     const productionProtocol = fixture.repository.loadVariableProtocolV2(fixture.roomId);
     if (productionProtocol === null) throw new Error('Production Protocol handoff missing');
     expect(remoteState.phase).toBe('complete');
+    expect(remoteState.protocolState.room.lifecycle).toBe('active');
+    expect(remoteState.protocolState.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle).toMatchObject({ turnNumber: 1, position: { phase: 'beginning', step: 'untap' } });
     expect(localState.protocolState.coreRoot).toEqual(productionProtocol.coreRoot);
     expect(remoteState.protocolState.coreRoot).toEqual(productionProtocol.coreRoot);
     expect(productionProtocol.room.lifecycle).toBe('active');
     expect(productionProtocol.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle).toMatchObject({ turnNumber: 1, position: { phase: 'beginning', step: 'untap' } });
+    expect(new OnlineCloudflareRepository(fixture.storage, false).loadPregameV1(fixture.roomId)).toEqual(remoteState);
+    expect(JSON.stringify(fixture.repository.projectPregameV1(fixture.roomId, 'host'))).not.toMatch(/(?:randomPlan|libraryPlans|journal|seat_[A-Za-z0-9_-]{8})/);
     fixture.storage.close();
   }, 90000);
 
