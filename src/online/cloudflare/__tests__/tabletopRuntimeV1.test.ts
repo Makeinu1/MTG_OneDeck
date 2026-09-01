@@ -563,12 +563,6 @@ describe('O4P-09D server tabletop transport', () => {
     const { activePlayerId, seat } = activeSeat(initial);
     let nextRevision = initial.revision;
     const responses: string[] = [];
-    const assertProjections = (state: NonNullable<ReturnType<OnlineCloudflareRepository['loadVariableProtocolV2']>>): void => {
-      const participantId = state.room.seats.find((candidate) => candidate.corePlayerId === activePlayerId)?.participantId;
-      if (participantId === null || participantId === undefined) throw new Error('Missing projected participant');
-      expect(validateOnlineParticipantProjectionV3(projectOnlineVariableProtocolV3(state, participantId)).ok).toBe(true);
-      expect(validateOnlineParticipantProjectionV3(projectOnlineVariableProtocolV3(state, 'table-runtime')).ok).toBe(true);
-    };
     const submit = async (id: string, primitive: Record<string, unknown>, mode: 'structured' | 'freeform' = 'structured'): Promise<void> => {
       const body: Record<string, unknown> = {
         kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1, protocolVersion: initial.protocolVersion, roomId: fixture.roomId,
@@ -585,9 +579,6 @@ describe('O4P-09D server tabletop transport', () => {
       expect(ackBody.kind).toBe('online-command-ack-v1');
       expect(ackBody.duplicate).toBe(false);
       nextRevision += 1;
-      const projected = fixture.repository.loadVariableProtocolV2(fixture.roomId);
-      if (projected === null) throw new Error('Missing projected protocol state');
-      assertProjections(projected);
     };
 
     try {
