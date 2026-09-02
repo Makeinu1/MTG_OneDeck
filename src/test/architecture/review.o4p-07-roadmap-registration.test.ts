@@ -108,7 +108,7 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
     const liveLedger = parse(readFileSync(resolve(ROOT, LEDGER_PATH), 'utf8'));
     const o4p09Ids = [
       'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-      'O4P-09F', 'O4P-09G', 'O4P-09I',
+      'O4P-09F', 'O4P-09G', 'O4P-09I-A', 'O4P-09I-B', 'O4P-09I-C', 'O4P-09I',
     ] as const;
     const nextDomainId = o4p09Ids.find((id) => (
       liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
@@ -119,7 +119,7 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
       domainIds: o4p09Ids,
     });
     expect(o4p09Ids).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09I');
+    expect(nextDomainId).toBe('O4P-09I-A');
   });
 
   it('changes only Judge-owned registration and historical-gate files', () => {
