@@ -1676,10 +1676,14 @@ async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: numb
       const details = document.querySelector('[data-testid="${testId}"]');
       if (!(details instanceof HTMLDetailsElement)) return false;
       if (!details.open) {
-        const link = [...document.querySelectorAll('a[href]')].find((node) =>
-          node instanceof HTMLAnchorElement && node.getAttribute('href') === '#${testId}'
-        );
-        link?.click();
+        const summary = details.querySelector('summary');
+        const summaryStyle = summary instanceof HTMLElement ? getComputedStyle(summary) : null;
+        const summaryRect = summary instanceof HTMLElement ? summary.getBoundingClientRect() : null;
+        if (!(summary instanceof HTMLElement) || summaryStyle === null || summaryRect === null
+          || summary.hidden || summary.getAttribute('aria-hidden') === 'true'
+          || summaryStyle.display === 'none' || summaryStyle.visibility === 'hidden'
+          || Number(summaryStyle.opacity || '1') <= 0 || summaryRect.width <= 0 || summaryRect.height <= 0) return false;
+        summary.click();
       }
       const style = getComputedStyle(details); const rect = details.getBoundingClientRect();
       return details.open && !details.hidden && details.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;

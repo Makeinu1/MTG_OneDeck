@@ -681,7 +681,7 @@ describe('O4P-09I full-match production evidence', () => {
       timeoutMs: 250
     });
     expect(expressions.filter((expression) => expression.includes('detailsPanelReadyProbe:')).length).toBeGreaterThan(1);
-    expect(expressions.some((expression) => expression.includes("node.getAttribute('href') === '#online-remote-manual-overlay'"))).toBe(true);
+    expect(expressions.some((expression) => expression.includes("details.querySelector('summary')"))).toBe(true);
     expect(expressions.some((expression) => expression.includes('visibleControlProbe:online-remote-guided-overlay'))).toBe(false);
     expect(expressions.some((expression) => expression.includes('visibleControlProbe:online-remote-manual-overlay'))).toBe(false);
   });
