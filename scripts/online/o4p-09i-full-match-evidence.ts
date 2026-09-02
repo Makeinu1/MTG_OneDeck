@@ -786,9 +786,9 @@ async function actorControlProbe(
   return Promise.race([
     page.evaluate<O4p09iActorProbeV1>(`(() => { // priorityControlProbe:${testId}
       const node = document.querySelector('[data-testid="${testId}"]');
-      const revision = [...document.querySelectorAll('[data-testid="online-remote-connection"], [data-testid="online-assisted-priority"], [data-testid="online-pregame-revision"]')]
-        .map((candidate) => /更新 (\\d+)/u.exec(candidate.textContent ?? '')?.[1] ?? '')
-        .flatMap((value) => value === '' ? [] : [Number(value)]).at(-1) ?? 0;
+      const remoteRail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const pregameRevision = document.querySelector('[data-testid="online-pregame-revision"]');
+      const revision = Number(remoteRail?.getAttribute('data-projection-revision') ?? pregameRevision?.getAttribute('data-projection-revision') ?? '-1');
       const holdState = (() => {
         if (${JSON.stringify(testId)} !== 'online-remote-hold') return 'not-applicable';
         const pressed = node instanceof HTMLButtonElement ? node.getAttribute('aria-pressed') : null;

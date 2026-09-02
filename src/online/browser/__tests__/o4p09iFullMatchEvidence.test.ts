@@ -781,6 +781,7 @@ describe('O4P-09I full-match production evidence', () => {
       expression.includes('const root = document.documentElement')
     )).toBe(false);
     expect(expressions[firstProgressClick + 1]).toContain('priorityControlProbe:online-remote-advance');
+    expect(expressions[firstProgressClick + 1]).toContain('data-projection-revision');
   });
 
   it('fails closed when more than one seat exposes the advance actor control', async () => {
