@@ -239,11 +239,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
             revision: actorControlRevision(),
             holdState: 'not-applicable',
-            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
+            outcome: 'none',
             acceptedRevision: null,
-            errorVisible: false,
-            operation: 'priority-advance',
-            issueCode: options.progressRejected === true ? 'CORE_COMMAND_REJECTED' : '',
+            errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
+            operation: '',
+            issueCode: options.progressRejected === true ? 'CLIENT_CORE_COMMAND_REJECTED' : '',
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
@@ -252,11 +252,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
             revision: actorControlRevision(),
             holdState: 'not-applicable',
-            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
+            outcome: 'none',
             acceptedRevision: null,
-            errorVisible: false,
-            operation: 'sba-check-outcome',
-            issueCode: options.progressRejected === true ? 'CORE_COMMAND_REJECTED' : '',
+            errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
+            operation: '',
+            issueCode: options.progressRejected === true ? 'CLIENT_CORE_COMMAND_REJECTED' : '',
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);

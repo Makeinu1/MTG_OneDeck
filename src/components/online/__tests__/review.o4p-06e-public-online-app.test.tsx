@@ -302,6 +302,7 @@ describe('O4P-08B deck-first public journey review (supersedes O4P-06E flat form
     act(() => enter(input, INVITE));
     await click(mounted.container, '[data-testid="online-join-shared"]');
     const alert = required(mounted.container, '[data-testid="online-error"]');
+    expect(alert.dataset.issueCode).toBe('ROOM_FULL');
     expect(alert.textContent).toContain('部屋は満席です');
     expect(alert.textContent).toContain('次の対応: もう一度参加');
     expect(alert.textContent).toContain('同じ操作の再試行: 不可');

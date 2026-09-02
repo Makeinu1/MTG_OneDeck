@@ -814,9 +814,9 @@ async function actorControlProbe(
       const outcome = outcomeValue === 'accepted' || outcomeValue === 'rejected' ? outcomeValue : 'none';
       const acceptedRevisionText = result?.getAttribute('data-accepted-revision') ?? '';
       const acceptedRevision = acceptedRevisionText === '' ? null : Number(acceptedRevisionText);
-      const operation = result?.getAttribute('data-operation') ?? '';
-      const issueCode = result?.getAttribute('data-issue-code') ?? '';
       const errorNode = document.querySelector('[data-testid="online-error"]');
+      const operation = result?.getAttribute('data-operation') ?? '';
+      const issueCode = result?.getAttribute('data-issue-code') || errorNode?.getAttribute('data-issue-code') || '';
       const errorStyle = errorNode instanceof HTMLElement ? getComputedStyle(errorNode) : null;
       const errorRect = errorNode instanceof HTMLElement ? errorNode.getBoundingClientRect() : null;
       const errorVisible = errorNode instanceof HTMLElement && errorStyle !== null && errorRect !== null
@@ -859,13 +859,14 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
     : probe.operation === 'priority-pass'
       ? 'priority-pass'
       : 'priority-advance';
-  const reason = probe.issueCode === 'STALE_REVISION'
+  const issueCode = probe.issueCode.startsWith('CLIENT_') ? probe.issueCode.slice('CLIENT_'.length) : probe.issueCode;
+  const reason = issueCode === 'STALE_REVISION'
     ? 'stale'
-    : probe.issueCode === 'ACTOR_MISMATCH'
+    : issueCode === 'ACTOR_MISMATCH'
       ? 'actor'
-      : probe.issueCode === 'COMMAND_SEQUENCE_MISMATCH'
+      : issueCode === 'COMMAND_SEQUENCE_MISMATCH'
         ? 'sequence'
-        : probe.issueCode === 'CORE_COMMAND_REJECTED'
+        : issueCode === 'CORE_COMMAND_REJECTED'
           ? 'core'
           : 'other';
   return `action-rejected-${operation}-${reason}`;
