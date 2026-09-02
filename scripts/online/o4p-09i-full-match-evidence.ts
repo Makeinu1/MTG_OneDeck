@@ -816,6 +816,7 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly errorVisible: boolean;
   readonly operation: string;
   readonly issueCode: string;
+  readonly commandId?: string;
   readonly localPlayerId?: string | null;
   readonly holderPlayerId?: string | null;
   readonly stewardPlayerId?: string | null;
@@ -845,6 +846,7 @@ async function actorControlProbe(
       const acceptedRevision = acceptedRevisionText === '' ? null : Number(acceptedRevisionText);
       const errorNode = document.querySelector('[data-testid="online-error"]');
       const operation = result?.getAttribute('data-operation') ?? '';
+      const commandId = result?.getAttribute('data-command-id') ?? '';
       const issueCode = result?.getAttribute('data-issue-code') || errorNode?.getAttribute('data-issue-code') || '';
       const errorStyle = errorNode instanceof HTMLElement ? getComputedStyle(errorNode) : null;
       const errorRect = errorNode instanceof HTMLElement ? errorNode.getBoundingClientRect() : null;
@@ -866,10 +868,10 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
       const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
-      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
+      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
@@ -963,9 +965,9 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
   return `action-rejected-${operation}-${reason}`;
 }
 
-function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined, testId: string, baseline: number): O4p09iAdvanceFailureCheckpointV1 {
+function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined, testId: string, baseline: number, previousCommandId: string): O4p09iAdvanceFailureCheckpointV1 {
   const operation = testId === 'online-remote-sba-stable' ? 'sba' : 'advance';
-  if (probe?.outcome === 'accepted' && (probe.acceptedRevision ?? baseline) <= baseline) {
+  if (probe?.commandId !== previousCommandId && probe?.outcome === 'accepted' && (probe.acceptedRevision ?? baseline) <= baseline) {
     return `revision-ack-${operation}-accepted-no-progress`;
   }
   return `revision-ack-${operation}-unsettled-${probe?.enabled === true ? 'enabled' : 'disabled'}`;
@@ -974,7 +976,7 @@ function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined
 async function findProgressActorPage(
   pages: readonly O4p09iPageV1[],
   timeoutMs: number
-): Promise<Readonly<{ readonly page: O4p09iPageV1; readonly testId: 'online-remote-advance' | 'online-remote-sba-stable'; readonly revision: number }>> {
+): Promise<Readonly<{ readonly page: O4p09iPageV1; readonly testId: 'online-remote-advance' | 'online-remote-sba-stable'; readonly revision: number; readonly settlementCommandId: string }>> {
   const deadline = Date.now() + timeoutMs;
   const testIds = ['online-remote-advance', 'online-remote-sba-stable'] as const;
   let lastProbes: Array<{ readonly page: O4p09iPageV1; readonly testId: (typeof testIds)[number]; readonly probe: O4p09iActorProbeV1 }> | undefined;
@@ -1002,7 +1004,7 @@ async function findProgressActorPage(
     const enabled = probes.filter(({ probe }) => probe.enabled);
     if (enabled.length > 1) throw new O4p09iActorSelectionError('actor-selection-ambiguous');
     const selected = enabled[0];
-    if (selected !== undefined) return { page: selected.page, testId: selected.testId, revision: selected.probe.revision };
+    if (selected !== undefined) return { page: selected.page, testId: selected.testId, revision: selected.probe.revision, settlementCommandId: selected.probe.commandId ?? '' };
     if (Date.now() >= deadline) throw new O4p09iActorSelectionError(actorSelectionCheckpoint(probes));
     await new Promise<void>((resolvePromise) =>
       setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
@@ -1775,12 +1777,12 @@ async function waitForRevisionAdvance(page: O4p09iPageV1, workerOrigin: string, 
   }
 }
 
-async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string, baseline: number, timeoutMs: number): Promise<number> {
+async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string, baseline: number, previousCommandId: string, timeoutMs: number): Promise<number> {
   const deadline = Date.now() + timeoutMs;
   let lastProbe: O4p09iActorProbeV1 | undefined;
   for (;;) {
     const remaining = deadline - Date.now();
-    if (remaining <= 0) throw new O4p09iProgressRejectedError(progressAcknowledgementCheckpoint(lastProbe, testId, baseline));
+    if (remaining <= 0) throw new O4p09iProgressRejectedError(progressAcknowledgementCheckpoint(lastProbe, testId, baseline, previousCommandId));
     let probe: O4p09iActorProbeV1;
     try {
       probe = await actorControlProbe(page, testId, Math.min(1_000, remaining), `${testId} acknowledgement timeout`);
@@ -1790,8 +1792,9 @@ async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string
     }
     lastProbe = probe;
     if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
-    if (probe.outcome === 'accepted' && probe.acceptedRevision !== null && safeRevision(probe.acceptedRevision) && probe.acceptedRevision > baseline) return probe.acceptedRevision;
-    if (probe.outcome === 'rejected' || probe.errorVisible) throw new O4p09iProgressRejectedError(progressRejectionCheckpoint(probe, testId));
+    const newSettlement = (probe.commandId ?? '') !== previousCommandId;
+    if (newSettlement && probe.outcome === 'accepted' && probe.acceptedRevision !== null && safeRevision(probe.acceptedRevision) && probe.acceptedRevision > baseline) return probe.acceptedRevision;
+    if ((newSettlement && probe.outcome === 'rejected') || probe.errorVisible) throw new O4p09iProgressRejectedError(progressRejectionCheckpoint(probe, testId));
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(50, Math.max(1, deadline - Date.now()))));
   }
 }
@@ -1883,7 +1886,7 @@ async function advanceUntilPhase(
     const isSba = actor.testId === 'online-remote-sba-stable';
     setCheckpoint(isSba ? 'revision-ack-sba' : 'revision-ack-advance');
     try {
-      await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actionTimeoutMs);
+      await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, actionTimeoutMs);
     } catch (error) {
       if (error instanceof O4p09iProgressRejectedError) {
         setCheckpoint(error.checkpoint);
