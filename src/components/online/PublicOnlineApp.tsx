@@ -188,7 +188,15 @@ export function PublicOnlineApp({
     onDeckSelect?.(id);
   };
   return (
-    <main className="public-online-app" data-testid="public-online-app">
+    <main
+      className="public-online-app"
+      data-testid="public-online-app"
+      data-player-phase={playerBrowser?.phase ?? ''}
+      data-player-pending-count={playerBrowser?.pendingCommands.length ?? 0}
+      data-player-known-revision={playerBrowser?.knownRevision ?? ''}
+      data-player-projection-revision={playerBrowser?.projection?.revision ?? ''}
+      data-online-busy={snapshot.busy ?? ''}
+    >
       <header className="public-online-app__header">
         <div>
           <p className="public-online-app__eyebrow">ONLINE ROOM</p>

@@ -55,7 +55,9 @@ const ADVANCE_FAILURE_STAGES = Object.freeze([
 const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'seat-convergence', 'actor-selection', 'actor-selection-ambiguous',
   'actor-selection-contract', 'actor-selection-disabled', 'actor-selection-hold',
-  'actor-selection-authority', 'actor-selection-window', 'click', 'revision-ack', 'revision-ack-advance',
+  'actor-selection-authority', 'actor-selection-window', 'actor-selection-player-not-open',
+  'actor-selection-player-pending', 'actor-selection-player-revision-lag', 'actor-selection-app-busy',
+  'click', 'revision-ack', 'revision-ack-advance',
   'revision-ack-sba', 'revision-ack-advance-accepted-no-progress',
   'revision-ack-advance-unsettled-disabled', 'revision-ack-advance-unsettled-enabled',
   'revision-ack-sba-accepted-no-progress', 'revision-ack-sba-unsettled-disabled', 'revision-ack-sba-unsettled-enabled',
@@ -822,6 +824,11 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly stewardPlayerId?: string | null;
   readonly windowKind?: string;
   readonly holds?: readonly string[];
+  readonly playerPhase?: string;
+  readonly pendingCount?: number;
+  readonly knownRevision?: number;
+  readonly projectionRevision?: number;
+  readonly appBusy?: string;
 }>;
 
 async function actorControlProbe(
@@ -835,6 +842,7 @@ async function actorControlProbe(
     page.evaluate<O4p09iActorProbeV1>(`(() => { // priorityControlProbe:${testId}
       const node = document.querySelector('[data-testid="${testId}"]');
       const remoteRail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const app = document.querySelector('[data-testid="public-online-app"]');
       const pregameRevision = document.querySelector('[data-testid="online-pregame-revision"]');
       const revision = Number(remoteRail?.getAttribute('data-projection-revision') ?? pregameRevision?.getAttribute('data-projection-revision') ?? '-1');
       const result = ${JSON.stringify(testId)} === 'online-remote-sba-stable'
@@ -859,6 +867,11 @@ async function actorControlProbe(
       const stewardPlayerId = remoteRail?.getAttribute('data-priority-steward-player-id') || null;
       const windowKind = remoteRail?.getAttribute('data-priority-window-kind') ?? '';
       const holds = (remoteRail?.getAttribute('data-priority-holds') ?? '').split(',').filter(Boolean);
+      const playerPhase = app?.getAttribute('data-player-phase') ?? '';
+      const pendingCount = Number(app?.getAttribute('data-player-pending-count') ?? '-1');
+      const knownRevision = Number(app?.getAttribute('data-player-known-revision') ?? '-1');
+      const projectionRevision = Number(app?.getAttribute('data-player-projection-revision') ?? '-1');
+      const appBusy = app?.getAttribute('data-online-busy') ?? '';
       const holdState = (() => {
         if (${JSON.stringify(testId)} !== 'online-remote-hold') return 'not-applicable';
         const pressed = node instanceof HTMLButtonElement ? node.getAttribute('aria-pressed') : null;
@@ -868,10 +881,10 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
       const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
-      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
+      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
@@ -917,7 +930,12 @@ function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-re
   if (testId === null) return 'actor-selection-window';
   const expected = probes.filter(({ testId: candidate, probe }) => candidate === testId && probe.localPlayerId === authority);
   if (expected.length !== 1) return 'actor-selection-authority';
-  return expected[0]?.probe.present === true && expected[0].probe.visible === true
+  const selected = expected[0]?.probe;
+  if (selected?.playerPhase !== undefined && selected.playerPhase !== '' && selected.playerPhase !== 'open') return 'actor-selection-player-not-open';
+  if ((selected?.pendingCount ?? 0) > 0) return 'actor-selection-player-pending';
+  if ((selected?.knownRevision ?? -1) > (selected?.projectionRevision ?? -1)) return 'actor-selection-player-revision-lag';
+  if (selected?.appBusy !== undefined && selected.appBusy !== '') return 'actor-selection-app-busy';
+  return selected?.present === true && selected.visible === true
     ? 'actor-selection-disabled'
     : 'actor-selection-contract';
 }

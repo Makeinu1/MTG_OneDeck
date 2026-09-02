@@ -94,6 +94,7 @@ type FakeOptions = Readonly<{
     | 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
   readonly lobbyReadyProbe?: 'delayed' | 'never';
   readonly progressStuckAfterClick?: boolean;
+  readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -144,6 +145,13 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       options.priorityActorRevisionUnsafeSeat === seatIndex
         ? Number.NaN
         : actorControlRevision() + (options.priorityActorRevisionOffsetSeat === seatIndex ? 1 : 0);
+    const actorReadiness = () => ({
+      playerPhase: options.actorReadinessBlock === 'not-open' ? 'resyncing' : 'open',
+      pendingCount: options.actorReadinessBlock === 'pending' ? 1 : 0,
+      knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' ? 1 : 0),
+      projectionRevision: actorControlRevision(),
+      appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
+    });
     let viewportWidth = 1440;
     let viewportHeight = 900;
     return {
@@ -254,6 +262,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
             windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
             holds: [],
+            ...actorReadiness(),
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
@@ -276,6 +285,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
             windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
             holds: [],
+            ...actorReadiness(),
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
@@ -855,6 +865,14 @@ describe('O4P-09I full-match production evidence', () => {
     ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-disabled');
     expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('data-testid="online-remote-cast"') && expression.includes('node.click(); return true'))).toBe(false);
+  });
+
+  it('classifies a visible authority control blocked by the player transport', async () => {
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { advanceEnabledSeats: [], actorReadinessBlock: 'not-open' }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-not-open');
   });
 
   it('rediscovers the unique priority holder and steward after every converged mutation', async () => {

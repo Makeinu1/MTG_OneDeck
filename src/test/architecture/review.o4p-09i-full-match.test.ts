@@ -106,6 +106,7 @@ describe('review O4P-09I full-match production evidence', () => {
     const publicApp = readFileSync(resolve('src/components/online/PublicOnlineApp.tsx'), 'utf8');
     expect(publicApp).toContain("playerBrowser.phase !== 'open'");
     expect(publicApp).toContain("playerBrowser !== null\n      ? playerSynchronizing ? 'updating' : 'ready'");
+    expect(publicApp).toContain('data-player-pending-count');
     const inviteControlPolling = source.slice(source.indexOf('async function clickButtonByText'), source.indexOf('async function fillVisible'));
     expect(inviteControlPolling).toContain('for (;;)');
     expect(inviteControlPolling).toContain('await page.evaluate<boolean>');
