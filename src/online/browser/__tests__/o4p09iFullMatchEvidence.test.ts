@@ -147,8 +147,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         ? Number.NaN
         : actorControlRevision() + (options.priorityActorRevisionOffsetSeat === seatIndex ? 1 : 0);
     const actorReadiness = () => ({
-      playerPhase: options.actorReadinessBlock === 'not-open' || (options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0) ? 'resyncing' : 'open',
-      pendingCount: options.actorReadinessBlock === 'pending' ? 1 : 0,
+      playerPhase: options.actorReadinessBlock === 'not-open' ? 'resyncing' : 'open',
+      pendingCount: options.actorReadinessBlock === 'pending' || (options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0) ? 1 : 0,
       knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' ? 1 : 0),
       projectionRevision: actorControlRevision(),
       appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
@@ -256,7 +256,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             acceptedRevision: null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
-            issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : '',
+            issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0 ? 'CLIENT_INVALID_FRAME' : '',
             commandId: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-settlement' : '',
             localPlayerId: `P${String(seatIndex + 1)}`,
             holderPlayerId: null,
@@ -279,7 +279,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             acceptedRevision: null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
-            issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : '',
+            issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0 ? 'CLIENT_INVALID_FRAME' : '',
             commandId: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-settlement' : '',
             localPlayerId: `P${String(seatIndex + 1)}`,
             holderPlayerId: null,
@@ -852,7 +852,7 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser([], { progressStuckAfterClick: true }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/revision-ack-advance-unsettled-player-not-open');
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/revision-ack-advance-unsettled-pending-invalid-frame');
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {

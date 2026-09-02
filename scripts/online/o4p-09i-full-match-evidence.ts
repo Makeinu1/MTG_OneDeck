@@ -63,9 +63,11 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'click', 'revision-ack', 'revision-ack-advance',
   'revision-ack-sba', 'revision-ack-advance-accepted-no-progress',
   'revision-ack-advance-unsettled-player-not-open', 'revision-ack-advance-unsettled-pending',
+  'revision-ack-advance-unsettled-pending-invalid-frame',
   'revision-ack-advance-unsettled-revision-lag',
   'revision-ack-advance-unsettled-disabled', 'revision-ack-advance-unsettled-enabled',
   'revision-ack-sba-unsettled-player-not-open', 'revision-ack-sba-unsettled-pending',
+  'revision-ack-sba-unsettled-pending-invalid-frame',
   'revision-ack-sba-unsettled-revision-lag',
   'revision-ack-sba-accepted-no-progress', 'revision-ack-sba-unsettled-disabled', 'revision-ack-sba-unsettled-enabled',
   'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
@@ -999,7 +1001,9 @@ function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined
     return `revision-ack-${operation}-accepted-no-progress`;
   }
   if (probe?.playerPhase !== undefined && probe.playerPhase !== '' && probe.playerPhase !== 'open') return `revision-ack-${operation}-unsettled-player-not-open`;
-  if ((probe?.pendingCount ?? 0) > 0) return `revision-ack-${operation}-unsettled-pending`;
+  if ((probe?.pendingCount ?? 0) > 0) return probe?.issueCode === 'CLIENT_INVALID_FRAME' || probe?.issueCode === 'INVALID_FRAME'
+    ? `revision-ack-${operation}-unsettled-pending-invalid-frame`
+    : `revision-ack-${operation}-unsettled-pending`;
   if ((probe?.knownRevision ?? -1) > (probe?.projectionRevision ?? -1)) return `revision-ack-${operation}-unsettled-revision-lag`;
   return `revision-ack-${operation}-unsettled-${probe?.enabled === true ? 'enabled' : 'disabled'}`;
 }
