@@ -72,6 +72,7 @@ type FakeOptions = Readonly<{
   readonly advanceEnabledSeat?: number;
   readonly advanceEnabledSeats?: readonly number[];
   readonly sbaEnabledSeats?: readonly number[];
+  readonly progressRejected?: boolean;
   readonly actorRevisionOffsetSeat?: number;
   readonly actorRevisionUnsafeSeat?: number;
   readonly priorityHoldEnabledSeats?: readonly number[];
@@ -237,7 +238,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           return Promise.resolve({
             enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
             revision: actorControlRevision(),
-            holdState: 'not-applicable'
+            holdState: 'not-applicable',
+            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
+            acceptedRevision: null,
+            errorVisible: false,
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
@@ -245,7 +249,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           return Promise.resolve({
             enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
             revision: actorControlRevision(),
-            holdState: 'not-applicable'
+            holdState: 'not-applicable',
+            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
+            acceptedRevision: null,
+            errorVisible: false,
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
@@ -335,7 +342,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (
         (expression.includes('node.click(); return true') ||
           expression.includes('target.click(); return true')) &&
-        !recoveryNavigation
+        !recoveryNavigation &&
+        !(options.progressRejected === true && (expression.includes('data-testid="online-remote-advance"') || expression.includes('data-testid="online-remote-sba-stable"')))
       )
         sharedRevisions[scenarioIndex] += 1;
       const priorityOperation = expression.includes('data-testid="online-remote-hold"')
@@ -792,6 +800,16 @@ describe('O4P-09I full-match production evidence', () => {
         timeoutMs: 250
       })
     ).rejects.toThrow('production scenario stage failed: advance');
+  });
+
+  it('classifies a rejected visible progress operation without exposing its error', async () => {
+    await expect(
+      runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { progressRejected: true }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250
+      })
+    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-advance');
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {
