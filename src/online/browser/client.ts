@@ -697,7 +697,14 @@ export function createOnlineBrowserWebSocketClientV1(
       const code = ownDataValue(record, 'code');
       issueCode = code === 'AUTHENTICATION_REQUIRED' || code === 'CAPABILITY_REJECTED'
         || code === 'IDENTITY_MISMATCH' || code === 'ROLE_NOT_ALLOWED'
-        ? 'AUTHENTICATION_REJECTED' : code === 'INVALID_MESSAGE' ? 'INVALID_FRAME' : 'SOCKET_ERROR';
+        ? 'AUTHENTICATION_REJECTED'
+        : code === 'INVALID_MESSAGE'
+          ? 'INVALID_FRAME'
+          : code === 'INTERNAL_ERROR'
+            ? 'SERVER_INTERNAL_ERROR'
+            : code === 'CONTROLLER_LEASE_REQUIRED'
+              ? 'CONTROLLER_LEASE_REQUIRED'
+              : 'SOCKET_ERROR';
       phase = 'failed';
       const active = currentSocket;
       currentSocket = null;

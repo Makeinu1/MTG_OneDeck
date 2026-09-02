@@ -116,6 +116,8 @@ export type OnlineBrowserIssueCodeV1 =
   | 'SOCKET_CLOSED'
   | 'SEND_FAILED'
   | 'RECONNECT_EXHAUSTED'
+  | 'SERVER_INTERNAL_ERROR'
+  | 'CONTROLLER_LEASE_REQUIRED'
   | OnlineProtocolIssueCodeV1
   | OnlineProjectionIssueCodeV1;
 

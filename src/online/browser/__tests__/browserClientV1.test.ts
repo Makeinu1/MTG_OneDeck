@@ -579,6 +579,14 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(failedSend.client.submit({ commandId: 'send-failure' as never, baseRevision: 0, command: command(1) })).toEqual({ ok: true });
     expect(sendSocket.closeCount).toBe(1);
     expect(failedSend.client.getSnapshot().phase).toBe('recovering');
+
+    const serverError = harness();
+    serverError.client.connect();
+    const serverErrorSocket = serverError.sockets[0];
+    if (serverErrorSocket === undefined) throw new Error('Missing server error socket');
+    openClient(serverError.client, serverErrorSocket);
+    serverErrorSocket.frame({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'INTERNAL_ERROR' });
+    expect(serverError.client.getSnapshot()).toMatchObject({ phase: 'failed', issueCode: 'SERVER_INTERNAL_ERROR' });
   });
 
   it('enforces command ID collision and the immutable 64-entry bound', () => {

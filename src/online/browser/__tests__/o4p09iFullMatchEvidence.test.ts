@@ -243,7 +243,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             acceptedRevision: null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
-            issueCode: options.progressRejected === true ? 'CLIENT_SOCKET_ERROR' : '',
+            issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : '',
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
@@ -256,7 +256,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             acceptedRevision: null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
-            issueCode: options.progressRejected === true ? 'CLIENT_SOCKET_ERROR' : '',
+            issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : '',
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
@@ -813,7 +813,7 @@ describe('O4P-09I full-match production evidence', () => {
         readDeck: () => 'fixture deck',
         timeoutMs: 250
       })
-    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-priority-advance-socket-error-reject');
+    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-priority-advance-server-internal');
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {

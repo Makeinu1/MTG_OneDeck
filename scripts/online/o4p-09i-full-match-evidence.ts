@@ -62,6 +62,7 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'action-rejected-priority-advance-socket-error-connection',
   'action-rejected-priority-advance-socket-closed', 'action-rejected-priority-advance-send-failed',
   'action-rejected-priority-advance-reconnect-exhausted',
+  'action-rejected-priority-advance-server-internal', 'action-rejected-priority-advance-controller-lease',
   'action-rejected-priority-advance-missing', 'action-rejected-priority-advance-other',
   'action-rejected-priority-pass-stale', 'action-rejected-priority-pass-actor',
   'action-rejected-priority-pass-sequence', 'action-rejected-priority-pass-core',
@@ -70,6 +71,7 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'action-rejected-priority-pass-socket-error-connection',
   'action-rejected-priority-pass-socket-closed', 'action-rejected-priority-pass-send-failed',
   'action-rejected-priority-pass-reconnect-exhausted',
+  'action-rejected-priority-pass-server-internal', 'action-rejected-priority-pass-controller-lease',
   'action-rejected-priority-pass-missing', 'action-rejected-priority-pass-other',
   'action-rejected-sba-stale', 'action-rejected-sba-actor', 'action-rejected-sba-sequence',
   'action-rejected-sba-core', 'action-rejected-sba-authority', 'action-rejected-sba-state',
@@ -77,6 +79,7 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'action-rejected-sba-socket-error-connection',
   'action-rejected-sba-socket-closed', 'action-rejected-sba-send-failed',
   'action-rejected-sba-reconnect-exhausted', 'action-rejected-sba-missing',
+  'action-rejected-sba-server-internal', 'action-rejected-sba-controller-lease',
   'action-rejected-sba-other', 'target-convergence',
 ] as const);
 
@@ -897,6 +900,10 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
                     ? 'send-failed'
                     : issueCode === 'RECONNECT_EXHAUSTED'
                       ? 'reconnect-exhausted'
+                      : issueCode === 'SERVER_INTERNAL_ERROR'
+                        ? 'server-internal'
+                        : issueCode === 'CONTROLLER_LEASE_REQUIRED'
+                          ? 'controller-lease'
                 : issueCode === ''
                   ? 'missing'
                   : issueCode.startsWith('INVALID_') || issueCode.startsWith('MISSING_')
