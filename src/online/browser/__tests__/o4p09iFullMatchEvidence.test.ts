@@ -98,6 +98,7 @@ type FakeOptions = Readonly<{
   readonly progressStuckAfterClick?: boolean;
   readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
   readonly actorWindowDivergentSeat?: number;
+  readonly postPregameResyncProbes?: number;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -124,6 +125,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   } | null> = [null, null];
   const postResolutions: Array<string | null> = [null, null];
   const pregameStates = [{ phaseIndex: 0, actorIndex: 0 }, { phaseIndex: 0, actorIndex: 0 }];
+  const postPregameResyncProbeCounts = [0, 0];
   const pregameControls = ['pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready'];
   const page = (contextOrdinal: number, pageOrdinal: number): O4p09iPageV1 => {
     let revealButtonProbes = 0;
@@ -148,13 +150,18 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       options.priorityActorRevisionUnsafeSeat === seatIndex
         ? Number.NaN
         : actorControlRevision() + (options.priorityActorRevisionOffsetSeat === seatIndex ? 1 : 0);
-    const actorReadiness = () => ({
-      playerPhase: options.actorReadinessBlock === 'not-open' ? 'resyncing' : 'open',
+    const actorReadiness = () => {
+      const transientPregameResync = seatIndex === 1
+        && pregameStates[scenarioIndex].phaseIndex >= pregameControls.length
+        && postPregameResyncProbeCounts[scenarioIndex]++ < (options.postPregameResyncProbes ?? 0);
+      return ({
+      playerPhase: options.actorReadinessBlock === 'not-open' || transientPregameResync ? 'resyncing' : 'open',
       pendingCount: options.actorReadinessBlock === 'pending' || (options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0) ? 1 : 0,
       knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' ? 1 : 0),
       projectionRevision: actorControlRevision(),
       appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
     });
+    };
     let viewportWidth = 1440;
     let viewportHeight = 900;
     return {
@@ -793,7 +800,7 @@ describe('O4P-09I full-match production evidence', () => {
 
   it('runs the bounded two-player reliability profile through a post-reconnect mutation', async () => {
     const summary = await runO4p09iReliabilityEvidenceTestDriverV1({
-      browser: fakeBrowser([]),
+      browser: fakeBrowser([], { postPregameResyncProbes: 2 }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     });
@@ -900,7 +907,7 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser([], { advanceEnabledSeats: [], actorReadinessBlock: 'not-open' }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-resyncing');
+    })).rejects.toThrow('production scenario stage failed: advance/pregame transport convergence timeout');
   });
 
   it('classifies divergent public actor windows without choosing a control', async () => {

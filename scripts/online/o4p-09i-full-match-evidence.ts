@@ -1468,6 +1468,34 @@ async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 
   }
 }
 
+async function waitForPregameTransportConvergence(pages: readonly O4p09iPageV1[], timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error('pregame transport convergence timeout');
+    const results = await Promise.allSettled(pages.map((page) =>
+      actorControlProbe(page, 'online-remote-advance', Math.min(1_000, remaining), 'pregame transport probe timeout')
+    ));
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        rethrowProductionEnvironmentFailure(result.reason, 'progress-probe');
+        throw new Error('pregame transport probe unavailable', { cause: result.reason });
+      }
+    }
+    const probes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    const revision = probes[0]?.revision;
+    if (probes.length === pages.length && safeRevision(revision ?? 0) && probes.every((probe) =>
+      probe.revision === revision
+      && probe.playerPhase === 'open'
+      && probe.pendingCount === 0
+      && probe.knownRevision === revision
+      && probe.projectionRevision === revision
+      && (probe.appBusy === undefined || probe.appBusy === '')
+    )) return;
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
 async function waitForSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<
   | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow'> {
   const deadline = Date.now() + timeoutMs;
@@ -2520,6 +2548,8 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       setStage('pregame-control');
       await drivePregamePhase(pages, playerCount, testId, workerOrigin, timeoutMs, secretFragments, recordControl);
     }
+    setStage('advance');
+    await waitForPregameTransportConvergence(pages, timeoutMs);
 
     // Pregame and game controls are driven on the host surface after every
     // seat has joined.  Each successful click is recorded as an observed
