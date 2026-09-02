@@ -166,16 +166,18 @@ describe('O4P-03C Cloudflare security envelope', () => {
     const security = new OnlineCloudflareSecurityRepository(storage);
     const state = protocolState();
     repository.initialize(state.room.roomId, state, NOW);
-    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 1 }, NOW + 1)).toBe(true);
-    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 2 }, NOW + 2)).toBe(false);
-    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 1 }, NOW + 3)).toBe(true);
-    security.releaseControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 2 }, NOW + 4);
+    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'http', connectionId: null }, NOW + 1)).toBe(true);
+    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 1 }, NOW + 2)).toBe(true);
+    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'http', connectionId: null }, NOW + 3)).toBe(false);
+    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 2 }, NOW + 4)).toBe(false);
+    expect(security.acquireControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 1 }, NOW + 5)).toBe(true);
+    security.releaseControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 2 }, NOW + 6);
     expect(storage.leases).toHaveLength(1);
-    security.releaseControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 1 }, NOW + 5);
+    security.releaseControllerLease(state, PARTICIPANTS[0], 0, { kind: 'socket', connectionId: 1 }, NOW + 7);
     expect(storage.leases).toHaveLength(0);
     expect(new OnlineCloudflareSecurityRepository(storage).read(state).grants).toHaveLength(4);
-    expect(security.allocateConnectionId(state, NOW + 6)).toBe(1);
-    expect(new OnlineCloudflareSecurityRepository(storage).allocateConnectionId(state, NOW + 7)).toBe(2);
+    expect(security.allocateConnectionId(state, NOW + 8)).toBe(1);
+    expect(new OnlineCloudflareSecurityRepository(storage).allocateConnectionId(state, NOW + 9)).toBe(2);
   });
 
   it('rolls back rotation and exact-holder release when DELETE RETURNING mismatches the validated lease', () => {

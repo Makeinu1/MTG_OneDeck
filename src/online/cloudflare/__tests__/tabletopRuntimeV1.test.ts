@@ -8,7 +8,7 @@ import {
 import { projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, validateOnlineParticipantProjectionV3, type OnlineProjectedZoneV1 } from '../../projection/index';
 import { OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
 import { isOnlineVariableProjectionWithinFrameBudgetV1 } from '../projectionBudgetV1';
-import { ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1 } from '../security';
+import { ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1, OnlineCloudflareSecurityRepository } from '../security';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
 
 const SID = '5da14d86-0780-4821-a799-96f64b377df4';
@@ -899,7 +899,10 @@ describe('O4P-09D server tabletop transport', () => {
       serializeAttachment: (value: unknown) => { attachment = value; },
       deserializeAttachment: () => attachment,
     };
-    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [socket] });
+    const security = new OnlineCloudflareSecurityRepository(fixture.storage);
+    const clock = security.read(initial).state.lastObservedAt + 1;
+    expect(security.acquireControllerLease(initial, seat.participantId, 0, { kind: 'http', connectionId: null }, clock)).toBe(true);
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [socket], now: () => clock });
     const client = Object.freeze({ side: 'client' });
     class FakePair { readonly 0 = client; readonly 1 = socket; }
     class CloudflareResponse { readonly status: number; readonly webSocket: unknown; constructor(_body: BodyInit | null, init: ResponseInit & { readonly webSocket?: unknown } = {}) { this.status = init.status ?? 200; this.webSocket = init.webSocket; } }

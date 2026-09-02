@@ -950,7 +950,9 @@ export class OnlineCloudflareSecurityRepository {
       if (grant === undefined || (grant.authority !== 'host' && grant.authority !== 'seat') || grant.generation !== generation) throw new OnlineCloudflareSecurityError('CAPABILITY_REJECTED');
       const current = snapshot.leases.find((lease) => lease.participantId === participantId);
       const expiresAt = safeAdd(now, ONLINE_CLOUDFLARE_CONTROLLER_LEASE_LIFETIME_MS_V1);
-      if (current !== undefined && now < current.expiresAt && !sameHolder(current, generation, holder)) {
+      if (current !== undefined && now < current.expiresAt
+        && !sameHolder(current, generation, holder)
+        && !isAuthenticatedSocketHandoff(current, generation, holder)) {
         this.appendAudit(snapshot, now, grant, holder.connectionId, 'LEASE_CONFLICT', 'rejected');
         return false;
       }
@@ -1068,6 +1070,14 @@ export class OnlineCloudflareSecurityRepository {
 
 function sameHolder(lease: Lease, generation: number, holder: OnlineCloudflareControllerHolderV1): boolean {
   return lease.capabilityGeneration === generation && lease.holderKind === holder.kind && lease.connectionId === holder.connectionId;
+}
+
+function isAuthenticatedSocketHandoff(lease: Lease, generation: number, holder: OnlineCloudflareControllerHolderV1): boolean {
+  return lease.capabilityGeneration === generation
+    && lease.holderKind === 'http'
+    && lease.connectionId === null
+    && holder.kind === 'socket'
+    && holder.connectionId !== null;
 }
 
 export function isOnlineCloudflareSecurityCapabilityV1(value: unknown): value is string {
