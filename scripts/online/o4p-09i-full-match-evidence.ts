@@ -890,7 +890,9 @@ class O4p09iActorSelectionError extends Error {
   readonly checkpoint: O4p09iAdvanceFailureCheckpointV1;
 
   constructor(checkpoint: O4p09iAdvanceFailureCheckpointV1) {
-    super('visible progress actor unavailable');
+    super(checkpoint === 'actor-selection-ambiguous'
+      ? 'advance actor authority ambiguous'
+      : 'visible progress actor unavailable');
     this.checkpoint = checkpoint;
   }
 }
