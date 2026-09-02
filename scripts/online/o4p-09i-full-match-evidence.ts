@@ -57,12 +57,18 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'revision-ack-sba',
   'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
   'action-rejected-priority-advance-sequence', 'action-rejected-priority-advance-core',
-  'action-rejected-priority-advance-other',
+  'action-rejected-priority-advance-authority', 'action-rejected-priority-advance-state',
+  'action-rejected-priority-advance-protocol', 'action-rejected-priority-advance-transport',
+  'action-rejected-priority-advance-missing', 'action-rejected-priority-advance-other',
   'action-rejected-priority-pass-stale', 'action-rejected-priority-pass-actor',
   'action-rejected-priority-pass-sequence', 'action-rejected-priority-pass-core',
-  'action-rejected-priority-pass-other',
+  'action-rejected-priority-pass-authority', 'action-rejected-priority-pass-state',
+  'action-rejected-priority-pass-protocol', 'action-rejected-priority-pass-transport',
+  'action-rejected-priority-pass-missing', 'action-rejected-priority-pass-other',
   'action-rejected-sba-stale', 'action-rejected-sba-actor', 'action-rejected-sba-sequence',
-  'action-rejected-sba-core', 'action-rejected-sba-other', 'target-convergence',
+  'action-rejected-sba-core', 'action-rejected-sba-authority', 'action-rejected-sba-state',
+  'action-rejected-sba-protocol', 'action-rejected-sba-transport', 'action-rejected-sba-missing',
+  'action-rejected-sba-other', 'target-convergence',
 ] as const);
 
 /** Normalize runner failures for the parent harness without exposing error text. */
@@ -860,6 +866,9 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
       ? 'priority-pass'
       : 'priority-advance';
   const issueCode = probe.issueCode.startsWith('CLIENT_') ? probe.issueCode.slice('CLIENT_'.length) : probe.issueCode;
+  const authorityCodes = ['AUTHENTICATION_REJECTED', 'AUTHORIZATION_REJECTED', 'PARTICIPANT_NOT_CONNECTED', 'ROLE_NOT_ALLOWED', 'INVALID_CAPABILITY'];
+  const stateCodes = ['ROOM_MISMATCH', 'ROOM_NOT_ACTIVE', 'PLAYER_NOT_PENDING'];
+  const transportCodes = ['SOCKET_ERROR', 'SOCKET_CLOSED', 'SEND_FAILED', 'RECONNECT_EXHAUSTED'];
   const reason = issueCode === 'STALE_REVISION'
     ? 'stale'
     : issueCode === 'ACTOR_MISMATCH'
@@ -868,6 +877,18 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
         ? 'sequence'
         : issueCode === 'CORE_COMMAND_REJECTED'
           ? 'core'
+          : authorityCodes.includes(issueCode)
+            ? 'authority'
+            : stateCodes.includes(issueCode)
+              ? 'state'
+              : transportCodes.includes(issueCode)
+                ? 'transport'
+                : issueCode === ''
+                  ? 'missing'
+                  : issueCode.startsWith('INVALID_') || issueCode.startsWith('MISSING_')
+                    || issueCode.startsWith('UNKNOWN_') || issueCode === 'NON_DENSE_ARRAY'
+                    || issueCode === 'PROTOCOL_VERSION_MISMATCH' || issueCode === 'PROJECTION_REJECTED'
+                    ? 'protocol'
           : 'other';
   return `action-rejected-${operation}-${reason}`;
 }
