@@ -103,7 +103,9 @@ describe('review O4P-09I full-match production evidence', () => {
     expect(source).toContain('manual resolve actor authority ambiguous');
     expect(source).toContain('probes.length !== pages.length');
     expect(source).toContain('probes.length === pages.length');
-    expect(readFileSync(resolve('src/components/online/PublicOnlineApp.tsx'), 'utf8')).toContain("playerBrowser.phase !== 'open'");
+    const publicApp = readFileSync(resolve('src/components/online/PublicOnlineApp.tsx'), 'utf8');
+    expect(publicApp).toContain("playerBrowser.phase !== 'open'");
+    expect(publicApp).toContain("playerBrowser !== null\n      ? playerSynchronizing ? 'updating' : 'ready'");
     const inviteControlPolling = source.slice(source.indexOf('async function clickButtonByText'), source.indexOf('async function fillVisible'));
     expect(inviteControlPolling).toContain('for (;;)');
     expect(inviteControlPolling).toContain('await page.evaluate<boolean>');

@@ -143,8 +143,8 @@ export function PublicOnlineApp({
   );
   const tabletopBusy = snapshot.busy !== null || playerSynchronizing;
   const interactionState =
-    playerSynchronizing
-      ? 'updating'
+    playerBrowser !== null
+      ? playerSynchronizing ? 'updating' : 'ready'
       : snapshot.connection === 'online'
       ? 'ready'
       : snapshot.connection === 'reconnecting'
