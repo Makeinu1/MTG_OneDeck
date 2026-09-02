@@ -2748,16 +2748,19 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     }
 
     setStage('post-actions');
-    if (profile === 'reliability' && reliabilityAcceptedRevision === null) throw new Error('shared mutation settlement missing');
-    const postActions = profile === 'full'
-      ? await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments)
-      : (await waitForSharedMutationConvergence(
+    let postActions: O4p09iProbeV1 | undefined;
+    if (profile === 'full') {
+      postActions = await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments);
+    } else {
+      if (reliabilityAcceptedRevision === null) throw new Error('shared mutation settlement missing');
+      postActions = (await waitForSharedMutationConvergence(
           pages,
           reliabilityAcceptedRevision,
           workerOrigin,
           timeoutMs,
           secretFragments,
         ))[0];
+    }
     if (postActions === undefined) throw new Error('post-action convergence missing');
     revisionBeforeReconnect = postActions.revision;
     if (!safeRevision(revisionBeforeReconnect) || revisionBeforeReconnect <= initialRevision || postActions.gameScreens !== 1 || postActions.overflow !== 0 || postActions.opponentLeak || postActions.consoleErrors !== 0 || !postActions.workerObserved) throw new Error('post-action surface/worker probe failed');
