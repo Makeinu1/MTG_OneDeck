@@ -363,6 +363,26 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(client.getSnapshot().projection?.revision).toBe(1);
   });
 
+  it('settles a pending command when the revision notice arrives before its ACK', () => {
+    const { client, sockets } = harness();
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing socket');
+    openClient(client, socket);
+    expect(client.submit({ commandId: 'revision-first-command' as never, baseRevision: 0, command: command(1) })).toEqual({ ok: true });
+
+    socket.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 1 });
+    expect(client.getSnapshot()).toMatchObject({ phase: 'resyncing', pendingCommands: [{ commandId: 'revision-first-command', baseRevision: 0 }] });
+    socket.frame({
+      kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID,
+      participantId: PARTICIPANT_ID, commandId: 'revision-first-command',
+      baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: false,
+    });
+    expect(client.getSnapshot()).toMatchObject({ phase: 'resyncing', pendingCommands: [] });
+    socket.frame(projectionResponseAt(1));
+    expect(client.getSnapshot()).toMatchObject({ phase: 'open', knownRevision: 1, pendingCommands: [] });
+  });
+
   it('follows a newer revision while a snapshot is in flight with one storm-free follow-up', () => {
     const { client, sockets } = harness();
     client.connect();

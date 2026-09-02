@@ -825,7 +825,7 @@ export function createOnlineBrowserWebSocketClientV1(
       return;
     }
     if (kind === 'online-command-ack-v1' || kind === 'online-command-reject-v1') {
-      if (phase !== 'open') return;
+      if (phase !== 'open' && phase !== 'resyncing') return;
       const isAck = kind === 'online-command-ack-v1';
       const keys = isAck
         ? ['acceptedRevision', 'baseRevision', 'commandId', 'currentRevision', 'duplicate', 'kind', 'participantId', 'protocolVersion', 'roomId', 'status'] as const
