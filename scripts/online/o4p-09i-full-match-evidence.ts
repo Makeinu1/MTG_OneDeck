@@ -58,6 +58,7 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'actor-selection-contract-control-missing', 'actor-selection-contract-control-hidden',
   'actor-selection-disabled', 'actor-selection-hold',
   'actor-selection-authority', 'actor-selection-window', 'actor-selection-player-not-open',
+  'actor-selection-player-resyncing', 'actor-selection-player-recovering', 'actor-selection-player-failed',
   'actor-selection-player-pending', 'actor-selection-player-revision-lag', 'actor-selection-app-busy',
   'click', 'revision-ack', 'revision-ack-advance',
   'revision-ack-sba', 'revision-ack-advance-accepted-no-progress',
@@ -937,6 +938,9 @@ function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-re
   const expected = probes.filter(({ testId: candidate, probe }) => candidate === testId && probe.localPlayerId === authority);
   if (expected.length !== 1) return 'actor-selection-authority';
   const selected = expected[0]?.probe;
+  if (selected?.playerPhase === 'resyncing') return 'actor-selection-player-resyncing';
+  if (selected?.playerPhase === 'recovering') return 'actor-selection-player-recovering';
+  if (selected?.playerPhase === 'failed') return 'actor-selection-player-failed';
   if (selected?.playerPhase !== undefined && selected.playerPhase !== '' && selected.playerPhase !== 'open') return 'actor-selection-player-not-open';
   if ((selected?.pendingCount ?? 0) > 0) return 'actor-selection-player-pending';
   if ((selected?.knownRevision ?? -1) > (selected?.projectionRevision ?? -1)) return 'actor-selection-player-revision-lag';

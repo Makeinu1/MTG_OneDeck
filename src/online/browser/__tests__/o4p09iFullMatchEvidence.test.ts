@@ -873,7 +873,7 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser([], { advanceEnabledSeats: [], actorReadinessBlock: 'not-open' }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-not-open');
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-resyncing');
   });
 
   it('classifies divergent public actor windows without choosing a control', async () => {
