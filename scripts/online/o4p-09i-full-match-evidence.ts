@@ -54,7 +54,9 @@ const ADVANCE_FAILURE_STAGES = Object.freeze([
 ] as const);
 const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'seat-convergence', 'actor-selection', 'actor-selection-ambiguous',
-  'actor-selection-contract', 'actor-selection-disabled', 'actor-selection-hold',
+  'actor-selection-contract', 'actor-selection-contract-metadata', 'actor-selection-contract-window-divergence',
+  'actor-selection-contract-control-missing', 'actor-selection-contract-control-hidden',
+  'actor-selection-disabled', 'actor-selection-hold',
   'actor-selection-authority', 'actor-selection-window', 'actor-selection-player-not-open',
   'actor-selection-player-pending', 'actor-selection-player-revision-lag', 'actor-selection-app-busy',
   'click', 'revision-ack', 'revision-ack-advance',
@@ -916,9 +918,9 @@ class O4p09iActorSelectionError extends Error {
 
 function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-remote-advance' | 'online-remote-sba-stable'; probe: O4p09iActorProbeV1 }>[]): O4p09iAdvanceFailureCheckpointV1 {
   if (probes.some(({ probe }) => probe.localPlayerId === undefined || probe.windowKind === undefined
-    || probe.holderPlayerId === undefined || probe.stewardPlayerId === undefined || probe.holds === undefined)) return 'actor-selection-contract';
+    || probe.holderPlayerId === undefined || probe.stewardPlayerId === undefined || probe.holds === undefined)) return 'actor-selection-contract-metadata';
   const windows = new Set(probes.map(({ probe }) => probe.windowKind));
-  if (windows.size !== 1) return 'actor-selection-contract';
+  if (windows.size !== 1) return 'actor-selection-contract-window-divergence';
   if (probes.some(({ probe }) => (probe.holds?.length ?? 0) > 0)) return 'actor-selection-hold';
   const windowKind = probes[0]?.probe.windowKind ?? '';
   const authority = windowKind === 'priority' ? probes[0]?.probe.holderPlayerId : probes[0]?.probe.stewardPlayerId;
@@ -935,9 +937,9 @@ function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-re
   if ((selected?.pendingCount ?? 0) > 0) return 'actor-selection-player-pending';
   if ((selected?.knownRevision ?? -1) > (selected?.projectionRevision ?? -1)) return 'actor-selection-player-revision-lag';
   if (selected?.appBusy !== undefined && selected.appBusy !== '') return 'actor-selection-app-busy';
-  return selected?.present === true && selected.visible === true
-    ? 'actor-selection-disabled'
-    : 'actor-selection-contract';
+  if (selected?.present !== true) return 'actor-selection-contract-control-missing';
+  if (selected.visible !== true) return 'actor-selection-contract-control-hidden';
+  return 'actor-selection-disabled';
 }
 
 function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string): O4p09iAdvanceFailureCheckpointV1 {

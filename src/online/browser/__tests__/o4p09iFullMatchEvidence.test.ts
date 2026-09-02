@@ -95,6 +95,7 @@ type FakeOptions = Readonly<{
   readonly lobbyReadyProbe?: 'delayed' | 'never';
   readonly progressStuckAfterClick?: boolean;
   readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
+  readonly actorWindowDivergentSeat?: number;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -260,7 +261,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             localPlayerId: `P${String(seatIndex + 1)}`,
             holderPlayerId: null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
-            windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
+            windowKind: options.actorWindowDivergentSeat === seatIndex ? 'priority' : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
             holds: [],
             ...actorReadiness(),
           } as T);
@@ -283,7 +284,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             localPlayerId: `P${String(seatIndex + 1)}`,
             holderPlayerId: null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
-            windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
+            windowKind: options.actorWindowDivergentSeat === seatIndex ? 'priority' : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
             holds: [],
             ...actorReadiness(),
           } as T);
@@ -873,6 +874,14 @@ describe('O4P-09I full-match production evidence', () => {
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-not-open');
+  });
+
+  it('classifies divergent public actor windows without choosing a control', async () => {
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { advanceEnabledSeats: [], actorWindowDivergentSeat: 1 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-contract-window-divergence');
   });
 
   it('rediscovers the unique priority holder and steward after every converged mutation', async () => {
