@@ -54,7 +54,15 @@ const ADVANCE_FAILURE_STAGES = Object.freeze([
 ] as const);
 const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'seat-convergence', 'actor-selection', 'click', 'revision-ack', 'revision-ack-advance',
-  'revision-ack-sba', 'action-rejected-advance', 'action-rejected-sba', 'target-convergence',
+  'revision-ack-sba',
+  'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
+  'action-rejected-priority-advance-sequence', 'action-rejected-priority-advance-core',
+  'action-rejected-priority-advance-other',
+  'action-rejected-priority-pass-stale', 'action-rejected-priority-pass-actor',
+  'action-rejected-priority-pass-sequence', 'action-rejected-priority-pass-core',
+  'action-rejected-priority-pass-other',
+  'action-rejected-sba-stale', 'action-rejected-sba-actor', 'action-rejected-sba-sequence',
+  'action-rejected-sba-core', 'action-rejected-sba-other', 'target-convergence',
 ] as const);
 
 /** Normalize runner failures for the parent harness without exposing error text. */
@@ -782,6 +790,8 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly outcome: 'accepted' | 'rejected' | 'none';
   readonly acceptedRevision: number | null;
   readonly errorVisible: boolean;
+  readonly operation: string;
+  readonly issueCode: string;
 }>;
 
 async function actorControlProbe(
@@ -790,7 +800,7 @@ async function actorControlProbe(
   timeoutMs: number,
   timeoutMessage: string
 ): Promise<O4p09iActorProbeV1> {
-  if (timeoutMs <= 0) return { enabled: false, revision: 0, holdState: 'invalid', outcome: 'none', acceptedRevision: null, errorVisible: false };
+  if (timeoutMs <= 0) return { enabled: false, revision: 0, holdState: 'invalid', outcome: 'none', acceptedRevision: null, errorVisible: false, operation: '', issueCode: '' };
   return Promise.race([
     page.evaluate<O4p09iActorProbeV1>(`(() => { // priorityControlProbe:${testId}
       const node = document.querySelector('[data-testid="${testId}"]');
@@ -804,6 +814,8 @@ async function actorControlProbe(
       const outcome = outcomeValue === 'accepted' || outcomeValue === 'rejected' ? outcomeValue : 'none';
       const acceptedRevisionText = result?.getAttribute('data-accepted-revision') ?? '';
       const acceptedRevision = acceptedRevisionText === '' ? null : Number(acceptedRevisionText);
+      const operation = result?.getAttribute('data-operation') ?? '';
+      const issueCode = result?.getAttribute('data-issue-code') ?? '';
       const errorNode = document.querySelector('[data-testid="online-error"]');
       const errorStyle = errorNode instanceof HTMLElement ? getComputedStyle(errorNode) : null;
       const errorRect = errorNode instanceof HTMLElement ? errorNode.getBoundingClientRect() : null;
@@ -820,14 +832,43 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, revision, holdState, outcome, acceptedRevision, errorVisible };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
-      return { enabled: !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && !node.disabled, revision, holdState, outcome, acceptedRevision, errorVisible };
+      return { enabled: !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && !node.disabled, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
     )
   ]);
+}
+
+type O4p09iAdvanceFailureCheckpointV1 = (typeof ADVANCE_FAILURE_CHECKPOINTS)[number];
+
+class O4p09iProgressRejectedError extends Error {
+  readonly checkpoint: O4p09iAdvanceFailureCheckpointV1;
+
+  constructor(checkpoint: O4p09iAdvanceFailureCheckpointV1) {
+    super('visible progress operation rejected');
+    this.checkpoint = checkpoint;
+  }
+}
+
+function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string): O4p09iAdvanceFailureCheckpointV1 {
+  const operation = testId === 'online-remote-sba-stable'
+    ? 'sba'
+    : probe.operation === 'priority-pass'
+      ? 'priority-pass'
+      : 'priority-advance';
+  const reason = probe.issueCode === 'STALE_REVISION'
+    ? 'stale'
+    : probe.issueCode === 'ACTOR_MISMATCH'
+      ? 'actor'
+      : probe.issueCode === 'COMMAND_SEQUENCE_MISMATCH'
+        ? 'sequence'
+        : probe.issueCode === 'CORE_COMMAND_REJECTED'
+          ? 'core'
+          : 'other';
+  return `action-rejected-${operation}-${reason}` as O4p09iAdvanceFailureCheckpointV1;
 }
 
 async function findProgressActorPage(
@@ -1646,7 +1687,7 @@ async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string
     }
     if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
     if (probe.outcome === 'accepted' && probe.acceptedRevision !== null && safeRevision(probe.acceptedRevision) && probe.acceptedRevision > baseline) return probe.acceptedRevision;
-    if (probe.outcome === 'rejected' || probe.errorVisible) throw new Error('visible progress operation rejected');
+    if (probe.outcome === 'rejected' || probe.errorVisible) throw new O4p09iProgressRejectedError(progressRejectionCheckpoint(probe, testId));
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(50, Math.max(1, deadline - Date.now()))));
   }
 }
@@ -1734,8 +1775,8 @@ async function advanceUntilPhase(
     try {
       await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actionTimeoutMs);
     } catch (error) {
-      if (error instanceof Error && error.message === 'visible progress operation rejected') {
-        setCheckpoint(isSba ? 'action-rejected-sba' : 'action-rejected-advance');
+      if (error instanceof O4p09iProgressRejectedError) {
+        setCheckpoint(error.checkpoint);
       }
       throw error;
     }

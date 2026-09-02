@@ -242,6 +242,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
             acceptedRevision: null,
             errorVisible: false,
+            operation: 'priority-advance',
+            issueCode: options.progressRejected === true ? 'CORE_COMMAND_REJECTED' : '',
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
@@ -253,6 +255,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
             acceptedRevision: null,
             errorVisible: false,
+            operation: 'sba-check-outcome',
+            issueCode: options.progressRejected === true ? 'CORE_COMMAND_REJECTED' : '',
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
@@ -809,7 +813,7 @@ describe('O4P-09I full-match production evidence', () => {
         readDeck: () => 'fixture deck',
         timeoutMs: 250
       })
-    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-advance');
+    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-priority-advance-core');
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {

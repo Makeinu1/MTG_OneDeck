@@ -594,7 +594,7 @@ describe('remote GameScreen adapter', () => {
           currentRevision: outcome === 'accepted' ? 13 : 12,
           acceptedRevision: outcome === 'accepted' ? 13 : null,
           commandKind: 'tabletop',
-          operation: 'priority-pass',
+          operation: outcome === 'accepted' ? 'priority-pass' : 'priority-advance',
           outcome,
           issueCode: outcome === 'accepted' ? null : 'STALE_REVISION',
         }}
@@ -609,7 +609,8 @@ describe('remote GameScreen adapter', () => {
 
     act(() => render('rejected'));
     const rejected = container.querySelector<HTMLElement>('[data-testid="online-remote-priority-result"]');
-    expect(rejected?.dataset).toMatchObject({ operation: 'priority-pass', outcome: 'rejected', acceptedRevision: '' });
+    expect(rejected?.dataset).toMatchObject({ operation: 'priority-advance', outcome: 'rejected', acceptedRevision: '', issueCode: 'STALE_REVISION' });
+    expect(rejected?.textContent).toContain('進行操作');
     expect(rejected?.textContent).toContain('共有状態は変更されていません');
     expect(rejected?.textContent).not.toMatch(/capability|coreRoot|receiptDigest|STALE_REVISION/u);
     act(() => root.unmount());

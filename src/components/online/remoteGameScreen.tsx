@@ -785,6 +785,7 @@ export function RemoteGameScreenActionRail({
   const prioritySettlement = lastCommandSettlement?.commandKind === 'tabletop'
     && (lastCommandSettlement.operation === 'priority-hold'
       || lastCommandSettlement.operation === 'priority-pass'
+      || lastCommandSettlement.operation === 'priority-advance'
       || lastCommandSettlement.operation === 'priority-resolve')
     ? lastCommandSettlement
     : null;
@@ -792,6 +793,8 @@ export function RemoteGameScreenActionRail({
     ? 'HOLD操作'
     : prioritySettlement?.operation === 'priority-pass'
       ? '優先権のパス'
+      : prioritySettlement?.operation === 'priority-advance'
+        ? '進行操作'
       : 'スタックの解決';
   const latestNote = projection.game.notes?.at(-1);
   const opponentSeats = projection.game.players
@@ -990,6 +993,7 @@ export function RemoteGameScreenActionRail({
           data-base-revision={prioritySettlement.baseRevision}
           data-current-revision={prioritySettlement.currentRevision}
           data-accepted-revision={prioritySettlement.acceptedRevision ?? ''}
+          data-issue-code={prioritySettlement.issueCode ?? ''}
           role="status"
           aria-live="polite"
         >
