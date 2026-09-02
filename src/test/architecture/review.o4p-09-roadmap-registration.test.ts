@@ -14,7 +14,7 @@ const IDS = [
 ] as const;
 const LIVE_IDS = [
   'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09C-UI', 'O4P-09D', 'O4P-09E',
-  'O4P-09F', 'O4P-09G', 'O4P-09I',
+  'O4P-09F', 'O4P-09G', 'O4P-09I-A', 'O4P-09I-B', 'O4P-09I-C', 'O4P-09I',
 ] as const;
 const DEPENDENCIES = [
   'O4P-08D', 'O4P-09A', 'O4P-09B', 'O4P-09C', 'O4P-09D',
@@ -170,7 +170,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
     expect(contract).not.toContain('Takeback Proposal');
   });
 
-  it('projects O4P-09A as the healthy active-program selection', () => {
+  it('projects the first pending recut task as the healthy active-program selection', () => {
     const liveLedger = parse(text(LEDGER_PATH));
     const nextDomainId = LIVE_IDS.find((id) => (
       liveLedger.domains.find((entry) => entry.id === id)?.status !== 'shipped'
@@ -181,7 +181,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
       domainIds: LIVE_IDS,
     });
     expect(LIVE_IDS).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09I');
+    expect(nextDomainId).toBe('O4P-09I-A');
     for (const id of LIVE_IDS) {
       expect(
         liveLedger.plannedSequence.find((entry) => entry.domainId === id)?.status,
