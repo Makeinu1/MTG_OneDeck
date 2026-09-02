@@ -61,7 +61,11 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'actor-selection-player-pending', 'actor-selection-player-revision-lag', 'actor-selection-app-busy',
   'click', 'revision-ack', 'revision-ack-advance',
   'revision-ack-sba', 'revision-ack-advance-accepted-no-progress',
+  'revision-ack-advance-unsettled-player-not-open', 'revision-ack-advance-unsettled-pending',
+  'revision-ack-advance-unsettled-revision-lag',
   'revision-ack-advance-unsettled-disabled', 'revision-ack-advance-unsettled-enabled',
+  'revision-ack-sba-unsettled-player-not-open', 'revision-ack-sba-unsettled-pending',
+  'revision-ack-sba-unsettled-revision-lag',
   'revision-ack-sba-accepted-no-progress', 'revision-ack-sba-unsettled-disabled', 'revision-ack-sba-unsettled-enabled',
   'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
   'action-rejected-priority-advance-sequence', 'action-rejected-priority-advance-core',
@@ -990,6 +994,9 @@ function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined
   if (probe?.commandId !== previousCommandId && probe?.outcome === 'accepted' && (probe.acceptedRevision ?? baseline) <= baseline) {
     return `revision-ack-${operation}-accepted-no-progress`;
   }
+  if (probe?.playerPhase !== undefined && probe.playerPhase !== '' && probe.playerPhase !== 'open') return `revision-ack-${operation}-unsettled-player-not-open`;
+  if ((probe?.pendingCount ?? 0) > 0) return `revision-ack-${operation}-unsettled-pending`;
+  if ((probe?.knownRevision ?? -1) > (probe?.projectionRevision ?? -1)) return `revision-ack-${operation}-unsettled-revision-lag`;
   return `revision-ack-${operation}-unsettled-${probe?.enabled === true ? 'enabled' : 'disabled'}`;
 }
 
