@@ -239,11 +239,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
             revision: actorControlRevision(),
             holdState: 'not-applicable',
-            outcome: 'none',
+            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
             acceptedRevision: null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
-            issueCode: options.progressRejected === true ? 'CLIENT_SEND_FAILED' : '',
+            issueCode: options.progressRejected === true ? 'CLIENT_SOCKET_ERROR' : '',
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
@@ -252,11 +252,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
             revision: actorControlRevision(),
             holdState: 'not-applicable',
-            outcome: 'none',
+            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
             acceptedRevision: null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
-            issueCode: options.progressRejected === true ? 'CLIENT_SEND_FAILED' : '',
+            issueCode: options.progressRejected === true ? 'CLIENT_SOCKET_ERROR' : '',
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
@@ -813,7 +813,7 @@ describe('O4P-09I full-match production evidence', () => {
         readDeck: () => 'fixture deck',
         timeoutMs: 250
       })
-    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-priority-advance-send-failed');
+    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-priority-advance-socket-error-reject');
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {
