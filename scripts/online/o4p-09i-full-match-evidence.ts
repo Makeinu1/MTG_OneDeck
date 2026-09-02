@@ -53,7 +53,9 @@ const ADVANCE_FAILURE_STAGES = Object.freeze([
   'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
 ] as const);
 const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
-  'seat-convergence', 'actor-selection', 'click', 'revision-ack', 'revision-ack-advance',
+  'seat-convergence', 'actor-selection', 'actor-selection-ambiguous',
+  'actor-selection-contract', 'actor-selection-disabled', 'actor-selection-hold',
+  'actor-selection-authority', 'actor-selection-window', 'click', 'revision-ack', 'revision-ack-advance',
   'revision-ack-sba',
   'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
   'action-rejected-priority-advance-sequence', 'action-rejected-priority-advance-core',
@@ -803,6 +805,8 @@ async function waitForVisible(page: O4p09iPageV1, testId: string, timeoutMs: num
 type O4p09iHoldStateV1 = 'not-applicable' | 'none' | 'own' | 'peer' | 'invalid';
 type O4p09iActorProbeV1 = Readonly<{
   readonly enabled: boolean;
+  readonly present?: boolean;
+  readonly visible?: boolean;
   readonly revision: number;
   readonly holdState: O4p09iHoldStateV1;
   readonly outcome: 'accepted' | 'rejected' | 'none';
@@ -810,6 +814,11 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly errorVisible: boolean;
   readonly operation: string;
   readonly issueCode: string;
+  readonly localPlayerId?: string | null;
+  readonly holderPlayerId?: string | null;
+  readonly stewardPlayerId?: string | null;
+  readonly windowKind?: string;
+  readonly holds?: readonly string[];
 }>;
 
 async function actorControlProbe(
@@ -841,6 +850,11 @@ async function actorControlProbe(
         && !errorNode.hidden && errorNode.getAttribute('aria-hidden') !== 'true'
         && errorStyle.display !== 'none' && errorStyle.visibility !== 'hidden'
         && Number(errorStyle.opacity || '1') > 0 && errorRect.width > 0 && errorRect.height > 0;
+      const localPlayerId = remoteRail?.getAttribute('data-local-player-id') || null;
+      const holderPlayerId = remoteRail?.getAttribute('data-priority-holder-player-id') || null;
+      const stewardPlayerId = remoteRail?.getAttribute('data-priority-steward-player-id') || null;
+      const windowKind = remoteRail?.getAttribute('data-priority-window-kind') ?? '';
+      const holds = (remoteRail?.getAttribute('data-priority-holds') ?? '').split(',').filter(Boolean);
       const holdState = (() => {
         if (${JSON.stringify(testId)} !== 'online-remote-hold') return 'not-applicable';
         const pressed = node instanceof HTMLButtonElement ? node.getAttribute('aria-pressed') : null;
@@ -850,9 +864,10 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
-      return { enabled: !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null && !node.disabled, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode };
+      const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
+      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
@@ -869,6 +884,36 @@ class O4p09iProgressRejectedError extends Error {
     super('visible progress operation rejected');
     this.checkpoint = checkpoint;
   }
+}
+
+class O4p09iActorSelectionError extends Error {
+  readonly checkpoint: O4p09iAdvanceFailureCheckpointV1;
+
+  constructor(checkpoint: O4p09iAdvanceFailureCheckpointV1) {
+    super('visible progress actor unavailable');
+    this.checkpoint = checkpoint;
+  }
+}
+
+function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-remote-advance' | 'online-remote-sba-stable'; probe: O4p09iActorProbeV1 }>[]): O4p09iAdvanceFailureCheckpointV1 {
+  if (probes.some(({ probe }) => probe.localPlayerId === undefined || probe.windowKind === undefined
+    || probe.holderPlayerId === undefined || probe.stewardPlayerId === undefined || probe.holds === undefined)) return 'actor-selection-contract';
+  const windows = new Set(probes.map(({ probe }) => probe.windowKind));
+  if (windows.size !== 1) return 'actor-selection-contract';
+  if (probes.some(({ probe }) => (probe.holds?.length ?? 0) > 0)) return 'actor-selection-hold';
+  const windowKind = probes[0]?.probe.windowKind ?? '';
+  const authority = windowKind === 'priority' ? probes[0]?.probe.holderPlayerId : probes[0]?.probe.stewardPlayerId;
+  if (authority === null || authority === undefined) return 'actor-selection-authority';
+  const testId = windowKind === 'sba-check-required' ? 'online-remote-sba-stable'
+    : ['turn-based-action-required', 'priority', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(windowKind)
+      ? 'online-remote-advance'
+      : null;
+  if (testId === null) return 'actor-selection-window';
+  const expected = probes.filter(({ testId: candidate, probe }) => candidate === testId && probe.localPlayerId === authority);
+  if (expected.length !== 1) return 'actor-selection-authority';
+  return expected[0]?.probe.present === true && expected[0].probe.visible === true
+    ? 'actor-selection-disabled'
+    : 'actor-selection-contract';
 }
 
 function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string): O4p09iAdvanceFailureCheckpointV1 {
@@ -920,9 +965,10 @@ async function findProgressActorPage(
 ): Promise<Readonly<{ readonly page: O4p09iPageV1; readonly testId: 'online-remote-advance' | 'online-remote-sba-stable'; readonly revision: number }>> {
   const deadline = Date.now() + timeoutMs;
   const testIds = ['online-remote-advance', 'online-remote-sba-stable'] as const;
+  let lastProbes: Array<{ readonly page: O4p09iPageV1; readonly testId: (typeof testIds)[number]; readonly probe: O4p09iActorProbeV1 }> | undefined;
   for (;;) {
     const remaining = deadline - Date.now();
-    if (remaining <= 0) throw new Error('progress actor control timeout');
+    if (remaining <= 0) throw new O4p09iActorSelectionError(actorSelectionCheckpoint(lastProbes ?? []));
     const results = await Promise.allSettled(pages.flatMap((page) => testIds.map(async (testId) => ({
       page,
       testId,
@@ -935,16 +981,17 @@ async function findProgressActorPage(
       }
     }
     const probes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    lastProbes = probes;
     const revisions = new Set(probes.map(({ probe }) => probe.revision));
     if (probes.length !== pages.length * testIds.length || revisions.size !== 1 || !safeRevision(probes[0]?.probe.revision ?? 0)) {
       await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 25));
       continue;
     }
     const enabled = probes.filter(({ probe }) => probe.enabled);
-    if (enabled.length > 1) throw new Error('advance actor authority ambiguous');
+    if (enabled.length > 1) throw new O4p09iActorSelectionError('actor-selection-ambiguous');
     const selected = enabled[0];
     if (selected !== undefined) return { page: selected.page, testId: selected.testId, revision: selected.probe.revision };
-    if (Date.now() >= deadline) throw new Error('progress actor control timeout');
+    if (Date.now() >= deadline) throw new O4p09iActorSelectionError(actorSelectionCheckpoint(probes));
     await new Promise<void>((resolvePromise) =>
       setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
     );
@@ -1806,10 +1853,16 @@ async function advanceUntilPhase(
     }
     setCheckpoint('actor-selection');
     if (Date.now() >= deadline) break;
-    const actor = await findProgressActorPage(
-      pages,
-      Math.min(timeoutMs, Math.max(250, deadline - Date.now()))
-    );
+    let actor: Awaited<ReturnType<typeof findProgressActorPage>>;
+    try {
+      actor = await findProgressActorPage(
+        pages,
+        Math.min(timeoutMs, Math.max(250, deadline - Date.now()))
+      );
+    } catch (error) {
+      if (error instanceof O4p09iActorSelectionError) setCheckpoint(error.checkpoint);
+      throw error;
+    }
     const actionTimeoutMs = Math.min(timeoutMs, Math.max(250, deadline - Date.now()));
     setCheckpoint('click');
     await clickVisible(actor.page, actor.testId, actionTimeoutMs);

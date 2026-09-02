@@ -235,8 +235,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-advance')) {
+          const authoritySeat = advanceEnabledSeats[0] ?? 0;
           return Promise.resolve({
             enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
+            present: true,
+            visible: true,
             revision: actorControlRevision(),
             holdState: 'not-applicable',
             outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
@@ -244,12 +247,20 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
             issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : '',
+            localPlayerId: `P${String(seatIndex + 1)}`,
+            holderPlayerId: null,
+            stewardPlayerId: `P${String(authoritySeat + 1)}`,
+            windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
+            holds: [],
           } as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
           const enabledSeats = options.sbaEnabledSeats ?? advanceEnabledSeats;
+          const authoritySeat = advanceEnabledSeats[0] ?? 0;
           return Promise.resolve({
             enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
+            present: true,
+            visible: true,
             revision: actorControlRevision(),
             holdState: 'not-applicable',
             outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
@@ -257,6 +268,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
             operation: '',
             issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : '',
+            localPlayerId: `P${String(seatIndex + 1)}`,
+            holderPlayerId: null,
+            stewardPlayerId: `P${String(authoritySeat + 1)}`,
+            windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
+            holds: [],
           } as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
@@ -803,7 +819,7 @@ describe('O4P-09I full-match production evidence', () => {
         readDeck: () => 'fixture deck',
         timeoutMs: 250
       })
-    ).rejects.toThrow('production scenario stage failed: advance');
+    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-ambiguous');
   });
 
   it('classifies a rejected visible progress operation without exposing its error', async () => {
@@ -824,7 +840,7 @@ describe('O4P-09I full-match production evidence', () => {
         readDeck: () => 'fixture deck',
         timeoutMs: 250,
       })
-    ).rejects.toThrow('production scenario stage failed: advance');
+    ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-disabled');
     expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('data-testid="online-remote-cast"') && expression.includes('node.click(); return true'))).toBe(false);
   });
