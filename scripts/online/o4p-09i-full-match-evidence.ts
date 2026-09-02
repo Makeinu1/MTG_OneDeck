@@ -58,16 +58,22 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
   'action-rejected-priority-advance-sequence', 'action-rejected-priority-advance-core',
   'action-rejected-priority-advance-authority', 'action-rejected-priority-advance-state',
-  'action-rejected-priority-advance-protocol', 'action-rejected-priority-advance-transport',
+  'action-rejected-priority-advance-protocol', 'action-rejected-priority-advance-socket-error',
+  'action-rejected-priority-advance-socket-closed', 'action-rejected-priority-advance-send-failed',
+  'action-rejected-priority-advance-reconnect-exhausted',
   'action-rejected-priority-advance-missing', 'action-rejected-priority-advance-other',
   'action-rejected-priority-pass-stale', 'action-rejected-priority-pass-actor',
   'action-rejected-priority-pass-sequence', 'action-rejected-priority-pass-core',
   'action-rejected-priority-pass-authority', 'action-rejected-priority-pass-state',
-  'action-rejected-priority-pass-protocol', 'action-rejected-priority-pass-transport',
+  'action-rejected-priority-pass-protocol', 'action-rejected-priority-pass-socket-error',
+  'action-rejected-priority-pass-socket-closed', 'action-rejected-priority-pass-send-failed',
+  'action-rejected-priority-pass-reconnect-exhausted',
   'action-rejected-priority-pass-missing', 'action-rejected-priority-pass-other',
   'action-rejected-sba-stale', 'action-rejected-sba-actor', 'action-rejected-sba-sequence',
   'action-rejected-sba-core', 'action-rejected-sba-authority', 'action-rejected-sba-state',
-  'action-rejected-sba-protocol', 'action-rejected-sba-transport', 'action-rejected-sba-missing',
+  'action-rejected-sba-protocol', 'action-rejected-sba-socket-error',
+  'action-rejected-sba-socket-closed', 'action-rejected-sba-send-failed',
+  'action-rejected-sba-reconnect-exhausted', 'action-rejected-sba-missing',
   'action-rejected-sba-other', 'target-convergence',
 ] as const);
 
@@ -868,7 +874,6 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
   const issueCode = probe.issueCode.startsWith('CLIENT_') ? probe.issueCode.slice('CLIENT_'.length) : probe.issueCode;
   const authorityCodes = ['AUTHENTICATION_REJECTED', 'AUTHORIZATION_REJECTED', 'PARTICIPANT_NOT_CONNECTED', 'ROLE_NOT_ALLOWED', 'INVALID_CAPABILITY'];
   const stateCodes = ['ROOM_MISMATCH', 'ROOM_NOT_ACTIVE', 'PLAYER_NOT_PENDING'];
-  const transportCodes = ['SOCKET_ERROR', 'SOCKET_CLOSED', 'SEND_FAILED', 'RECONNECT_EXHAUSTED'];
   const reason = issueCode === 'STALE_REVISION'
     ? 'stale'
     : issueCode === 'ACTOR_MISMATCH'
@@ -881,8 +886,14 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
             ? 'authority'
             : stateCodes.includes(issueCode)
               ? 'state'
-              : transportCodes.includes(issueCode)
-                ? 'transport'
+              : issueCode === 'SOCKET_ERROR'
+                ? 'socket-error'
+                : issueCode === 'SOCKET_CLOSED'
+                  ? 'socket-closed'
+                  : issueCode === 'SEND_FAILED'
+                    ? 'send-failed'
+                    : issueCode === 'RECONNECT_EXHAUSTED'
+                      ? 'reconnect-exhausted'
                 : issueCode === ''
                   ? 'missing'
                   : issueCode.startsWith('INVALID_') || issueCode.startsWith('MISSING_')
