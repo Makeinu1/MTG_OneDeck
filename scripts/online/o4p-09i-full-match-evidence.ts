@@ -868,7 +868,7 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
         : probe.issueCode === 'CORE_COMMAND_REJECTED'
           ? 'core'
           : 'other';
-  return `action-rejected-${operation}-${reason}` as O4p09iAdvanceFailureCheckpointV1;
+  return `action-rejected-${operation}-${reason}`;
 }
 
 async function findProgressActorPage(
