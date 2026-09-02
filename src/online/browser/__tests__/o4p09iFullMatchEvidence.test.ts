@@ -99,6 +99,7 @@ type FakeOptions = Readonly<{
   readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
   readonly actorWindowDivergentSeat?: number;
   readonly postPregameResyncProbes?: number;
+  readonly postMutationHostLagProbes?: number;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -126,6 +127,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const postResolutions: Array<string | null> = [null, null];
   const pregameStates = [{ phaseIndex: 0, actorIndex: 0 }, { phaseIndex: 0, actorIndex: 0 }];
   const postPregameResyncProbeCounts = [0, 0];
+  const postMutationHostLagProbeCounts = [0, 0];
   const pregameControls = ['pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready'];
   const page = (contextOrdinal: number, pageOrdinal: number): O4p09iPageV1 => {
     let revealButtonProbes = 0;
@@ -492,7 +494,12 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         const consoleErrors = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'console-error' ? 1 : (options.consoleErrors ?? 0);
         const revision = options.stagnantRevision ? 0 : sharedRevisions[scenarioIndex] +
               (options.actorRevisionOffsetSeat === seatIndex ? 1 : 0);
-        const probeRevision = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'host-revision-missing' ? Number.NaN : revision;
+        const transientHostLag = seatIndex === 0
+          && progressActionCounts[scenarioIndex] > 0
+          && postMutationHostLagProbeCounts[scenarioIndex]++ < (options.postMutationHostLagProbes ?? 0);
+        const probeRevision = forcedStartedSurfaceFailure && options.startedSurfaceFailure === 'host-revision-missing'
+          ? Number.NaN
+          : revision - (transientHostLag ? 1 : 0);
         const handHeight = Math.min(80, Math.max(40, viewportHeight * 0.12));
         const handY = viewportHeight - handHeight - 5;
         const railY = Math.max(8, handY - Math.min(300, viewportHeight * 0.5));
@@ -800,7 +807,7 @@ describe('O4P-09I full-match production evidence', () => {
 
   it('runs the bounded two-player reliability profile through a post-reconnect mutation', async () => {
     const summary = await runO4p09iReliabilityEvidenceTestDriverV1({
-      browser: fakeBrowser([], { postPregameResyncProbes: 2 }),
+      browser: fakeBrowser([], { advanceEnabledSeat: 1, postPregameResyncProbes: 2, postMutationHostLagProbes: 2 }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     });

@@ -2352,6 +2352,32 @@ async function waitForReconnectConvergence(
   }
 }
 
+async function waitForSharedMutationConvergence(
+  pages: readonly O4p09iPageV1[],
+  acceptedRevision: number,
+  workerOrigin: string,
+  timeoutMs: number,
+  secretFragments: readonly string[],
+): Promise<readonly O4p09iProbeV1[]> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const probes = await Promise.all(pages.map((page) => probePage(page, Math.min(1_000, Math.max(1, deadline - Date.now())), workerOrigin, secretFragments)));
+    const reference = probes[0];
+    if (reference !== undefined
+      && safeRevision(reference.revision)
+      && reference.revision >= acceptedRevision
+      && probes.every((probe) => probe.revision === reference.revision
+        && probe.sharedPublicDigest === reference.sharedPublicDigest
+        && probe.gameScreens === 1
+        && probe.overflow === 0
+        && !probe.opponentLeak
+        && probe.consoleErrors === 0
+        && probe.workerObserved)) return Object.freeze(probes);
+    if (Date.now() >= deadline) throw new Error('shared mutation convergence not observed');
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
+}
+
 async function readRemoteCastObjectId(page: O4p09iPageV1, timeoutMs: number): Promise<string> {
   return Promise.race([
     page.evaluate<string>(`(() => {
@@ -2413,6 +2439,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   };
   let revisionBeforeReconnect: number;
   let revisionAfterReconnect: number | undefined;
+  let reliabilityAcceptedRevision: number | null = null;
   let initialRevision = 0;
   let manualDamageCount = 0;
   let castFact: RemoteCastJourneyFactV1 | null = null;
@@ -2542,7 +2569,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (profile === 'reliability') {
       const actor = await findProgressActorPage(pages, timeoutMs);
       await clickVisible(actor.page, actor.testId, timeoutMs);
-      await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, timeoutMs);
+      reliabilityAcceptedRevision = await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, timeoutMs);
       recordControl(actor.testId);
       phases.add('shared mutation');
     }
@@ -2721,15 +2748,19 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     }
 
     setStage('post-actions');
+    if (profile === 'reliability' && reliabilityAcceptedRevision === null) throw new Error('shared mutation settlement missing');
     const postActions = profile === 'full'
       ? await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments)
-      : await probePage(hostPage, timeoutMs, workerOrigin, secretFragments);
+      : (await waitForSharedMutationConvergence(
+          pages,
+          reliabilityAcceptedRevision,
+          workerOrigin,
+          timeoutMs,
+          secretFragments,
+        ))[0];
+    if (postActions === undefined) throw new Error('post-action convergence missing');
     revisionBeforeReconnect = postActions.revision;
     if (!safeRevision(revisionBeforeReconnect) || revisionBeforeReconnect <= initialRevision || postActions.gameScreens !== 1 || postActions.overflow !== 0 || postActions.opponentLeak || postActions.consoleErrors !== 0 || !postActions.workerObserved) throw new Error('post-action surface/worker probe failed');
-    if (profile === 'reliability') {
-      const convergence = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
-      if (convergence.some((probe) => probe.revision !== revisionBeforeReconnect || probe.sharedPublicDigest !== postActions.sharedPublicDigest)) throw new Error('post-action convergence missing');
-    }
 
     // Resize every live page and collect measured DOM facts rather than
     // asserting a host-only or constant viewport matrix.  This keeps the
