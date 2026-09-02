@@ -2778,7 +2778,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         convergedProbes = await Promise.all(pages.map((page) => probePage(page, Math.min(1_000, Math.max(1, convergenceDeadline - Date.now())), workerOrigin, secretFragments)));
         const revision = convergedProbes[0]?.revision;
         const digest = convergedProbes[0]?.sharedPublicDigest;
-        if (safeRevision(revision ?? 0) && revision! >= acceptedRevision && convergedProbes.every((probe) => probe.revision === revision && probe.sharedPublicDigest === digest)) break;
+        if (safeRevision(revision ?? 0) && (revision ?? 0) >= acceptedRevision && convergedProbes.every((probe) => probe.revision === revision && probe.sharedPublicDigest === digest)) break;
         if (Date.now() >= convergenceDeadline) throw new Error('post-reconnect mutation convergence timeout');
         await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(50, Math.max(1, convergenceDeadline - Date.now()))));
       }
