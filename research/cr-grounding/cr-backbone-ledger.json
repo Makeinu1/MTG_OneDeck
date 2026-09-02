@@ -2209,22 +2209,22 @@
       "nextGate": "Do not select or ship H independently; verify these requirements as part of O4P-09G.", "judge": "Codex-judge-2026-08-30", "note": "Historical semantics are preserved and absorbed into the second player-outcome release."
     },
     {
-      "type": "checkpoint", "domainId": "O4P-09I-A", "crOrder": 1040.25, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09G"],
+      "type": "checkpoint", "domainId": "O4P-09I-A", "crOrder": 1040.25, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "shipped", "dependsOn": ["O4P-09G"],
       "landingState": ["primaryUseCaseSelected", "representativeScenarioEvidence", "discardedHypothesesRecorded"],
       "deliveryClass": "internal-checklist", "playerOutcome": "No release claim; select the next primary use case from observed player value instead of optimizing only for the monolithic evidence runner.", "journeyEvidence": [], "outcomeDeadlineDomainId": "O4P-09I-B",
-      "boundary": "Walk through at least three representative scenarios on the existing production surface, including one human-operated observation session, and select one primary use case without changing runtime, UI, runner, CR, or dependencies.",
-      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "research/cr-grounding/o4p-09i-a-use-case-evaluation.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value"],
+      "boundary": "Walk through at least three representative scenarios on the existing production surface and have the product owner select one primary use case without changing runtime, UI, runner, CR, or dependencies.",
+      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "research/cr-grounding/o4p-09i-a-use-case-evaluation.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value", "user-ruling:2026-09-03:confirm-rules-light-remote-table"],
       "manualBoundary": "No production success, Arena score, full-match, or implementation claim. Discovery findings may select later work but do not authorize external writes.",
-      "nextGate": "Complete one human-operated observation of the provisionally selected rules-light remote table; if it holds, select O4P-09I-B.", "judge": "user-ruling-2026-09-02", "note": "The current surface walkthrough provisionally selects rules-light remote table. A remains pending until one human-operated observation confirms or rejects it; runner completion does not substitute for product-value selection."
+      "nextGate": "Select O4P-09I-B and prove the bounded two-player production reliability event path.", "judge": "product-owner-ruling-2026-09-03", "note": "The three existing-surface walkthroughs and product-owner confirmation select rules-light remote table. A closes only the value decision; human comprehension remains in C, and no production reliability, usability, or full-match success is inferred."
     },
     {
       "type": "checkpoint", "domainId": "O4P-09I-B", "crOrder": 1040.5, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09I-A"],
       "landingState": ["reliableSharedSession", "boundedCommandSettlement", "reconnectConvergence", "privateProjectionSeparation", "cleanBrowserCleanup"],
-      "deliveryClass": "player-outcome", "playerOutcome": "Two players remain in one production room for at least 20 minutes, perform shared actions, reconnect, and continue without stuck commands, duplicate application, or private-information leakage.", "journeyEvidence": ["production-browser:two-player-20-minute-shared-session", "production-browser:reconnect+revision-convergence+privacy+cleanup"], "outcomeDeadlineDomainId": "O4P-09I-B",
-      "boundary": "Prove room/deck entry, Pregame, multiple shared mutations, reconnect convergence, privacy, and cleanup for the chosen use case before adding a complete-match burden.",
-      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value"],
+      "deliveryClass": "player-outcome", "playerOutcome": "Two players enter one production room, complete Pregame and multiple shared actions, reconnect, then continue with a further accepted action without stuck commands, duplicate application, revision divergence, or private-information leakage.", "journeyEvidence": ["production-browser:two-player-room+deck+pregame+multiple-accepted-mutations", "production-browser:disconnect+reconnect+post-reconnect-mutation+revision-convergence+privacy+cleanup"], "outcomeDeadlineDomainId": "O4P-09I-B",
+      "boundary": "Prove room/deck entry, Pregame, multiple accepted shared mutations, reconnect convergence, one post-reconnect accepted mutation, privacy, and cleanup for the chosen use case before adding a complete-match burden.",
+      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value", "user-ruling:2026-09-03:replace-duration-proxy-with-bounded-reliability-events"],
       "manualBoundary": "No winner, full-match, all-interaction, Arena-80, or four-player certification claim. Fix only the first evidenced root cause.",
-      "nextGate": "Select O4P-09I-C and prove one meaningful Commander interaction loop in the reliable session.", "judge": "user-ruling-2026-09-02", "note": "Reliability is a standalone player outcome and no longer waits for the full-match journey."
+      "nextGate": "Run the exact-fingerprint two-player reliability profile; after production evidence passes, select O4P-09I-C.", "judge": "product-owner-ruling-2026-09-03", "note": "Reliability is measured by accepted settlement and convergence across reconnect, not idle wall-clock duration. Automation may prove this technical outcome, but it does not prove human comprehension or substitute for C or I."
     },
     {
       "type": "checkpoint", "domainId": "O4P-09I-C", "crOrder": 1040.75, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09I-B"],
@@ -5413,22 +5413,22 @@
       "nextGate": "Do not select or ship H independently; verify these requirements as part of O4P-09G.", "judge": "Codex-judge-2026-08-30", "note": "Historical semantics are preserved and absorbed into the second player-outcome release."
     },
     {
-      "id": "O4P-09I-A", "crOrder": 1040.25, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09G"],
+      "id": "O4P-09I-A", "crOrder": 1040.25, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "shipped", "dependsOn": ["O4P-09G"],
       "landingState": ["primaryUseCaseSelected", "representativeScenarioEvidence", "discardedHypothesesRecorded"],
       "deliveryClass": "internal-checklist", "playerOutcome": "No release claim; select the next primary use case from observed player value instead of optimizing only for the monolithic evidence runner.", "journeyEvidence": [], "outcomeDeadlineDomainId": "O4P-09I-B",
-      "boundary": "Walk through at least three representative scenarios on the existing production surface, including one human-operated observation session, and select one primary use case without changing runtime, UI, runner, CR, or dependencies.",
-      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "research/cr-grounding/o4p-09i-a-use-case-evaluation.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value"],
+      "boundary": "Walk through at least three representative scenarios on the existing production surface and have the product owner select one primary use case without changing runtime, UI, runner, CR, or dependencies.",
+      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "research/cr-grounding/o4p-09i-a-use-case-evaluation.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value", "user-ruling:2026-09-03:confirm-rules-light-remote-table"],
       "manualBoundary": "No production success, Arena score, full-match, or implementation claim. Discovery findings may select later work but do not authorize external writes.",
-      "nextGate": "Complete one human-operated observation of the provisionally selected rules-light remote table; if it holds, select O4P-09I-B.", "judge": "user-ruling-2026-09-02", "note": "The current surface walkthrough provisionally selects rules-light remote table. A remains pending until one human-operated observation confirms or rejects it; runner completion does not substitute for product-value selection."
+      "nextGate": "Select O4P-09I-B and prove the bounded two-player production reliability event path.", "judge": "product-owner-ruling-2026-09-03", "note": "The three existing-surface walkthroughs and product-owner confirmation select rules-light remote table. A closes only the value decision; human comprehension remains in C, and no production reliability, usability, or full-match success is inferred."
     },
     {
       "id": "O4P-09I-B", "crOrder": 1040.5, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09I-A"],
       "landingState": ["reliableSharedSession", "boundedCommandSettlement", "reconnectConvergence", "privateProjectionSeparation", "cleanBrowserCleanup"],
-      "deliveryClass": "player-outcome", "playerOutcome": "Two players remain in one production room for at least 20 minutes, perform shared actions, reconnect, and continue without stuck commands, duplicate application, or private-information leakage.", "journeyEvidence": ["production-browser:two-player-20-minute-shared-session", "production-browser:reconnect+revision-convergence+privacy+cleanup"], "outcomeDeadlineDomainId": "O4P-09I-B",
-      "boundary": "Prove room/deck entry, Pregame, multiple shared mutations, reconnect convergence, privacy, and cleanup for the chosen use case before adding a complete-match burden.",
-      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value"],
+      "deliveryClass": "player-outcome", "playerOutcome": "Two players enter one production room, complete Pregame and multiple shared actions, reconnect, then continue with a further accepted action without stuck commands, duplicate application, revision divergence, or private-information leakage.", "journeyEvidence": ["production-browser:two-player-room+deck+pregame+multiple-accepted-mutations", "production-browser:disconnect+reconnect+post-reconnect-mutation+revision-convergence+privacy+cleanup"], "outcomeDeadlineDomainId": "O4P-09I-B",
+      "boundary": "Prove room/deck entry, Pregame, multiple accepted shared mutations, reconnect convergence, one post-reconnect accepted mutation, privacy, and cleanup for the chosen use case before adding a complete-match burden.",
+      "evidence": ["research/cr-grounding/o4p-09i-task-recut-2026-09-02.draft.md", "user-ruling:2026-09-02:re-cut-o4p-09i-around-use-case-value", "user-ruling:2026-09-03:replace-duration-proxy-with-bounded-reliability-events"],
       "manualBoundary": "No winner, full-match, all-interaction, Arena-80, or four-player certification claim. Fix only the first evidenced root cause.",
-      "nextGate": "Select O4P-09I-C and prove one meaningful Commander interaction loop in the reliable session.", "judge": "user-ruling-2026-09-02", "note": "Reliability is a standalone player outcome and no longer waits for the full-match journey."
+      "nextGate": "Run the exact-fingerprint two-player reliability profile; after production evidence passes, select O4P-09I-C.", "judge": "product-owner-ruling-2026-09-03", "note": "Reliability is measured by accepted settlement and convergence across reconnect, not idle wall-clock duration. Automation may prove this technical outcome, but it does not prove human comprehension or substitute for C or I."
     },
     {
       "id": "O4P-09I-C", "crOrder": 1040.75, "crRefs": [], "lane": "backbone", "edhValue": "high", "status": "pending", "dependsOn": ["O4P-09I-B"],

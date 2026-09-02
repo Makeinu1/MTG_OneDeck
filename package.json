@@ -56,6 +56,7 @@
     "verify:o4p-07c-production-runtime": "tsx scripts/checks/verify-o4p-07c-production-runtime.ts",
     "evidence:o4p-06f": "tsx scripts/online/o4p-06f-four-browser-evidence.ts",
     "evidence:o4p-09i": "tsx scripts/online/o4p-09i-full-match-evidence.ts",
+    "evidence:o4p-09i-b": "tsx scripts/online/o4p-09i-full-match-evidence.ts --profile reliability",
     "journey:loop": "node scripts/journeys/journey-harness.mjs",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",

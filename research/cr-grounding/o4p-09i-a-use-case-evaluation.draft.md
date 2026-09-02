@@ -1,6 +1,6 @@
 # O4P-09I-A use-case evaluation (draft)
 
-Status: provisional selection; human-operated observation remains required.
+Status: selected and confirmed by the product owner on 2026-09-03.
 
 ## Decision
 
@@ -11,8 +11,9 @@ visible Manual fallback, private projections, and reconnect recovery. The next v
 whether two people can trust and understand that path during sustained play, not whether the
 full-match evidence driver can traverse every feature at once.
 
-This is not an O4P-09I-A close claim. A human-operated observation session below must confirm or
-reject the provisional selection.
+The product owner confirmed this selection after reviewing the three walkthroughs. This closes
+O4P-09I-A as a value-selection checkpoint only; it makes no production reliability or usability
+claim.
 
 ## Existing-surface walkthroughs
 
@@ -43,7 +44,7 @@ reject the provisional selection.
 
 These anchors prove availability and architecture, not production usability or a human outcome.
 
-## One-session human observation
+## O4P-09I-C human observation handoff
 
 Use two players and the deployed production page. Do not record invite values, Room IDs, deck
 contents, capabilities, or private choices.
@@ -55,9 +56,9 @@ contents, capabilities, or private choices.
    first action that appears unresponsive, and whether the recovered player understands the current
    shared state.
 
-Pass when both players can finish without operator coaching and the recorded largest friction does
-not invalidate the rules-light remote-table value hypothesis. Otherwise reject the provisional
-selection or carry exactly one observed root cause into O4P-09I-B.
+Pass when both players can finish without operator coaching and the largest comprehension friction
+is recorded. This observation belongs to O4P-09I-C; it does not gate the already confirmed use-case
+selection or substitute for O4P-09I-B production reliability evidence.
 
 ## Deferred hypotheses
 

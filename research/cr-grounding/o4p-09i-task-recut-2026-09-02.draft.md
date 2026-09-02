@@ -13,15 +13,16 @@ Commander loop を個別に証明し、最後に既存 O4P-09I journey で総合
 - Acceptance: `rules-light remote table`、`physical Commander private cockpit`、
   `solo rehearsal to shared table` の三つを既存機能だけで walkthrough し、
   各シナリオの player job、既存手段、OneDeck の差分価値、最大摩擦を一枚に記録する。
-  少なくとも一つは人間が操作する観察 session とし、選定理由と捨てる仮説を明記する。
+  product owner が primary use case を明示的に確定し、選定理由と捨てる仮説を明記する。
 - Non-goals: runtime、UI、runner、依存、CR の変更。Arena 採点や complete-match claim。
 
 ### O4P-09I-B — Reliable shared session
 
-- Goal: 選定した use case で、二人が 20 分以上、同じ production room を安心して
-  継続できる。
+- Goal: 選定した use case で、二人が同じ production room の共有状態を一連の操作と
+  再接続をまたいで安心して継続できる。
 - Acceptance: room/deck entry、Pregame、複数の共有 mutation、切断・再接続、
-  revision convergence、private projection separation、cleanup を一続きで確認する。
+  再接続後の追加 mutation、revision convergence、private projection separation、cleanup を
+  一続きの bounded production journey で確認する。
   pending 操作、無反応、重複適用、秘密漏洩、孤児 process/profile はゼロ。
 - Non-goals: 勝者、完全試合、全 interaction、Arena-80、四人卓の総合認定。
 

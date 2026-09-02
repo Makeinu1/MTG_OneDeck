@@ -181,7 +181,7 @@ describe('O4P-09 Shared Table Playable roadmap registration', () => {
       domainIds: LIVE_IDS,
     });
     expect(LIVE_IDS).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09I-A');
+    expect(nextDomainId).toBe('O4P-09I-B');
     for (const id of LIVE_IDS) {
       expect(
         liveLedger.plannedSequence.find((entry) => entry.domainId === id)?.status,

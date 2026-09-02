@@ -47,6 +47,7 @@ const TEST_FILE_PATTERN = /^(?:scripts|src)\/.+\.(?:test|spec)\.(?:mjs|ts|tsx)$/
 const DESIGN_UNDECIDED_PATTERN = /(?:\b(?:TBD|TODO|UNDECIDED|UNKNOWN)\b|未定|未決|要検討)/iu;
 const LIVE_SCRIPT_ENTRIES = Object.freeze({
   'evidence:o4p-09i': 'scripts/online/o4p-09i-full-match-evidence.ts',
+  'evidence:o4p-09i-b': 'scripts/online/o4p-09i-full-match-evidence.ts',
 });
 const SAFE_ENVIRONMENT_KEYS = Object.freeze([
   'PATH',
@@ -389,7 +390,11 @@ export function stageInvocation(
     if (entry === undefined) throw new Error(`unregistered evidence script: ${stage.script}`);
     return Object.freeze({
       command: process.execPath,
-      args: Object.freeze([resolve(cwd, 'node_modules/tsx/dist/cli.mjs'), resolve(cwd, entry)]),
+      args: Object.freeze([
+        resolve(cwd, 'node_modules/tsx/dist/cli.mjs'),
+        resolve(cwd, entry),
+        ...(stage.script === 'evidence:o4p-09i-b' ? ['--profile', 'reliability'] : []),
+      ]),
     });
   }
   throw new Error(`unsupported stage runner: ${stage.runner}`);

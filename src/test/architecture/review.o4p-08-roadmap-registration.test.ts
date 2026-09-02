@@ -244,7 +244,7 @@ describe('O4P-08 Online room UX and two-player roadmap registration', () => {
       domainIds: o4p09Ids,
     });
     expect(o4p09Ids).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09I-A');
+    expect(nextDomainId).toBe('O4P-09I-B');
   });
 
   it('freezes only Judge-owned registration and exact historical guards at closure', () => {

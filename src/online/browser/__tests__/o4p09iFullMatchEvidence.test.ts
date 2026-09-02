@@ -14,7 +14,9 @@ import {
   writeO4p09iJourneyFailureV1,
   runO4p09iFullMatchEvidenceV1 as runO4p09iFullMatchEvidenceProductionV1,
   runO4p09iFullMatchEvidenceTestDriverV1 as runO4p09iFullMatchEvidenceV1,
+  runO4p09iReliabilityEvidenceTestDriverV1,
   validateO4p09iFullMatchEvidenceV1,
+  validateO4p09iReliabilityEvidenceV1,
   type O4p09iBrowserV1,
   type O4p09iContextV1,
   type O4p09iPageV1,
@@ -787,6 +789,31 @@ describe('O4P-09I full-match production evidence', () => {
     expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('applyCommand') || /\bdispatch\s*\(/u.test(expression) || /\bfetch\s*\(/u.test(expression))).toBe(false);
+  });
+
+  it('runs the bounded two-player reliability profile through a post-reconnect mutation', async () => {
+    const summary = await runO4p09iReliabilityEvidenceTestDriverV1({
+      browser: fakeBrowser([]),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenario.phases).toEqual([
+      'room/decks', 'pregame', 'land', 'cast', 'HOLD', 'response/pass/resolve',
+      'disconnect/reconnect', 'post-reconnect mutation',
+    ]);
+    expect(summary.scenario.revision.afterReconnect).toBe(summary.scenario.revision.beforeReconnect);
+    expect(summary.scenario.revision.afterPostReconnectMutation).toBeGreaterThan(summary.scenario.revision.afterReconnect);
+    expect(validateO4p09iReliabilityEvidenceV1({
+      ...summary,
+      kind: 'o4p-09i-b-reliable-session-production-evidence-v1',
+      scenario: {
+        ...summary.scenario,
+        revision: {
+          ...summary.scenario.revision,
+          afterPostReconnectMutation: summary.scenario.revision.afterReconnect,
+        },
+      },
+    })).toMatchObject({ ok: false });
   });
 
   it('advances from the enabled current actor page when the host does not hold the turn', async () => {
