@@ -845,7 +845,6 @@ export function createOnlineBrowserWebSocketClientV1(
         || (!isAck && !issueArray(ownDataValue(record, 'issues'), false))
         || (!isAck && (ownDataValue(record, 'baseRevision') as number) > (ownDataValue(record, 'currentRevision') as number))) { issueCode = 'INVALID_FRAME'; publish(); return; }
       const currentRevision = ownDataValue(record, 'currentRevision') as number;
-      if (currentRevision < knownRevision) return;
       const commandId = ownDataValue(record, 'commandId') as string;
       const baseRevision = ownDataValue(record, 'baseRevision') as number;
       const index = pending.findIndex((entry) => entry.commandId === commandId && entry.baseRevision === baseRevision);
