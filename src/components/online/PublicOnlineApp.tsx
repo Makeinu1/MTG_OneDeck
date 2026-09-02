@@ -137,8 +137,8 @@ export function PublicOnlineApp({
     snapshot.projection?.seats.filter((seat) => seat.participantId === null).length ?? 0;
   const playerBrowser = snapshot.player;
   const playerSynchronizing = playerBrowser !== null && (
-    playerBrowser.pendingCommands.length > 0
-    || playerBrowser.phase === 'resyncing'
+    playerBrowser.phase !== 'open'
+    || playerBrowser.pendingCommands.length > 0
     || (playerBrowser.projection !== null && playerBrowser.knownRevision > playerBrowser.projection.revision)
   );
   const tabletopBusy = snapshot.busy !== null || playerSynchronizing;
