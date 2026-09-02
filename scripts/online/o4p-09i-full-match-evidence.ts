@@ -56,7 +56,9 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'seat-convergence', 'actor-selection', 'actor-selection-ambiguous',
   'actor-selection-contract', 'actor-selection-disabled', 'actor-selection-hold',
   'actor-selection-authority', 'actor-selection-window', 'click', 'revision-ack', 'revision-ack-advance',
-  'revision-ack-sba',
+  'revision-ack-sba', 'revision-ack-advance-accepted-no-progress',
+  'revision-ack-advance-unsettled-disabled', 'revision-ack-advance-unsettled-enabled',
+  'revision-ack-sba-accepted-no-progress', 'revision-ack-sba-unsettled-disabled', 'revision-ack-sba-unsettled-enabled',
   'action-rejected-priority-advance-stale', 'action-rejected-priority-advance-actor',
   'action-rejected-priority-advance-sequence', 'action-rejected-priority-advance-core',
   'action-rejected-priority-advance-authority', 'action-rejected-priority-advance-state',
@@ -961,6 +963,14 @@ function progressRejectionCheckpoint(probe: O4p09iActorProbeV1, testId: string):
   return `action-rejected-${operation}-${reason}`;
 }
 
+function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined, testId: string, baseline: number): O4p09iAdvanceFailureCheckpointV1 {
+  const operation = testId === 'online-remote-sba-stable' ? 'sba' : 'advance';
+  if (probe?.outcome === 'accepted' && (probe.acceptedRevision ?? baseline) <= baseline) {
+    return `revision-ack-${operation}-accepted-no-progress`;
+  }
+  return `revision-ack-${operation}-unsettled-${probe?.enabled === true ? 'enabled' : 'disabled'}`;
+}
+
 async function findProgressActorPage(
   pages: readonly O4p09iPageV1[],
   timeoutMs: number
@@ -1767,9 +1777,10 @@ async function waitForRevisionAdvance(page: O4p09iPageV1, workerOrigin: string, 
 
 async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string, baseline: number, timeoutMs: number): Promise<number> {
   const deadline = Date.now() + timeoutMs;
+  let lastProbe: O4p09iActorProbeV1 | undefined;
   for (;;) {
     const remaining = deadline - Date.now();
-    if (remaining <= 0) throw new Error('visible progress acknowledgement timeout');
+    if (remaining <= 0) throw new O4p09iProgressRejectedError(progressAcknowledgementCheckpoint(lastProbe, testId, baseline));
     let probe: O4p09iActorProbeV1;
     try {
       probe = await actorControlProbe(page, testId, Math.min(1_000, remaining), `${testId} acknowledgement timeout`);
@@ -1777,6 +1788,7 @@ async function waitForProgressRevisionAdvance(page: O4p09iPageV1, testId: string
       rethrowProductionEnvironmentFailure(error, 'progress-probe');
       throw error;
     }
+    lastProbe = probe;
     if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
     if (probe.outcome === 'accepted' && probe.acceptedRevision !== null && safeRevision(probe.acceptedRevision) && probe.acceptedRevision > baseline) return probe.acceptedRevision;
     if (probe.outcome === 'rejected' || probe.errorVisible) throw new O4p09iProgressRejectedError(progressRejectionCheckpoint(probe, testId));

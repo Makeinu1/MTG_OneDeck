@@ -93,6 +93,7 @@ type FakeOptions = Readonly<{
   readonly startedSurfaceFailure?:
     | 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
   readonly lobbyReadyProbe?: 'delayed' | 'never';
+  readonly progressStuckAfterClick?: boolean;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -363,7 +364,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         (expression.includes('node.click(); return true') ||
           expression.includes('target.click(); return true')) &&
         !recoveryNavigation &&
-        !(options.progressRejected === true && (expression.includes('data-testid="online-remote-advance"') || expression.includes('data-testid="online-remote-sba-stable"')))
+        !(options.progressRejected === true && (expression.includes('data-testid="online-remote-advance"') || expression.includes('data-testid="online-remote-sba-stable"'))) &&
+        !(options.progressStuckAfterClick === true && expression.includes('data-testid="online-remote-advance"'))
       )
         sharedRevisions[scenarioIndex] += 1;
       const priorityOperation = expression.includes('data-testid="online-remote-hold"')
@@ -830,6 +832,14 @@ describe('O4P-09I full-match production evidence', () => {
         timeoutMs: 250
       })
     ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/action-rejected-priority-advance-server-internal');
+  });
+
+  it('classifies an unsettled disabled progress operation without retrying it', async () => {
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { progressStuckAfterClick: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/revision-ack-advance-unsettled-disabled');
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {
