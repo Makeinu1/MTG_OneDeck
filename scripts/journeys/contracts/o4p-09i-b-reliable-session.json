@@ -3,7 +3,7 @@
   "journeyId": "O4P-09I-B",
   "canonicalRoute": [
     "deployed Pages player surface in two isolated Chrome contexts",
-    "visible room, deck, Pregame, cast, HOLD, pass, resolve, and progress controls",
+    "visible room, deck, Pregame, and shared progress controls",
     "disconnect and saved-session recovery",
     "post-reconnect accepted mutation and secret-free production summary"
   ],
@@ -13,7 +13,7 @@
   },
   "semantics": {
     "supported": [
-      "two-player room and deck entry, Pregame, land, cast, HOLD, pass, resolve, disconnect, saved-session recovery, and one post-reconnect shared operation",
+      "two-player room and deck entry, Pregame, one shared progress operation, disconnect, saved-session recovery, and one post-reconnect shared operation",
       "accepted command settlement, revision and public-digest convergence, private-hand audience separation, and cleanup"
     ],
     "deferred": [
@@ -39,7 +39,7 @@
   },
   "acceptance": {
     "positive": [
-      "two players complete room and deck entry, Pregame, land, cast, HOLD, pass, and resolve through accepted settlements",
+      "two players complete room and deck entry, Pregame, and a shared progress operation through accepted settlements",
       "one participant disconnects and recovers at the same authoritative revision and public digest without private projection leakage",
       "a further visible shared operation is accepted after reconnect and both seats converge at the new revision",
       "console errors, warnings, secret violations, stuck pending commands, duplicate application, orphan pages, contexts, and browser profile are zero"

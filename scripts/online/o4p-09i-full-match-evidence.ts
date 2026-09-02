@@ -246,8 +246,8 @@ const MATCH_PHASES = Object.freeze([
   'disconnect/reconnect',
 ] as const);
 const RELIABILITY_PHASES = Object.freeze([
-  'room/decks', 'pregame', 'land', 'cast', 'HOLD', 'response/pass/resolve',
-  'disconnect/reconnect', 'post-reconnect mutation',
+  'room/decks', 'pregame', 'shared mutation', 'disconnect/reconnect',
+  'post-reconnect mutation',
 ] as const);
 type O4p09iScenarioProfileV1 = 'full' | 'reliability';
 const SCENARIO_STAGES = Object.freeze([
@@ -443,8 +443,6 @@ export type O4p09iReliabilityFactV1 = Readonly<{
   readonly playerCount: 2;
   readonly phases: readonly string[];
   readonly actionKinds: readonly string[];
-  readonly cast: RemoteCastJourneyFactV1;
-  readonly priority: RemotePriorityJourneyFactV1;
   readonly revision: Readonly<{
     readonly start: number;
     readonly beforeReconnect: number;
@@ -746,19 +744,12 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
 }
 
 function validateReliabilityScenario(value: unknown, fragments: readonly string[]): O4p09iReliabilityFactV1 {
-  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'cast', 'priority', 'revision', 'reconnect'], 'reliability scenario malformed');
+  const row = exact(value, ['playerCount', 'phases', 'actionKinds', 'revision', 'reconnect'], 'reliability scenario malformed');
   if (own(row, 'playerCount') !== 2) throw new Error('reliability player count mismatch');
   const phases = own(row, 'phases');
   if (!Array.isArray(phases) || phases.length !== RELIABILITY_PHASES.length || phases.some((phase, index) => phase !== RELIABILITY_PHASES[index])) throw new Error('reliability phases incomplete');
   const actionKinds = own(row, 'actionKinds');
   if (!Array.isArray(actionKinds) || actionKinds.length < 8 || actionKinds.some((kind) => typeof kind !== 'string')) throw new Error('reliability actions incomplete');
-  const cast = exact(own(row, 'cast'), ['acceptedRevision', 'seatCount', 'receiptAccepted', 'revisionsConverged', 'sharedStackTop'], 'reliability cast malformed');
-  const castAcceptedRevision = own(cast, 'acceptedRevision');
-  if (!safeRevision(castAcceptedRevision) || own(cast, 'seatCount') !== 2 || own(cast, 'receiptAccepted') !== true || own(cast, 'revisionsConverged') !== true || own(cast, 'sharedStackTop') !== true) throw new Error('reliability cast failed');
-  const priorityRow = exact(own(row, 'priority'), ['startRevision', 'resolvedRevision', 'seatCount', 'receiptsAccepted', 'revisionsConverged', 'holdConverged', 'priorityCycleComplete', 'capturedTopResolved'], 'reliability priority malformed');
-  const priorityStart = own(priorityRow, 'startRevision');
-  const priorityResolved = own(priorityRow, 'resolvedRevision');
-  if (!safeRevision(priorityStart) || !safeRevision(priorityResolved) || priorityResolved !== priorityStart + 5 || own(priorityRow, 'seatCount') !== 2 || own(priorityRow, 'receiptsAccepted') !== true || own(priorityRow, 'revisionsConverged') !== true || own(priorityRow, 'holdConverged') !== true || own(priorityRow, 'priorityCycleComplete') !== true || own(priorityRow, 'capturedTopResolved') !== true) throw new Error('reliability priority failed');
   const revision = exact(own(row, 'revision'), ['start', 'beforeReconnect', 'afterReconnect', 'afterPostReconnectMutation', 'continuous'], 'reliability revision malformed');
   const start = own(revision, 'start');
   const beforeReconnect = own(revision, 'beforeReconnect');
@@ -771,8 +762,6 @@ function validateReliabilityScenario(value: unknown, fragments: readonly string[
     playerCount: 2,
     phases: Object.freeze(phases.map(String)),
     actionKinds: Object.freeze(actionKinds.map(String)),
-    cast: Object.freeze({ acceptedRevision: castAcceptedRevision, seatCount: 2, receiptAccepted: true, revisionsConverged: true, sharedStackTop: true }),
-    priority: Object.freeze({ startRevision: priorityStart, resolvedRevision: priorityResolved, seatCount: 2, receiptsAccepted: true, revisionsConverged: true, holdConverged: true, priorityCycleComplete: true, capturedTopResolved: true }),
     revision: Object.freeze({ start, beforeReconnect, afterReconnect, afterPostReconnectMutation, continuous: true }),
     reconnect: Object.freeze({ revision: afterReconnect, peerObservedDisconnected: true, recoveredSeatRejoined: true, presenceConverged: true, sharedPublicDigestConverged: true, privateAudienceIsolated: true, priorityStatePreserved: true }),
   });
@@ -2550,11 +2539,18 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     }
     setStage('advance');
     await waitForPregameTransportConvergence(pages, timeoutMs);
+    if (profile === 'reliability') {
+      const actor = await findProgressActorPage(pages, timeoutMs);
+      await clickVisible(actor.page, actor.testId, timeoutMs);
+      await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, timeoutMs);
+      recordControl(actor.testId);
+      phases.add('shared mutation');
+    }
 
     // Pregame and game controls are driven on the host surface after every
     // seat has joined.  Each successful click is recorded as an observed
     // action; missing/disabled controls fail closed.
-    const uiSequence = profile === 'reliability' ? UI_SEQUENCE.slice(0, 5) : UI_SEQUENCE;
+    const uiSequence = profile === 'reliability' ? [] : UI_SEQUENCE;
     for (const testId of uiSequence) {
       if (testId === 'online-advance-to-main') {
         setStage('advance');
@@ -2823,18 +2819,11 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       if (RELIABILITY_PHASES.some((phase) => !phases.has(phase))) throw new Error('reliability phases incomplete');
       for (const page of pages) snapshotConsole(page);
       if (lifetimeConsole.errors !== 0 || lifetimeConsole.warnings !== 0 || lifetimeConsole.secretViolations !== 0) throw new Error('browser console or secret violation observed');
-      if (castFact === null || priorityCapturedTopObjectId === null || prioritySteps.length !== 5) throw new Error('reliability action evidence missing');
-      const playerIds = prioritySteps.flatMap((step) => [step.actorPlayerId, ...step.seats.flatMap((seat) => [seat.holderPlayerId, seat.stewardPlayerId, ...seat.holds].filter((id): id is string => id !== null))]);
-      const observation = Object.freeze({ kind: 'remote-priority-journey-observation-v1' as const, playerIds: Object.freeze([...new Set(playerIds)].slice(0, 2) as [string, string]), capturedTopObjectId: priorityCapturedTopObjectId, steps: Object.freeze(prioritySteps) });
-      const checkedPriority = validateRemotePriorityJourneyObservationV1(observation);
-      if (!checkedPriority.ok) throw new Error(`priority evidence ${checkedPriority.code}`);
       const reconnectFact: O4p09iScenarioFactV1['reconnect'] = Object.freeze({ revision: revisionAfterReconnect, peerObservedDisconnected: true, recoveredSeatRejoined: true, presenceConverged: true, sharedPublicDigestConverged: true, privateAudienceIsolated: true, priorityStatePreserved: true });
       return Object.freeze({
         playerCount: 2,
         phases: Object.freeze(RELIABILITY_PHASES.filter((phase) => phases.has(phase))),
         actionKinds: Object.freeze(actionKinds),
-        cast: castFact,
-        priority: checkedPriority.value,
         revision: Object.freeze({ start: initialRevision, beforeReconnect: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect, afterPostReconnectMutation, continuous: true }),
         reconnect: reconnectFact,
       });

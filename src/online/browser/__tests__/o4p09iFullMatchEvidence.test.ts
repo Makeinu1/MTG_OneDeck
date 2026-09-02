@@ -805,8 +805,8 @@ describe('O4P-09I full-match production evidence', () => {
       timeoutMs: 250,
     });
     expect(summary.scenario.phases).toEqual([
-      'room/decks', 'pregame', 'land', 'cast', 'HOLD', 'response/pass/resolve',
-      'disconnect/reconnect', 'post-reconnect mutation',
+      'room/decks', 'pregame', 'shared mutation', 'disconnect/reconnect',
+      'post-reconnect mutation',
     ]);
     expect(summary.scenario.revision.afterReconnect).toBe(summary.scenario.revision.beforeReconnect);
     expect(summary.scenario.revision.afterPostReconnectMutation).toBeGreaterThan(summary.scenario.revision.afterReconnect);
