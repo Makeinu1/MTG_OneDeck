@@ -861,6 +861,24 @@ describe('O4P-09I full-match production evidence', () => {
     });
   });
 
+  it('reports the exact safe checkpoint when the reliability mutation stays pending', async () => {
+    let failure: unknown;
+    try {
+      await runO4p09iReliabilityEvidenceTestDriverV1({
+        browser: fakeBrowser([], { progressStuckAfterClick: true }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'advance/two-player-shared-mutation/revision-ack-advance-unsettled-pending-invalid-frame',
+    });
+  });
+
   it('advances from the enabled current actor page when the host does not hold the turn', async () => {
     const expressions: string[] = [];
     const summary = await runO4p09iFullMatchEvidenceV1({

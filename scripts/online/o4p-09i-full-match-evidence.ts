@@ -50,7 +50,7 @@ const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
 } as const);
 
 const ADVANCE_FAILURE_STAGES = Object.freeze([
-  'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
+  'two-player-shared-mutation', 'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
 ] as const);
 const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'seat-convergence', 'actor-selection', 'actor-selection-ambiguous',
@@ -2585,9 +2585,26 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     setStage('advance');
     await waitForPregameTransportConvergence(pages, timeoutMs);
     if (profile === 'reliability') {
-      const actor = await findProgressActorPage(pages, timeoutMs);
+      advanceOperation = 'two-player-shared-mutation';
+      advanceCheckpoint.value = 'actor-selection';
+      let actor: Awaited<ReturnType<typeof findProgressActorPage>>;
+      try {
+        actor = await findProgressActorPage(pages, timeoutMs);
+      } catch (error) {
+        if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
+        throw error;
+      }
+      advanceCheckpoint.value = 'click';
       await clickVisible(actor.page, actor.testId, timeoutMs);
-      reliabilityAcceptedRevision = await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, timeoutMs);
+      advanceCheckpoint.value = actor.testId === 'online-remote-sba-stable' ? 'revision-ack-sba' : 'revision-ack-advance';
+      try {
+        reliabilityAcceptedRevision = await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, timeoutMs);
+      } catch (error) {
+        if (error instanceof O4p09iProgressRejectedError) advanceCheckpoint.value = error.checkpoint;
+        throw error;
+      }
+      advanceOperation = null;
+      advanceCheckpoint.value = null;
       recordControl(actor.testId);
       phases.add('shared mutation');
     }
