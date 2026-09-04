@@ -100,7 +100,7 @@ type FakeOptions = Readonly<{
   readonly actorWindowDivergentSeat?: number;
   readonly postPregameResyncProbes?: number;
   readonly postMutationHostLagProbes?: number;
-  readonly postMutationTransportDelayMs?: number;
+  readonly postMutationTransportRevisionLagThenTimeout?: boolean;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -137,6 +137,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let startedSurfaceProbes = 0;
     let lobbyReadyProbes = 0;
     let detailsProbes = 0;
+    let settlementTransportProbes = 0;
     let authoritativeRejoined = false;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
     const seatIndex = scenarioIndex === 0 ? contextOrdinal : contextOrdinal - 2;
@@ -257,15 +258,18 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           } as T);
         }
         if (expression.includes('settlementTransportProbe')) {
+          const revisionLagThenTimeout = options.postMutationTransportRevisionLagThenTimeout === true
+            && progressActionCounts[scenarioIndex] > 0
+            && settlementTransportProbes++ > 0;
           const transport = {
             revision: actorControlRevision(),
             ...actorReadiness(),
-            ...(options.postMutationTransportDelayMs !== undefined && progressActionCounts[scenarioIndex] > 0
+            ...(options.postMutationTransportRevisionLagThenTimeout === true && progressActionCounts[scenarioIndex] > 0
               ? { knownRevision: actorControlRevision() - 1 }
               : {}),
           } as T;
-          return options.postMutationTransportDelayMs !== undefined && progressActionCounts[scenarioIndex] > 0
-            ? new Promise<T>((resolve) => setTimeout(() => resolve(transport), options.postMutationTransportDelayMs))
+          return revisionLagThenTimeout
+            ? new Promise<T>(() => {})
             : Promise.resolve(transport);
         }
         if (expression.includes('priorityControlProbe:online-remote-advance')) {
@@ -930,7 +934,7 @@ describe('O4P-09I full-match production evidence', () => {
       await runO4p09iReliabilityEvidenceTestDriverV1({
         browser: fakeBrowser([], {
           advanceEnabledSeat: 1,
-          postMutationTransportDelayMs: 120,
+          postMutationTransportRevisionLagThenTimeout: true,
         }),
         readDeck: () => 'fixture deck',
         timeoutMs: 250,
