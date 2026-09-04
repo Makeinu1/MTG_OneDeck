@@ -136,6 +136,8 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       || rootStage === 'post-actions' && (POST_ACTION_FAILURES as readonly string[]).includes(detail)
       ? scenario
       : rootStage;
+    if (stage === 'post-actions/probe-unavailable')
+      return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
     return Object.freeze({
       class: 'IMPLEMENTATION',
       code: 'PLAYER_JOURNEY_STAGE_FAILED',
@@ -264,7 +266,7 @@ const STARTED_SURFACE_FAILURES = Object.freeze([
   'start-rejected', 'start-pending', 'start-not-accepted',
 ] as const);
 const POST_ACTION_FAILURES = Object.freeze([
-  'settlement-missing', 'result-missing', 'reference-missing', 'revision-invalid',
+  'probe-unavailable', 'settlement-missing', 'result-missing', 'reference-missing', 'revision-invalid',
   'revision-not-advanced', 'revision-lag', 'revision-divergence',
   'digest-divergence', 'game-screen', 'horizontal-overflow', 'opponent-leak',
   'console-error', 'worker-missing',
@@ -2827,13 +2829,20 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       postActions = await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments);
     } else {
       if (reliabilityAcceptedRevision === null) throw new Error('settlement-missing');
-      postActions = (await waitForSharedMutationConvergence(
-          pages,
-          reliabilityAcceptedRevision,
-          workerOrigin,
-          timeoutMs,
-          secretFragments,
-        ))[0];
+      try {
+        postActions = (await waitForSharedMutationConvergence(
+            pages,
+            reliabilityAcceptedRevision,
+            workerOrigin,
+            timeoutMs,
+            secretFragments,
+          ))[0];
+      } catch (error) {
+        const checkpoint = error instanceof Error ? error.message : '';
+        if ((POST_ACTION_FAILURES as readonly string[]).includes(checkpoint)) throw error;
+        rethrowProductionEnvironmentFailure(error, 'progress-probe');
+        throw new Error('probe-unavailable', { cause: error });
+      }
     }
     if (postActions === undefined) throw new Error('result-missing');
     revisionBeforeReconnect = postActions.revision;
