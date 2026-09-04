@@ -35,6 +35,8 @@ export type O4p09iProductionFailureV1 = Readonly<{
 }>;
 
 const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
+  setup: 'setup',
+  'browser-launch': 'browser-launch',
   browser: 'browser',
   'visible-ui-operation': 'visible-ui-operation',
   'progress-probe': 'progress-probe',
@@ -48,6 +50,25 @@ const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
   'manual-resolve-probe': 'manual-resolve-probe',
   'manual-stack-probe': 'manual-stack-probe'
 } as const);
+
+const ENVIRONMENT_TRANSPORT_FAILURES: Readonly<Record<string, string>> = Object.freeze({
+  'Chrome launch timeout': 'launch-timeout',
+  'Chrome shutdown timeout': 'shutdown-timeout',
+  'Chrome launch cleanup timeout': 'launch-cleanup-timeout',
+  'Chrome launch force cleanup timeout': 'launch-force-cleanup-timeout',
+  'Chrome exited before CDP': 'launch-exited',
+  'Chrome launch failed': 'launch-failed',
+  'CDP endpoint unavailable': 'endpoint-unavailable',
+  'CDP endpoint missing': 'endpoint-missing',
+  'system WebSocket unavailable': 'websocket-unavailable',
+  'CDP socket error': 'socket-error',
+  'CDP connect timeout': 'connect-timeout',
+  'CDP command timeout': 'command-timeout',
+  'CDP command failed': 'command-failed',
+  'CDP response invalid': 'response-invalid',
+  'CDP result missing': 'result-missing',
+  'CDP remote result missing': 'remote-result-missing',
+});
 
 const ADVANCE_FAILURE_STAGES = Object.freeze([
   'two-player-shared-mutation', 'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
@@ -103,12 +124,17 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
   const message = error instanceof Error ? error.message : '';
   if (message.startsWith('production environment failure:')) {
     const detail = message.slice('production environment failure:'.length).trim();
+    const parts = detail.split('/');
+    const allowed = new Set<string>([
+      ...Object.keys(ENVIRONMENT_FAILURE_STAGES),
+      ...Object.values(ENVIRONMENT_TRANSPORT_FAILURES),
+      ...SCENARIO_STAGES.map((stage) => stage.toLowerCase()),
+      'two-player', 'four-player',
+    ]);
     return Object.freeze({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
-      stage: Object.hasOwn(ENVIRONMENT_FAILURE_STAGES, detail)
-        ? ENVIRONMENT_FAILURE_STAGES[detail as keyof typeof ENVIRONMENT_FAILURE_STAGES]
-        : 'setup'
+      stage: parts.length <= 4 && parts.every((part) => allowed.has(part)) ? detail : 'setup'
     });
   }
   const importCheckpoint = productionUiFailureCheckpoint(error);
@@ -162,14 +188,16 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
     return Object.freeze({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
-      stage: 'setup'
+      stage: Object.hasOwn(ENVIRONMENT_TRANSPORT_FAILURES, message)
+        ? ENVIRONMENT_TRANSPORT_FAILURES[message] : 'setup'
     });
   return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
 }
 
 function rethrowProductionEnvironmentFailure(error: unknown, stage: string): void {
-  if (classifyO4p09iProductionFailureV1(error).class === 'ENVIRONMENT') {
-    throw new Error(`production environment failure: ${stage}`, { cause: error });
+  const failure = classifyO4p09iProductionFailureV1(error);
+  if (failure.class === 'ENVIRONMENT') {
+    throw new Error(`production environment failure: ${stage}/${failure.stage}`, { cause: error });
   }
 }
 
@@ -387,7 +415,10 @@ function defaultBrowser(timeoutMs: number): Promise<O4p09iBrowserV1> {
         },
       });
     },
-  }));
+  })).catch((error: unknown) => {
+    rethrowProductionEnvironmentFailure(error, 'browser-launch');
+    throw error;
+  });
 }
 
 export type O4p09iViewportFactV1 = Readonly<{
@@ -2518,8 +2549,7 @@ async function waitForSharedMutationConvergence(
       rethrowProductionEnvironmentFailure(error, 'progress-probe');
       if (lastCheckpoint !== null
         && error instanceof Error
-        && error.message === 'shared mutation transport probe timeout'
-        && Date.now() >= deadline) throw new Error(lastCheckpoint, { cause: error });
+        && error.message === 'shared mutation transport probe timeout') throw new Error(lastCheckpoint, { cause: error });
       throw new Error(postActionProbeCheckpoint('transport', error), { cause: error });
     }
     const transportRevision = transport[0]?.revision;
@@ -3156,7 +3186,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     const message = error instanceof Error ? error.message : '';
     const failure = classifyO4p09iProductionFailureV1(error);
     if (failure.class === 'ENVIRONMENT')
-      throw new Error(`production environment failure: ${failure.stage}`, { cause: error });
+      throw new Error(`production environment failure: ${playerCount === 2 ? 'two-player' : 'four-player'}/${failedStage.toLowerCase()}/${failure.stage}`, { cause: error });
     if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`,
         { cause: error }
       );

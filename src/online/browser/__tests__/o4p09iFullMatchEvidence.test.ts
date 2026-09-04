@@ -1154,13 +1154,21 @@ describe('O4P-09I full-match production evidence', () => {
       failure = error;
     }
     expect(failure).toBeInstanceOf(Error);
-    expect((failure as Error).message).toBe('production environment failure: progress-probe');
+    expect((failure as Error).message).toBe('production environment failure: two-player/advance/progress-probe/command-timeout');
     expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
-      stage: 'progress-probe'
+      stage: 'two-player/advance/progress-probe/command-timeout'
     });
     expect((failure as Error).message).not.toContain('CDP');
+  });
+
+  it('retains only allowlisted environment context and drops private error suffixes', () => {
+    const safe = 'two-player/reconnect/command-failed';
+    expect(classifyO4p09iProductionFailureV1(new Error(`production environment failure: ${safe}`)).stage).toBe(safe);
+    expect(classifyO4p09iProductionFailureV1(new Error(`production environment failure: ${safe}/private-token`)).stage).toBe('setup');
+    expect(classifyO4p09iProductionFailureV1(new Error('CDP command failed: private-token')).stage).toBe('setup');
+    expect(classifyO4p09iProductionFailureV1(new Error('CDP command failed')).stage).toBe('command-failed');
   });
 
   it('fails closed until every seat observes the same target phase', async () => {
@@ -1325,7 +1333,7 @@ describe('O4P-09I full-match production evidence', () => {
       browser: fakeBrowser([], { roomCreationRetryableError: true }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
-    })).rejects.toThrow('production environment failure: visible-ui-operation');
+    })).rejects.toThrow('production environment failure: two-player/create-room/visible-ui-operation');
   });
 
   it('waits for the shared game surface after start before recording host revision', async () => {
