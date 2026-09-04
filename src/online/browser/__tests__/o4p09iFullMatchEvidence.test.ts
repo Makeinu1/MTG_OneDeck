@@ -610,6 +610,11 @@ describe('O4P-09I full-match production evidence', () => {
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions/revision-divergence' });
     expect(
       classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: post-actions/revision-not-advanced')
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions/revision-not-advanced' });
+    expect(
+      classifyO4p09iProductionFailureV1(
         new Error('production scenario stage failed: post-actions/private-token')
       )
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions' });

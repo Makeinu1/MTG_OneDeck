@@ -264,7 +264,8 @@ const STARTED_SURFACE_FAILURES = Object.freeze([
   'start-rejected', 'start-pending', 'start-not-accepted',
 ] as const);
 const POST_ACTION_FAILURES = Object.freeze([
-  'reference-missing', 'revision-invalid', 'revision-lag', 'revision-divergence',
+  'settlement-missing', 'result-missing', 'reference-missing', 'revision-invalid',
+  'revision-not-advanced', 'revision-lag', 'revision-divergence',
   'digest-divergence', 'game-screen', 'horizontal-overflow', 'opponent-leak',
   'console-error', 'worker-missing',
 ] as const);
@@ -2825,7 +2826,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (profile === 'full') {
       postActions = await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments);
     } else {
-      if (reliabilityAcceptedRevision === null) throw new Error('shared mutation settlement missing');
+      if (reliabilityAcceptedRevision === null) throw new Error('settlement-missing');
       postActions = (await waitForSharedMutationConvergence(
           pages,
           reliabilityAcceptedRevision,
@@ -2834,9 +2835,15 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
           secretFragments,
         ))[0];
     }
-    if (postActions === undefined) throw new Error('post-action convergence missing');
+    if (postActions === undefined) throw new Error('result-missing');
     revisionBeforeReconnect = postActions.revision;
-    if (!safeRevision(revisionBeforeReconnect) || revisionBeforeReconnect <= initialRevision || postActions.gameScreens !== 1 || postActions.overflow !== 0 || postActions.opponentLeak || postActions.consoleErrors !== 0 || !postActions.workerObserved) throw new Error('post-action surface/worker probe failed');
+    if (!safeRevision(revisionBeforeReconnect)) throw new Error('revision-invalid');
+    if (revisionBeforeReconnect <= initialRevision) throw new Error('revision-not-advanced');
+    if (postActions.gameScreens !== 1) throw new Error('game-screen');
+    if (postActions.overflow !== 0) throw new Error('horizontal-overflow');
+    if (postActions.opponentLeak) throw new Error('opponent-leak');
+    if (postActions.consoleErrors !== 0) throw new Error('console-error');
+    if (!postActions.workerObserved) throw new Error('worker-missing');
 
     // Resize every live page and collect measured DOM facts rather than
     // asserting a host-only or constant viewport matrix.  This keeps the
