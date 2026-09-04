@@ -105,7 +105,7 @@ describe('O4P-05A public release ruleset', () => {
     expect(isDeepFrozen(CURRENT_CONTRACT_VERSIONS)).toBe(true);
   });
 
-  it('keeps both fail-closed pin verifiers ahead of tests and build', () => {
+  it('keeps both fail-closed pin verifiers and type-checking ahead of tests', () => {
     const steps = machineCheckSteps();
     expect(steps.slice(0, 2)).toEqual([
       { name: 'CR固定版検証', cmd: 'npm', args: ['run', 'verify:cr'] },
@@ -122,7 +122,8 @@ describe('O4P-05A public release ruleset', () => {
     );
 
     expect(testsIndex).toBeGreaterThan(1);
-    expect(buildIndex).toBeGreaterThan(testsIndex);
+    expect(buildIndex).toBeGreaterThan(1);
+    expect(buildIndex).toBeLessThan(testsIndex);
   });
 
   it('keeps the release descriptor deterministic and versioning-local', () => {

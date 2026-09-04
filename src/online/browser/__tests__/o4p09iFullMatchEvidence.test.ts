@@ -604,6 +604,16 @@ describe('O4P-09I full-match production evidence', () => {
       )
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'start-probe/start-pending' });
     expect(
+      classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: post-actions/revision-divergence')
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions/revision-divergence' });
+    expect(
+      classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: post-actions/private-token')
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions' });
+    expect(
       classifyO4p09iProductionFailureV1(new Error('Chrome launcher unavailable: private-token'))
     ).toEqual({ class: 'ENVIRONMENT', code: 'BROWSER_ENVIRONMENT_UNAVAILABLE', stage: 'setup' });
     expect(
@@ -828,6 +838,27 @@ describe('O4P-09I full-match production evidence', () => {
         },
       },
     })).toMatchObject({ ok: false });
+  });
+
+  it('reports the exact safe checkpoint when shared mutation convergence never settles', async () => {
+    let failure: unknown;
+    try {
+      await runO4p09iReliabilityEvidenceTestDriverV1({
+        browser: fakeBrowser([], {
+          advanceEnabledSeat: 1,
+          postMutationHostLagProbes: Number.MAX_SAFE_INTEGER,
+        }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'post-actions/revision-lag',
+    });
   });
 
   it('advances from the enabled current actor page when the host does not hold the turn', async () => {

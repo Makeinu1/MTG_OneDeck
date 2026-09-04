@@ -126,6 +126,7 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
     const stage = rootStage === 'start-probe' && (STARTED_SURFACE_FAILURES as readonly string[]).includes(detail)
       || rootStage === 'manual-stack' && (detail === 'entry' || detail === 'resolve')
       || rootStage === 'advance' && safeAdvanceDetail
+      || rootStage === 'post-actions' && (POST_ACTION_FAILURES as readonly string[]).includes(detail)
       ? scenario
       : rootStage;
     return Object.freeze({
@@ -260,6 +261,11 @@ type O4p09iScenarioStageV1 = (typeof SCENARIO_STAGES)[number];
 const STARTED_SURFACE_FAILURES = Object.freeze([
   'game-screen-missing/count', 'horizontal-overflow', 'opponent-leak', 'console-error', 'host-revision-missing',
   'start-rejected', 'start-pending', 'start-not-accepted',
+] as const);
+const POST_ACTION_FAILURES = Object.freeze([
+  'reference-missing', 'revision-invalid', 'revision-lag', 'revision-divergence',
+  'digest-divergence', 'game-screen', 'horizontal-overflow', 'opponent-leak',
+  'console-error', 'worker-missing',
 ] as const);
 type O4p09iStartedSurfaceFailureV1 = (typeof STARTED_SURFACE_FAILURES)[number];
 const MAX_SUMMARY_BYTES = 131_072;
@@ -2373,7 +2379,19 @@ async function waitForSharedMutationConvergence(
         && !probe.opponentLeak
         && probe.consoleErrors === 0
         && probe.workerObserved)) return Object.freeze(probes);
-    if (Date.now() >= deadline) throw new Error('shared mutation convergence not observed');
+    if (Date.now() >= deadline) {
+      const checkpoint = reference === undefined ? 'reference-missing'
+        : !safeRevision(reference.revision) || probes.some((probe) => !safeRevision(probe.revision)) ? 'revision-invalid'
+        : reference.revision < acceptedRevision ? 'revision-lag'
+        : probes.some((probe) => probe.revision !== reference.revision) ? 'revision-divergence'
+        : probes.some((probe) => probe.sharedPublicDigest !== reference.sharedPublicDigest) ? 'digest-divergence'
+        : probes.some((probe) => probe.gameScreens !== 1) ? 'game-screen'
+        : probes.some((probe) => probe.overflow !== 0) ? 'horizontal-overflow'
+        : probes.some((probe) => probe.opponentLeak) ? 'opponent-leak'
+        : probes.some((probe) => probe.consoleErrors !== 0) ? 'console-error'
+        : 'worker-missing';
+      throw new Error(checkpoint);
+    }
     await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
 }

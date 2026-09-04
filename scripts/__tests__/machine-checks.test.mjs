@@ -21,7 +21,7 @@ describe('machine-check argument parsing', () => {
       continueOnError: false,
       buildBase: '/MTG_OneDeck/',
     });
-    expect(machineCheckStepsFor({ buildBase: '/MTG_OneDeck/' }).at(-2)).toEqual({
+    expect(machineCheckStepsFor({ buildBase: '/MTG_OneDeck/' }).find((step) => step.name === 'build (型検査内蔵)')).toEqual({
       name: 'build (型検査内蔵)',
       cmd: 'npm',
       args: ['run', 'build', '--', '--base=/MTG_OneDeck/'],
@@ -141,10 +141,10 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:online-cloudflare-websocket-recovery']],
       ['npm', ['run', 'verify:online-cloudflare-capability-abuse-control']],
       ['npm', ['run', 'verify:online-cloudflare-production-gate']],
-      ['npm', ['run', 'lint']],
-      ['npm', ['test']],
       ['npm', ['run', 'build']],
       ['npm', ['run', 'verify:o4p-07c-production-runtime']],
+      ['npm', ['run', 'lint']],
+      ['npm', ['test']],
     ]);
     expect(report.exitCode).toBe(0);
   });
