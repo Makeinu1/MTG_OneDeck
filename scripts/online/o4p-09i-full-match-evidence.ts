@@ -2519,7 +2519,7 @@ async function waitForSharedMutationConvergence(
       if (lastCheckpoint !== null
         && error instanceof Error
         && error.message === 'shared mutation transport probe timeout'
-        && Date.now() >= deadline) throw new Error(lastCheckpoint);
+        && Date.now() >= deadline) throw new Error(lastCheckpoint, { cause: error });
       throw new Error(postActionProbeCheckpoint('transport', error), { cause: error });
     }
     const transportRevision = transport[0]?.revision;
