@@ -136,7 +136,9 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       || rootStage === 'post-actions' && (POST_ACTION_FAILURES as readonly string[]).includes(detail)
       ? scenario
       : rootStage;
-    if (stage === 'post-actions/probe-unavailable')
+    if (stage === 'post-actions/probe-timeout'
+      || stage === 'post-actions/leak-scan-bound'
+      || stage === 'post-actions/probe-evaluation')
       return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
     return Object.freeze({
       class: 'IMPLEMENTATION',
@@ -266,7 +268,7 @@ const STARTED_SURFACE_FAILURES = Object.freeze([
   'start-rejected', 'start-pending', 'start-not-accepted',
 ] as const);
 const POST_ACTION_FAILURES = Object.freeze([
-  'probe-unavailable', 'settlement-missing', 'result-missing', 'reference-missing', 'revision-invalid',
+  'probe-timeout', 'leak-scan-bound', 'probe-evaluation', 'settlement-missing', 'result-missing', 'reference-missing', 'revision-invalid',
   'revision-not-advanced', 'revision-lag', 'revision-divergence',
   'digest-divergence', 'game-screen', 'horizontal-overflow', 'opponent-leak',
   'console-error', 'worker-missing',
@@ -2841,7 +2843,11 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         const checkpoint = error instanceof Error ? error.message : '';
         if ((POST_ACTION_FAILURES as readonly string[]).includes(checkpoint)) throw error;
         rethrowProductionEnvironmentFailure(error, 'progress-probe');
-        throw new Error('probe-unavailable', { cause: error });
+        throw new Error(checkpoint === 'page probe timeout'
+          ? 'probe-timeout'
+          : checkpoint === 'bounded leak scan incomplete'
+            ? 'leak-scan-bound'
+            : 'probe-evaluation', { cause: error });
       }
     }
     if (postActions === undefined) throw new Error('result-missing');
