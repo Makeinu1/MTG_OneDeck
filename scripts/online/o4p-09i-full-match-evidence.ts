@@ -138,7 +138,9 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       : rootStage;
     if (stage === 'post-actions/probe-timeout'
       || stage === 'post-actions/leak-scan-bound'
-      || stage === 'post-actions/probe-evaluation')
+      || stage === 'post-actions/probe-evaluation'
+      || stage.startsWith('post-actions/transport-probe-')
+      || stage.startsWith('post-actions/session-probe-'))
       return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
     return Object.freeze({
       class: 'IMPLEMENTATION',
@@ -272,6 +274,10 @@ const POST_ACTION_FAILURES = Object.freeze([
   'revision-not-advanced', 'revision-lag', 'revision-divergence',
   'digest-divergence', 'game-screen', 'horizontal-overflow', 'opponent-leak',
   'console-error', 'worker-missing',
+  'transport-probe-timeout', 'transport-probe-error', 'transport-probe-type-error',
+  'transport-probe-reference-error', 'transport-probe-syntax-error', 'transport-probe-range-error', 'transport-probe-unknown',
+  'session-probe-timeout', 'session-probe-leak-scan-bound', 'session-probe-error', 'session-probe-type-error',
+  'session-probe-reference-error', 'session-probe-syntax-error', 'session-probe-range-error', 'session-probe-unknown',
 ] as const);
 type O4p09iStartedSurfaceFailureV1 = (typeof STARTED_SURFACE_FAILURES)[number];
 const MAX_SUMMARY_BYTES = 131_072;
@@ -2143,6 +2149,20 @@ type O4p09iProbeV1 = Readonly<{
 
 type O4p09iConsoleAccumulatorV1 = { errors: number; warnings: number; secretViolations: number };
 
+function postActionProbeCheckpoint(component: 'transport' | 'session', error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (message === 'shared mutation transport probe timeout' || message === 'page probe timeout') return `${component}-probe-timeout`;
+  if (message === 'bounded leak scan incomplete') return `${component}-probe-leak-scan-bound`;
+  const evaluationClass = new Map<string, string>([
+    ['browser evaluation Error', 'error'],
+    ['browser evaluation TypeError', 'type-error'],
+    ['browser evaluation ReferenceError', 'reference-error'],
+    ['browser evaluation SyntaxError', 'syntax-error'],
+    ['browser evaluation RangeError', 'range-error'],
+  ]).get(message) ?? 'unknown';
+  return `${component}-probe-${evaluationClass}`;
+}
+
 async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: string, secretFragments: readonly string[] = []): Promise<O4p09iProbeV1> {
   const probe = await Promise.race([
     page.evaluate<O4p09iProbeV1>(`(() => {
@@ -2459,12 +2479,18 @@ async function waitForSharedMutationConvergence(
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const remaining = Math.max(1, deadline - Date.now());
-    const transport = await Promise.all(pages.map((page) => actorControlProbe(
-      page,
-      'online-remote-advance',
-      Math.min(1_000, remaining),
-      'shared mutation transport probe timeout'
-    )));
+    let transport: readonly O4p09iActorProbeV1[];
+    try {
+      transport = await Promise.all(pages.map((page) => actorControlProbe(
+        page,
+        'online-remote-advance',
+        Math.min(1_000, remaining),
+        'shared mutation transport probe timeout'
+      )));
+    } catch (error) {
+      rethrowProductionEnvironmentFailure(error, 'progress-probe');
+      throw new Error(postActionProbeCheckpoint('transport', error), { cause: error });
+    }
     const transportRevision = transport[0]?.revision;
     const transportConverged = safeRevision(transportRevision ?? -1)
       && (transportRevision ?? -1) >= acceptedRevision
@@ -2474,14 +2500,20 @@ async function waitForSharedMutationConvergence(
         && probe.knownRevision === transportRevision
         && probe.projectionRevision === transportRevision
         && (probe.appBusy === undefined || probe.appBusy === ''));
-    const probes = transportConverged
-      ? await Promise.all(pages.map((page) => probeSessionPage(
+    let probes: readonly O4p09iSessionProbeV1[] = [];
+    if (transportConverged) {
+      try {
+        probes = await Promise.all(pages.map((page) => probeSessionPage(
           page,
           Math.max(1, deadline - Date.now()),
           workerOrigin,
           secretFragments,
-        )))
-      : [];
+        )));
+      } catch (error) {
+        rethrowProductionEnvironmentFailure(error, 'progress-probe');
+        throw new Error(postActionProbeCheckpoint('session', error), { cause: error });
+      }
+    }
     const reference = probes[0];
     if (reference !== undefined
       && safeRevision(reference.revision)

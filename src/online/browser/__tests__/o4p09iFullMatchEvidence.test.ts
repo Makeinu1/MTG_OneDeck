@@ -620,6 +620,11 @@ describe('O4P-09I full-match production evidence', () => {
     ).toEqual({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'post-actions/probe-timeout' });
     expect(
       classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: post-actions/session-probe-type-error')
+      )
+    ).toEqual({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'post-actions/session-probe-type-error' });
+    expect(
+      classifyO4p09iProductionFailureV1(
         new Error('production scenario stage failed: post-actions/private-token')
       )
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions' });
