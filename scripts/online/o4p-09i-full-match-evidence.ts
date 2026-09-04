@@ -968,6 +968,30 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly appBusy?: string;
 }>;
 
+type O4p09iTransportProbeV1 = Pick<O4p09iActorProbeV1,
+  'revision' | 'playerPhase' | 'pendingCount' | 'knownRevision' | 'projectionRevision' | 'appBusy'>;
+
+async function settlementTransportProbe(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iTransportProbeV1> {
+  return Promise.race([
+    page.evaluate<O4p09iTransportProbeV1>(`(() => { // settlementTransportProbe
+      const remoteRail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const app = document.querySelector('[data-testid="public-online-app"]');
+      const pregameRevision = document.querySelector('[data-testid="online-pregame-revision"]');
+      return {
+        revision: Number(remoteRail?.getAttribute('data-projection-revision') ?? pregameRevision?.getAttribute('data-projection-revision') ?? '-1'),
+        playerPhase: app?.getAttribute('data-player-phase') ?? '',
+        pendingCount: Number(app?.getAttribute('data-player-pending-count') ?? '-1'),
+        knownRevision: Number(app?.getAttribute('data-player-known-revision') ?? '-1'),
+        projectionRevision: Number(app?.getAttribute('data-player-projection-revision') ?? '-1'),
+        appBusy: app?.getAttribute('data-online-busy') ?? '',
+      };
+    })()`),
+    new Promise<never>((_resolve, reject) =>
+      setTimeout(() => reject(new Error('shared mutation transport probe timeout')), timeoutMs)
+    )
+  ]);
+}
+
 async function actorControlProbe(
   page: O4p09iPageV1,
   testId: string,
@@ -2479,14 +2503,9 @@ async function waitForSharedMutationConvergence(
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const remaining = Math.max(1, deadline - Date.now());
-    let transport: readonly O4p09iActorProbeV1[];
+    let transport: readonly O4p09iTransportProbeV1[];
     try {
-      transport = await Promise.all(pages.map((page) => actorControlProbe(
-        page,
-        'online-remote-advance',
-        remaining,
-        'shared mutation transport probe timeout'
-      )));
+      transport = await Promise.all(pages.map((page) => settlementTransportProbe(page, remaining)));
     } catch (error) {
       rethrowProductionEnvironmentFailure(error, 'progress-probe');
       throw new Error(postActionProbeCheckpoint('transport', error), { cause: error });
@@ -2527,10 +2546,11 @@ async function waitForSharedMutationConvergence(
         && probe.workerObserved)) return Object.freeze(probes);
     if (Date.now() >= deadline) {
       if (!transportConverged) {
-        const checkpoint = actorSelectionCheckpoint(transport.map((probe) => ({
-          testId: 'online-remote-advance' as const,
-          probe,
-        })));
+        const checkpoint = transport.some((probe) => probe.playerPhase !== 'open') ? 'actor-selection-player-not-open'
+          : transport.some((probe) => !Number.isSafeInteger(probe.pendingCount) || (probe.pendingCount ?? -1) > 0) ? 'actor-selection-player-pending'
+          : transport.some((probe) => probe.knownRevision !== probe.projectionRevision) ? 'actor-selection-player-revision-lag'
+          : transport.some((probe) => probe.appBusy !== undefined && probe.appBusy !== '') ? 'actor-selection-app-busy'
+          : 'seat-convergence';
         throw new Error(checkpoint);
       }
       const checkpoint = reference === undefined ? 'reference-missing'

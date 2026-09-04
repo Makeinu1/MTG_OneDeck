@@ -255,6 +255,12 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             holdState: 'not-applicable'
           } as T);
         }
+        if (expression.includes('settlementTransportProbe')) {
+          return Promise.resolve({
+            revision: actorControlRevision(),
+            ...actorReadiness(),
+          } as T);
+        }
         if (expression.includes('priorityControlProbe:online-remote-advance')) {
           const authoritySeat = advanceEnabledSeats[0] ?? 0;
           return Promise.resolve({
@@ -867,7 +873,16 @@ describe('O4P-09I full-match production evidence', () => {
     expect(expressions[firstSessionProbeAfterMutation]).not.toContain('scrollTop');
     expect(expressions.slice(mutationClick + 1, firstSessionProbeAfterMutation).filter((expression) =>
       expression.includes('priorityControlProbe:online-remote-advance')
-    )).toHaveLength(3);
+    )).toHaveLength(1);
+    const transportProbes = expressions.slice(mutationClick + 1, firstSessionProbeAfterMutation).filter((expression) =>
+      expression.includes('settlementTransportProbe')
+    );
+    expect(transportProbes).toHaveLength(2);
+    expect(transportProbes.every((expression) => !expression.includes('getBoundingClientRect'))).toBe(true);
+    for (const attribute of [
+      'data-projection-revision', 'data-player-phase', 'data-player-pending-count',
+      'data-player-known-revision', 'data-player-projection-revision', 'data-online-busy',
+    ]) expect(transportProbes.every((expression) => expression.includes(attribute))).toBe(true);
     expect(validateO4p09iReliabilityEvidenceV1({
       ...summary,
       kind: 'o4p-09i-b-reliable-session-production-evidence-v1',
