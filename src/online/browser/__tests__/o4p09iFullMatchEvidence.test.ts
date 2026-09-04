@@ -100,6 +100,7 @@ type FakeOptions = Readonly<{
   readonly actorWindowDivergentSeat?: number;
   readonly postPregameResyncProbes?: number;
   readonly postMutationHostLagProbes?: number;
+  readonly postMutationTransportDelayMs?: number;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -256,10 +257,16 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           } as T);
         }
         if (expression.includes('settlementTransportProbe')) {
-          return Promise.resolve({
+          const transport = {
             revision: actorControlRevision(),
             ...actorReadiness(),
-          } as T);
+            ...(options.postMutationTransportDelayMs !== undefined && progressActionCounts[scenarioIndex] > 0
+              ? { knownRevision: actorControlRevision() - 1 }
+              : {}),
+          } as T;
+          return options.postMutationTransportDelayMs !== undefined && progressActionCounts[scenarioIndex] > 0
+            ? new Promise<T>((resolve) => setTimeout(() => resolve(transport), options.postMutationTransportDelayMs))
+            : Promise.resolve(transport);
         }
         if (expression.includes('priorityControlProbe:online-remote-advance')) {
           const authoritySeat = advanceEnabledSeats[0] ?? 0;
@@ -896,7 +903,7 @@ describe('O4P-09I full-match production evidence', () => {
     })).toMatchObject({ ok: false });
   });
 
-  it('reports the exact safe checkpoint when shared mutation convergence never settles', async () => {
+  it('reports the exact safe session checkpoint when shared mutation convergence never settles', async () => {
     let failure: unknown;
     try {
       await runO4p09iReliabilityEvidenceTestDriverV1({
@@ -914,6 +921,27 @@ describe('O4P-09I full-match production evidence', () => {
       class: 'IMPLEMENTATION',
       code: 'PLAYER_JOURNEY_STAGE_FAILED',
       stage: 'post-actions/revision-lag',
+    });
+  });
+
+  it('keeps the last safe transport checkpoint when the deadline wins a later probe', async () => {
+    let failure: unknown;
+    try {
+      await runO4p09iReliabilityEvidenceTestDriverV1({
+        browser: fakeBrowser([], {
+          advanceEnabledSeat: 1,
+          postMutationTransportDelayMs: 120,
+        }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'post-actions/actor-selection-player-revision-lag',
     });
   });
 

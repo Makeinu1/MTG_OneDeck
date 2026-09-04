@@ -274,6 +274,8 @@ const POST_ACTION_FAILURES = Object.freeze([
   'revision-not-advanced', 'revision-lag', 'revision-divergence',
   'digest-divergence', 'game-screen', 'horizontal-overflow', 'opponent-leak',
   'console-error', 'worker-missing',
+  'actor-selection-player-not-open', 'actor-selection-player-pending',
+  'actor-selection-player-revision-lag', 'actor-selection-app-busy', 'seat-convergence',
   'transport-probe-timeout', 'transport-probe-error', 'transport-probe-type-error',
   'transport-probe-reference-error', 'transport-probe-syntax-error', 'transport-probe-range-error', 'transport-probe-unknown',
   'session-probe-timeout', 'session-probe-leak-scan-bound', 'session-probe-error', 'session-probe-type-error',
@@ -2501,13 +2503,23 @@ async function waitForSharedMutationConvergence(
   secretFragments: readonly string[],
 ): Promise<readonly O4p09iSessionProbeV1[]> {
   const deadline = Date.now() + timeoutMs;
+  let lastCheckpoint: string | null = null;
   for (;;) {
-    const remaining = Math.max(1, deadline - Date.now());
+    const remaining = deadline - Date.now();
+    if (lastCheckpoint !== null && remaining <= 0) throw new Error(lastCheckpoint);
+    if (lastCheckpoint !== null && remaining <= 25) {
+      await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+      throw new Error(lastCheckpoint);
+    }
     let transport: readonly O4p09iTransportProbeV1[];
     try {
-      transport = await Promise.all(pages.map((page) => settlementTransportProbe(page, remaining)));
+      transport = await Promise.all(pages.map((page) => settlementTransportProbe(page, Math.max(1, remaining))));
     } catch (error) {
       rethrowProductionEnvironmentFailure(error, 'progress-probe');
+      if (lastCheckpoint !== null
+        && error instanceof Error
+        && error.message === 'shared mutation transport probe timeout'
+        && Date.now() >= deadline) throw new Error(lastCheckpoint);
       throw new Error(postActionProbeCheckpoint('transport', error), { cause: error });
     }
     const transportRevision = transport[0]?.revision;
@@ -2544,16 +2556,13 @@ async function waitForSharedMutationConvergence(
         && !probe.opponentLeak
         && probe.consoleErrors === 0
         && probe.workerObserved)) return Object.freeze(probes);
-    if (Date.now() >= deadline) {
-      if (!transportConverged) {
-        const checkpoint = transport.some((probe) => probe.playerPhase !== 'open') ? 'actor-selection-player-not-open'
-          : transport.some((probe) => !Number.isSafeInteger(probe.pendingCount) || (probe.pendingCount ?? -1) > 0) ? 'actor-selection-player-pending'
-          : transport.some((probe) => probe.knownRevision !== probe.projectionRevision) ? 'actor-selection-player-revision-lag'
-          : transport.some((probe) => probe.appBusy !== undefined && probe.appBusy !== '') ? 'actor-selection-app-busy'
-          : 'seat-convergence';
-        throw new Error(checkpoint);
-      }
-      const checkpoint = reference === undefined ? 'reference-missing'
+    lastCheckpoint = !transportConverged
+      ? transport.some((probe) => probe.playerPhase !== 'open') ? 'actor-selection-player-not-open'
+        : transport.some((probe) => !Number.isSafeInteger(probe.pendingCount) || (probe.pendingCount ?? -1) > 0) ? 'actor-selection-player-pending'
+        : transport.some((probe) => probe.knownRevision !== probe.projectionRevision) ? 'actor-selection-player-revision-lag'
+        : transport.some((probe) => probe.appBusy !== undefined && probe.appBusy !== '') ? 'actor-selection-app-busy'
+        : 'seat-convergence'
+      : reference === undefined ? 'reference-missing'
         : !safeRevision(reference.revision) || probes.some((probe) => !safeRevision(probe.revision)) ? 'revision-invalid'
         : reference.revision < acceptedRevision ? 'revision-lag'
         : probes.some((probe) => probe.revision !== reference.revision) ? 'revision-divergence'
@@ -2563,8 +2572,7 @@ async function waitForSharedMutationConvergence(
         : probes.some((probe) => probe.opponentLeak) ? 'opponent-leak'
         : probes.some((probe) => probe.consoleErrors !== 0) ? 'console-error'
         : 'worker-missing';
-      throw new Error(checkpoint);
-    }
+    if (Date.now() >= deadline) throw new Error(lastCheckpoint);
     await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
 }
