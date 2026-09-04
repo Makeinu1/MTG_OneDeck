@@ -1856,12 +1856,21 @@ async function readPrivateHandPayload(page: O4p09iPageV1, timeoutMs: number): Pr
 /** Capture bounded rendered text, attributes, form values, and choice-control
  * content from an unauthorized seat.  Values remain memory-only in the caller;
  * host tokens are never injected into that seat's page. */
-type O4p09iDomSurfaceScanV1 = Readonly<{ readonly surfaces: readonly string[]; readonly complete: boolean;
+type O4p09iDomSurfaceScanV1 = Readonly<{ readonly chunk: string; readonly digest: string; readonly length: number; readonly complete: boolean;
 }>;
 
-async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, timeoutMs: number): Promise<readonly string[]> {
+// Match private tokens in the runner only. Bound each CDP reply and reject
+// changing DOM snapshots rather than combining inconsistent scan fragments.
+async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, tokens: readonly string[], timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  let serialized = '';
+  let digest: string | null = null;
+  let length: number | null = null;
+  do {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error('private choice surface probe timeout');
   const raw = await Promise.race([
-    page.evaluate<O4p09iDomSurfaceScanV1>(`(() => { // privateChoiceDomSurfaces
+    page.evaluate<O4p09iDomSurfaceScanV1>(`(async () => { // privateChoiceDomSurfaces
       const surfaces = [];
       let complete = true;
       let bytes = 0;
@@ -1883,12 +1892,25 @@ async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, timeoutMs: number
         if ('value' in node && typeof node.value === 'string') append(node.value);
       }
       if (nodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) complete = false;
-      return { surfaces, complete };
-    })()`),
-    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choice surface probe timeout')), timeoutMs)),
+      const serialized = JSON.stringify(surfaces);
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
+      const digest = [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+      return { chunk: serialized.slice(argument.offset, argument.offset + 8192), digest, length: serialized.length, complete };
+    })()`, { offset: serialized.length }),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choice surface probe timeout')), remaining)),
   ]);
-  if (!raw.complete) throw new Error('bounded private choice surface scan incomplete');
-  return raw.surfaces;
+  if (raw.complete !== true || typeof raw.chunk !== 'string' || raw.chunk.length === 0 || raw.chunk.length > 8192
+    || !Number.isSafeInteger(raw.length) || raw.length < 2 || raw.length > MAX_DOM_SCAN_BYTES_V1 * 10
+    || !/^[0-9a-f]{64}$/u.test(raw.digest)
+    || (digest !== null && (raw.digest !== digest || raw.length !== length))) throw new Error('bounded private choice surface scan incomplete');
+  digest = raw.digest;
+  length = raw.length;
+  serialized += raw.chunk;
+  } while (serialized.length < (length ?? 0));
+  if (serialized.length !== length || sha256(serialized) !== digest) throw new Error('bounded private choice surface scan incomplete');
+  const surfaces: unknown = JSON.parse(serialized);
+  if (!Array.isArray(surfaces) || surfaces.some((value) => typeof value !== 'string')) throw new Error('bounded private choice surface scan incomplete');
+  return tokens.some((token) => surfaces.some((surface: string) => surface.includes(token)));
 }
 
 async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: number): Promise<void> {
@@ -2983,8 +3005,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
           if (page === hostPage) continue;
           const otherPayload = await readPrivateChoicePayload(page, timeoutMs);
           const candidateTokens = [...privateChoicePayload.identifiers, ...privateChoicePayload.candidateHandles];
-          const otherSurfaces = await readUnauthorizedDomSurfaces(page, timeoutMs);
-          const tokenLeak = candidateTokens.some((token) => token.length >= 4 && otherSurfaces.some((surface) => surface.includes(token)));
+          const tokenLeak = await readUnauthorizedDomSurfaces(page, candidateTokens.filter((token) => token.length >= 4), timeoutMs);
           if (tokenLeak || otherPayload.digest === privateChoicePayload.digest) {
             crossSeatPrivateChoiceLeak = true;
             throw new Error('cross-seat private choice leak');
@@ -3074,8 +3095,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         || probe.sharedPublicDigest !== sharedPublicDigestBeforeReconnect
         || priorityPresenceSignature(probe) !== prioritySignatureBeforeReconnect)) throw new Error('pre-reconnect convergence missing');
     for (const peer of pages.slice(1)) {
-      const surfaces = await readUnauthorizedDomSurfaces(peer, timeoutMs);
-      if (privateHandBeforeReconnect.tokens.some((token) => surfaces.some((surface) => surface.includes(token)))) throw new Error('pre-reconnect private audience leak');
+      if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('pre-reconnect private audience leak');
     }
     snapshotConsole(disconnectedPage);
     await disconnectedPage.close(); counters.pagesClosed += 1;
@@ -3092,8 +3112,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     const recoveredPrivateHand = await readPrivateHandPayload(replacement, timeoutMs);
     if (recoveredPrivateHand.digest !== privateHandBeforeReconnect.digest) throw new Error('reconnect private audience mismatch');
     for (const peer of pages.slice(1)) {
-      const surfaces = await readUnauthorizedDomSurfaces(peer, timeoutMs);
-      if (privateHandBeforeReconnect.tokens.some((token) => surfaces.some((surface) => surface.includes(token)))) throw new Error('reconnect private audience leak');
+      if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('reconnect private audience leak');
     }
     revisionAfterReconnect = recovered.revision;
     if (!safeRevision(revisionAfterReconnect) || revisionAfterReconnect !== revisionBeforeReconnect) throw new Error('reconnect continuity probe failed');
@@ -3116,8 +3135,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       const afterPostReconnectMutation = convergedProbes[0]?.revision ?? 0;
       if (afterPostReconnectMutation <= revisionAfterReconnect) throw new Error('post-reconnect mutation did not advance');
       for (const peer of pages.slice(1)) {
-        const surfaces = await readUnauthorizedDomSurfaces(peer, timeoutMs);
-        if (privateHandBeforeReconnect.tokens.some((token) => surfaces.some((surface) => surface.includes(token)))) throw new Error('post-reconnect private audience leak');
+        if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('post-reconnect private audience leak');
       }
       phases.add('disconnect/reconnect');
       phases.add('post-reconnect mutation');

@@ -1,4 +1,5 @@
 import { Script } from 'node:vm';
+import { createHash, webcrypto } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -170,7 +171,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let viewportHeight = 900;
     return {
     navigate: () => Promise.resolve(),
-    evaluate: <T>(expression: string): Promise<T> => {
+    evaluate: <T>(expression: string, argument?: unknown): Promise<T> => {
       expressions.push(expression);
       const missingControl = options.missingControl ?? '__missing__';
       if (expression.includes(`data-testid="${missingControl}"`) && !(missingControl === 'open-online-mode' && expression.includes('savedDeckProbe'))) return Promise.reject(new Error('visible control missing'));
@@ -479,13 +480,15 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       }
       if (expression.includes('privateChoiceDomSurfaces')) {
         const leaked = options.privateChoiceCandidateLeak === true && contextOrdinal !== 0 && contextOrdinal !== 2;
-        if (options.privateChoiceScanBoundExceeded === true) return Promise.resolve({ surfaces: [], complete: false } as T);
+        let surfaces = leaked ? ['private-card-handle'] : [];
         if (options.reconnectPrivateLeakSeat === seatIndex && recoveredScenarios[scenarioIndex]) {
-          return Promise.resolve({ surfaces: [`private-hand-object-${scenarioIndex}-0`], complete: true } as T);
+          surfaces = [`private-hand-object-${scenarioIndex}-0`];
         }
-        if ((options.privateChoiceCandidateLeakBeyondBound === true || options.privateChoiceCandidateTokenLeak === true) && contextOrdinal !== 0 && contextOrdinal !== 2) return Promise.resolve({ surfaces: Array.from({ length: options.privateChoiceCandidateLeakBeyondBound === true ? 2_049 : 1 }, (_entry, index) => index === (options.privateChoiceCandidateLeakBeyondBound === true ? 2_048 : 0) ? options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle'
-                    : `surface-${index}`), complete: true } as T);
-        return Promise.resolve({ surfaces: leaked ? ['private-card-handle'] : [], complete: true } as T);
+        if ((options.privateChoiceCandidateLeakBeyondBound === true || options.privateChoiceCandidateTokenLeak === true) && contextOrdinal !== 0 && contextOrdinal !== 2) surfaces = Array.from({ length: options.privateChoiceCandidateLeakBeyondBound === true ? 2_049 : 1 }, (_entry, index) => index === (options.privateChoiceCandidateLeakBeyondBound === true ? 2_048 : 0) ? options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle' : `surface-${index}`);
+        expect(Object.keys(argument as object)).toEqual(['offset']);
+        const serialized = JSON.stringify(surfaces);
+        const offset = (argument as { offset: number }).offset;
+        return Promise.resolve({ chunk: serialized.slice(offset, offset + 8192), length: serialized.length, digest: createHash('sha256').update(serialized).digest('hex'), complete: options.privateChoiceScanBoundExceeded !== true } as T);
       }
       if (expression.includes('コードを表示')) {
         const delayed = options.asyncInviteRender === true && revealButtonProbes++ === 0;
@@ -1215,6 +1218,35 @@ describe('O4P-09I full-match production evidence', () => {
         throw new Error(`browser evaluate payload ${index} is not valid JavaScript: ${error instanceof Error ? error.message : 'syntax error'}`, { cause: error });
       }
     }
+  });
+
+  it('reads a DOM larger than a CDP frame in bounded consistent chunks without sending private tokens', async () => {
+    const expressions: string[] = [];
+    await runO4p09iReliabilityEvidenceTestDriverV1({ browser: fakeBrowser(expressions), readDeck: () => 'fixture deck' });
+    const expression = expressions.find((value) => value.includes('privateChoiceDomSurfaces'));
+    expect(expression).toBeDefined();
+    const nodes = Array.from({ length: 2_050 }, () => ({ childNodes: [{ nodeType: 3, nodeValue: '' }], attributes: [{ name: 'data-fixture', value: '' }] }));
+    nodes[0].childNodes[0].nodeValue = 'x'.repeat(70_000);
+    nodes[2_049].attributes[0].value = 'private-fixture-token';
+    const scan = (offset: number) => new Script(expression!).runInNewContext({
+      document: { querySelectorAll: () => nodes }, TextEncoder, crypto: webcrypto,
+      argument: { offset },
+    }) as Promise<{ complete: boolean; chunk: string; digest: string; length: number }>;
+    let serialized = '';
+    const first = await scan(0);
+    do {
+      const part = await scan(serialized.length);
+      expect(part.complete).toBe(true);
+      expect(part.digest).toBe(first.digest);
+      expect(new TextEncoder().encode(JSON.stringify(part)).length).toBeLessThan(65_536);
+      serialized += part.chunk;
+    } while (serialized.length < first.length);
+    expect(createHash('sha256').update(serialized).digest('hex')).toBe(first.digest);
+    expect(JSON.parse(serialized)).toContain('private-fixture-token');
+    nodes[2_049].attributes[0].value = 'changed';
+    expect((await scan(0)).digest).not.toBe(first.digest);
+    nodes[0].childNodes[0].nodeValue = 'x'.repeat(262_144);
+    expect((await scan(0)).complete).toBe(false);
   });
 
   it('rejects malformed, secret-bearing, and incomplete cleanup summaries', async () => {
