@@ -614,6 +614,13 @@ describe('O4P-09I full-match production evidence', () => {
       )
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions' });
     expect(
+      classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: import/private-token', {
+          cause: new Error('production UI stage failed: deck resolution pending'),
+        })
+      )
+    ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_ENTRY_STAGE_FAILED', stage: 'import/resolution-pending' });
+    expect(
       classifyO4p09iProductionFailureV1(new Error('Chrome launcher unavailable: private-token'))
     ).toEqual({ class: 'ENVIRONMENT', code: 'BROWSER_ENVIRONMENT_UNAVAILABLE', stage: 'setup' });
     expect(

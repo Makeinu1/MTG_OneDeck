@@ -111,6 +111,13 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
         : 'setup'
     });
   }
+  const importCheckpoint = productionUiFailureCheckpoint(error);
+  if (importCheckpoint !== null)
+    return Object.freeze({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_ENTRY_STAGE_FAILED',
+      stage: `import/${importCheckpoint}`
+    });
   const scenario = /^production scenario stage failed: ([a-zA-Z0-9/_-]+)/u.exec(message)?.[1];
   if (
     scenario !== undefined &&
@@ -135,12 +142,6 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       stage
     });
   }
-  if (message.startsWith('production UI stage failed:'))
-    return Object.freeze({
-      class: 'IMPLEMENTATION',
-      code: 'PLAYER_ENTRY_STAGE_FAILED',
-      stage: 'import'
-    });
   if (/(?:console|secret|privacy)/iu.test(message))
     return Object.freeze({
       class: 'IMPLEMENTATION',
@@ -294,6 +295,31 @@ const PRODUCTION_UI_STAGE_ERRORS = Object.freeze({
   invalidWorkflow: 'production UI stage failed: invalid workflow state',
   onlineOpen: 'production UI stage failed: online entry',
 } as const);
+const PRODUCTION_UI_FAILURE_CHECKPOINTS = Object.freeze(new Map<string, string>([
+  [PRODUCTION_UI_STAGE_ERRORS.deckInput, 'deck-input'],
+  [PRODUCTION_UI_STAGE_ERRORS.importClick, 'import-click'],
+  [PRODUCTION_UI_STAGE_ERRORS.savedState, 'saved-state'],
+  [PRODUCTION_UI_STAGE_ERRORS.storageUnavailable, 'storage-unavailable'],
+  [PRODUCTION_UI_STAGE_ERRORS.resolutionUnavailable, 'resolution-unavailable'],
+  [PRODUCTION_UI_STAGE_ERRORS.resolutionPending, 'resolution-pending'],
+  [PRODUCTION_UI_STAGE_ERRORS.notificationMissing, 'notification-missing'],
+  [PRODUCTION_UI_STAGE_ERRORS.importRuntimeFailed, 'runtime-failed'],
+  [PRODUCTION_UI_STAGE_ERRORS.importRuntimeError, 'runtime-error'],
+  [PRODUCTION_UI_STAGE_ERRORS.productErrorBoundary, 'error-boundary'],
+  [PRODUCTION_UI_STAGE_ERRORS.importSurfaceDisappeared, 'surface-disappeared'],
+  [PRODUCTION_UI_STAGE_ERRORS.invalidWorkflow, 'invalid-workflow'],
+  [PRODUCTION_UI_STAGE_ERRORS.onlineOpen, 'online-entry'],
+]));
+
+function productionUiFailureCheckpoint(error: unknown): string | null {
+  let current = error;
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    const checkpoint = PRODUCTION_UI_FAILURE_CHECKPOINTS.get(current.message);
+    if (checkpoint !== undefined) return checkpoint;
+    current = current.cause;
+  }
+  return null;
+}
 
 type JsonRecord = Record<string, unknown>;
 type Primitive = null | boolean | number | string;
