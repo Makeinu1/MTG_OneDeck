@@ -833,8 +833,9 @@ describe('O4P-09I full-match production evidence', () => {
   });
 
   it('runs the bounded two-player reliability profile through a post-reconnect mutation', async () => {
+    const expressions: string[] = [];
     const summary = await runO4p09iReliabilityEvidenceTestDriverV1({
-      browser: fakeBrowser([], { advanceEnabledSeat: 1, postPregameResyncProbes: 2, postMutationHostLagProbes: 2 }),
+      browser: fakeBrowser(expressions, { advanceEnabledSeat: 1, postPregameResyncProbes: 2, postMutationHostLagProbes: 2 }),
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     });
@@ -844,6 +845,18 @@ describe('O4P-09I full-match production evidence', () => {
     ]);
     expect(summary.scenario.revision.afterReconnect).toBe(summary.scenario.revision.beforeReconnect);
     expect(summary.scenario.revision.afterPostReconnectMutation).toBeGreaterThan(summary.scenario.revision.afterReconnect);
+    const mutationClick = expressions.findIndex((expression) =>
+      expression.includes('data-testid="online-remote-advance"')
+      && expression.includes('node.click(); return true')
+    );
+    const firstFullProbeAfterMutation = expressions.findIndex((expression, index) =>
+      index > mutationClick && expression.includes('gameScreens')
+    );
+    expect(mutationClick).toBeGreaterThanOrEqual(0);
+    expect(firstFullProbeAfterMutation).toBeGreaterThan(mutationClick);
+    expect(expressions.slice(mutationClick + 1, firstFullProbeAfterMutation).filter((expression) =>
+      expression.includes('priorityControlProbe:online-remote-advance')
+    )).toHaveLength(3);
     expect(validateO4p09iReliabilityEvidenceV1({
       ...summary,
       kind: 'o4p-09i-b-reliable-session-production-evidence-v1',

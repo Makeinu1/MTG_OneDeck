@@ -2402,7 +2402,30 @@ async function waitForSharedMutationConvergence(
 ): Promise<readonly O4p09iProbeV1[]> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const probes = await Promise.all(pages.map((page) => probePage(page, Math.min(1_000, Math.max(1, deadline - Date.now())), workerOrigin, secretFragments)));
+    const remaining = Math.max(1, deadline - Date.now());
+    const transport = await Promise.all(pages.map((page) => actorControlProbe(
+      page,
+      'online-remote-advance',
+      Math.min(1_000, remaining),
+      'shared mutation transport probe timeout'
+    )));
+    const transportRevision = transport[0]?.revision;
+    const transportConverged = safeRevision(transportRevision ?? -1)
+      && (transportRevision ?? -1) >= acceptedRevision
+      && transport.every((probe) => probe.revision === transportRevision
+        && probe.playerPhase === 'open'
+        && probe.pendingCount === 0
+        && probe.knownRevision === transportRevision
+        && probe.projectionRevision === transportRevision
+        && (probe.appBusy === undefined || probe.appBusy === ''));
+    const probes = transportConverged
+      ? await Promise.all(pages.map((page) => probePage(
+          page,
+          Math.max(1, deadline - Date.now()),
+          workerOrigin,
+          secretFragments
+        )))
+      : [];
     const reference = probes[0];
     if (reference !== undefined
       && safeRevision(reference.revision)
@@ -2415,6 +2438,13 @@ async function waitForSharedMutationConvergence(
         && probe.consoleErrors === 0
         && probe.workerObserved)) return Object.freeze(probes);
     if (Date.now() >= deadline) {
+      if (!transportConverged) {
+        const checkpoint = actorSelectionCheckpoint(transport.map((probe) => ({
+          testId: 'online-remote-advance' as const,
+          probe,
+        })));
+        throw new Error(checkpoint);
+      }
       const checkpoint = reference === undefined ? 'reference-missing'
         : !safeRevision(reference.revision) || probes.some((probe) => !safeRevision(probe.revision)) ? 'revision-invalid'
         : reference.revision < acceptedRevision ? 'revision-lag'
