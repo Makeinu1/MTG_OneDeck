@@ -1491,9 +1491,12 @@ async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 
 
 async function waitForPregameTransportConvergence(pages: readonly O4p09iPageV1[], timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
+  let lastProbes: readonly O4p09iActorProbeV1[] = [];
   for (;;) {
     const remaining = deadline - Date.now();
-    if (remaining <= 0) throw new Error('pregame transport convergence timeout');
+    if (remaining <= 0) throw new O4p09iActorSelectionError(actorSelectionCheckpoint(
+      lastProbes.map((probe) => ({ testId: 'online-remote-advance' as const, probe }))
+    ));
     const results = await Promise.allSettled(pages.map((page) =>
       actorControlProbe(page, 'online-remote-advance', Math.min(1_000, remaining), 'pregame transport probe timeout')
     ));
@@ -1504,6 +1507,7 @@ async function waitForPregameTransportConvergence(pages: readonly O4p09iPageV1[]
       }
     }
     const probes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    lastProbes = probes;
     const revision = probes[0]?.revision;
     if (probes.length === pages.length && safeRevision(revision ?? 0) && probes.every((probe) =>
       probe.revision === revision
@@ -2609,9 +2613,17 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       await drivePregamePhase(pages, playerCount, testId, workerOrigin, timeoutMs, secretFragments, recordControl);
     }
     setStage('advance');
-    await waitForPregameTransportConvergence(pages, timeoutMs);
+    advanceOperation = profile === 'reliability'
+      ? 'two-player-shared-mutation'
+      : playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
+    advanceCheckpoint.value = 'seat-convergence';
+    try {
+      await waitForPregameTransportConvergence(pages, timeoutMs);
+    } catch (error) {
+      if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
+      throw error;
+    }
     if (profile === 'reliability') {
-      advanceOperation = 'two-player-shared-mutation';
       advanceCheckpoint.value = 'actor-selection';
       let actor: Awaited<ReturnType<typeof findProgressActorPage>>;
       try {
