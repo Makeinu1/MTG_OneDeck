@@ -2336,6 +2336,62 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
   return Object.freeze({ ...probe, consoleErrors });
 }
 
+type O4p09iSessionProbeV1 = Pick<O4p09iProbeV1,
+  'gameScreens' | 'overflow' | 'revision' | 'sharedPublicDigest' | 'opponentLeak'
+  | 'leakScanComplete' | 'consoleErrors' | 'workerObserved'>;
+
+async function probeSessionPage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: string, secretFragments: readonly string[]): Promise<O4p09iSessionProbeV1> {
+  const probe = await Promise.race([
+    page.evaluate<O4p09iSessionProbeV1>(`(() => { // sessionPageProbe
+      const root = document.documentElement;
+      const fragments = (argument.fragments ?? []).filter((fragment) => typeof fragment === 'string' && fragment.length >= 8);
+      let opponentLeak = false;
+      let leakScanComplete = true;
+      let leakScanBytes = 0;
+      let leakScanNodes = 0;
+      const scan = (value) => {
+        if (typeof value !== 'string') return;
+        const bytes = new TextEncoder().encode(value).byteLength;
+        if (leakScanBytes + bytes >= ${String(MAX_DOM_SCAN_BYTES_V1)}) { leakScanComplete = false; return; }
+        leakScanBytes += bytes;
+        if (/(?:seat_|invite_|observer_)[A-Za-z0-9_-]{4,}/u.test(value) || fragments.some((fragment) => value.includes(fragment))) opponentLeak = true;
+      };
+      for (const node of [...document.querySelectorAll('*')]) {
+        if (leakScanNodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) { leakScanComplete = false; break; }
+        leakScanNodes += 1;
+        for (const child of [...node.childNodes]) if (child.nodeType === 3) scan(child.nodeValue ?? '');
+        const attributes = [...node.attributes];
+        if (attributes.length >= ${String(MAX_DOM_SCAN_ATTRIBUTES_V1)}) leakScanComplete = false;
+        for (const attribute of attributes.slice(0, ${String(MAX_DOM_SCAN_ATTRIBUTES_V1)})) { scan(attribute.name); scan(attribute.value); }
+        if ('value' in node && typeof node.value === 'string') scan(node.value);
+      }
+      if (leakScanNodes >= ${String(MAX_DOM_SCAN_NODES_V1)}) leakScanComplete = false;
+      const remoteRail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const pregameRevision = document.querySelector('[data-testid="online-pregame-revision"]');
+      const revision = Number(remoteRail?.getAttribute('data-projection-revision') ?? pregameRevision?.getAttribute('data-projection-revision') ?? '-1');
+      const sharedPublicDigest = remoteRail?.getAttribute('data-shared-public-digest') ?? '';
+      const resources = performance.getEntriesByType('resource');
+      if (resources.length >= ${String(MAX_RESOURCE_ENTRIES_V1)}) leakScanComplete = false;
+      const workerObserved = resources.slice(0, ${String(MAX_RESOURCE_ENTRIES_V1)})
+        .map((entry) => entry.name).some((name) => { try { return new URL(name, location.href).origin === ${JSON.stringify(workerOrigin)}; } catch { return false; } });
+      return {
+        gameScreens: document.querySelectorAll('[data-testid="game-screen"]').length,
+        overflow: Math.max(0, root.scrollWidth - root.clientWidth),
+        revision,
+        sharedPublicDigest,
+        opponentLeak,
+        leakScanComplete,
+        consoleErrors: 0,
+        workerObserved,
+      };
+    })()`, { fragments: secretFragments }),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('page probe timeout')), timeoutMs)),
+  ]);
+  const consoleErrors = page.consoleCounts().errors;
+  if (!probe.leakScanComplete) throw new Error('bounded leak scan incomplete');
+  return Object.freeze({ ...probe, consoleErrors });
+}
+
 function priorityPresenceSignature(probe: O4p09iProbeV1): string {
   return JSON.stringify({
     holder: probe.priorityHolderPlayerId,
@@ -2399,7 +2455,7 @@ async function waitForSharedMutationConvergence(
   workerOrigin: string,
   timeoutMs: number,
   secretFragments: readonly string[],
-): Promise<readonly O4p09iProbeV1[]> {
+): Promise<readonly O4p09iSessionProbeV1[]> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const remaining = Math.max(1, deadline - Date.now());
@@ -2419,11 +2475,11 @@ async function waitForSharedMutationConvergence(
         && probe.projectionRevision === transportRevision
         && (probe.appBusy === undefined || probe.appBusy === ''));
     const probes = transportConverged
-      ? await Promise.all(pages.map((page) => probePage(
+      ? await Promise.all(pages.map((page) => probeSessionPage(
           page,
           Math.max(1, deadline - Date.now()),
           workerOrigin,
-          secretFragments
+          secretFragments,
         )))
       : [];
     const reference = probes[0];
@@ -2856,7 +2912,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     }
 
     setStage('post-actions');
-    let postActions: O4p09iProbeV1 | undefined;
+    let postActions: O4p09iProbeV1 | O4p09iSessionProbeV1 | undefined;
     if (profile === 'full') {
       postActions = await waitForJourneyEvidence(hostPage, playerCount, workerOrigin, initialRevision, timeoutMs, secretFragments);
     } else {
@@ -3006,6 +3062,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     phases.add('disconnect/reconnect');
     if (phases.size !== MATCH_PHASES.length || MATCH_PHASES.some((phase) => !phases.has(phase))) throw new Error('journey phases incomplete');
     setStage('finalize');
+    if (!('privateLookControl' in postActions)) throw new Error('result-missing');
     const privateLookChoose: O4p09iScenarioFactV1['privateLookChoose'] = Object.freeze({ look: postActions.privateLookControl as true, choose: chooseObserved as true, crossSeatLeak: crossSeatPrivateChoiceLeak });
     const unsupportedManual: O4p09iScenarioFactV1['unsupportedManual'] = Object.freeze({ stack: postActions.manualStackControl as true, resolve: postActions.manualResolveControl as true });
     if (castFact === null) throw new Error('cast evidence missing');

@@ -849,12 +849,18 @@ describe('O4P-09I full-match production evidence', () => {
       expression.includes('data-testid="online-remote-advance"')
       && expression.includes('node.click(); return true')
     );
-    const firstFullProbeAfterMutation = expressions.findIndex((expression, index) =>
+    const firstSessionProbeAfterMutation = expressions.findIndex((expression, index) =>
       index > mutationClick && expression.includes('gameScreens')
     );
     expect(mutationClick).toBeGreaterThanOrEqual(0);
-    expect(firstFullProbeAfterMutation).toBeGreaterThan(mutationClick);
-    expect(expressions.slice(mutationClick + 1, firstFullProbeAfterMutation).filter((expression) =>
+    expect(firstSessionProbeAfterMutation).toBeGreaterThan(mutationClick);
+    expect(expressions[firstSessionProbeAfterMutation]).toContain('sessionPageProbe');
+    expect(expressions[firstSessionProbeAfterMutation]).toContain('opponentLeak');
+    expect(expressions[firstSessionProbeAfterMutation]).toContain('workerObserved');
+    expect(expressions[firstSessionProbeAfterMutation]).not.toContain('getBoundingClientRect');
+    expect(expressions[firstSessionProbeAfterMutation]).not.toContain('.focus()');
+    expect(expressions[firstSessionProbeAfterMutation]).not.toContain('scrollTop');
+    expect(expressions.slice(mutationClick + 1, firstSessionProbeAfterMutation).filter((expression) =>
       expression.includes('priorityControlProbe:online-remote-advance')
     )).toHaveLength(3);
     expect(validateO4p09iReliabilityEvidenceV1({
