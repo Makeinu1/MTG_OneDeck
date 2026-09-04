@@ -860,6 +860,11 @@ export function RemoteGameScreenActionRail({
     ? ownHeld ? 'あなたがHOLD中' : '他プレイヤーがHOLD中'
     : 'HOLDなし';
   const publicSeatIds = projection.room.seats.map((seat) => seat.corePlayerId).join(',');
+  const sharedAssistedPriority = projection.game.assistedPriority === undefined
+    ? null
+    : Object.fromEntries(Object.entries(
+        projection.game.assistedPriority as unknown as Readonly<Record<string, unknown>>,
+      ).filter(([key]) => key !== 'undoAuthorizedPlayerId'));
   const sharedPublicDigest = onlineCanonicalDigestFromValueV1({
     kind: 'remote-shared-public-projection-v1',
     revision: projection.revision,
@@ -887,7 +892,7 @@ export function RemoteGameScreenActionRail({
         exile: projection.game.zones.exile,
         command: projection.game.zones.command,
       },
-      assistedPriority: projection.game.assistedPriority ?? null,
+      assistedPriority: sharedAssistedPriority,
       priorityHolds: projection.game.priorityHolds ?? [],
       notes: projection.game.notes ?? [],
     },

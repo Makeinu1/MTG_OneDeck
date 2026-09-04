@@ -78,6 +78,37 @@ describe('remote GameScreen adapter', () => {
     container.remove();
   });
 
+  it('keeps the shared public digest independent of viewer-only undo authority', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const withUndoAuthority = (undoAuthorizedPlayerId: string | null): OnlineParticipantProjectionV1 => ({
+      ...projection,
+      game: {
+        ...projection.game,
+        assistedPriority: {
+          ...projection.game.assistedPriority,
+          undoAuthorizedPlayerId,
+        },
+      },
+    } as unknown as OnlineParticipantProjectionV1);
+    const render = (value: OnlineParticipantProjectionV1) => act(() => root.render(
+      <RemoteGameScreenActionRail
+        projection={value}
+        interactionState="ready"
+        busy={false}
+        onSubmitTabletopIntent={vi.fn()}
+        port={portFor(projectionToGameState(value))}
+      />,
+    ));
+    render(withUndoAuthority('P1'));
+    const authorizedDigest = container.querySelector('[data-testid="online-remote-game-rail"]')?.getAttribute('data-shared-public-digest');
+    render(withUndoAuthority(null));
+    expect(container.querySelector('[data-testid="online-remote-game-rail"]')?.getAttribute('data-shared-public-digest')).toBe(authorizedDigest);
+    act(() => root.unmount());
+    container.remove();
+  });
+
   it('shows only the authoritative rejoined recovery outcome', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
