@@ -2484,7 +2484,7 @@ async function waitForSharedMutationConvergence(
       transport = await Promise.all(pages.map((page) => actorControlProbe(
         page,
         'online-remote-advance',
-        Math.min(1_000, remaining),
+        remaining,
         'shared mutation transport probe timeout'
       )));
     } catch (error) {
