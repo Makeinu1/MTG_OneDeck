@@ -3142,6 +3142,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     pageSetSecret(replacement, secretFragments);
     await replacement.navigate(pagesOrigin);
     await openOnlineFromSavedDeck(replacement, timeoutMs);
+    await clickVisible(replacement, 'online-recover', timeoutMs);
     const recoveredProbes = await waitForReconnectConvergence(pages, replacement, revisionBeforeReconnect, sharedPublicDigestBeforeReconnect, prioritySignatureBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
     const recovered = recoveredProbes[0];
     if (recovered === undefined) throw new Error('reconnect recovery probe missing');

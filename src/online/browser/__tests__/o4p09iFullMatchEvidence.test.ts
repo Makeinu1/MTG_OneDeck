@@ -140,6 +140,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let detailsProbes = 0;
     let settlementTransportProbes = 0;
     let authoritativeRejoined = false;
+    let recoveryRequested = false;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
     const seatIndex = scenarioIndex === 0 ? contextOrdinal : contextOrdinal - 2;
     const manualStackEnabledSeats = options.manualStackEnabledSeats ?? [
@@ -401,7 +402,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         )
           return Promise.reject(new Error('manual resolve actor mismatch'));
       const recoveryNavigation =
-        pageOrdinal > 0 && expression.includes('data-testid="open-online-mode"');
+        pageOrdinal > 0 && (expression.includes('data-testid="open-online-mode"') || expression.includes('data-testid="online-recover"'));
+      if (expression.includes('data-testid="online-recover"') && expression.includes('node.click(); return true')) {
+        if (pageOrdinal === 0 || recoveryRequested) return Promise.reject(new Error('unexpected recovery action'));
+        recoveryRequested = true;
+      }
       if (
         (expression.includes('node.click(); return true') ||
           expression.includes('target.click(); return true')) &&
@@ -501,6 +506,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('inviteFingerprintProbe')) return Promise.resolve('0d4a7e5bd65dbfd5c46b1d6a579fa5384ca7d9cc4cd6591e58da18bc087b3a77' as T);
       if (expression.includes('gameScreens')) {
         if (pageOrdinal > 0 && disconnectedSeats[scenarioIndex].has(seatIndex)) {
+          if (!recoveryRequested) return Promise.reject(new Error('recovery action missing'));
           disconnectedSeats[scenarioIndex].delete(seatIndex);
           recoveredScenarios[scenarioIndex] = true;
           authoritativeRejoined = options.missingRejoined !== true;
@@ -870,6 +876,7 @@ describe('O4P-09I full-match production evidence', () => {
     ]);
     expect(summary.scenario.revision.afterReconnect).toBe(summary.scenario.revision.beforeReconnect);
     expect(summary.scenario.revision.afterPostReconnectMutation).toBeGreaterThan(summary.scenario.revision.afterReconnect);
+    expect(expressions.filter((expression) => expression.includes('data-testid="online-recover"') && expression.includes('node.click(); return true'))).toHaveLength(1);
     const mutationClick = expressions.findIndex((expression) =>
       expression.includes('data-testid="online-remote-advance"')
       && expression.includes('node.click(); return true')
