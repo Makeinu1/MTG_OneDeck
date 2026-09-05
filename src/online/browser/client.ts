@@ -30,6 +30,7 @@ import type { OnlineBrowserVisibilityIntentV1 } from './types';
 import {
   ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1,
   ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
+  ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1,
   ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1,
   ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1,
 } from './types';
@@ -136,6 +137,15 @@ type PendingEntryV1 =
 type SocketEpochV1 = Readonly<{
   readonly socket: OnlineBrowserSocketV1;
   readonly epoch: number;
+}>;
+
+type CommandResponseDeadlineV1 = Readonly<{
+  readonly commandId: string;
+  readonly fingerprint: string;
+  readonly socket: OnlineBrowserSocketV1;
+  readonly epoch: number;
+  readonly generation: number;
+  readonly handle: OnlineBrowserScheduleHandleV1;
 }>;
 
 type ParsedRecordV1 = Record<string, unknown>;
@@ -465,6 +475,10 @@ export function createOnlineBrowserWebSocketClientV1(
   let scheduleGeneration = 0;
   let projectionResponseDeadline: OnlineBrowserScheduleHandleV1 | null = null;
   let projectionResponseDeadlineGeneration = 0;
+  const commandResponseDeadlines = new Map<string, CommandResponseDeadlineV1>();
+  let commandResponseDeadlineGeneration = 0;
+  let commandTimeoutRecoveryAttempt = 0;
+  let commandTimeoutRecoveryPending = false;
   let projectionRequestSent = false;
   let requestedProjectionRevision = -1;
   let lastProjectedRevision = -1;
@@ -536,6 +550,57 @@ export function createOnlineBrowserWebSocketClientV1(
     }
   };
 
+  const cancelCommandResponseDeadline = (commandId?: string): void => {
+    const cancel = (entry: CommandResponseDeadlineV1): void => {
+      try { config.cancelSchedule(entry.handle); } catch { /* Cancellation is best effort. */ }
+    };
+    if (commandId !== undefined) {
+      const entry = commandResponseDeadlines.get(commandId);
+      if (entry !== undefined) {
+        commandResponseDeadlines.delete(commandId);
+        cancel(entry);
+      }
+      return;
+    }
+    for (const entry of commandResponseDeadlines.values()) cancel(entry);
+    commandResponseDeadlines.clear();
+  };
+
+  const scheduleCommandResponseDeadline = (
+    commandId: string,
+    fingerprint: string,
+    socket: OnlineBrowserSocketV1,
+    epoch: number,
+  ): void => {
+    if (pending.every((entry) => entry.commandId !== commandId || entry.fingerprint !== fingerprint)) return;
+    const existing = commandResponseDeadlines.get(commandId);
+    if (existing !== undefined && existing.fingerprint === fingerprint && existing.socket === socket && existing.epoch === epoch) return;
+    if (existing !== undefined) cancelCommandResponseDeadline(commandId);
+    const generation = ++commandResponseDeadlineGeneration;
+    try {
+      const handle = config.schedule(ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1, () => {
+        const currentDeadline = commandResponseDeadlines.get(commandId);
+        if (currentDeadline === undefined || currentDeadline.generation !== generation
+          || currentDeadline.fingerprint !== fingerprint) return;
+        commandResponseDeadlines.delete(commandId);
+        if (!current(socket, epoch) || phase === 'closed' || phase === 'failed') return;
+        const unresolved = pending.find((entry) => entry.commandId === commandId && entry.fingerprint === fingerprint);
+        if (unresolved === undefined) return;
+        beginCommandTimeoutRecovery(socket, epoch);
+      });
+      commandResponseDeadlines.set(commandId, Object.freeze({
+        commandId,
+        fingerprint,
+        socket,
+        epoch,
+        generation,
+        handle,
+      }));
+    } catch {
+      beginCommandTimeoutRecovery(socket, epoch);
+    }
+  };
+
   const scheduleProjectionResponseDeadline = (socket: OnlineBrowserSocketV1, epoch: number): void => {
     cancelProjectionResponseDeadline();
     const generation = projectionResponseDeadlineGeneration;
@@ -554,13 +619,7 @@ export function createOnlineBrowserWebSocketClientV1(
 
   const failConnection = (socket: OnlineBrowserSocketV1, epoch: number, code: OnlineBrowserIssueCodeV1): void => {
     if (!current(socket, epoch)) return;
-    cancelProjectionResponseDeadline();
-    currentSocket = null;
-    phase = 'failed';
-    issueCode = code;
-    recoveryOutcome = null;
-    closeSocket(socket);
-    publish();
+    failTerminalConnection(code);
   };
 
   const sendFrame = (socket: OnlineBrowserSocketV1, value: unknown): boolean => {
@@ -580,6 +639,28 @@ export function createOnlineBrowserWebSocketClientV1(
       try { config.cancelSchedule(scheduledRecovery); } catch { /* Cancellation is best effort. */ }
       scheduledRecovery = null;
     }
+  };
+
+  const resetCommandTimeoutRecovery = (settledCommand = false): void => {
+    if (!settledCommand && pending.length !== 0) return;
+    if (commandTimeoutRecoveryPending || commandTimeoutRecoveryAttempt !== 0) {
+      commandTimeoutRecoveryPending = false;
+      commandTimeoutRecoveryAttempt = 0;
+    }
+  };
+
+  const failTerminalConnection = (code: OnlineBrowserIssueCodeV1): void => {
+    cancelProjectionResponseDeadline();
+    cancelCommandResponseDeadline();
+    cancelRecovery();
+    const active = currentSocket;
+    currentSocket = null;
+    phase = 'failed';
+    issueCode = code;
+    recoveryOutcome = null;
+    if (active !== null) closeSocket(active.socket);
+    resetCommandTimeoutRecovery();
+    publish();
   };
 
   const replayPending = (socket: OnlineBrowserSocketV1, epoch: number): void => {
@@ -643,15 +724,14 @@ export function createOnlineBrowserWebSocketClientV1(
         beginRecovery(socket, epoch, issueCode);
         return;
       }
+      scheduleCommandResponseDeadline(entry.commandId, entry.fingerprint, socket, epoch);
     }
   };
 
   const scheduleRecovery = (reason: OnlineBrowserIssueCodeV1 | null): void => {
     if (phase === 'closed' || phase === 'failed') return;
     if (recoveryAttempt >= ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1.length) {
-      phase = 'failed';
-      issueCode = 'RECONNECT_EXHAUSTED';
-      publish();
+      failTerminalConnection('RECONNECT_EXHAUSTED');
       return;
     }
     phase = 'recovering';
@@ -669,18 +749,28 @@ export function createOnlineBrowserWebSocketClientV1(
       });
     } catch {
       scheduledRecovery = null;
-      phase = 'failed';
-      issueCode = 'SOCKET_ERROR';
-      publish();
+      failTerminalConnection('SOCKET_ERROR');
     }
   };
 
   const beginRecovery = (socket: OnlineBrowserSocketV1, epoch: number, reason: OnlineBrowserIssueCodeV1 | null): void => {
     if (!current(socket, epoch) || phase === 'closed' || phase === 'failed') return;
     cancelProjectionResponseDeadline();
+    cancelCommandResponseDeadline();
     currentSocket = null;
     if (reason !== 'SOCKET_CLOSED') closeSocket(socket);
     scheduleRecovery(reason);
+  };
+
+  const beginCommandTimeoutRecovery = (socket: OnlineBrowserSocketV1, epoch: number): void => {
+    if (!current(socket, epoch) || pending.length === 0 || phase === 'closed' || phase === 'failed') return;
+    commandTimeoutRecoveryPending = true;
+    if (commandTimeoutRecoveryAttempt >= ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1.length) {
+      failTerminalConnection('RECONNECT_EXHAUSTED');
+      return;
+    }
+    commandTimeoutRecoveryAttempt += 1;
+    beginRecovery(socket, epoch, 'SOCKET_ERROR');
   };
 
   const handleProjectionRequest = (socket: OnlineBrowserSocketV1, epoch: number): void => {
@@ -765,12 +855,7 @@ export function createOnlineBrowserWebSocketClientV1(
             : code === 'CONTROLLER_LEASE_REQUIRED'
               ? 'CONTROLLER_LEASE_REQUIRED'
               : 'SOCKET_ERROR';
-      phase = 'failed';
-      cancelProjectionResponseDeadline();
-      const active = currentSocket;
-      currentSocket = null;
-      if (active !== null) closeSocket(active.socket);
-      publish();
+      failTerminalConnection(issueCode);
       return;
     }
     if (kind === 'online-cloudflare-revision-v1') {
@@ -810,13 +895,7 @@ export function createOnlineBrowserWebSocketClientV1(
           || ownDataValue(record, 'participantId') !== null || ownDataValue(record, 'role') !== null
           || ownDataValue(record, 'clientBuildIdMatch') !== null))) { issueCode = 'INVALID_FRAME'; publish(); return; }
       if (!isAccepted) {
-        issueCode = issueCodeFrom(issues, false) ?? 'AUTHENTICATION_REJECTED';
-        phase = 'failed';
-        cancelProjectionResponseDeadline();
-        const active = currentSocket;
-        currentSocket = null;
-        if (active !== null) closeSocket(active.socket);
-        publish();
+        failTerminalConnection(issueCodeFrom(issues, false) ?? 'AUTHENTICATION_REJECTED');
         return;
       }
       acceptedServerBuildId = ownDataValue(record, 'serverBuildId') as string;
@@ -846,13 +925,7 @@ export function createOnlineBrowserWebSocketClientV1(
           || ownDataValue(record, 'clientBuildIdMatch') !== null || ownDataValue(record, 'reason') !== null
           || ownDataValue(record, 'projection') !== null || !issueArray(issues, true)) { countProjectionFrameRejected(); issueCode = 'INVALID_FRAME'; publish(); return; }
         countProjectionFrameRejected();
-        issueCode = issueCodeFrom(issues, true) ?? 'PROJECTION_REJECTED';
-        phase = 'failed';
-        cancelProjectionResponseDeadline();
-        const active = currentSocket;
-        currentSocket = null;
-        if (active !== null) closeSocket(active.socket);
-        publish();
+        failTerminalConnection(issueCodeFrom(issues, true) ?? 'PROJECTION_REJECTED');
         return;
       }
       if (status !== 'accepted' || !issueArray(issues, true) || denseArray(issues)?.length !== 0
@@ -930,6 +1003,8 @@ export function createOnlineBrowserWebSocketClientV1(
       knownRevision = Math.max(knownRevision, currentRevision, isAck ? ownDataValue(record, 'acceptedRevision') as number : 0);
       const requiresProjectionResync = isAck && currentRevision > lastProjectedRevision;
       pending.splice(index, 1);
+      if (settledEntry !== undefined) cancelCommandResponseDeadline(settledEntry.commandId);
+      resetCommandTimeoutRecovery(true);
       const settlementIssue = isAck
         ? null
         : issueCodeFrom(ownDataValue(record, 'issues'), false) ?? 'SOCKET_ERROR';
@@ -962,6 +1037,7 @@ export function createOnlineBrowserWebSocketClientV1(
     phase = 'connecting';
     recoveryOutcome = null;
     cancelProjectionResponseDeadline();
+    cancelCommandResponseDeadline();
     projectionRequestSent = false;
     currentReadyRevision = null;
     publish();
@@ -1004,6 +1080,7 @@ export function createOnlineBrowserWebSocketClientV1(
       || phase === 'resyncing' || phase === 'open') return;
     cancelRecovery();
     cancelProjectionResponseDeadline();
+    cancelCommandResponseDeadline();
     if (currentSocket !== null) {
       const previous = currentSocket.socket;
       currentSocket = null;
@@ -1018,6 +1095,7 @@ export function createOnlineBrowserWebSocketClientV1(
   const disconnect = (): void => {
     cancelRecovery();
     cancelProjectionResponseDeadline();
+    cancelCommandResponseDeadline();
     if (currentSocket !== null) {
       const previous = currentSocket.socket;
       currentSocket = null;
@@ -1077,6 +1155,7 @@ export function createOnlineBrowserWebSocketClientV1(
           command: normalizedCommand,
         }));
         if (!sent) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+        else scheduleCommandResponseDeadline(commandId, fingerprint, currentSocket.socket, currentSocket.epoch);
       }
       return frozenSubmitResult({ ok: true });
     } catch {
@@ -1112,6 +1191,7 @@ export function createOnlineBrowserWebSocketClientV1(
           ['participantCapability']: config.participantCapability,
         });
         if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+        else scheduleCommandResponseDeadline(commandId, fingerprint, currentSocket.socket, currentSocket.epoch);
       }
       return frozenSubmitResult({ ok: true });
     } catch {
@@ -1139,6 +1219,7 @@ export function createOnlineBrowserWebSocketClientV1(
       if (currentSocket !== null && phase === 'open') {
         const frame = Object.freeze({ ...normalized, protocolVersion: config.protocolVersion, roomId: config.roomId, participantId: config.participantId, ['participantCapability']: config.participantCapability });
         if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+        else scheduleCommandResponseDeadline(commandId, fingerprint, currentSocket.socket, currentSocket.epoch);
       }
       return frozenSubmitResult({ ok: true });
     } catch { return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' }); }
@@ -1169,6 +1250,7 @@ export function createOnlineBrowserWebSocketClientV1(
           ['participantCapability']: config.participantCapability,
         });
         if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+        else scheduleCommandResponseDeadline(commandId, fingerprint, currentSocket.socket, currentSocket.epoch);
       }
       return frozenSubmitResult({ ok: true });
     } catch {
@@ -1193,6 +1275,7 @@ export function createOnlineBrowserWebSocketClientV1(
       if (currentSocket !== null && phase === 'open') {
         const frame = Object.freeze({ ...normalized, protocolVersion: config.protocolVersion, roomId: config.roomId, participantId: config.participantId, ['participantCapability']: config.participantCapability });
         if (!sendFrame(currentSocket.socket, frame)) beginRecovery(currentSocket.socket, currentSocket.epoch, 'SEND_FAILED');
+        else scheduleCommandResponseDeadline(commandId, fingerprint, currentSocket.socket, currentSocket.epoch);
       }
       return frozenSubmitResult({ ok: true });
     } catch { return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' }); }

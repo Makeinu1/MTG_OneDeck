@@ -535,6 +535,103 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(timely.sockets).toHaveLength(1);
   });
 
+  it('recovers a pending command when its settlement is dropped and fences a timely settlement', () => {
+    const dropped = harness();
+    dropped.client.submit({ commandId: 'dropped-command-ack' as never, baseRevision: 0, command: command(1) });
+    dropped.client.connect();
+    const first = dropped.sockets[0];
+    if (first === undefined) throw new Error('Missing dropped-command socket');
+    openClient(dropped.client, first);
+    const firstCommand = first.sent.at(-1);
+    if (firstCommand === undefined) throw new Error('Missing dropped command frame');
+    const deadlineIndex = dropped.scheduled.length - 1;
+    expect(dropped.scheduled[deadlineIndex]?.delayMs).toBe(Browser.ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1);
+    dropped.scheduled[deadlineIndex]?.task();
+    expect(dropped.client.getSnapshot()).toMatchObject({ phase: 'recovering', issueCode: 'SOCKET_ERROR', recoveryAttempt: 1, pendingCommands: [{ commandId: 'dropped-command-ack' }] });
+    dropped.scheduled[dropped.scheduled.length - 1]?.task();
+    const second = dropped.sockets[1];
+    if (second === undefined) throw new Error('Missing recovered-command socket');
+    openClient(dropped.client, second, 'rejoined');
+    expect(second.sent.at(-1)).toBe(firstCommand);
+    second.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: 'dropped-command-ack', baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: true });
+    second.frame(projectionResponseAt(1));
+    expect(dropped.client.getSnapshot()).toMatchObject({ phase: 'open', pendingCommands: [], recoveryOutcome: 'rejoined' });
+
+    const timely = harness({ cancelScheduleThrows: true });
+    timely.client.submit({ commandId: 'timely-command-ack' as never, baseRevision: 0, command: command(1) });
+    timely.client.connect();
+    const timelySocket = timely.sockets[0];
+    if (timelySocket === undefined) throw new Error('Missing timely-command socket');
+    openClient(timely.client, timelySocket);
+    const timelyDeadline = timely.scheduled.at(-1);
+    expect(timelyDeadline?.delayMs).toBe(Browser.ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1);
+    timelySocket.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: 'timely-command-ack', baseRevision: 0, acceptedRevision: 1, currentRevision: 1, status: 'accepted', duplicate: false });
+    expect(timely.client.getSnapshot()).toMatchObject({ phase: 'resyncing', pendingCommands: [] });
+    timelyDeadline?.task();
+    expect(timely.client.getSnapshot()).toMatchObject({ phase: 'resyncing', recoveryAttempt: 0, pendingCommands: [] });
+    expect(timely.sockets).toHaveLength(1);
+  });
+
+  it('bounds repeated lost command settlements independently of projection recovery resets', () => {
+    const dropped = harness();
+    dropped.client.submit({ commandId: 'command-timeout-exhaustion' as never, baseRevision: 0, command: command(1) });
+    dropped.client.connect();
+    let socket = dropped.sockets[0];
+    if (socket === undefined) throw new Error('Missing initial command-timeout socket');
+    openClient(dropped.client, socket);
+
+    for (let attempt = 0; attempt <= Browser.ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1.length; attempt += 1) {
+      const deadline = dropped.scheduled.at(-1);
+      expect(deadline?.delayMs).toBe(Browser.ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1);
+      deadline?.task();
+      if (attempt === Browser.ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1.length) break;
+      expect(dropped.client.getSnapshot().phase).toBe('recovering');
+      const recovery = dropped.scheduled.at(-1);
+      expect(recovery?.delayMs).toBe(Browser.ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1[0]);
+      recovery?.task();
+      socket = dropped.sockets.at(-1) as TestSocket;
+      openClient(dropped.client, socket, 'rejoined');
+    }
+
+    expect(dropped.client.getSnapshot()).toMatchObject({ phase: 'failed', issueCode: 'RECONNECT_EXHAUSTED', pendingCommands: [{ commandId: 'command-timeout-exhaustion' }] });
+  });
+
+  it('keeps each pending command response deadline tied to its own send', () => {
+    const { client, sockets, scheduled } = harness();
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing per-command deadline socket');
+    openClient(client, socket);
+    expect(client.submit({ commandId: 'deadline-a' as never, baseRevision: 0, command: command(1) })).toEqual({ ok: true });
+    const deadlineA = scheduled.at(-1);
+    expect(client.submit({ commandId: 'deadline-b' as never, baseRevision: 0, command: command(2) })).toEqual({ ok: true });
+    const deadlineB = scheduled.at(-1);
+    expect(deadlineA?.delayMs).toBe(Browser.ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1);
+    expect(deadlineB?.delayMs).toBe(Browser.ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1);
+
+    socket.frame({ kind: 'online-command-ack-v1', protocolVersion: 1, roomId: ROOM_ID, participantId: PARTICIPANT_ID, commandId: 'deadline-a', baseRevision: 0, acceptedRevision: 0, currentRevision: 0, status: 'accepted', duplicate: false });
+    expect(client.getSnapshot()).toMatchObject({ phase: 'open', pendingCommands: [{ commandId: 'deadline-b' }] });
+    deadlineA?.task();
+    expect(client.getSnapshot()).toMatchObject({ phase: 'open', pendingCommands: [{ commandId: 'deadline-b' }], recoveryAttempt: 0 });
+    deadlineB?.task();
+    expect(client.getSnapshot()).toMatchObject({ phase: 'recovering', pendingCommands: [{ commandId: 'deadline-b' }] });
+  });
+
+  it('fences command deadlines after terminal failure even when cancellation throws', () => {
+    const terminal = harness({ cancelScheduleThrows: true });
+    terminal.client.submit({ commandId: 'terminal-command-timeout' as never, baseRevision: 0, command: command(1) });
+    terminal.client.connect();
+    const socket = terminal.sockets[0];
+    if (socket === undefined) throw new Error('Missing terminal-failure socket');
+    openClient(terminal.client, socket);
+    const deadline = terminal.scheduled.at(-1);
+    socket.frame({ kind: 'online-cloudflare-websocket-error-v1', schemaVersion: 1, code: 'AUTHENTICATION_REQUIRED' });
+    expect(terminal.client.getSnapshot()).toMatchObject({ phase: 'failed', issueCode: 'AUTHENTICATION_REJECTED', pendingCommands: [{ commandId: 'terminal-command-timeout' }] });
+    deadline?.task();
+    expect(terminal.client.getSnapshot()).toMatchObject({ phase: 'failed', issueCode: 'AUTHENTICATION_REJECTED', pendingCommands: [{ commandId: 'terminal-command-timeout' }] });
+    expect(terminal.sockets).toHaveLength(1);
+  });
+
   it('records bounded projection send, receipt, acceptance, and rejection counters', () => {
     const { client, sockets } = harness();
     client.connect();

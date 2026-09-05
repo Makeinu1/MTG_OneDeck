@@ -988,4 +988,48 @@ describe('O4P-09D server tabletop transport', () => {
       fixture.storage.close();
     }
   }, 60000);
+
+  it('acknowledges a priority advance high-level intent on the authenticated WebSocket', async () => {
+    const fixture = await started(2);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (initial === null) throw new Error('Missing protocol fixture');
+    const active = activeSeat(initial);
+    const participantId = active.seat.participantId;
+    if (participantId === null) throw new Error('Missing active participant');
+    const windowKind = initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind;
+    expect(['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready']).toContain(windowKind);
+    let attachment: unknown;
+    const sent: string[] = [];
+    const socket = {
+      send: (data: string) => { sent.push(data); },
+      serializeAttachment: (value: unknown) => { attachment = value; },
+      deserializeAttachment: () => attachment,
+    };
+    const security = new OnlineCloudflareSecurityRepository(fixture.storage);
+    const clock = security.read(initial).state.lastObservedAt + 1;
+    expect(security.acquireControllerLease(initial, participantId, 0, { kind: 'http', connectionId: null }, clock)).toBe(true);
+    const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [socket], now: () => clock });
+    const client = Object.freeze({ side: 'client' });
+    class FakePair { readonly 0 = client; readonly 1 = socket; }
+    class CloudflareResponse { readonly status: number; readonly webSocket: unknown; constructor(_body: BodyInit | null, init: ResponseInit & { readonly webSocket?: unknown } = {}) { this.status = init.status ?? 200; this.webSocket = init.webSocket; } }
+    vi.stubGlobal('WebSocketPair', FakePair);
+    vi.stubGlobal('Response', CloudflareResponse);
+    try {
+      expect((await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/websocket`, { headers: { upgrade: 'websocket' } }))).status).toBe(101);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    try {
+      object.webSocketMessage(socket, JSON.stringify({ kind: 'online-client-hello-v1', protocolVersion: 1, roomId: fixture.roomId, participantId, ['participantCapability']: active.seat.seatCapability, clientBuildId: initial.serverBuildId }));
+      const before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (before === null) throw new Error('Missing protocol state');
+      const beforeMessages = sent.length;
+      object.webSocketMessage(socket, JSON.stringify(tabletopIntentBody(before, 'tabletop-ws-priority-advance', { kind: 'priority-advance' })));
+      expect(sent.length).toBeGreaterThan(beforeMessages);
+      expect(JSON.parse(sent.at(-2) ?? sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-ack-v1', commandId: 'tabletop-ws-priority-advance' });
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(before.revision + 1);
+    } finally {
+      fixture.storage.close();
+    }
+  }, 60000);
 });
