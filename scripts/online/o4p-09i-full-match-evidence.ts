@@ -28,11 +28,69 @@ import {
 export const O4P09I_PAGES_ORIGIN_V1 = 'https://makeinu1.github.io/MTG_OneDeck/' as const;
 export const O4P09I_WORKER_ORIGIN_V1 = 'https://mtg-onedeck-online.makeinu1.workers.dev' as const;
 
+export type O4p09iTransportTimelineCheckpointV1 =
+  | 'pregame-converged'
+  | 'before-advance'
+  | 'actor-selection-start'
+  | 'progress-poll'
+  | 'failure';
+
+export type O4p09iTransportTimelineEntryV1 = Readonly<{
+  readonly checkpoint: O4p09iTransportTimelineCheckpointV1;
+  readonly elapsedMs: number;
+  readonly pageRole: 'player' | 'table';
+  readonly phase: 'idle' | 'connecting' | 'awaiting-ready' | 'authenticating' | 'resyncing' | 'open' | 'recovering' | 'failed' | 'closed' | null;
+  readonly pendingCount: number;
+  readonly knownRevision: number;
+  readonly projectionRevision: number;
+  readonly onlineBusy: boolean;
+  readonly connectionEpoch: number;
+  readonly recoveryAttempt: number;
+  readonly issueCode: string | null;
+}>;
+
 export type O4p09iProductionFailureV1 = Readonly<{
   readonly class: 'IMPLEMENTATION' | 'ENVIRONMENT' | 'EVIDENCE';
   readonly code: string;
   readonly stage: string;
+  readonly transportTimeline?: readonly O4p09iTransportTimelineEntryV1[];
 }>;
+
+export const O4P09I_MAX_TRANSPORT_TIMELINE_ENTRIES_V1 = 16 as const;
+
+const TRANSPORT_PHASES_V1 = new Set<NonNullable<O4p09iTransportTimelineEntryV1['phase']>>([
+  'idle', 'connecting', 'awaiting-ready', 'authenticating', 'resyncing', 'open', 'recovering', 'failed', 'closed',
+]);
+const TRANSPORT_ISSUE_CODES_V1 = new Set<string>([
+  'INVALID_CONFIG', 'INVALID_URL', 'INVALID_FRAME', 'INVALID_COMMAND', 'AUTHENTICATION_REJECTED',
+  'PROJECTION_REJECTED', 'SOCKET_ERROR', 'SOCKET_CLOSED', 'SEND_FAILED', 'RECONNECT_EXHAUSTED',
+  'SERVER_INTERNAL_ERROR', 'CONTROLLER_LEASE_REQUIRED', 'INVALID_ROOT', 'MISSING_FIELD', 'UNKNOWN_FIELD',
+  'INVALID_DESCRIPTOR', 'INVALID_TYPE', 'INVALID_LITERAL', 'INVALID_VERSION', 'INVALID_ID', 'INVALID_CAPABILITY',
+  'INVALID_INTEGER', 'INVALID_ARRAY', 'NON_DENSE_ARRAY', 'INVALID_BUILD_ID', 'INVALID_PROTOCOL_STATE',
+  'PROTOCOL_VERSION_MISMATCH', 'INVALID_RELATION', 'DUPLICATE_VALUE', 'ROOM_MISMATCH', 'AUTHORIZATION_REJECTED', 'PARTICIPANT_NOT_CONNECTED',
+  'ROLE_NOT_ALLOWED', 'ROOM_NOT_ACTIVE', 'PLAYER_NOT_PENDING', 'ACTOR_MISMATCH', 'COMMAND_SEQUENCE_MISMATCH',
+  'COMMAND_ID_REUSE_MISMATCH', 'STALE_REVISION', 'CORE_COMMAND_REJECTED', 'CORE_RECONCILIATION_REJECTED',
+]);
+
+const O4P09I_FAILURE_TIMELINE_V1 = new WeakMap<object, readonly O4p09iTransportTimelineEntryV1[]>();
+
+function rememberO4p09iFailureTimelineV1(
+  error: Error,
+  timeline: readonly O4p09iTransportTimelineEntryV1[],
+): Error {
+  O4P09I_FAILURE_TIMELINE_V1.set(error, Object.freeze([...timeline]));
+  return error;
+}
+
+function readO4p09iFailureTimelineV1(error: unknown): readonly O4p09iTransportTimelineEntryV1[] | undefined {
+  let current: unknown = error;
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    const timeline = O4P09I_FAILURE_TIMELINE_V1.get(current);
+    if (timeline !== undefined) return timeline;
+    current = current.cause;
+  }
+  return undefined;
+}
 
 const ENVIRONMENT_FAILURE_STAGES = Object.freeze({
   setup: 'setup',
@@ -146,6 +204,19 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
 /** Normalize runner failures for the parent harness without exposing error text. */
 export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProductionFailureV1 {
   const message = error instanceof Error ? error.message : '';
+  const finalize = (failure: Readonly<{
+    readonly class: 'IMPLEMENTATION' | 'ENVIRONMENT' | 'EVIDENCE';
+    readonly code: string;
+    readonly stage: string;
+  }>): O4p09iProductionFailureV1 => {
+    const timeline = readO4p09iFailureTimelineV1(error);
+    const includeTimeline = timeline !== undefined
+      && failure.stage.startsWith('advance/')
+      && failure.stage.includes('/actor-selection');
+    return !includeTimeline
+      ? Object.freeze(failure)
+      : Object.freeze({ ...failure, transportTimeline: timeline });
+  };
   if (message.startsWith('production environment failure:')) {
     const detail = message.slice('production environment failure:'.length).trim();
     const parts = detail.split('/');
@@ -155,7 +226,7 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       ...SCENARIO_STAGES.map((stage) => stage.toLowerCase()),
       'two-player', 'four-player',
     ]);
-    return Object.freeze({
+    return finalize({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
       stage: parts.length <= 4 && parts.every((part) => allowed.has(part)) ? detail : 'setup'
@@ -163,7 +234,7 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
   }
   const importCheckpoint = productionUiFailureCheckpoint(error);
   if (importCheckpoint !== null)
-    return Object.freeze({
+    return finalize({
       class: 'IMPLEMENTATION',
       code: 'PLAYER_ENTRY_STAGE_FAILED',
       stage: `import/${importCheckpoint}`
@@ -180,12 +251,12 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       const checkpoint = Object.hasOwn(RECONNECT_FAILURE_CHECKPOINTS, reconnectDetail)
         ? RECONNECT_FAILURE_CHECKPOINTS[reconnectDetail] : null;
       const convergence = /^reconnect convergence not observed\/rejoined=(true|false),revision=(true|false),presence=(true|false),digest=(true|false),priority=(true|false)$/u.exec(reconnectDetail);
-      if (checkpoint !== null) return Object.freeze({
+      if (checkpoint !== null) return finalize({
         class: checkpoint.startsWith('dom-') || checkpoint.startsWith('leak-scan-') || checkpoint === 'page-probe-timeout' ? 'EVIDENCE' : 'IMPLEMENTATION',
         code: checkpoint.startsWith('dom-') || checkpoint.startsWith('leak-scan-') || checkpoint === 'page-probe-timeout' ? 'EVIDENCE_HARNESS_FAILED' : 'PLAYER_JOURNEY_STAGE_FAILED',
         stage: `reconnect/${checkpoint}`,
       });
-      if (convergence !== null) return Object.freeze({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: `reconnect/convergence-${convergence.slice(1).map((value) => value === 'true' ? '1' : '0').join('')}` });
+      if (convergence !== null) return finalize({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: `reconnect/convergence-${convergence.slice(1).map((value) => value === 'true' ? '1' : '0').join('')}` });
     }
     const advanceDetail = detail.split('/');
     const safeAdvanceDetail = (ADVANCE_FAILURE_STAGES as readonly string[]).includes(advanceDetail[0] ?? '')
@@ -203,31 +274,31 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       || stage === 'post-actions/probe-evaluation'
       || stage.startsWith('post-actions/transport-probe-')
       || stage.startsWith('post-actions/session-probe-'))
-      return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
-    return Object.freeze({
+      return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
+    return finalize({
       class: 'IMPLEMENTATION',
       code: 'PLAYER_JOURNEY_STAGE_FAILED',
       stage
     });
   }
   if (/(?:console|secret|privacy)/iu.test(message))
-    return Object.freeze({
+    return finalize({
       class: 'IMPLEMENTATION',
       code: 'PRIVACY_OR_CONSOLE_FAILED',
       stage: 'privacy'
     });
   if (/(?:cleanup|profile|summary|canonical|validation|evidence)/iu.test(message))
-    return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
+    return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
   if (
     /(?:CDP|Chrome|WebSocket|system WebSocket|browser launch|launcher unavailable)/iu.test(message)
   )
-    return Object.freeze({
+    return finalize({
       class: 'ENVIRONMENT',
       code: 'BROWSER_ENVIRONMENT_UNAVAILABLE',
       stage: Object.hasOwn(ENVIRONMENT_TRANSPORT_FAILURES, message)
         ? ENVIRONMENT_TRANSPORT_FAILURES[message] : 'setup'
     });
-  return Object.freeze({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
+  return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'harness' });
 }
 
 function rethrowProductionEnvironmentFailure(error: unknown, stage: string): void {
@@ -1035,10 +1106,15 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly knownRevision?: number;
   readonly projectionRevision?: number;
   readonly appBusy?: string;
+  readonly connectionEpoch?: number;
+  readonly recoveryAttempt?: number;
 }>;
 
-type O4p09iTransportProbeV1 = Pick<O4p09iActorProbeV1,
-  'revision' | 'playerPhase' | 'pendingCount' | 'knownRevision' | 'projectionRevision' | 'appBusy'>;
+type O4p09iTransportProbeV1 = Omit<Pick<O4p09iActorProbeV1,
+  'revision' | 'playerPhase' | 'pendingCount' | 'knownRevision' | 'projectionRevision' | 'appBusy'
+  | 'connectionEpoch' | 'recoveryAttempt' | 'issueCode'>, 'issueCode'> & Readonly<{
+    readonly issueCode: string | null;
+  }>;
 
 async function settlementTransportProbe(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iTransportProbeV1> {
   return Promise.race([
@@ -1053,6 +1129,9 @@ async function settlementTransportProbe(page: O4p09iPageV1, timeoutMs: number): 
         knownRevision: Number(app?.getAttribute('data-player-known-revision') ?? '-1'),
         projectionRevision: Number(app?.getAttribute('data-player-projection-revision') ?? '-1'),
         appBusy: app?.getAttribute('data-online-busy') ?? '',
+        connectionEpoch: Number(app?.getAttribute('data-player-connection-epoch') ?? '-1'),
+        recoveryAttempt: Number(app?.getAttribute('data-player-recovery-attempt') ?? '-1'),
+        issueCode: app?.getAttribute('data-player-issue-code') ?? null,
       };
     })()`),
     new Promise<never>((_resolve, reject) =>
@@ -1102,6 +1181,8 @@ async function actorControlProbe(
       const knownRevision = Number(app?.getAttribute('data-player-known-revision') ?? '-1');
       const projectionRevision = Number(app?.getAttribute('data-player-projection-revision') ?? '-1');
       const appBusy = app?.getAttribute('data-online-busy') ?? '';
+      const connectionEpoch = Number(app?.getAttribute('data-player-connection-epoch') ?? '-1');
+      const recoveryAttempt = Number(app?.getAttribute('data-player-recovery-attempt') ?? '-1');
       const holdState = (() => {
         if (${JSON.stringify(testId)} !== 'online-remote-hold') return 'not-applicable';
         const pressed = node instanceof HTMLButtonElement ? node.getAttribute('aria-pressed') : null;
@@ -1111,15 +1192,67 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
       const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
-      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy };
+      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
     )
   ]);
+}
+
+type O4p09iTransportTimelineSampleV1 = Readonly<{
+  readonly page: O4p09iPageV1;
+  readonly probe: O4p09iTransportProbeV1;
+}>;
+
+type O4p09iTransportTimelineRecorderV1 = (
+  checkpoint: O4p09iTransportTimelineCheckpointV1,
+  samples?: readonly O4p09iTransportTimelineSampleV1[],
+) => void;
+
+function safeTransportCounterV1(value: unknown): number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : -1;
+}
+
+function transportPhaseV1(value: unknown): O4p09iTransportTimelineEntryV1['phase'] {
+  return typeof value === 'string' && TRANSPORT_PHASES_V1.has(value as NonNullable<O4p09iTransportTimelineEntryV1['phase']>)
+    ? value as NonNullable<O4p09iTransportTimelineEntryV1['phase']>
+    : null;
+}
+
+function transportIssueCodeV1(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length === 0) return null;
+  const code = value.startsWith('CLIENT_') ? value.slice('CLIENT_'.length) : value;
+  return TRANSPORT_ISSUE_CODES_V1.has(code) ? code : null;
+}
+
+function appendO4p09iTransportTimelineV1(
+  timeline: O4p09iTransportTimelineEntryV1[],
+  checkpoint: O4p09iTransportTimelineCheckpointV1,
+  samples: readonly O4p09iTransportTimelineSampleV1[],
+  startedAt: number,
+): void {
+  const elapsedMs = Math.max(0, Date.now() - startedAt);
+  for (const { probe } of samples) {
+    timeline.push(Object.freeze({
+      checkpoint,
+      elapsedMs,
+      pageRole: 'player' as const,
+      phase: transportPhaseV1(probe.playerPhase),
+      pendingCount: safeTransportCounterV1(probe.pendingCount),
+      knownRevision: safeTransportCounterV1(probe.knownRevision),
+      projectionRevision: safeTransportCounterV1(probe.projectionRevision),
+      onlineBusy: probe.appBusy !== undefined && probe.appBusy !== '',
+      connectionEpoch: safeTransportCounterV1(probe.connectionEpoch),
+      recoveryAttempt: safeTransportCounterV1(probe.recoveryAttempt),
+      issueCode: transportIssueCodeV1(probe.issueCode),
+    }));
+  }
+  const overflow = timeline.length - O4P09I_MAX_TRANSPORT_TIMELINE_ENTRIES_V1;
+  if (overflow > 0) timeline.splice(0, overflow);
 }
 
 type O4p09iAdvanceFailureCheckpointV1 = (typeof ADVANCE_FAILURE_CHECKPOINTS)[number];
@@ -1231,7 +1364,8 @@ function progressAcknowledgementCheckpoint(probe: O4p09iActorProbeV1 | undefined
 
 async function findProgressActorPage(
   pages: readonly O4p09iPageV1[],
-  timeoutMs: number
+  timeoutMs: number,
+  recordTimeline?: O4p09iTransportTimelineRecorderV1,
 ): Promise<Readonly<{ readonly page: O4p09iPageV1; readonly testId: 'online-remote-advance' | 'online-remote-sba-stable'; readonly revision: number; readonly settlementCommandId: string }>> {
   const deadline = Date.now() + timeoutMs;
   const testIds = ['online-remote-advance', 'online-remote-sba-stable'] as const;
@@ -1252,6 +1386,10 @@ async function findProgressActorPage(
     }
     const probes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
     lastProbes = probes;
+    recordTimeline?.('progress-poll', pages.flatMap((page) => {
+      const sample = probes.find((candidate) => candidate.page === page);
+      return sample === undefined ? [] : [{ page, probe: sample.probe }];
+    }));
     const revisions = new Set(probes.map(({ probe }) => probe.revision));
     if (probes.length !== pages.length * testIds.length || revisions.size !== 1 || !safeRevision(probes[0]?.probe.revision ?? 0)) {
       await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 25));
@@ -1593,7 +1731,11 @@ async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 
   }
 }
 
-async function waitForPregameTransportConvergence(pages: readonly O4p09iPageV1[], timeoutMs: number): Promise<void> {
+async function waitForPregameTransportConvergence(
+  pages: readonly O4p09iPageV1[],
+  timeoutMs: number,
+  recordTimeline?: O4p09iTransportTimelineRecorderV1,
+): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let lastProbes: readonly O4p09iActorProbeV1[] = [];
   for (;;) {
@@ -1611,6 +1753,10 @@ async function waitForPregameTransportConvergence(pages: readonly O4p09iPageV1[]
       }
     }
     const probes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    const samples = results.flatMap((result, index) => {
+      const page = pages[index];
+      return result.status === 'fulfilled' && page !== undefined ? [{ page, probe: result.value }] : [];
+    });
     lastProbes = probes;
     const revision = probes[0]?.revision;
     if (probes.length === pages.length && safeRevision(revision ?? 0) && probes.every((probe) =>
@@ -1620,7 +1766,10 @@ async function waitForPregameTransportConvergence(pages: readonly O4p09iPageV1[]
       && probe.knownRevision === revision
       && probe.projectionRevision === revision
       && (probe.appBusy === undefined || probe.appBusy === '')
-    )) return;
+    )) {
+      recordTimeline?.('pregame-converged', samples);
+      return;
+    }
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
 }
@@ -2158,7 +2307,8 @@ async function waitForJourneyEvidence(page: O4p09iPageV1, playerCount: 2 | 4, wo
 
 async function advanceUntilPhase(
   pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void,
-  setCheckpoint: (checkpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number]) => void): Promise<O4p09iProbeV1> {
+  setCheckpoint: (checkpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number]) => void,
+  recordTimeline?: O4p09iTransportTimelineRecorderV1): Promise<O4p09iProbeV1> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     setCheckpoint('seat-convergence');
@@ -2186,9 +2336,11 @@ async function advanceUntilPhase(
     if (Date.now() >= deadline) break;
     let actor: Awaited<ReturnType<typeof findProgressActorPage>>;
     try {
+      recordTimeline?.('actor-selection-start');
       actor = await findProgressActorPage(
         pages,
-        Math.min(timeoutMs, Math.max(250, deadline - Date.now()))
+        Math.min(timeoutMs, Math.max(250, deadline - Date.now())),
+        recordTimeline,
       );
     } catch (error) {
       if (error instanceof O4p09iActorSelectionError) setCheckpoint(error.checkpoint);
@@ -2715,6 +2867,31 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   if (profile === 'reliability' && playerCount !== 2) throw new Error('reliability profile requires two players');
   const contexts: O4p09iContextV1[] = [];
   const pages: O4p09iPageV1[] = [];
+  const transportTimeline: O4p09iTransportTimelineEntryV1[] = [];
+  const transportTimelineStartedAt = Date.now();
+  let lastTransportSamples: readonly O4p09iTransportTimelineSampleV1[] = [];
+  const recordTransportTimeline: O4p09iTransportTimelineRecorderV1 = (checkpoint, samples) => {
+    if (samples !== undefined && samples.length > 0) lastTransportSamples = samples;
+    const effectiveSamples = samples !== undefined && samples.length > 0
+      ? samples
+      : lastTransportSamples.length > 0
+        ? lastTransportSamples
+        : pages.map((page) => ({
+          page,
+          probe: {
+            revision: -1,
+            playerPhase: undefined,
+            pendingCount: -1,
+            knownRevision: -1,
+            projectionRevision: -1,
+            appBusy: '',
+            connectionEpoch: -1,
+            recoveryAttempt: -1,
+            issueCode: null,
+          },
+        }));
+    appendO4p09iTransportTimelineV1(transportTimeline, checkpoint, effectiveSamples, transportTimelineStartedAt);
+  };
   const consoleSnapshots = new WeakSet<object>();
   const snapshotConsole = (page: O4p09iPageV1): void => {
     if (consoleSnapshots.has(page)) return;
@@ -2857,16 +3034,18 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       : playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
     advanceCheckpoint.value = 'seat-convergence';
     try {
-      await waitForPregameTransportConvergence(pages, timeoutMs);
+      await waitForPregameTransportConvergence(pages, timeoutMs, recordTransportTimeline);
     } catch (error) {
       if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
       throw error;
     }
+    recordTransportTimeline('before-advance');
     if (profile === 'reliability') {
       advanceCheckpoint.value = 'actor-selection';
       let actor: Awaited<ReturnType<typeof findProgressActorPage>>;
       try {
-        actor = await findProgressActorPage(pages, timeoutMs);
+        recordTransportTimeline('actor-selection-start');
+        actor = await findProgressActorPage(pages, timeoutMs, recordTransportTimeline);
       } catch (error) {
         if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
         throw error;
@@ -2894,7 +3073,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       if (testId === 'online-advance-to-main') {
         setStage('advance');
         advanceOperation = playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
-        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint.value = checkpoint; });
+        await advanceUntilPhase(pages, 'main1', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint.value = checkpoint; }, recordTransportTimeline);
         advanceOperation = null;
         advanceCheckpoint.value = null;
         recordControl(testId);
@@ -2962,7 +3141,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         if (profile === 'full') {
           setStage('advance');
           advanceOperation = playerCount === 2 ? 'two-player-combat' : 'four-player-combat';
-          await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint.value = checkpoint; });
+          await advanceUntilPhase(pages, 'combat', workerOrigin, timeoutMs, secretFragments, recordControl, (checkpoint) => { advanceCheckpoint.value = checkpoint; }, recordTransportTimeline);
           advanceOperation = null;
           advanceCheckpoint.value = null;
           recordControl(testId);
@@ -3155,7 +3334,8 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (!safeRevision(revisionAfterReconnect) || revisionAfterReconnect !== revisionBeforeReconnect) throw new Error('reconnect continuity probe failed');
     if (recoveredProbes.some((probe) => probe.gameScreens !== 1 || probe.overflow !== 0 || probe.opponentLeak || probe.consoleErrors !== 0 || !probe.workerObserved || probe.revision !== revisionAfterReconnect)) throw new Error('reconnect continuity probe failed');
     if (profile === 'reliability') {
-      const actor = await findProgressActorPage(pages, timeoutMs);
+      recordTransportTimeline('actor-selection-start');
+      const actor = await findProgressActorPage(pages, timeoutMs, recordTransportTimeline);
       await clickVisible(actor.page, actor.testId, timeoutMs);
       const acceptedRevision = await waitForProgressRevisionAdvance(actor.page, actor.testId, actor.revision, actor.settlementCommandId, timeoutMs);
       recordControl(actor.testId);
@@ -3237,25 +3417,26 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       viewportFacts,
     });
   } catch (error) {
+    recordTransportTimeline('failure');
     const failedStage: string = stage;
     const message = error instanceof Error ? error.message : '';
     const failure = classifyO4p09iProductionFailureV1(error);
     if (failure.class === 'ENVIRONMENT')
-      throw new Error(`production environment failure: ${playerCount === 2 ? 'two-player' : 'four-player'}/${failedStage.toLowerCase()}/${failure.stage}`, { cause: error });
-    if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`,
+      throw rememberO4p09iFailureTimelineV1(new Error(`production environment failure: ${playerCount === 2 ? 'two-player' : 'four-player'}/${failedStage.toLowerCase()}/${failure.stage}`, { cause: error }), transportTimeline);
+    if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`,
         { cause: error }
-      );
+      ), transportTimeline);
     if (failedStage === 'manual-stack' && manualStackOperation !== null)
-      throw new Error(`production scenario stage failed: manual-stack/${manualStackOperation}`, {
+      throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: manual-stack/${manualStackOperation}`, {
         cause: error
-      });
+      }), transportTimeline);
     if (failedStage === 'advance' && advanceOperation !== null)
-      throw new Error(`production scenario stage failed: advance/${advanceOperation}${advanceCheckpoint.value === null ? '' : `/${advanceCheckpoint.value}`}`, {
+      throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: advance/${advanceOperation}${advanceCheckpoint.value === null ? '' : `/${advanceCheckpoint.value}`}`, {
         cause: error
-      });
-    throw new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
+      }), transportTimeline);
+    throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
       cause: error
-    });
+    }), transportTimeline);
   } finally {
     for (const page of pages) {
       snapshotConsole(page);

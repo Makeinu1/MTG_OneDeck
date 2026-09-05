@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   O4P09I_DEFAULT_TIMEOUT_MS_V1,
+  O4P09I_MAX_TRANSPORT_TIMELINE_ENTRIES_V1,
   O4P09I_PAGES_ORIGIN_V1,
   O4P09I_PUBLIC_DECK_TEXTS_V1,
   O4P09I_START_SURFACE_TIMEOUT_MS_V1,
@@ -903,6 +904,7 @@ describe('O4P-09I full-match production evidence', () => {
     for (const attribute of [
       'data-projection-revision', 'data-player-phase', 'data-player-pending-count',
       'data-player-known-revision', 'data-player-projection-revision', 'data-online-busy',
+      'data-player-connection-epoch', 'data-player-recovery-attempt', 'data-player-issue-code',
     ]) expect(transportProbes.every((expression) => expression.includes(attribute))).toBe(true);
     expect(validateO4p09iReliabilityEvidenceV1({
       ...summary,
@@ -1062,6 +1064,43 @@ describe('O4P-09I full-match production evidence', () => {
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-resyncing');
+  });
+
+  it('records a bounded secret-free transport timeline on actor-selection failure', async () => {
+    let failure: unknown;
+    try {
+      await runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { advanceEnabledSeats: [], actorReadinessBlock: 'not-open' }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    const classified = classifyO4p09iProductionFailureV1(failure);
+    expect(classified.stage).toBe('advance/two-player-main1/actor-selection-player-resyncing');
+    expect(classified.transportTimeline).toBeDefined();
+    expect(classified.transportTimeline?.length).toBeGreaterThan(0);
+    expect(classified.transportTimeline?.length).toBeLessThanOrEqual(O4P09I_MAX_TRANSPORT_TIMELINE_ENTRIES_V1);
+    const allowedKeys = [
+      'checkpoint', 'elapsedMs', 'pageRole', 'phase', 'pendingCount', 'knownRevision',
+      'projectionRevision', 'onlineBusy', 'connectionEpoch', 'recoveryAttempt', 'issueCode',
+    ].sort();
+    for (const entry of classified.transportTimeline ?? []) {
+      expect(Object.keys(entry).sort()).toEqual(allowedKeys);
+      expect(['pregame-converged', 'before-advance', 'actor-selection-start', 'progress-poll', 'failure']).toContain(entry.checkpoint);
+      expect(['player', 'table']).toContain(entry.pageRole);
+      expect(entry.elapsedMs).toBeGreaterThanOrEqual(0);
+      expect(entry.issueCode === null || /^[A-Z][A-Z0-9_]+$/u.test(entry.issueCode)).toBe(true);
+    }
+    expect(JSON.stringify(classified)).not.toMatch(/P\d|fixture deck|private-token/u);
+    const root = mkdtempSync(join(tmpdir(), 'o4p09i-timeline-'));
+    try {
+      expect(writeO4p09iJourneyFailureV1(`${root}/failure.json`, failure, root)).toBe(true);
+      expect(JSON.parse(readFileSync(`${root}/failure.json`, 'utf8'))).toEqual(classified);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('classifies divergent public actor windows without choosing a control', async () => {

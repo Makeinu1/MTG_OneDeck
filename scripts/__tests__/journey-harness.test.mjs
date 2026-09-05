@@ -573,6 +573,85 @@ describe('journey harness', () => {
     expect(existsSync(resultPath)).toBe(false);
   });
 
+  test('accepts only the bounded secret-free O4P-09I transport timeline', () => {
+    const validEntry = {
+      checkpoint: 'actor-selection-start',
+      elapsedMs: 42,
+      pageRole: 'player',
+      phase: 'resyncing',
+      pendingCount: 0,
+      knownRevision: 21,
+      projectionRevision: 21,
+      onlineBusy: false,
+      connectionEpoch: -1,
+      recoveryAttempt: -1,
+      issueCode: null,
+    };
+    const runWithTimeline = (transportTimeline, stage = 'advance/two-player-main1/actor-selection-player-resyncing') => runJourneyTurn({
+      journey,
+      phase: 'live',
+      candidate,
+      allowExternalWrite: true,
+      expectedFingerprint: candidate.fingerprint,
+      currentFingerprint: () => candidate.fingerprint,
+      spawn: (_command, _args, options) => {
+        writeFileSync(options.env.JOURNEY_RESULT_PATH, JSON.stringify({
+          class: 'IMPLEMENTATION',
+          code: 'PLAYER_JOURNEY_STAGE_FAILED',
+          stage,
+          transportTimeline,
+        }), { mode: 0o600 });
+        return { status: 1, signal: null, error: null, stdout: '', stderr: '' };
+      },
+    });
+    const accepted = runWithTimeline([validEntry]);
+    expect(accepted).toMatchObject({
+      status: 'failed',
+      failure: {
+        class: 'IMPLEMENTATION',
+        code: 'PLAYER_JOURNEY_STAGE_FAILED',
+        stage: 'advance/two-player-main1/actor-selection-player-resyncing',
+      },
+    });
+    expect(accepted.failure.transportTimeline).toEqual([validEntry]);
+    expect(Object.isFrozen(accepted.failure.transportTimeline)).toBe(true);
+    const maximumEntry = {
+      checkpoint: 'actor-selection-start',
+      elapsedMs: 86_400_000,
+      pageRole: 'table',
+      phase: 'awaiting-ready',
+      pendingCount: Number.MAX_SAFE_INTEGER,
+      knownRevision: Number.MAX_SAFE_INTEGER,
+      projectionRevision: Number.MAX_SAFE_INTEGER,
+      onlineBusy: true,
+      connectionEpoch: Number.MAX_SAFE_INTEGER,
+      recoveryAttempt: Number.MAX_SAFE_INTEGER,
+      issueCode: 'CORE_RECONCILIATION_REJECTED',
+    };
+    const maximum = runWithTimeline(Array.from({ length: 16 }, () => maximumEntry));
+    expect(maximum).toMatchObject({
+      status: 'failed',
+      failure: { class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED' },
+    });
+    expect(maximum.failure.transportTimeline).toEqual(Array.from({ length: 16 }, () => maximumEntry));
+    expect(runWithTimeline([{ ...validEntry, url: 'https://example.invalid' }])).toMatchObject({
+      status: 'failed',
+      failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
+    });
+    expect(runWithTimeline([validEntry], 'post-actions/actor-selection-player-resyncing')).toMatchObject({
+      status: 'failed',
+      failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
+    });
+    expect(runWithTimeline([{ ...validEntry, issueCode: 'PRIVATE_SECRET' }])).toMatchObject({
+      status: 'failed',
+      failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
+    });
+    expect(runWithTimeline(Array.from({ length: 17 }, () => validEntry))).toMatchObject({
+      status: 'failed',
+      failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
+    });
+  });
+
   test.each([0o400, 0o700])('rejects a trusted failure file with mode %s', (mode) => {
     const result = runJourneyTurn({
       journey,

@@ -43,6 +43,102 @@ const PHASES = new Set(['inspect', 'local', 'live']);
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/u;
 const FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const FAILURE_STAGE_PATTERN = /^[a-z0-9][a-z0-9/-]{0,95}$/u;
+// 6 KiB covers the largest legal 16-entry timeline envelope with the
+// allowlisted stage/counter/code values while remaining tightly bounded.
+const TRUSTED_FAILURE_MAX_BYTES = 6_144;
+const TRANSPORT_TIMELINE_MAX_ENTRIES = 16;
+const TRANSPORT_TIMELINE_ADVANCE_OPERATIONS = Object.freeze([
+  'two-player-shared-mutation',
+  'two-player-main1',
+  'two-player-combat',
+  'four-player-main1',
+  'four-player-combat',
+]);
+const TRANSPORT_TIMELINE_ACTOR_CHECKPOINTS = Object.freeze([
+  'actor-selection',
+  'actor-selection-ambiguous',
+  'actor-selection-contract-metadata',
+  'actor-selection-contract-window-divergence',
+  'actor-selection-contract-control-missing',
+  'actor-selection-contract-control-hidden',
+  'actor-selection-disabled',
+  'actor-selection-hold',
+  'actor-selection-authority',
+  'actor-selection-window',
+  'actor-selection-player-not-open',
+  'actor-selection-player-resyncing',
+  'actor-selection-player-recovering',
+  'actor-selection-player-failed',
+  'actor-selection-player-pending',
+  'actor-selection-player-revision-lag',
+  'actor-selection-app-busy',
+]);
+const TRANSPORT_TIMELINE_STAGES = new Set(
+  TRANSPORT_TIMELINE_ADVANCE_OPERATIONS.flatMap((operation) =>
+    TRANSPORT_TIMELINE_ACTOR_CHECKPOINTS.map((checkpoint) => `advance/${operation}/${checkpoint}`),
+  ),
+);
+const TRANSPORT_TIMELINE_CHECKPOINTS = new Set([
+  'pregame-converged',
+  'before-advance',
+  'actor-selection-start',
+  'progress-poll',
+  'failure',
+]);
+const TRANSPORT_TIMELINE_PHASES = new Set([
+  'idle',
+  'connecting',
+  'awaiting-ready',
+  'authenticating',
+  'resyncing',
+  'open',
+  'recovering',
+  'failed',
+  'closed',
+]);
+const TRANSPORT_TIMELINE_ISSUE_CODES = new Set([
+  'INVALID_CONFIG',
+  'INVALID_URL',
+  'INVALID_FRAME',
+  'INVALID_COMMAND',
+  'AUTHENTICATION_REJECTED',
+  'PROJECTION_REJECTED',
+  'SOCKET_ERROR',
+  'SOCKET_CLOSED',
+  'SEND_FAILED',
+  'RECONNECT_EXHAUSTED',
+  'SERVER_INTERNAL_ERROR',
+  'CONTROLLER_LEASE_REQUIRED',
+  'INVALID_ROOT',
+  'MISSING_FIELD',
+  'UNKNOWN_FIELD',
+  'INVALID_DESCRIPTOR',
+  'INVALID_TYPE',
+  'INVALID_LITERAL',
+  'INVALID_VERSION',
+  'INVALID_ID',
+  'INVALID_CAPABILITY',
+  'INVALID_INTEGER',
+  'INVALID_ARRAY',
+  'NON_DENSE_ARRAY',
+  'INVALID_BUILD_ID',
+  'INVALID_PROTOCOL_STATE',
+  'PROTOCOL_VERSION_MISMATCH',
+  'INVALID_RELATION',
+  'DUPLICATE_VALUE',
+  'ROOM_MISMATCH',
+  'AUTHORIZATION_REJECTED',
+  'PARTICIPANT_NOT_CONNECTED',
+  'ROLE_NOT_ALLOWED',
+  'ROOM_NOT_ACTIVE',
+  'PLAYER_NOT_PENDING',
+  'ACTOR_MISMATCH',
+  'COMMAND_SEQUENCE_MISMATCH',
+  'COMMAND_ID_REUSE_MISMATCH',
+  'STALE_REVISION',
+  'CORE_COMMAND_REJECTED',
+  'CORE_RECONCILIATION_REJECTED',
+]);
 const TEST_FILE_PATTERN = /^(?:scripts|src)\/.+\.(?:test|spec)\.(?:mjs|ts|tsx)$/u;
 const DESIGN_UNDECIDED_PATTERN = /(?:\b(?:TBD|TODO|UNDECIDED|UNKNOWN)\b|未定|未決|要検討)/iu;
 const LIVE_SCRIPT_ENTRIES = Object.freeze({
@@ -446,8 +542,9 @@ function fixedFailure({
   evidence,
   environmentAttempt = 1,
   nextAction = nextActionFor(failureClass, environmentAttempt),
+  transportTimeline,
 }) {
-  return Object.freeze({
+  const failure = {
     class: failureClass,
     code,
     stage,
@@ -455,7 +552,65 @@ function fixedFailure({
     environmentAttempt,
     nextAction,
     status: statusFor(failureClass, nextAction),
-  });
+  };
+  if (transportTimeline !== undefined) {
+    failure.transportTimeline = Object.freeze(
+      transportTimeline.map((entry) => Object.freeze({ ...entry })),
+    );
+  }
+  return Object.freeze(failure);
+}
+
+function validateTrustedTransportTimeline(transportTimeline) {
+  if (
+    !Array.isArray(transportTimeline) ||
+    transportTimeline.length === 0 ||
+    transportTimeline.length > TRANSPORT_TIMELINE_MAX_ENTRIES
+  ) {
+    throw new Error('trusted failure transport timeline is invalid');
+  }
+  const entryKeys = [
+    'checkpoint',
+    'elapsedMs',
+    'pageRole',
+    'phase',
+    'pendingCount',
+    'knownRevision',
+    'projectionRevision',
+    'onlineBusy',
+    'connectionEpoch',
+    'recoveryAttempt',
+    'issueCode',
+  ];
+  for (const entry of transportTimeline) {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error('trusted failure transport timeline entry is invalid');
+    }
+    assertExactKeys(entry, entryKeys, 'trusted failure transport timeline entry');
+    if (!TRANSPORT_TIMELINE_CHECKPOINTS.has(entry.checkpoint)) {
+      throw new Error('trusted failure transport timeline checkpoint is invalid');
+    }
+    if (!Number.isSafeInteger(entry.elapsedMs) || entry.elapsedMs < 0 || entry.elapsedMs > 86_400_000) {
+      throw new Error('trusted failure transport timeline elapsed time is invalid');
+    }
+    if (entry.pageRole !== 'player' && entry.pageRole !== 'table') {
+      throw new Error('trusted failure transport timeline page role is invalid');
+    }
+    if (entry.phase !== null && !TRANSPORT_TIMELINE_PHASES.has(entry.phase)) {
+      throw new Error('trusted failure transport timeline phase is invalid');
+    }
+    for (const key of ['pendingCount', 'knownRevision', 'projectionRevision', 'connectionEpoch', 'recoveryAttempt']) {
+      if (!Number.isSafeInteger(entry[key]) || entry[key] < -1) {
+        throw new Error('trusted failure transport timeline counter is invalid');
+      }
+    }
+    if (typeof entry.onlineBusy !== 'boolean') {
+      throw new Error('trusted failure transport timeline busy flag is invalid');
+    }
+    if (entry.issueCode !== null && !TRANSPORT_TIMELINE_ISSUE_CODES.has(entry.issueCode)) {
+      throw new Error('trusted failure transport timeline issue code is invalid');
+    }
+  }
 }
 
 function normalizeTrustedFailure(trustedFailure) {
@@ -463,7 +618,9 @@ function normalizeTrustedFailure(trustedFailure) {
   if (
     typeof trustedFailure !== 'object' ||
     Array.isArray(trustedFailure) ||
-    Object.keys(trustedFailure).sort().join(',') !== 'class,code,stage'
+    !['class,code,stage', 'class,code,stage,transportTimeline'].includes(
+      Object.keys(trustedFailure).sort().join(','),
+    )
   ) {
     throw new Error('trusted failure has unsupported fields');
   }
@@ -473,13 +630,23 @@ function normalizeTrustedFailure(trustedFailure) {
     throw new Error('trusted failure code is invalid');
   if (!FAILURE_STAGE_PATTERN.test(trustedFailure.stage))
     throw new Error('trusted failure stage is invalid');
+  if (Object.hasOwn(trustedFailure, 'transportTimeline')) {
+    if (
+      trustedFailure.class !== 'IMPLEMENTATION' ||
+      trustedFailure.code !== 'PLAYER_JOURNEY_STAGE_FAILED' ||
+      !TRANSPORT_TIMELINE_STAGES.has(trustedFailure.stage)
+    ) {
+      throw new Error('trusted failure transport timeline stage is invalid');
+    }
+    validateTrustedTransportTimeline(trustedFailure.transportTimeline);
+  }
   return trustedFailure;
 }
 
 function readTrustedFailure(path) {
   try {
     const stat = lstatSync(path);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 2 || stat.size > 4096) {
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 2 || stat.size > TRUSTED_FAILURE_MAX_BYTES) {
       return Object.freeze({ invalid: true });
     }
     if ((stat.mode & 0o777) !== 0o600) return Object.freeze({ invalid: true });
@@ -553,6 +720,7 @@ export function classifyStageFailure({
       spawnTimedOut ? `timeout-ms:${stage.timeoutMs}` : `exit:${exitCode(result)}`,
     ],
     environmentAttempt,
+    transportTimeline: normalizedFailure?.transportTimeline,
   });
 }
 
