@@ -106,6 +106,11 @@ type FakeOptions = Readonly<{
     | 'game-screen-missing/count' | 'horizontal-overflow' | 'opponent-leak' | 'console-error' | 'host-revision-missing' | 'start-rejected' | 'start-pending' | 'start-not-accepted';
   readonly lobbyReadyProbe?: 'delayed' | 'never';
   readonly progressStuckAfterClick?: boolean;
+  readonly progressAckBeforeProjection?: boolean;
+  readonly progressProjectionNeverSettles?: boolean;
+  readonly progressTransportStates?: string[];
+  readonly progressReceiptOperationMismatch?: boolean;
+  readonly advanceWindowKind?: 'priority' | 'turn-based-action-required';
   readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
   readonly actorResyncSeat?: number;
   readonly transportSurfaceMissing?: boolean;
@@ -126,6 +131,17 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const progressWindows: Array<'advance' | 'sba'> = ['advance', 'advance'];
   const progressCompletions = [0, 0];
   const progressActionCounts = [0, 0];
+  const progressProjectionPending = [false, false];
+  const progressProjectionSettled = [false, false];
+  const progressProjectionProbeCounts = [0, 0];
+  const progressSettlementUsed = [false, false];
+  const progressReceiptCounts = [0, 0];
+  const progressReceipts: Array<{
+    testId: 'online-remote-advance' | 'online-remote-sba-stable';
+    commandId: string;
+    operation: 'priority-pass' | 'priority-advance' | 'sba-check-outcome';
+    acceptedRevision: number;
+  } | null> = [null, null];
   const priorityActors = [0, 0];
   const priorityPassCounts = [0, 0];
   const priorityHoldSeats = [new Set<number>(), new Set<number>()];
@@ -176,15 +192,28 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         ? Number.NaN
         : actorControlRevision() + (options.priorityActorRevisionOffsetSeat === seatIndex ? 1 : 0);
     const actorReadiness = () => {
+      const delayedProgressProjection = options.progressAckBeforeProjection === true
+        && progressProjectionPending[scenarioIndex] === true;
+      const projectionStillStale = delayedProgressProjection && !progressProjectionSettled[scenarioIndex];
+      if (delayedProgressProjection && options.progressProjectionNeverSettles !== true) {
+        progressProjectionProbeCounts[scenarioIndex] += 1;
+        if (progressProjectionProbeCounts[scenarioIndex] > 1) {
+          progressProjectionSettled[scenarioIndex] = true;
+          progressProjectionPending[scenarioIndex] = false;
+        }
+      }
+      const visibleRevision = projectionStillStale
+        ? sharedRevisions[scenarioIndex] - 1
+        : actorControlRevision();
       const transientPregameResync = seatIndex === 1
         && pregameStates[scenarioIndex].phaseIndex >= pregameControls.length
         && postPregameResyncProbeCounts[scenarioIndex]++ < (options.postPregameResyncProbes ?? 0);
       const persistentResync = actorResyncActive();
       const result = ({
-        playerPhase: options.actorReadinessBlock === 'not-open' || transientPregameResync || persistentResync ? 'resyncing' : 'open',
+        playerPhase: projectionStillStale || options.actorReadinessBlock === 'not-open' || transientPregameResync || persistentResync ? 'resyncing' : 'open',
         pendingCount: options.actorReadinessBlock === 'pending' || (options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0) ? 1 : 0,
-        knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' || persistentResync ? 1 : 0),
-        projectionRevision: actorControlRevision(),
+        knownRevision: (projectionStillStale ? sharedRevisions[scenarioIndex] : visibleRevision) + (options.actorReadinessBlock === 'revision-lag' || persistentResync ? 1 : 0),
+        projectionRevision: visibleRevision,
         appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
         projectionRequestsSent: 1,
         projectionFramesReceived: options.actorReadinessBlock === 'not-open' || persistentResync ? 0 : 1,
@@ -313,48 +342,79 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         }
         if (expression.includes('priorityControlProbe:online-remote-advance')) {
           const authoritySeat = options.advanceAuthoritySeat ?? advanceEnabledSeats[0] ?? 0;
-          return Promise.resolve({
+          const progressReceipt = progressReceipts[scenarioIndex]?.testId === 'online-remote-advance'
+            ? progressReceipts[scenarioIndex]
+            : null;
+          const progressSettlement = progressReceipt !== null;
+          const advanceWindowKind = options.actorWindowDivergentSeat === seatIndex
+            ? 'priority'
+            : options.advanceWindowKind ?? 'turn-based-action-required';
+          const visibleProgressRevision = progressSettlement
+            && progressProjectionPending[scenarioIndex]
+            && !progressProjectionSettled[scenarioIndex]
+            ? sharedRevisions[scenarioIndex] - 1
+            : actorControlRevision();
+          const result = {
             enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
             present: true,
             visible: true,
-            revision: actorControlRevision(),
+            revision: visibleProgressRevision,
             holdState: 'not-applicable',
-            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
-            acceptedRevision: null,
+            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : progressSettlement ? 'accepted' : 'none',
+            acceptedRevision: progressReceipt?.acceptedRevision ?? null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
-            operation: '',
+            operation: progressReceipt?.operation ?? '',
             issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0 ? 'CLIENT_INVALID_FRAME' : '',
-            commandId: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-settlement' : '',
+            commandId: progressReceipt?.commandId
+              ?? (options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-rejected' : ''),
             localPlayerId: `P${String(seatIndex + 1)}`,
-            holderPlayerId: options.actorWindowDivergentSeat === seatIndex ? `P${String(seatIndex + 1)}` : null,
+            holderPlayerId: options.actorWindowDivergentSeat === seatIndex
+              ? `P${String(seatIndex + 1)}`
+              : advanceWindowKind === 'priority' ? `P${String(authoritySeat + 1)}` : null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
-            windowKind: options.actorWindowDivergentSeat === seatIndex ? 'priority' : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
+            windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : advanceWindowKind,
             holds: [],
             ...actorReadiness(),
-          } as T);
+          };
+          if (progressSettlement && options.progressTransportStates !== undefined) {
+            options.progressTransportStates.push(`${String(result.outcome)}:${String(result.acceptedRevision)}:${String(result.revision)}:${String(result.playerPhase)}`);
+          }
+          if (progressSettlement && result.playerPhase === 'open') progressReceipts[scenarioIndex] = null;
+          return Promise.resolve(result as T);
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
           const enabledSeats = options.sbaEnabledSeats ?? advanceEnabledSeats;
           const authoritySeat = options.advanceAuthoritySeat ?? advanceEnabledSeats[0] ?? 0;
-          return Promise.resolve({
+          const progressReceipt = progressReceipts[scenarioIndex]?.testId === 'online-remote-sba-stable'
+            ? progressReceipts[scenarioIndex]
+            : null;
+          const result = {
             enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
             present: true,
             visible: true,
             revision: actorControlRevision(),
             holdState: 'not-applicable',
-            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : 'none',
-            acceptedRevision: null,
+            outcome: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'rejected' : progressReceipt !== null ? 'accepted' : 'none',
+            acceptedRevision: progressReceipt?.acceptedRevision ?? null,
             errorVisible: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0,
-            operation: '',
+            // The real SBA result omits data-operation; the runner derives
+            // this dedicated operation from the dedicated result surface.
+            operation: progressReceipt?.operation ?? '',
             issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0 ? 'CLIENT_INVALID_FRAME' : '',
-            commandId: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-settlement' : '',
+            commandId: progressReceipt?.commandId ?? (options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-rejected' : ''),
             localPlayerId: `P${String(seatIndex + 1)}`,
             holderPlayerId: options.actorWindowDivergentSeat === seatIndex ? `P${String(seatIndex + 1)}` : null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
-            windowKind: options.actorWindowDivergentSeat === seatIndex ? 'priority' : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
+            windowKind: progressWindows[scenarioIndex] === 'sba'
+              ? 'sba-check-required'
+              : options.actorWindowDivergentSeat === seatIndex
+                ? 'priority'
+                : options.advanceWindowKind ?? 'turn-based-action-required',
             holds: [],
             ...actorReadiness(),
-          } as T);
+          };
+          if (progressReceipt !== null && result.playerPhase === 'open') progressReceipts[scenarioIndex] = null;
+          return Promise.resolve(result as T);
         }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
       const pregameControlIndex = pregameControls.findIndex((control) => expression.includes(`data-testid="${control}"`));
@@ -484,10 +544,41 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       }
       if (expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')) {
         progressActionCounts[scenarioIndex] += 1;
+        const advanceWindowKind = options.actorWindowDivergentSeat === seatIndex
+          ? 'priority'
+          : options.advanceWindowKind ?? 'turn-based-action-required';
+        if (options.progressRejected !== true && options.progressStuckAfterClick !== true) {
+          const receiptCount = progressReceiptCounts[scenarioIndex] + 1;
+          progressReceiptCounts[scenarioIndex] = receiptCount;
+          progressReceipts[scenarioIndex] = {
+            testId: 'online-remote-advance',
+            commandId: `progress-${String(scenarioIndex)}-${String(receiptCount)}`,
+            operation: options.progressReceiptOperationMismatch === true
+              ? 'sba-check-outcome'
+              : advanceWindowKind === 'priority' ? 'priority-pass' : 'priority-advance',
+            acceptedRevision: sharedRevisions[scenarioIndex],
+          };
+        }
         progressWindows[scenarioIndex] = 'sba';
+        if (options.progressAckBeforeProjection === true && !progressSettlementUsed[scenarioIndex]) {
+          progressProjectionPending[scenarioIndex] = true;
+          progressProjectionSettled[scenarioIndex] = false;
+          progressProjectionProbeCounts[scenarioIndex] = 0;
+          progressSettlementUsed[scenarioIndex] = true;
+        }
       }
       if (expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true')) {
         progressActionCounts[scenarioIndex] += 1;
+        if (options.progressRejected !== true) {
+          const receiptCount = progressReceiptCounts[scenarioIndex] + 1;
+          progressReceiptCounts[scenarioIndex] = receiptCount;
+          progressReceipts[scenarioIndex] = {
+            testId: 'online-remote-sba-stable',
+            commandId: `progress-${String(scenarioIndex)}-${String(receiptCount)}`,
+            operation: 'sba-check-outcome',
+            acceptedRevision: sharedRevisions[scenarioIndex],
+          };
+        }
         progressWindows[scenarioIndex] = 'advance';
         const actionsRequired = progressCompletions[scenarioIndex] === 0
           ? scenarioIndex === 0
@@ -1124,6 +1215,50 @@ describe('O4P-09I full-match production evidence', () => {
     expect(postClickPolls.some((entry) => entry.pendingCount > 0 && entry.projectionRequestsSent >= entry.projectionFramesReceived)).toBe(true);
   });
 
+  it('waits for the actor transport projection after an accepted progress acknowledgement', async () => {
+    const progressTransportStates: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { progressAckBeforeProjection: true, progressTransportStates }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
+    expect(progressTransportStates.some((state) => {
+      const [outcome, acceptedRevision, visibleRevision, phase] = state.split(':');
+      return outcome === 'accepted' && phase === 'resyncing'
+        && Number(acceptedRevision) === Number(visibleRevision) + 1;
+    })).toBe(true);
+    expect(progressTransportStates.some((state) => {
+      const [outcome, acceptedRevision, visibleRevision, phase] = state.split(':');
+      return outcome === 'accepted' && phase === 'open'
+        && Number(acceptedRevision) === Number(visibleRevision);
+    })).toBe(true);
+
+    let failure: unknown;
+    try {
+      await runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { progressAckBeforeProjection: true, progressProjectionNeverSettles: true }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(classifyO4p09iProductionFailureV1(failure)).toMatchObject({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'advance/two-player-main1/revision-ack-advance-unsettled-player-not-open',
+    });
+  });
+
+  it('rejects a new accepted receipt with an operation unrelated to the clicked control', async () => {
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { progressReceiptOperationMismatch: true, advanceWindowKind: 'priority' }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow(/production scenario stage failed: advance\/two-player-main1\/revision-ack-advance-/u);
+  });
+
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {
     const expressions: string[] = [];
     await expect(
@@ -1374,6 +1509,10 @@ describe('O4P-09I full-match production evidence', () => {
   it('syntax-compiles every browser evaluate payload collected by the injected harness', async () => {
     const expressions: string[] = [];
     await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions), readDeck: () => 'fixture deck' });
+    const sbaProbe = expressions.find((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'));
+    expect(sbaProbe).toContain("data-testid=\"online-remote-sba-result\"");
+    expect(sbaProbe).toContain("result instanceof HTMLElement");
+    expect(sbaProbe).toContain("'sba-check-outcome'");
     for (const [index, expression] of expressions.entries()) {
       try {
         new Script(`(async () => { const argument = undefined; return (${expression}); })()`);
