@@ -2380,17 +2380,32 @@ async function waitForPregameTransition(page: O4p09iPageV1, workerOrigin: string
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const probe = await probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments);
-    if (safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
-    if (terminalReady && probe.gameScreens === 1 && !probe.opponentLeak && probe.consoleErrors === 0) {
+    const responseState = await page.evaluate<'pending' | 'accepted' | 'rejected' | 'invalid'>(`(() => { // pregameResponseProbe
+      const app = document.querySelector('[data-testid="public-online-app"]');
+      if (!(app instanceof HTMLElement) || !app.hasAttribute('data-online-busy')) return 'invalid';
+      if ((app.getAttribute('data-online-busy') ?? '') !== '') return 'pending';
+      const notice = app.querySelector('[data-pregame-layer="true"] .pregame-layer__notice');
+      if (!(notice instanceof HTMLElement)) return 'accepted';
+      const text = notice.textContent ?? '';
+      return /対戦準備が更新されました。表示を確認してもう一度操作してください。|現在は別のプレイヤーの操作を待っています。|選択数または選択内容を確認してください。|現在の対戦準備ではこの操作を実行できません。/u.test(text)
+        ? 'rejected'
+        : 'accepted';
+    })()`);
+    if (responseState === 'invalid') throw new Error('pregame response probe invalid');
+    if (responseState === 'rejected') throw new Error('pregame command rejected');
+    if (responseState === 'accepted' && safeRevision(probe.revision) && probe.revision > baseline) return probe.revision;
+    if (responseState === 'accepted' && terminalReady && probe.gameScreens === 1 && !probe.opponentLeak && probe.consoleErrors === 0) {
       const startedSurface = await page.evaluate<boolean>(`(() => { // pregameTerminalSurfaceProbe
+        const app = document.querySelector('[data-testid="public-online-app"]');
+        if (!(app instanceof HTMLElement)) return false;
         const visible = (node) => {
           if (!(node instanceof HTMLElement)) return false;
           const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
           return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
         };
-        const pregame = document.querySelector('[data-pregame-layer="true"]');
-        const rail = document.querySelector('[data-testid="online-remote-game-rail"]');
-        const game = document.querySelector('[data-testid="game-screen"]:not(.game-screen--pregame)');
+        const pregame = app.querySelector('[data-pregame-layer="true"]');
+        const rail = app.querySelector('[data-testid="online-remote-game-rail"]');
+        const game = app.querySelector('[data-testid="game-screen"]:not(.game-screen--pregame)');
         return !visible(pregame) && (visible(rail) || visible(game));
       })()`);
       if (startedSurface) return probe.revision;

@@ -24,6 +24,13 @@ import {
   type O4p09iPageV1,
 } from '../../../../scripts/online/o4p-09i-full-match-evidence';
 
+const PREGAME_REJECTION_MESSAGES = [
+  '対戦準備が更新されました。表示を確認してもう一度操作してください。',
+  '現在は別のプレイヤーの操作を待っています。',
+  '選択数または選択内容を確認してください。',
+  '現在の対戦準備ではこの操作を実行できません。',
+] as const;
+
 type FakeOptions = Readonly<{
   readonly missingControl?: string;
   readonly savedStateError?: boolean;
@@ -106,6 +113,8 @@ type FakeOptions = Readonly<{
   readonly postPregameResyncProbes?: number;
   readonly postMutationHostLagProbes?: number;
   readonly postMutationTransportRevisionLagThenTimeout?: boolean;
+  readonly pregameResponseRejected?: boolean;
+  readonly pregameResponseSurface?: 'missing-app' | 'missing-busy';
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -134,6 +143,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const pregameStates = [{ phaseIndex: 0, actorIndex: 0 }, { phaseIndex: 0, actorIndex: 0 }];
   const postPregameResyncProbeCounts = [0, 0];
   const postMutationHostLagProbeCounts = [0, 0];
+  const pregameClickBaselines = [0, 0];
+  const pregameResponseProbeCounts = [0, 0];
   const pregameControls = ['pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready'];
   const page = (contextOrdinal: number, pageOrdinal: number): O4p09iPageV1 => {
     let revealButtonProbes = 0;
@@ -217,6 +228,14 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       }
       if (expression.includes('pregameTerminalSurfaceProbe')) {
         return Promise.resolve((options.pregameReadyRevisionMissing === true && options.pregameTerminalSurfaceFailure !== true) as T);
+      }
+      if (expression.includes('pregameResponseProbe')) {
+        pregameResponseProbeCounts[scenarioIndex] += 1;
+        if (options.pregameResponseSurface !== undefined) return Promise.resolve('invalid' as T);
+        if (options.pregameResponseRejected === true && sharedRevisions[scenarioIndex] > pregameClickBaselines[scenarioIndex]) {
+          return Promise.resolve((pregameResponseProbeCounts[scenarioIndex] === 1 ? 'pending' : 'rejected') as T);
+        }
+        return Promise.resolve('accepted' as T);
       }
       if (expression.includes('playerTransportSurfaceProbe')) {
         return Promise.resolve((options.transportSurfaceMissing !== true) as T);
@@ -345,6 +364,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         const actorControl = state.phaseIndex === pregameControlIndex && state.actorIndex === seatIndex;
         if (expression.includes('pregameActorControlProbe')) {
           if (!actorControl) return Promise.resolve(false as T);
+          pregameClickBaselines[scenarioIndex] = sharedRevisions[scenarioIndex];
           const terminalReadyWithoutRevision = options.pregameReadyRevisionMissing === true
             && pregameControlIndex === pregameControls.length - 1
             && state.actorIndex === playerCount - 1;
@@ -1528,6 +1548,30 @@ describe('O4P-09I full-match production evidence', () => {
     });
     expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
     expect(expressions.some((expression) => expression.includes('pregameTerminalSurfaceProbe'))).toBe(true);
+  });
+
+  it('does not count a rejected Pregame response as a completed seat action', async () => {
+    const expressions: string[] = [];
+    const publicAppSource = readFileSync(join(process.cwd(), 'src/online/publicApp/v3.ts'), 'utf8');
+    const evidenceSource = readFileSync(join(process.cwd(), 'scripts/online/o4p-09i-full-match-evidence.ts'), 'utf8');
+    for (const message of PREGAME_REJECTION_MESSAGES) {
+      expect(publicAppSource).toContain(message);
+      expect(evidenceSource).toContain(message);
+    }
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { pregameResponseRejected: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: pregame-control');
+    expect(expressions.filter((expression) => expression.includes('pregameResponseProbe')).length).toBeGreaterThan(1);
+  });
+
+  it.each(['missing-app', 'missing-busy'] as const)('fails closed when the Pregame response surface is %s', async (surface) => {
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { pregameResponseSurface: surface }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: pregame-control');
   });
 
   it('fails closed when terminal ready has neither a revision nor a started surface', async () => {
