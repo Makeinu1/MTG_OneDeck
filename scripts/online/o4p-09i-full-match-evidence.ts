@@ -2478,7 +2478,7 @@ async function advanceUntilPhase(
   pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void,
   setCheckpoint: (checkpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number]) => void,
   recordTimeline?: O4p09iTransportTimelineRecorderV1): Promise<O4p09iProbeV1> {
-  const deadline = Date.now() + timeoutMs;
+  let deadline = Date.now() + timeoutMs;
   for (;;) {
     setCheckpoint('seat-convergence');
     const snapshots = await Promise.all(
@@ -2515,7 +2515,10 @@ async function advanceUntilPhase(
       if (error instanceof O4p09iActorSelectionError) setCheckpoint(error.checkpoint);
       throw error;
     }
-    const actionTimeoutMs = Math.min(timeoutMs, Math.max(250, deadline - Date.now()));
+    // Actor discovery is a no-progress watchdog. Once a valid actor is found,
+    // give the click and its accepted/projection settlement a fresh bounded
+    // window; a late discovery must not truncate the client transport budget.
+    const actionTimeoutMs = timeoutMs;
     setCheckpoint('click');
     await clickVisible(actor.page, actor.testId, actionTimeoutMs);
     const isSba = actor.testId === 'online-remote-sba-stable';
@@ -2528,6 +2531,7 @@ async function advanceUntilPhase(
       }
       throw error;
     }
+    deadline = Date.now() + timeoutMs;
     recordControl(actor.testId);
   }
   throw new Error(`phase target ${targetPhase} not reached`);

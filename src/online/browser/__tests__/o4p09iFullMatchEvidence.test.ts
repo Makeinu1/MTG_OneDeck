@@ -118,6 +118,7 @@ type FakeOptions = Readonly<{
   readonly postPregameResyncProbes?: number;
   readonly postMutationHostLagProbes?: number;
   readonly postMutationTransportRevisionLagThenTimeout?: boolean;
+  readonly actorSelectionDelayMs?: number;
   readonly pregameResponseRejected?: boolean;
   readonly pregameResponseSurface?: 'missing-app' | 'missing-busy';
 }>;
@@ -170,6 +171,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let lobbyReadyProbes = 0;
     let detailsProbes = 0;
     let settlementTransportProbes = 0;
+    const delayedActorProbeMs = options.actorSelectionDelayMs ?? 0;
+    let delayedActorProbeGeneration = -1;
     let authoritativeRejoined = false;
     let recoveryRequested = false;
     const scenarioIndex = contextOrdinal >= 2 ? 1 : 0;
@@ -227,7 +230,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     let viewportHeight = 900;
     return {
     navigate: () => Promise.resolve(),
-    evaluate: <T>(expression: string, argument?: unknown): Promise<T> => {
+    evaluate: async <T>(expression: string, argument?: unknown): Promise<T> => {
       expressions.push(expression);
       const missingControl = options.missingControl ?? '__missing__';
       if (expression.includes(`data-testid="${missingControl}"`) && !(missingControl === 'open-online-mode' && expression.includes('savedDeckProbe'))) return Promise.reject(new Error('visible control missing'));
@@ -294,6 +297,20 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           options.priorityEnvironmentFailure === true
         )
           return Promise.reject(new Error('CDP command timeout'));
+        const actorSelectionProbe = expression.includes('priorityControlProbe:online-remote-advance')
+          || expression.includes('priorityControlProbe:online-remote-sba-stable');
+        const actorSelectionGeneration = progressActionCounts[scenarioIndex];
+        if (
+          actorSelectionProbe
+          && progressReceipts[scenarioIndex] === null
+          && (actorSelectionGeneration === 0 || actorSelectionGeneration === 1)
+          && delayedActorProbeGeneration !== actorSelectionGeneration
+          && delayedActorProbeMs > 0
+        ) {
+          const delayMs = delayedActorProbeMs;
+          delayedActorProbeGeneration = actorSelectionGeneration;
+          await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+        }
         if (expression.includes('priorityControlProbe:online-remote-hold')) {
           const enabledSeats =
             options.priorityHoldEnabledSeats ??
@@ -355,7 +372,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             ? sharedRevisions[scenarioIndex] - 1
             : actorControlRevision();
           const result = {
-            enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
+            enabled: progressWindows[scenarioIndex] === 'advance'
+              && advanceEnabledSeats.includes(seatIndex)
+              && !(options.stagnantPhase === true && progressActionCounts[scenarioIndex] >= 2),
             present: true,
             visible: true,
             revision: visibleProgressRevision,
@@ -377,7 +396,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             ...actorReadiness(),
           };
           if (progressSettlement && options.progressTransportStates !== undefined) {
-            options.progressTransportStates.push(`${String(result.outcome)}:${String(result.acceptedRevision)}:${String(result.revision)}:${String(result.playerPhase)}`);
+            options.progressTransportStates.push(`${String(result.outcome)}:${String(result.acceptedRevision)}:${String(result.revision)}:${String(result.playerPhase)}:${String(result.commandId)}`);
           }
           if (progressSettlement && result.playerPhase === 'open') progressReceipts[scenarioIndex] = null;
           return Promise.resolve(result as T);
@@ -389,7 +408,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             ? progressReceipts[scenarioIndex]
             : null;
           const result = {
-            enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
+            enabled: progressWindows[scenarioIndex] === 'sba'
+              && enabledSeats.includes(seatIndex)
+              && !(options.stagnantPhase === true && progressActionCounts[scenarioIndex] >= 2),
             present: true,
             visible: true,
             revision: actorControlRevision(),
@@ -413,6 +434,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             holds: [],
             ...actorReadiness(),
           };
+          if (progressReceipt !== null && options.progressTransportStates !== undefined) {
+            options.progressTransportStates.push(`${String(result.outcome)}:${String(result.acceptedRevision)}:${String(result.revision)}:${String(result.playerPhase)}:${String(result.commandId)}`);
+          }
           if (progressReceipt !== null && result.playerPhase === 'open') progressReceipts[scenarioIndex] = null;
           return Promise.resolve(result as T);
         }
@@ -1250,6 +1274,26 @@ describe('O4P-09I full-match production evidence', () => {
       stage: 'advance/two-player-main1/revision-ack-advance-unsettled-player-not-open',
     });
   });
+
+  it('refreshes the bounded progress window after late actor discovery', async () => {
+    const progressTransportStates: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], {
+        advanceEnabledSeat: 1,
+        actorSelectionDelayMs: 700,
+        progressAckBeforeProjection: true,
+        progressTransportStates,
+      }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 1_000,
+    });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
+    expect(progressTransportStates.length).toBeGreaterThan(2);
+    const receiptIds = progressTransportStates.map((state) => state.split(':')[4]).filter((id) => id !== undefined && id !== '');
+    expect(new Set(receiptIds).size).toBeGreaterThan(1);
+    expect(progressTransportStates.some((state) => state.split(':')[3] === 'resyncing')).toBe(true);
+    expect(progressTransportStates.some((state) => state.split(':')[3] === 'open')).toBe(true);
+  }, 15_000);
 
   it('rejects a new accepted receipt with an operation unrelated to the clicked control', async () => {
     await expect(runO4p09iFullMatchEvidenceV1({
