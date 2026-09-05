@@ -43,6 +43,10 @@ const PHASES = new Set(['inspect', 'local', 'live']);
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/u;
 const FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const FAILURE_STAGE_PATTERN = /^[a-z0-9][a-z0-9/-]{0,95}$/u;
+const CHILD_EXIT_STATUS_MAX = 255;
+const CHILD_SIGNAL_SET = new Set([
+  'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGABRT', 'SIGTERM', 'SIGKILL', 'SIGSEGV', 'SIGPIPE',
+]);
 // 7,680 bytes covers the largest legal 16-entry timeline envelope with the
 // allowlisted stage/counter/code values while remaining tightly bounded.
 const TRUSTED_FAILURE_MAX_BYTES = 7_680;
@@ -510,10 +514,10 @@ export function safeChildEnvironment(source = process.env) {
   return Object.freeze(environment);
 }
 
-function exitCode(result) {
-  if (typeof result.status === 'number') return result.status;
-  if (result.error !== undefined && result.error !== null) return 127;
-  if (result.signal !== undefined && result.signal !== null) return 128;
+function exitCode(snapshot) {
+  if (snapshot.exitStatus >= 0) return snapshot.exitStatus;
+  if (snapshot.errorPresent) return 127;
+  if (snapshot.signalPresent) return 128;
   return 1;
 }
 
@@ -544,6 +548,7 @@ function fixedFailure({
   environmentAttempt = 1,
   nextAction = nextActionFor(failureClass, environmentAttempt),
   transportTimeline,
+  childLifecycle,
 }) {
   const failure = {
     class: failureClass,
@@ -559,7 +564,70 @@ function fixedFailure({
       transportTimeline.map((entry) => Object.freeze({ ...entry })),
     );
   }
+  if (childLifecycle !== undefined) failure.childLifecycle = Object.freeze({ ...childLifecycle });
   return Object.freeze(failure);
+}
+
+function ownChildResultData(target, key) {
+  try {
+    if (target === null || (typeof target !== 'object' && typeof target !== 'function')) {
+      return { present: false, valid: true, value: undefined };
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(target, key);
+    if (descriptor === undefined) return { present: false, valid: true, value: undefined };
+    if (!('value' in descriptor) || descriptor.get !== undefined || descriptor.set !== undefined) {
+      return { present: true, valid: false, value: undefined };
+    }
+    return { present: true, valid: true, value: descriptor.value };
+  } catch {
+    return { present: true, valid: false, value: undefined };
+  }
+}
+
+function snapshotChildResult(result) {
+  const fallback = Object.freeze({
+    exitStatus: -1,
+    signal: null,
+    signalPresent: true,
+    errorPresent: true,
+    errorCode: null,
+  });
+  try {
+    if (result === null || typeof result !== 'object') return fallback;
+    const status = ownChildResultData(result, 'status');
+    const signal = ownChildResultData(result, 'signal');
+    const error = ownChildResultData(result, 'error');
+    const statusValue = status.value;
+    const signalPresent = signal.present && signal.value !== undefined && signal.value !== null;
+    const errorPresent = error.present && error.value !== undefined && error.value !== null;
+    let errorCode = null;
+    let nestedErrorValid = true;
+    if (errorPresent && (typeof error.value === 'object' || typeof error.value === 'function')) {
+      const nestedCode = ownChildResultData(error.value, 'code');
+      nestedErrorValid = nestedCode.valid;
+      if (typeof nestedCode.value === 'string') errorCode = nestedCode.value;
+    }
+    const descriptorFailure = !status.valid || !signal.valid || !error.valid || !nestedErrorValid;
+    return Object.freeze({
+      exitStatus: !descriptorFailure && Number.isInteger(statusValue) && statusValue >= 0 && statusValue <= CHILD_EXIT_STATUS_MAX
+        ? statusValue : -1,
+      signal: !descriptorFailure && typeof signal.value === 'string' && CHILD_SIGNAL_SET.has(signal.value)
+        ? signal.value : null,
+      signalPresent: descriptorFailure || signalPresent,
+      errorPresent: descriptorFailure || errorPresent,
+      errorCode: descriptorFailure ? null : errorCode,
+    });
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeChildLifecycle(snapshot) {
+  return Object.freeze({
+    launchErrored: snapshot.errorPresent,
+    exitStatus: snapshot.exitStatus,
+    signal: snapshot.signal,
+  });
 }
 
 function validateTrustedTransportTimeline(transportTimeline) {
@@ -672,33 +740,25 @@ function readTrustedFailure(path) {
   }
 }
 
-export function classifyStageFailure({
+function classifyStageFailureWithSnapshot({
   stage,
-  result,
+  resultSnapshot,
   invocation,
   environmentAttempt = 1,
   trustedFailure,
 }) {
   assertEnvironmentAttempt(environmentAttempt);
-  const childErrorCode =
-    result.error !== undefined &&
-    result.error !== null &&
-    typeof result.error === 'object' &&
-    'code' in result.error &&
-    typeof result.error.code === 'string'
-      ? result.error.code
-      : null;
+  const childErrorCode = resultSnapshot.errorCode;
   const spawnTimedOut = childErrorCode === 'ETIMEDOUT';
-  const spawnUnavailable =
-    result.error !== undefined && result.error !== null && !spawnTimedOut;
+  const spawnUnavailable = resultSnapshot.errorPresent && !spawnTimedOut;
   // sandbox-exec returning 71 means its own sandbox could not be applied. The
   // harness-owned shell wrapper remaps a child-stage exit 71 to 70, so this
   // reserved status cannot be spoofed by the test process.
   const sandboxApplicationFailed =
     invocation?.launcher === 'sandbox-exec' &&
-    result.status === 71 &&
+    resultSnapshot.exitStatus === 71 &&
     !spawnUnavailable &&
-    (result.signal === undefined || result.signal === null);
+    !resultSnapshot.signalPresent;
   let normalizedFailure;
   try {
     normalizedFailure = normalizeTrustedFailure(trustedFailure);
@@ -707,8 +767,10 @@ export function classifyStageFailure({
       failureClass: 'EVIDENCE',
       code: 'TRUSTED_FAILURE_INVALID',
       stage: stage.id,
-      evidence: [`stage:${stage.id}`, `exit:${exitCode(result)}`],
+      evidence: [`stage:${stage.id}`, `exit:${exitCode(resultSnapshot)}`],
       environmentAttempt,
+      childLifecycle: trustedFailure === null || trustedFailure === undefined
+        ? normalizeChildLifecycle(resultSnapshot) : undefined,
     });
   }
   const failureClass =
@@ -732,10 +794,18 @@ export function classifyStageFailure({
     stage: failedStage,
     evidence: [
       `stage:${stage.id}`,
-      spawnTimedOut ? `timeout-ms:${stage.timeoutMs}` : `exit:${exitCode(result)}`,
+      spawnTimedOut ? `timeout-ms:${stage.timeoutMs}` : `exit:${exitCode(resultSnapshot)}`,
     ],
     environmentAttempt,
     transportTimeline: normalizedFailure?.transportTimeline,
+    childLifecycle: normalizedFailure === null ? normalizeChildLifecycle(resultSnapshot) : undefined,
+  });
+}
+
+export function classifyStageFailure({ result, ...options }) {
+  return classifyStageFailureWithSnapshot({
+    ...options,
+    resultSnapshot: snapshotChildResult(result),
   });
 }
 
@@ -964,6 +1034,7 @@ export function runJourneyTurn({
     } finally {
       removeTemporaryDirectory(temporaryDirectory);
     }
+    const childResult = snapshotChildResult(result);
     const afterFingerprint = readCurrentFingerprint(currentFingerprint);
     if (afterFingerprint !== beforeFingerprint) {
       const failure =
@@ -989,13 +1060,13 @@ export function runJourneyTurn({
       });
     }
     if (
-      result.status !== 0 ||
-      (result.error !== undefined && result.error !== null) ||
-      (result.signal !== undefined && result.signal !== null)
+      childResult.exitStatus !== 0 ||
+      childResult.errorPresent ||
+      childResult.signalPresent
     ) {
-      const failure = classifyStageFailure({
+      const failure = classifyStageFailureWithSnapshot({
         stage,
-        result,
+        resultSnapshot: childResult,
         invocation,
         environmentAttempt,
         trustedFailure,
@@ -1030,6 +1101,7 @@ export function runJourneyPhase(options) {
       stage: first.failure.stage,
       evidence: first.failure.evidence,
       nextAction: 'STOP_FOR_ENVIRONMENT',
+      childLifecycle: first.failure.childLifecycle,
     });
     return Object.freeze({
       ...first,

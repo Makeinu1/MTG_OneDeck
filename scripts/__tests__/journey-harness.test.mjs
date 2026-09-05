@@ -367,6 +367,102 @@ describe('journey harness', () => {
     expect(JSON.stringify(timeout)).not.toContain('private timeout detail');
   });
 
+  test('reports bounded child lifecycle without raw process details', () => {
+    const exited = runJourneyTurn({
+      journey,
+      phase: 'live',
+      candidate,
+      allowExternalWrite: true,
+      expectedFingerprint: candidate.fingerprint,
+      currentFingerprint: () => candidate.fingerprint,
+      spawn: () => ({
+        status: 23,
+        signal: null,
+        error: null,
+        stdout: 'private stdout marker',
+        stderr: 'private stderr marker',
+      }),
+    });
+    expect(exited.failure).toMatchObject({
+      class: 'IMPLEMENTATION',
+      code: 'PRODUCTION_JOURNEY_FAILED',
+      stage: 'production-journey',
+      childLifecycle: { launchErrored: false, exitStatus: 23, signal: null },
+    });
+
+    const signaled = classifyStageFailure({
+      stage: liveStage,
+      result: {
+        status: null,
+        signal: 'SIGTERM',
+        error: { message: 'private launch detail', path: '/private/path' },
+        stdout: 'private stdout marker',
+        stderr: 'private stderr marker',
+      },
+    });
+    expect(signaled.childLifecycle).toEqual({ launchErrored: true, exitStatus: -1, signal: 'SIGTERM' });
+    const trusted = classifyStageFailure({
+      stage: liveStage,
+      result: { status: 1, signal: null, error: null },
+      trustedFailure: { class: 'ENVIRONMENT', code: 'RUNTIME_ENVIRONMENT_UNAVAILABLE', stage: 'setup' },
+    });
+    expect(trusted).not.toHaveProperty('childLifecycle');
+
+    const propagated = runJourneyPhase({
+      journey,
+      phase: 'live',
+      candidate,
+      allowExternalWrite: true,
+      expectedFingerprint: candidate.fingerprint,
+      currentFingerprint: () => candidate.fingerprint,
+      spawn: () => ({ status: null, signal: null, error: { code: 'EIO' } }),
+    });
+    expect(propagated.failure).toMatchObject({
+      class: 'ENVIRONMENT',
+      code: 'CHILD_PROCESS_UNAVAILABLE',
+      childLifecycle: { launchErrored: true, exitStatus: -1, signal: null },
+    });
+
+    const unknown = classifyStageFailure({
+      stage: liveStage,
+      result: {
+        status: 256,
+        signal: { name: 'SIGPRIVATE' },
+        error: Symbol('private error'),
+        stdout: 'private stdout marker',
+        stderr: 'private stderr marker',
+      },
+    });
+    expect(unknown.childLifecycle).toEqual({ launchErrored: true, exitStatus: -1, signal: null });
+    const throwingResult = { signal: null, error: null };
+    Object.defineProperty(throwingResult, 'status', {
+      enumerable: true,
+      get: () => { throw new Error('private result getter'); },
+    });
+    const throwing = classifyStageFailure({ stage: liveStage, result: throwingResult });
+    expect(throwing.childLifecycle).toEqual({ launchErrored: true, exitStatus: -1, signal: null });
+
+    const throwingErrorCode = {};
+    Object.defineProperty(throwingErrorCode, 'code', {
+      enumerable: true,
+      get: () => { throw new Error('private nested code getter'); },
+    });
+    const throwingNested = classifyStageFailure({
+      stage: liveStage,
+      result: { status: null, signal: null, error: throwingErrorCode },
+    });
+    const proxyError = new Proxy({}, {
+      getOwnPropertyDescriptor: () => { throw new Error('private nested proxy'); },
+    });
+    const throwingProxy = classifyStageFailure({
+      stage: liveStage,
+      result: { status: null, signal: null, error: proxyError },
+    });
+    for (const failure of [exited.failure, signaled, unknown, throwing, throwingNested, throwingProxy]) {
+      expect(JSON.stringify(failure)).not.toMatch(/private|SIGPRIVATE|stdout|stderr|path/iu);
+    }
+  });
+
   test('classifies sandbox-exec application failure without confusing a child exit 71', () => {
     const result = { status: 71, signal: null, error: null, stdout: '', stderr: 'spoofable text' };
     const invocation = stageInvocation(localStage, {
