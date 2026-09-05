@@ -202,7 +202,7 @@ describe('O4P-06 playable four-player roadmap registration', () => {
       domainIds: o4p09Ids,
     });
     expect(o4p09Ids).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09I-B');
+    expect(nextDomainId).toBe('O4P-09I-C');
     expect(() => execFileSync('git', ['diff', '--check'], { cwd: ROOT, encoding: 'utf8' })).not.toThrow();
   });
 

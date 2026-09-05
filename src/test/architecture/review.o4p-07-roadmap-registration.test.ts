@@ -119,7 +119,7 @@ describe('O4P-07 dynamic Online catalog roadmap registration', () => {
       domainIds: o4p09Ids,
     });
     expect(o4p09Ids).toContain(nextDomainId);
-    expect(nextDomainId).toBe('O4P-09I-B');
+    expect(nextDomainId).toBe('O4P-09I-C');
   });
 
   it('changes only Judge-owned registration and historical-gate files', () => {
