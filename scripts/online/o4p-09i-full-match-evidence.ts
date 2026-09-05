@@ -1324,6 +1324,14 @@ class O4p09iActorSelectionError extends Error {
   }
 }
 
+function actorSelectionTestId(windowKind: string): 'online-remote-advance' | 'online-remote-sba-stable' | null {
+  if (windowKind === 'sba-check-required') return 'online-remote-sba-stable';
+  if (['turn-based-action-required', 'priority', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(windowKind)) {
+    return 'online-remote-advance';
+  }
+  return null;
+}
+
 function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-remote-advance' | 'online-remote-sba-stable'; probe: O4p09iActorProbeV1 }>[]): O4p09iAdvanceFailureCheckpointV1 {
   if (probes.some(({ probe }) => probe.localPlayerId === undefined || probe.windowKind === undefined
     || probe.holderPlayerId === undefined || probe.stewardPlayerId === undefined || probe.holds === undefined)) return 'actor-selection-contract-metadata';
@@ -1333,10 +1341,7 @@ function actorSelectionCheckpoint(probes: readonly Readonly<{ testId: 'online-re
   const windowKind = probes[0]?.probe.windowKind ?? '';
   const authority = windowKind === 'priority' ? probes[0]?.probe.holderPlayerId : probes[0]?.probe.stewardPlayerId;
   if (authority === null || authority === undefined) return 'actor-selection-authority';
-  const testId = windowKind === 'sba-check-required' ? 'online-remote-sba-stable'
-    : ['turn-based-action-required', 'priority', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready'].includes(windowKind)
-      ? 'online-remote-advance'
-      : null;
+  const testId = actorSelectionTestId(windowKind);
   if (testId === null) return 'actor-selection-window';
   const expected = probes.filter(({ testId: candidate, probe }) => candidate === testId && probe.localPlayerId === authority);
   if (expected.length !== 1) return 'actor-selection-authority';
@@ -1437,12 +1442,34 @@ async function findProgressActorPage(
       const sample = probes.find((candidate) => candidate.page === page);
       return sample === undefined ? [] : [{ page, probe: sample.probe }];
     }));
-    const revisions = new Set(probes.map(({ probe }) => probe.revision));
-    if (probes.length !== pages.length * testIds.length || revisions.size !== 1 || !safeRevision(probes[0]?.probe.revision ?? 0)) {
+    const revisionsAreValid = probes.every(({ probe }) => safeRevision(probe.revision));
+    if (probes.length !== pages.length * testIds.length || !revisionsAreValid) {
       await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 25));
       continue;
     }
-    const enabled = probes.filter(({ probe }) => probe.enabled);
+    const enabled = probes.filter(({ testId, probe }) => {
+      const windowKind = probe.windowKind;
+      const expectedTestId = typeof windowKind === 'string' ? actorSelectionTestId(windowKind) : null;
+      const authority = windowKind === 'priority' ? probe.holderPlayerId : probe.stewardPlayerId;
+      const metadataComplete = typeof probe.localPlayerId === 'string' && probe.localPlayerId.length > 0
+        && typeof probe.stewardPlayerId === 'string' && probe.stewardPlayerId.length > 0
+        && (windowKind !== 'priority' || (typeof probe.holderPlayerId === 'string' && probe.holderPlayerId.length > 0))
+        && Array.isArray(probe.holds) && probe.holds.every((hold) => typeof hold === 'string');
+      return probe.enabled
+        && metadataComplete
+        && expectedTestId === testId
+        && probe.localPlayerId === authority
+        && probe.holds?.length === 0
+        && probe.present === true
+        && probe.visible === true
+        && probe.playerPhase === 'open'
+        && probe.pendingCount === 0
+        && safeRevision(probe.knownRevision)
+        && safeRevision(probe.projectionRevision)
+        && probe.knownRevision === probe.projectionRevision
+        && probe.projectionRevision === probe.revision
+        && (probe.appBusy === undefined || probe.appBusy === '');
+    });
     if (enabled.length > 1) throw new O4p09iActorSelectionError('actor-selection-ambiguous');
     const selected = enabled[0];
     if (selected !== undefined) return { page: selected.page, testId: selected.testId, revision: selected.probe.revision, settlementCommandId: selected.probe.commandId ?? '' };

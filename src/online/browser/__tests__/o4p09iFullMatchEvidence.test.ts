@@ -75,6 +75,7 @@ type FakeOptions = Readonly<{
   readonly manualStackEnabledProbeNeverSettles?: boolean;
   readonly advanceEnabledSeat?: number;
   readonly advanceEnabledSeats?: readonly number[];
+  readonly advanceAuthoritySeat?: number;
   readonly sbaEnabledSeats?: readonly number[];
   readonly progressRejected?: boolean;
   readonly actorRevisionOffsetSeat?: number;
@@ -99,6 +100,7 @@ type FakeOptions = Readonly<{
   readonly lobbyReadyProbe?: 'delayed' | 'never';
   readonly progressStuckAfterClick?: boolean;
   readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
+  readonly actorResyncSeat?: number;
   readonly transportSurfaceMissing?: boolean;
   readonly actorWindowDivergentSeat?: number;
   readonly postPregameResyncProbes?: number;
@@ -150,10 +152,14 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
     ];
     const manualResolveEnabledSeats = options.manualResolveEnabledSeats ?? manualStackEnabledSeats;
     const advanceEnabledSeats = options.advanceEnabledSeats ?? [options.advanceEnabledSeat ?? 0];
+    let resyncActivated = false;
+    const actorResyncActive = (): boolean => resyncActivated && progressCompletions[scenarioIndex] === 0;
     const actorControlRevision = (): number =>
       options.actorRevisionUnsafeSeat === seatIndex
         ? Number.NaN
-        : sharedRevisions[scenarioIndex] + (options.actorRevisionOffsetSeat === seatIndex ? 1 : 0);
+        : sharedRevisions[scenarioIndex]
+          + (options.actorRevisionOffsetSeat === seatIndex ? 1 : 0)
+          - (actorResyncActive() ? 1 : 0);
     const priorityControlRevision = (): number =>
       options.priorityActorRevisionUnsafeSeat === seatIndex
         ? Number.NaN
@@ -162,17 +168,20 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       const transientPregameResync = seatIndex === 1
         && pregameStates[scenarioIndex].phaseIndex >= pregameControls.length
         && postPregameResyncProbeCounts[scenarioIndex]++ < (options.postPregameResyncProbes ?? 0);
-      return ({
-      playerPhase: options.actorReadinessBlock === 'not-open' || transientPregameResync ? 'resyncing' : 'open',
-      pendingCount: options.actorReadinessBlock === 'pending' || (options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0) ? 1 : 0,
-      knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' ? 1 : 0),
-      projectionRevision: actorControlRevision(),
-      appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
-      projectionRequestsSent: 1,
-      projectionFramesReceived: options.actorReadinessBlock === 'not-open' ? 0 : 1,
-      projectionFramesAccepted: options.actorReadinessBlock === 'not-open' ? 0 : 1,
-      projectionFramesRejected: 0,
-    });
+      const persistentResync = actorResyncActive();
+      const result = ({
+        playerPhase: options.actorReadinessBlock === 'not-open' || transientPregameResync || persistentResync ? 'resyncing' : 'open',
+        pendingCount: options.actorReadinessBlock === 'pending' || (options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0) ? 1 : 0,
+        knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' || persistentResync ? 1 : 0),
+        projectionRevision: actorControlRevision(),
+        appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
+        projectionRequestsSent: 1,
+        projectionFramesReceived: options.actorReadinessBlock === 'not-open' || persistentResync ? 0 : 1,
+        projectionFramesAccepted: options.actorReadinessBlock === 'not-open' || persistentResync ? 0 : 1,
+        projectionFramesRejected: 0,
+      });
+      if (options.actorResyncSeat === seatIndex && postPregameResyncProbeCounts[scenarioIndex] >= 1) resyncActivated = true;
+      return result;
     };
     let viewportWidth = 1440;
     let viewportHeight = 900;
@@ -284,7 +293,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             : Promise.resolve(transport);
         }
         if (expression.includes('priorityControlProbe:online-remote-advance')) {
-          const authoritySeat = advanceEnabledSeats[0] ?? 0;
+          const authoritySeat = options.advanceAuthoritySeat ?? advanceEnabledSeats[0] ?? 0;
           return Promise.resolve({
             enabled: progressWindows[scenarioIndex] === 'advance' && advanceEnabledSeats.includes(seatIndex),
             present: true,
@@ -298,7 +307,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0 ? 'CLIENT_INVALID_FRAME' : '',
             commandId: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-settlement' : '',
             localPlayerId: `P${String(seatIndex + 1)}`,
-            holderPlayerId: null,
+            holderPlayerId: options.actorWindowDivergentSeat === seatIndex ? `P${String(seatIndex + 1)}` : null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
             windowKind: options.actorWindowDivergentSeat === seatIndex ? 'priority' : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
             holds: [],
@@ -307,7 +316,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         }
         if (expression.includes('priorityControlProbe:online-remote-sba-stable')) {
           const enabledSeats = options.sbaEnabledSeats ?? advanceEnabledSeats;
-          const authoritySeat = advanceEnabledSeats[0] ?? 0;
+          const authoritySeat = options.advanceAuthoritySeat ?? advanceEnabledSeats[0] ?? 0;
           return Promise.resolve({
             enabled: progressWindows[scenarioIndex] === 'sba' && enabledSeats.includes(seatIndex),
             present: true,
@@ -321,7 +330,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             issueCode: options.progressRejected === true ? 'CLIENT_SERVER_INTERNAL_ERROR' : options.progressStuckAfterClick === true && progressActionCounts[scenarioIndex] > 0 ? 'CLIENT_INVALID_FRAME' : '',
             commandId: options.progressRejected === true && progressActionCounts[scenarioIndex] > 0 ? 'progress-settlement' : '',
             localPlayerId: `P${String(seatIndex + 1)}`,
-            holderPlayerId: null,
+            holderPlayerId: options.actorWindowDivergentSeat === seatIndex ? `P${String(seatIndex + 1)}` : null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
             windowKind: options.actorWindowDivergentSeat === seatIndex ? 'priority' : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : 'turn-based-action-required',
             holds: [],
@@ -1030,11 +1039,37 @@ describe('O4P-09I full-match production evidence', () => {
   it('fails closed when more than one seat exposes the advance actor control', async () => {
     await expect(
       runO4p09iFullMatchEvidenceV1({
-        browser: fakeBrowser([], { advanceEnabledSeats: [0, 1] }),
+        browser: fakeBrowser([], { advanceEnabledSeats: [0, 1], actorWindowDivergentSeat: 1 }),
         readDeck: () => 'fixture deck',
         timeoutMs: 250
       })
     ).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-ambiguous');
+  });
+
+  it('selects the converged authority while a stale peer is resyncing', async () => {
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { advanceEnabledSeat: 0, actorResyncSeat: 1 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
+    const firstProgressClick = expressions.findIndex((expression) =>
+      expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')
+    );
+    expect(firstProgressClick).toBeGreaterThanOrEqual(0);
+  });
+
+  it('rejects a locally-ready progress control when its seat is not the authority', async () => {
+    const expressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { advanceEnabledSeats: [1], advanceAuthoritySeat: 0 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-disabled');
+    expect(expressions.some((expression) =>
+      expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')
+    )).toBe(false);
   });
 
   it('classifies a rejected visible progress operation without exposing its error', async () => {
