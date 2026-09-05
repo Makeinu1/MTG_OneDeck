@@ -17,6 +17,7 @@ import type { OnlineVisibilityIntentEnvelopeV1 } from '../visibilityDecisions/ty
 export const ONLINE_BROWSER_CLIENT_SCHEMA_VERSION_V1 = 1 as const;
 export const ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1 = 64 as const;
 export const ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1 = 255 as const;
+export const ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1 = 15_000 as const;
 export const ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1 = Object.freeze([
   250,
   500,

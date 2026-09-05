@@ -94,7 +94,7 @@ function command(sequence: number): Core.CoreCommandV1 {
   });
 }
 
-function harness() {
+function harness(options: Readonly<{ readonly cancelScheduleThrows?: boolean }> = {}) {
   const sockets: TestSocket[] = [];
   const scheduled: Array<Readonly<{ readonly delayMs: number; readonly task: () => void }>> = [];
   const client = Browser.createOnlineBrowserWebSocketClientV1({
@@ -110,10 +110,15 @@ function harness() {
       return socket;
     },
     schedule: (delayMs, task) => {
-      scheduled.push({ delayMs, task });
-      return scheduled.length;
+      const entry = { delayMs, task };
+      scheduled.push(entry);
+      return entry;
     },
-    cancelSchedule: () => undefined,
+    cancelSchedule: (handle) => {
+      if (options.cancelScheduleThrows === true) throw new Error('schedule cancellation failure');
+      const index = scheduled.indexOf(handle as (typeof scheduled)[number]);
+      if (index >= 0) scheduled.splice(index, 1);
+    },
   });
   return { client, sockets, scheduled };
 }
@@ -489,6 +494,45 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(client.getSnapshot().phase).toBe('open');
     expect(client.submit(rejectIntent)).toEqual({ ok: true });
     expect(client.submit({ ...rejectIntent, command: command(77) })).toEqual({ ok: false, code: 'COMMAND_ID_REUSE' });
+  });
+
+  it('recovers from a dropped projection response and fences canceled deadlines', () => {
+    const dropped = harness();
+    dropped.client.connect();
+    const first = dropped.sockets[0];
+    if (first === undefined) throw new Error('Missing first dropped-response socket');
+    openClient(dropped.client, first);
+    const deadlineIndex = dropped.scheduled.length;
+    first.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 1 });
+    expect(dropped.client.getSnapshot()).toMatchObject({ phase: 'resyncing', projectionRequestsSent: 2 });
+    expect(dropped.scheduled[deadlineIndex]?.delayMs).toBe(Browser.ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1);
+    dropped.scheduled[deadlineIndex]?.task();
+    expect(dropped.client.getSnapshot()).toMatchObject({ phase: 'recovering', issueCode: 'SOCKET_ERROR', recoveryAttempt: 1 });
+    expect(first.closeCount).toBe(1);
+    const recoveryIndex = dropped.scheduled.length - 1;
+    dropped.scheduled[recoveryIndex]?.task();
+    const second = dropped.sockets[1];
+    if (second === undefined) throw new Error('Missing recovered projection socket');
+    second.open();
+    second.frame({ kind: 'online-cloudflare-websocket-ready-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 1, transport: 'hibernation', authenticationRequired: true });
+    second.frame({ kind: 'online-server-hello-v1', protocolVersion: 1, revision: 1, serverBuildId: 'server-build-06d', status: 'accepted', roomId: ROOM_ID, participantId: PARTICIPANT_ID, role: 'player', clientBuildIdMatch: true, issues: [] });
+    second.frame({ ...projectionResponseAt(1), reason: 'rejoined' });
+    expect(dropped.client.getSnapshot()).toMatchObject({ phase: 'open', knownRevision: 1, recoveryOutcome: 'rejoined' });
+
+    const timely = harness({ cancelScheduleThrows: true });
+    timely.client.connect();
+    const timelySocket = timely.sockets[0];
+    if (timelySocket === undefined) throw new Error('Missing timely-response socket');
+    openClient(timely.client, timelySocket);
+    const timelyDeadlineIndex = timely.scheduled.length;
+    timelySocket.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 1 });
+    const timelyDeadline = timely.scheduled[timelyDeadlineIndex];
+    expect(timelyDeadline?.delayMs).toBe(Browser.ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1);
+    timelySocket.frame(projectionResponseAt(1));
+    expect(timely.client.getSnapshot()).toMatchObject({ phase: 'open', knownRevision: 1, recoveryAttempt: 0 });
+    timelyDeadline?.task();
+    expect(timely.client.getSnapshot()).toMatchObject({ phase: 'open', recoveryAttempt: 0 });
+    expect(timely.sockets).toHaveLength(1);
   });
 
   it('records bounded projection send, receipt, acceptance, and rejection counters', () => {

@@ -52,10 +52,14 @@ function harness() {
       return socket;
     },
     schedule: (delayMs, task) => {
-      scheduled.push({ delayMs, task });
-      return scheduled.length;
+      const entry = { delayMs, task };
+      scheduled.push(entry);
+      return entry;
     },
-    cancelSchedule: () => undefined,
+    cancelSchedule: (handle) => {
+      const index = scheduled.indexOf(handle as (typeof scheduled)[number]);
+      if (index >= 0) scheduled.splice(index, 1);
+    },
   });
   return { client, sockets, scheduled };
 }

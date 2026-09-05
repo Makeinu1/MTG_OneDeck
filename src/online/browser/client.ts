@@ -30,6 +30,7 @@ import type { OnlineBrowserVisibilityIntentV1 } from './types';
 import {
   ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1,
   ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
+  ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1,
   ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1,
 } from './types';
 
@@ -462,6 +463,8 @@ export function createOnlineBrowserWebSocketClientV1(
   let currentSocket: SocketEpochV1 | null = null;
   let scheduledRecovery: OnlineBrowserScheduleHandleV1 | null = null;
   let scheduleGeneration = 0;
+  let projectionResponseDeadline: OnlineBrowserScheduleHandleV1 | null = null;
+  let projectionResponseDeadlineGeneration = 0;
   let projectionRequestSent = false;
   let requestedProjectionRevision = -1;
   let lastProjectedRevision = -1;
@@ -525,8 +528,33 @@ export function createOnlineBrowserWebSocketClientV1(
   const current = (socket: OnlineBrowserSocketV1, epoch: number): boolean =>
     currentSocket !== null && currentSocket.socket === socket && currentSocket.epoch === epoch;
 
+  const cancelProjectionResponseDeadline = (): void => {
+    projectionResponseDeadlineGeneration += 1;
+    if (projectionResponseDeadline !== null) {
+      try { config.cancelSchedule(projectionResponseDeadline); } catch { /* Cancellation is best effort. */ }
+      projectionResponseDeadline = null;
+    }
+  };
+
+  const scheduleProjectionResponseDeadline = (socket: OnlineBrowserSocketV1, epoch: number): void => {
+    cancelProjectionResponseDeadline();
+    const generation = projectionResponseDeadlineGeneration;
+    try {
+      projectionResponseDeadline = config.schedule(ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1, () => {
+        if (generation !== projectionResponseDeadlineGeneration) return;
+        projectionResponseDeadline = null;
+        if (!current(socket, epoch) || !projectionRequestSent || phase !== 'resyncing') return;
+        beginRecovery(socket, epoch, 'SOCKET_ERROR');
+      });
+    } catch {
+      projectionResponseDeadline = null;
+      beginRecovery(socket, epoch, 'SOCKET_ERROR');
+    }
+  };
+
   const failConnection = (socket: OnlineBrowserSocketV1, epoch: number, code: OnlineBrowserIssueCodeV1): void => {
     if (!current(socket, epoch)) return;
+    cancelProjectionResponseDeadline();
     currentSocket = null;
     phase = 'failed';
     issueCode = code;
@@ -649,6 +677,7 @@ export function createOnlineBrowserWebSocketClientV1(
 
   const beginRecovery = (socket: OnlineBrowserSocketV1, epoch: number, reason: OnlineBrowserIssueCodeV1 | null): void => {
     if (!current(socket, epoch) || phase === 'closed' || phase === 'failed') return;
+    cancelProjectionResponseDeadline();
     currentSocket = null;
     if (reason !== 'SOCKET_CLOSED') closeSocket(socket);
     scheduleRecovery(reason);
@@ -679,6 +708,9 @@ export function createOnlineBrowserWebSocketClientV1(
       ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
     );
     publish();
+    if (projectionRequestSent && current(socket, epoch) && phase === 'resyncing') {
+      scheduleProjectionResponseDeadline(socket, epoch);
+    }
   };
 
   const countProjectionFrameRejected = (): void => {
@@ -734,6 +766,7 @@ export function createOnlineBrowserWebSocketClientV1(
               ? 'CONTROLLER_LEASE_REQUIRED'
               : 'SOCKET_ERROR';
       phase = 'failed';
+      cancelProjectionResponseDeadline();
       const active = currentSocket;
       currentSocket = null;
       if (active !== null) closeSocket(active.socket);
@@ -779,6 +812,7 @@ export function createOnlineBrowserWebSocketClientV1(
       if (!isAccepted) {
         issueCode = issueCodeFrom(issues, false) ?? 'AUTHENTICATION_REJECTED';
         phase = 'failed';
+        cancelProjectionResponseDeadline();
         const active = currentSocket;
         currentSocket = null;
         if (active !== null) closeSocket(active.socket);
@@ -814,6 +848,7 @@ export function createOnlineBrowserWebSocketClientV1(
         countProjectionFrameRejected();
         issueCode = issueCodeFrom(issues, true) ?? 'PROJECTION_REJECTED';
         phase = 'failed';
+        cancelProjectionResponseDeadline();
         const active = currentSocket;
         currentSocket = null;
         if (active !== null) closeSocket(active.socket);
@@ -835,6 +870,7 @@ export function createOnlineBrowserWebSocketClientV1(
       }
       if (revision < knownRevision) {
         if (projectionRequestSent && requestedProjectionRevision < knownRevision) {
+          cancelProjectionResponseDeadline();
           projectionRequestSent = false;
           handleProjectionRequest(socket, epoch);
         }
@@ -849,6 +885,7 @@ export function createOnlineBrowserWebSocketClientV1(
       knownRevision = revision;
       projection = accepted;
       lastProjectedRevision = revision;
+      cancelProjectionResponseDeadline();
       projectionRequestSent = false;
       requestedProjectionRevision = -1;
       recoveryAttempt = 0;
@@ -924,6 +961,7 @@ export function createOnlineBrowserWebSocketClientV1(
     const epoch = connectionEpoch;
     phase = 'connecting';
     recoveryOutcome = null;
+    cancelProjectionResponseDeadline();
     projectionRequestSent = false;
     currentReadyRevision = null;
     publish();
@@ -965,6 +1003,7 @@ export function createOnlineBrowserWebSocketClientV1(
     if (phase === 'connecting' || phase === 'awaiting-ready' || phase === 'authenticating'
       || phase === 'resyncing' || phase === 'open') return;
     cancelRecovery();
+    cancelProjectionResponseDeadline();
     if (currentSocket !== null) {
       const previous = currentSocket.socket;
       currentSocket = null;
@@ -978,6 +1017,7 @@ export function createOnlineBrowserWebSocketClientV1(
 
   const disconnect = (): void => {
     cancelRecovery();
+    cancelProjectionResponseDeadline();
     if (currentSocket !== null) {
       const previous = currentSocket.socket;
       currentSocket = null;
