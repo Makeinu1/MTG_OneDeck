@@ -43,10 +43,11 @@ const PHASES = new Set(['inspect', 'local', 'live']);
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/u;
 const FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const FAILURE_STAGE_PATTERN = /^[a-z0-9][a-z0-9/-]{0,95}$/u;
-// 6 KiB covers the largest legal 16-entry timeline envelope with the
+// 7,680 bytes covers the largest legal 16-entry timeline envelope with the
 // allowlisted stage/counter/code values while remaining tightly bounded.
-const TRUSTED_FAILURE_MAX_BYTES = 6_144;
+const TRUSTED_FAILURE_MAX_BYTES = 7_680;
 const TRANSPORT_TIMELINE_MAX_ENTRIES = 16;
+const TRANSPORT_TIMELINE_DIAGNOSTIC_COUNT_MAX = 255;
 const TRANSPORT_TIMELINE_ADVANCE_OPERATIONS = Object.freeze([
   'two-player-shared-mutation',
   'two-player-main1',
@@ -581,6 +582,10 @@ function validateTrustedTransportTimeline(transportTimeline) {
     'connectionEpoch',
     'recoveryAttempt',
     'issueCode',
+    'projectionRequestsSent',
+    'projectionFramesReceived',
+    'projectionFramesAccepted',
+    'projectionFramesRejected',
   ];
   for (const entry of transportTimeline) {
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -599,9 +604,19 @@ function validateTrustedTransportTimeline(transportTimeline) {
     if (entry.phase !== null && !TRANSPORT_TIMELINE_PHASES.has(entry.phase)) {
       throw new Error('trusted failure transport timeline phase is invalid');
     }
-    for (const key of ['pendingCount', 'knownRevision', 'projectionRevision', 'connectionEpoch', 'recoveryAttempt']) {
+    for (const key of [
+      'pendingCount', 'knownRevision', 'projectionRevision', 'connectionEpoch', 'recoveryAttempt',
+      'projectionRequestsSent', 'projectionFramesReceived', 'projectionFramesAccepted', 'projectionFramesRejected',
+    ]) {
       if (!Number.isSafeInteger(entry[key]) || entry[key] < -1) {
         throw new Error('trusted failure transport timeline counter is invalid');
+      }
+    }
+    for (const key of [
+      'projectionRequestsSent', 'projectionFramesReceived', 'projectionFramesAccepted', 'projectionFramesRejected',
+    ]) {
+      if (entry[key] > TRANSPORT_TIMELINE_DIAGNOSTIC_COUNT_MAX) {
+        throw new Error('trusted failure transport timeline diagnostic counter is invalid');
       }
     }
     if (typeof entry.onlineBusy !== 'boolean') {

@@ -195,6 +195,13 @@ export function PublicOnlineApp({
       data-player-pending-count={playerBrowser?.pendingCommands.length ?? 0}
       data-player-known-revision={playerBrowser?.knownRevision ?? ''}
       data-player-projection-revision={playerBrowser?.projection?.revision ?? ''}
+      data-player-connection-epoch={playerBrowser?.connectionEpoch ?? ''}
+      data-player-recovery-attempt={playerBrowser?.recoveryAttempt ?? ''}
+      data-player-issue-code={playerBrowser?.issueCode ?? ''}
+      data-player-projection-requests-sent={playerBrowser?.projectionRequestsSent ?? 0}
+      data-player-projection-frames-received={playerBrowser?.projectionFramesReceived ?? 0}
+      data-player-projection-frames-accepted={playerBrowser?.projectionFramesAccepted ?? 0}
+      data-player-projection-frames-rejected={playerBrowser?.projectionFramesRejected ?? 0}
       data-online-busy={snapshot.busy ?? ''}
     >
       <header className="public-online-app__header">

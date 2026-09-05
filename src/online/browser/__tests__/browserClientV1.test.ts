@@ -491,6 +491,84 @@ describe('O4P-06D ordinary browser client coverage', () => {
     expect(client.submit({ ...rejectIntent, command: command(77) })).toEqual({ ok: false, code: 'COMMAND_ID_REUSE' });
   });
 
+  it('records bounded projection send, receipt, acceptance, and rejection counters', () => {
+    const { client, sockets } = harness();
+    client.connect();
+    const socket = sockets[0];
+    if (socket === undefined) throw new Error('Missing socket');
+    openClient(client, socket);
+    expect(client.getSnapshot()).toMatchObject({
+      projectionRequestsSent: 1,
+      projectionFramesReceived: 1,
+      projectionFramesAccepted: 1,
+      projectionFramesRejected: 0,
+    });
+
+    socket.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 1 });
+    expect(client.getSnapshot().projectionRequestsSent).toBe(2);
+    const invalid = projectionResponseAt(1);
+    socket.frame({ ...invalid, serverBuildId: 'different-server-build' });
+    expect(client.getSnapshot()).toMatchObject({
+      projectionRequestsSent: 2,
+      projectionFramesReceived: 2,
+      projectionFramesAccepted: 1,
+      projectionFramesRejected: 1,
+      issueCode: 'INVALID_FRAME',
+    });
+    socket.frame(invalid);
+    expect(client.getSnapshot()).toMatchObject({
+      projectionFramesReceived: 3,
+      projectionFramesAccepted: 2,
+      projectionFramesRejected: 1,
+      phase: 'open',
+    });
+    expect(JSON.stringify(client.getSnapshot())).not.toContain(CAPABILITY);
+
+    const response = projectionResponseAt(1);
+    for (let revision = 2; revision <= 256; revision += 1) {
+      socket.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision });
+      socket.frame({
+        ...response,
+        revision,
+        knownRevision: revision,
+        projection: { ...response.projection, revision },
+      });
+    }
+    expect(client.getSnapshot()).toMatchObject({
+      projectionRequestsSent: 255,
+      projectionFramesReceived: 255,
+      projectionFramesAccepted: 255,
+      projectionFramesRejected: 1,
+    });
+
+    const rejectedHarness = harness();
+    rejectedHarness.client.connect();
+    const rejectedSocket = rejectedHarness.sockets[0];
+    if (rejectedSocket === undefined) throw new Error('Missing rejected projection socket');
+    openClient(rejectedHarness.client, rejectedSocket);
+    rejectedSocket.frame({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: ROOM_ID, revision: 1 });
+    const rejectedResponse = projectionResponseAt(1);
+    rejectedSocket.frame({
+      ...rejectedResponse,
+      status: 'rejected',
+      roomId: null,
+      participantId: null,
+      role: null,
+      knownRevision: null,
+      clientBuildIdMatch: null,
+      reason: null,
+      projection: null,
+      issues: [{ code: 'PROJECTION_REJECTED', path: '/', message: 'rejected' }],
+    });
+    expect(rejectedHarness.client.getSnapshot()).toMatchObject({
+      projectionFramesReceived: 2,
+      projectionFramesAccepted: 1,
+      projectionFramesRejected: 1,
+      phase: 'failed',
+      issueCode: 'PROJECTION_REJECTED',
+    });
+  });
+
   it('fails closed on revision regressions and accepts nondecreasing handshake revisions', () => {
     const initial = harness();
     initial.client.connect();

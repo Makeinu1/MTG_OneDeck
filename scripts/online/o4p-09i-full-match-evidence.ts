@@ -47,6 +47,10 @@ export type O4p09iTransportTimelineEntryV1 = Readonly<{
   readonly connectionEpoch: number;
   readonly recoveryAttempt: number;
   readonly issueCode: string | null;
+  readonly projectionRequestsSent: number;
+  readonly projectionFramesReceived: number;
+  readonly projectionFramesAccepted: number;
+  readonly projectionFramesRejected: number;
 }>;
 
 export type O4p09iProductionFailureV1 = Readonly<{
@@ -73,6 +77,7 @@ const TRANSPORT_ISSUE_CODES_V1 = new Set<string>([
 ]);
 
 const O4P09I_FAILURE_TIMELINE_V1 = new WeakMap<object, readonly O4p09iTransportTimelineEntryV1[]>();
+const O4P09I_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1 = 255;
 
 function rememberO4p09iFailureTimelineV1(
   error: Error,
@@ -1108,12 +1113,21 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly appBusy?: string;
   readonly connectionEpoch?: number;
   readonly recoveryAttempt?: number;
+  readonly projectionRequestsSent: number;
+  readonly projectionFramesReceived: number;
+  readonly projectionFramesAccepted: number;
+  readonly projectionFramesRejected: number;
 }>;
 
 type O4p09iTransportProbeV1 = Omit<Pick<O4p09iActorProbeV1,
   'revision' | 'playerPhase' | 'pendingCount' | 'knownRevision' | 'projectionRevision' | 'appBusy'
-  | 'connectionEpoch' | 'recoveryAttempt' | 'issueCode'>, 'issueCode'> & Readonly<{
+  | 'connectionEpoch' | 'recoveryAttempt' | 'issueCode'
+  | 'projectionRequestsSent' | 'projectionFramesReceived' | 'projectionFramesAccepted' | 'projectionFramesRejected'>, 'issueCode'> & Readonly<{
     readonly issueCode: string | null;
+    readonly projectionRequestsSent: number;
+    readonly projectionFramesReceived: number;
+    readonly projectionFramesAccepted: number;
+    readonly projectionFramesRejected: number;
   }>;
 
 async function settlementTransportProbe(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iTransportProbeV1> {
@@ -1132,6 +1146,10 @@ async function settlementTransportProbe(page: O4p09iPageV1, timeoutMs: number): 
         connectionEpoch: Number(app?.getAttribute('data-player-connection-epoch') ?? '-1'),
         recoveryAttempt: Number(app?.getAttribute('data-player-recovery-attempt') ?? '-1'),
         issueCode: app?.getAttribute('data-player-issue-code') ?? null,
+        projectionRequestsSent: Number(app?.getAttribute('data-player-projection-requests-sent') ?? '-1'),
+        projectionFramesReceived: Number(app?.getAttribute('data-player-projection-frames-received') ?? '-1'),
+        projectionFramesAccepted: Number(app?.getAttribute('data-player-projection-frames-accepted') ?? '-1'),
+        projectionFramesRejected: Number(app?.getAttribute('data-player-projection-frames-rejected') ?? '-1'),
       };
     })()`),
     new Promise<never>((_resolve, reject) =>
@@ -1146,7 +1164,20 @@ async function actorControlProbe(
   timeoutMs: number,
   timeoutMessage: string
 ): Promise<O4p09iActorProbeV1> {
-  if (timeoutMs <= 0) return { enabled: false, revision: 0, holdState: 'invalid', outcome: 'none', acceptedRevision: null, errorVisible: false, operation: '', issueCode: '' };
+  if (timeoutMs <= 0) return {
+    enabled: false,
+    revision: 0,
+    holdState: 'invalid',
+    outcome: 'none',
+    acceptedRevision: null,
+    errorVisible: false,
+    operation: '',
+    issueCode: '',
+    projectionRequestsSent: -1,
+    projectionFramesReceived: -1,
+    projectionFramesAccepted: -1,
+    projectionFramesRejected: -1,
+  };
   return Promise.race([
     page.evaluate<O4p09iActorProbeV1>(`(() => { // priorityControlProbe:${testId}
       const node = document.querySelector('[data-testid="${testId}"]');
@@ -1183,6 +1214,10 @@ async function actorControlProbe(
       const appBusy = app?.getAttribute('data-online-busy') ?? '';
       const connectionEpoch = Number(app?.getAttribute('data-player-connection-epoch') ?? '-1');
       const recoveryAttempt = Number(app?.getAttribute('data-player-recovery-attempt') ?? '-1');
+      const projectionRequestsSent = Number(app?.getAttribute('data-player-projection-requests-sent') ?? '-1');
+      const projectionFramesReceived = Number(app?.getAttribute('data-player-projection-frames-received') ?? '-1');
+      const projectionFramesAccepted = Number(app?.getAttribute('data-player-projection-frames-accepted') ?? '-1');
+      const projectionFramesRejected = Number(app?.getAttribute('data-player-projection-frames-rejected') ?? '-1');
       const holdState = (() => {
         if (${JSON.stringify(testId)} !== 'online-remote-hold') return 'not-applicable';
         const pressed = node instanceof HTMLButtonElement ? node.getAttribute('aria-pressed') : null;
@@ -1192,10 +1227,10 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt, projectionRequestsSent, projectionFramesReceived, projectionFramesAccepted, projectionFramesRejected };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
       const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
-      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt };
+      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt, projectionRequestsSent, projectionFramesReceived, projectionFramesAccepted, projectionFramesRejected };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
@@ -1215,6 +1250,11 @@ type O4p09iTransportTimelineRecorderV1 = (
 
 function safeTransportCounterV1(value: unknown): number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : -1;
+}
+
+function safeTransportDiagnosticCounterV1(value: unknown): number {
+  const counter = safeTransportCounterV1(value);
+  return counter >= 0 && counter <= O4P09I_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1 ? counter : -1;
 }
 
 function transportPhaseV1(value: unknown): O4p09iTransportTimelineEntryV1['phase'] {
@@ -1249,6 +1289,10 @@ function appendO4p09iTransportTimelineV1(
       connectionEpoch: safeTransportCounterV1(probe.connectionEpoch),
       recoveryAttempt: safeTransportCounterV1(probe.recoveryAttempt),
       issueCode: transportIssueCodeV1(probe.issueCode),
+      projectionRequestsSent: safeTransportDiagnosticCounterV1(probe.projectionRequestsSent),
+      projectionFramesReceived: safeTransportDiagnosticCounterV1(probe.projectionFramesReceived),
+      projectionFramesAccepted: safeTransportDiagnosticCounterV1(probe.projectionFramesAccepted),
+      projectionFramesRejected: safeTransportDiagnosticCounterV1(probe.projectionFramesRejected),
     }));
   }
   const overflow = timeline.length - O4P09I_MAX_TRANSPORT_TIMELINE_ENTRIES_V1;
@@ -1759,6 +1803,7 @@ async function waitForPregameTransportConvergence(
     });
     lastProbes = probes;
     const revision = probes[0]?.revision;
+    recordTimeline?.('progress-poll', samples);
     if (probes.length === pages.length && safeRevision(revision ?? 0) && probes.every((probe) =>
       probe.revision === revision
       && probe.playerPhase === 'open'
@@ -2888,6 +2933,10 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
             connectionEpoch: -1,
             recoveryAttempt: -1,
             issueCode: null,
+            projectionRequestsSent: -1,
+            projectionFramesReceived: -1,
+            projectionFramesAccepted: -1,
+            projectionFramesRejected: -1,
           },
         }));
     appendO4p09iTransportTimelineV1(transportTimeline, checkpoint, effectiveSamples, transportTimelineStartedAt);

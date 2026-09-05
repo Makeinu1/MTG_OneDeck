@@ -586,6 +586,10 @@ describe('journey harness', () => {
       connectionEpoch: -1,
       recoveryAttempt: -1,
       issueCode: null,
+      projectionRequestsSent: 0,
+      projectionFramesReceived: 0,
+      projectionFramesAccepted: 0,
+      projectionFramesRejected: 0,
     };
     const runWithTimeline = (transportTimeline, stage = 'advance/two-player-main1/actor-selection-player-resyncing') => runJourneyTurn({
       journey,
@@ -627,13 +631,24 @@ describe('journey harness', () => {
       connectionEpoch: Number.MAX_SAFE_INTEGER,
       recoveryAttempt: Number.MAX_SAFE_INTEGER,
       issueCode: 'CORE_RECONCILIATION_REJECTED',
+      projectionRequestsSent: 255,
+      projectionFramesReceived: 255,
+      projectionFramesAccepted: 255,
+      projectionFramesRejected: 255,
     };
-    const maximum = runWithTimeline(Array.from({ length: 16 }, () => maximumEntry));
+    const maximum = runWithTimeline(
+      Array.from({ length: 16 }, () => maximumEntry),
+      'advance/two-player-shared-mutation/actor-selection-contract-window-divergence',
+    );
     expect(maximum).toMatchObject({
       status: 'failed',
       failure: { class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED' },
     });
     expect(maximum.failure.transportTimeline).toEqual(Array.from({ length: 16 }, () => maximumEntry));
+    expect(runWithTimeline([{ ...validEntry, projectionFramesReceived: 256 }])).toMatchObject({
+      status: 'failed',
+      failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
+    });
     expect(runWithTimeline([{ ...validEntry, url: 'https://example.invalid' }])).toMatchObject({
       status: 'failed',
       failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },

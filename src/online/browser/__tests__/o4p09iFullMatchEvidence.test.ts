@@ -167,6 +167,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       knownRevision: actorControlRevision() + (options.actorReadinessBlock === 'revision-lag' ? 1 : 0),
       projectionRevision: actorControlRevision(),
       appBusy: options.actorReadinessBlock === 'app-busy' ? 'tabletop' : '',
+      projectionRequestsSent: 1,
+      projectionFramesReceived: options.actorReadinessBlock === 'not-open' ? 0 : 1,
+      projectionFramesAccepted: options.actorReadinessBlock === 'not-open' ? 0 : 1,
+      projectionFramesRejected: 0,
     });
     };
     let viewportWidth = 1440;
@@ -905,6 +909,8 @@ describe('O4P-09I full-match production evidence', () => {
       'data-projection-revision', 'data-player-phase', 'data-player-pending-count',
       'data-player-known-revision', 'data-player-projection-revision', 'data-online-busy',
       'data-player-connection-epoch', 'data-player-recovery-attempt', 'data-player-issue-code',
+      'data-player-projection-requests-sent', 'data-player-projection-frames-received',
+      'data-player-projection-frames-accepted', 'data-player-projection-frames-rejected',
     ]) expect(transportProbes.every((expression) => expression.includes(attribute))).toBe(true);
     expect(validateO4p09iReliabilityEvidenceV1({
       ...summary,
@@ -1082,9 +1088,18 @@ describe('O4P-09I full-match production evidence', () => {
     expect(classified.transportTimeline).toBeDefined();
     expect(classified.transportTimeline?.length).toBeGreaterThan(0);
     expect(classified.transportTimeline?.length).toBeLessThanOrEqual(O4P09I_MAX_TRANSPORT_TIMELINE_ENTRIES_V1);
+    const progressPolls = (classified.transportTimeline ?? []).filter((entry) => entry.checkpoint === 'progress-poll');
+    expect(progressPolls.length).toBeGreaterThan(0);
+    expect(progressPolls.some((entry) => entry.projectionRequestsSent > 0)).toBe(true);
+    expect(progressPolls.some((entry) => (
+      entry.projectionRequestsSent > entry.projectionFramesReceived
+      && entry.projectionFramesReceived >= entry.projectionFramesAccepted
+      && entry.projectionFramesRejected === 0
+    ))).toBe(true);
     const allowedKeys = [
       'checkpoint', 'elapsedMs', 'pageRole', 'phase', 'pendingCount', 'knownRevision',
       'projectionRevision', 'onlineBusy', 'connectionEpoch', 'recoveryAttempt', 'issueCode',
+      'projectionRequestsSent', 'projectionFramesReceived', 'projectionFramesAccepted', 'projectionFramesRejected',
     ].sort();
     for (const entry of classified.transportTimeline ?? []) {
       expect(Object.keys(entry).sort()).toEqual(allowedKeys);

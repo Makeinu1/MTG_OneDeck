@@ -29,6 +29,7 @@ import { validateOnlineVisibilityIntentV1 } from '../visibilityDecisions/index';
 import type { OnlineBrowserVisibilityIntentV1 } from './types';
 import {
   ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1,
+  ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
   ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1,
 } from './types';
 
@@ -468,6 +469,10 @@ export function createOnlineBrowserWebSocketClientV1(
   let acceptedServerBuildId: string | null = null;
   let lastCommandSettlement: OnlineBrowserCommandSettlementV1 | null = null;
   let recoveryOutcome: OnlineBrowserStateV1['recoveryOutcome'] = null;
+  let projectionRequestsSent = 0;
+  let projectionFramesReceived = 0;
+  let projectionFramesAccepted = 0;
+  let projectionFramesRejected = 0;
   const pending: PendingEntryV1[] = [];
   const settled = new Map<string, string>();
   const listeners = new Set<OnlineBrowserSubscriptionV1>();
@@ -488,6 +493,10 @@ export function createOnlineBrowserWebSocketClientV1(
     recoveryOutcome,
     recoveryAttempt,
     issueCode,
+    projectionRequestsSent,
+    projectionFramesReceived,
+    projectionFramesAccepted,
+    projectionFramesRejected,
   });
 
   const publish = (): void => {
@@ -503,6 +512,10 @@ export function createOnlineBrowserWebSocketClientV1(
       recoveryOutcome,
       recoveryAttempt,
       issueCode,
+      projectionRequestsSent,
+      projectionFramesReceived,
+      projectionFramesAccepted,
+      projectionFramesRejected,
     });
     for (const listener of [...listeners]) {
       try { listener(snapshot); } catch { /* Subscriber failures cannot affect transport state. */ }
@@ -657,7 +670,22 @@ export function createOnlineBrowserWebSocketClientV1(
       clientBuildId: config.clientBuildId,
       decisionContext: null,
     });
-    if (!sendFrame(socket, request)) beginRecovery(socket, epoch, 'SEND_FAILED');
+    if (!sendFrame(socket, request)) {
+      beginRecovery(socket, epoch, 'SEND_FAILED');
+      return;
+    }
+    projectionRequestsSent = Math.min(
+      projectionRequestsSent + 1,
+      ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
+    );
+    publish();
+  };
+
+  const countProjectionFrameRejected = (): void => {
+    projectionFramesRejected = Math.min(
+      projectionFramesRejected + 1,
+      ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
+    );
   };
 
   const handleInbound = (socket: OnlineBrowserSocketV1, epoch: number, record: ParsedRecordV1): void => {
@@ -765,19 +793,25 @@ export function createOnlineBrowserWebSocketClientV1(
       return;
     }
     if (kind === 'online-projected-snapshot-v1') {
+      projectionFramesReceived = Math.min(
+        projectionFramesReceived + 1,
+        ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
+      );
+      publish();
       if (phase !== 'resyncing') return;
       const keysAccepted = ['clientBuildIdMatch', 'issues', 'knownRevision', 'kind', 'participantId', 'projection', 'protocolVersion', 'reason', 'revision', 'role', 'roomId', 'serverBuildId', 'status'] as const;
       if (!closedRecord(record, keysAccepted) || ownDataValue(record, 'protocolVersion') !== config.protocolVersion
-        || !nonNegativeInteger(ownDataValue(record, 'revision')) || !validateBuildId(ownDataValue(record, 'serverBuildId')).ok) { issueCode = 'INVALID_FRAME'; publish(); return; }
+        || !nonNegativeInteger(ownDataValue(record, 'revision')) || !validateBuildId(ownDataValue(record, 'serverBuildId')).ok) { countProjectionFrameRejected(); issueCode = 'INVALID_FRAME'; publish(); return; }
       const status = ownDataValue(record, 'status');
       const issues = ownDataValue(record, 'issues');
       const serverBuildId = ownDataValue(record, 'serverBuildId');
-      if (acceptedServerBuildId !== null && serverBuildId !== acceptedServerBuildId) { issueCode = 'INVALID_FRAME'; publish(); return; }
+      if (acceptedServerBuildId !== null && serverBuildId !== acceptedServerBuildId) { countProjectionFrameRejected(); issueCode = 'INVALID_FRAME'; publish(); return; }
       if (status === 'rejected') {
         if (ownDataValue(record, 'roomId') !== null || ownDataValue(record, 'participantId') !== null
           || ownDataValue(record, 'role') !== null || ownDataValue(record, 'knownRevision') !== null
           || ownDataValue(record, 'clientBuildIdMatch') !== null || ownDataValue(record, 'reason') !== null
-          || ownDataValue(record, 'projection') !== null || !issueArray(issues, true)) { issueCode = 'INVALID_FRAME'; publish(); return; }
+          || ownDataValue(record, 'projection') !== null || !issueArray(issues, true)) { countProjectionFrameRejected(); issueCode = 'INVALID_FRAME'; publish(); return; }
+        countProjectionFrameRejected();
         issueCode = issueCodeFrom(issues, true) ?? 'PROJECTION_REJECTED';
         phase = 'failed';
         const active = currentSocket;
@@ -791,10 +825,11 @@ export function createOnlineBrowserWebSocketClientV1(
         || !ROOM_ROLES.has(String(ownDataValue(record, 'role'))) || !nonNegativeInteger(ownDataValue(record, 'knownRevision'))
         || (ownDataValue(record, 'knownRevision') as number) > (ownDataValue(record, 'revision') as number)
         || (ownDataValue(record, 'clientBuildIdMatch') !== true && ownDataValue(record, 'clientBuildIdMatch') !== false)
-        || !['synchronized', 'snapshot-required', 'rejoined'].includes(String(ownDataValue(record, 'reason')))) { issueCode = 'INVALID_FRAME'; publish(); return; }
+        || !['synchronized', 'snapshot-required', 'rejoined'].includes(String(ownDataValue(record, 'reason')))) { countProjectionFrameRejected(); issueCode = 'INVALID_FRAME'; publish(); return; }
       const revision = ownDataValue(record, 'revision') as number;
       const resyncReason = ownDataValue(record, 'reason');
       if (currentReadyRevision !== null && revision < currentReadyRevision) {
+        countProjectionFrameRejected();
         failConnection(socket, epoch, 'INVALID_FRAME');
         return;
       }
@@ -806,11 +841,11 @@ export function createOnlineBrowserWebSocketClientV1(
         return;
       }
       const projectionResult = validateOnlineParticipantProjectionAny(ownDataValue(record, 'projection'));
-      if (!projectionResult.ok) { issueCode = 'PROJECTION_REJECTED'; publish(); return; }
+      if (!projectionResult.ok) { countProjectionFrameRejected(); issueCode = 'PROJECTION_REJECTED'; publish(); return; }
       const accepted = projectionResult.value;
       if (accepted.roomId !== config.roomId || accepted.participantId !== config.participantId
         || accepted.protocolVersion !== config.protocolVersion || accepted.revision !== revision
-        || accepted.role !== ownDataValue(record, 'role')) { issueCode = 'PROJECTION_REJECTED'; publish(); return; }
+        || accepted.role !== ownDataValue(record, 'role')) { countProjectionFrameRejected(); issueCode = 'PROJECTION_REJECTED'; publish(); return; }
       knownRevision = revision;
       projection = accepted;
       lastProjectedRevision = revision;
@@ -819,6 +854,10 @@ export function createOnlineBrowserWebSocketClientV1(
       recoveryAttempt = 0;
       phase = 'open';
       issueCode = null;
+      projectionFramesAccepted = Math.min(
+        projectionFramesAccepted + 1,
+        ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
+      );
       if (resyncReason === 'rejoined') recoveryOutcome = 'rejoined';
       publish();
       replayPending(socket, epoch);
