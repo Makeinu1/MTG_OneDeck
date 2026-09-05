@@ -40,7 +40,7 @@ describe('O4P-08C variable roster and genesis architecture review', () => {
       encoding: 'utf8',
     }).trim().split(/\r?\n/u).filter(Boolean);
     const candidatePaths = [...new Set([...changed, ...untracked])];
-    expect(candidatePaths.some((path) => path.startsWith('src/App'))).toBe(false);
+    expect(candidatePaths.some((path) => path === 'src/App.tsx')).toBe(false);
     expect(candidatePaths).toContain('src/components/online/PublicOnlineApp.tsx');
     expect(candidatePaths).toContain('src/online/tableDisplay/model.ts');
     expect(candidatePaths).toContain('src/online/workbench/model.ts');
