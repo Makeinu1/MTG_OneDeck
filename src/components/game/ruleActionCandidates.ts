@@ -3,7 +3,8 @@ import type { RuleTag } from '../../data/ruleClassifier';
 export type RuleActionCandidateKind =
   | 'draw'
   | 'mill'
-  | 'scry-surveil'
+  | 'scry'
+  | 'surveil'
   | 'token'
   | 'proliferate'
   | 'discard'
@@ -30,98 +31,105 @@ interface RuleActionCandidateTemplate extends RuleActionCandidate {
 const RULE_ACTION_CANDIDATE_TEMPLATES: readonly RuleActionCandidateTemplate[] = [
   {
     kind: 'draw',
-    label: 'ドロー',
+    label: '引く',
     testId: 'candidate-draw',
     requiresTarget: false,
     tagIds: ['action.draw'],
   },
   {
     kind: 'mill',
-    label: '切削',
+    label: '切削する',
     testId: 'candidate-mill',
     requiresTarget: false,
     tagIds: ['action.mill'],
   },
   {
-    kind: 'scry-surveil',
-    label: '占術/諜報',
+    kind: 'scry',
+    label: '占術を行う',
     testId: 'candidate-scry',
     requiresTarget: false,
-    tagIds: ['action.scry', 'action.surveil'],
+    tagIds: ['action.scry'],
+  },
+  {
+    kind: 'surveil',
+    label: '諜報を行う',
+    testId: 'candidate-surveil',
+    requiresTarget: false,
+    tagIds: ['action.surveil'],
   },
   {
     kind: 'token',
-    label: 'トークン生成',
+    label: 'トークンを生成する',
     testId: 'candidate-token',
     requiresTarget: false,
     tagIds: ['action.create-token'],
   },
   {
     kind: 'proliferate',
-    label: '増殖',
+    label: 'カウンターを一括で増やす',
     testId: 'candidate-proliferate',
     requiresTarget: false,
     tagIds: ['action.proliferate'],
   },
   {
     kind: 'discard',
-    label: 'ランダムに捨てる',
+    label: '捨てるカードを選ぶ',
     testId: 'candidate-discard',
     requiresTarget: false,
     tagIds: ['action.discard'],
   },
   {
     kind: 'shuffle',
-    label: 'シャッフル',
+    label: '切り直す',
     testId: 'candidate-shuffle',
     requiresTarget: false,
     tagIds: ['action.shuffle'],
   },
   {
     kind: 'sacrifice-target',
-    label: '対象の生け贄',
+    label: '生け贄に捧げる',
     testId: 'candidate-sacrifice-target',
     requiresTarget: true,
     tagIds: ['action.sacrifice'],
   },
   {
     kind: 'destroy-target',
-    label: '対象を破壊',
+    label: '破壊する',
     testId: 'candidate-destroy-target',
     requiresTarget: true,
     tagIds: ['action.destroy'],
   },
   {
     kind: 'exile-target',
-    label: '対象を追放',
+    label: '追放する',
     testId: 'candidate-exile-target',
     requiresTarget: true,
     tagIds: ['action.exile'],
   },
   {
     kind: 'counters-target',
-    label: '対象にカウンター',
+    label: '＋1/＋1カウンターを置く',
     testId: 'candidate-counters-target',
     requiresTarget: true,
     tagIds: ['action.card-counters'],
   },
   {
     kind: 'attach-target',
-    label: '装備/付与',
+    label: 'つける（手動）',
     testId: 'candidate-attach-target',
     requiresTarget: true,
     tagIds: ['action.attach'],
   },
   {
     kind: 'search-library',
-    label: 'ライブラリを探す',
+    label: 'ライブラリーを探す',
     testId: 'candidate-search-library',
     requiresTarget: false,
     tagIds: ['action.search'],
   },
   {
     kind: 'return-from-zone',
-    label: '墓地/追放から戻す',
+    label: '墓地を見る',
     testId: 'candidate-return-from-zone',
     requiresTarget: false,
     tagIds: ['action.return'],

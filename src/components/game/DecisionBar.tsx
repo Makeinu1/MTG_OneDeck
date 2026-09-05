@@ -28,7 +28,7 @@ export function DecisionBar({ controller }: { controller: GameController }) {
         <span className="decision-bar__count">
           {focus.requiredCount !== undefined
             ? `${focus.selectedIds.length}/${focus.requiredCount}`
-            : `候補 ${focus.candidateIds.length}`}
+            : controller.confirmManualDiscard ? `${focus.selectedIds.length}枚選択` : `候補 ${focus.candidateIds.length}`}
         </span>
       )}
       {!teamwork && focus.zeroChoice && (
@@ -42,6 +42,12 @@ export function DecisionBar({ controller }: { controller: GameController }) {
         </button>
       )}
       {focus.warning && <span className="decision-bar__warning">{focus.warning}</span>}
+      {controller.confirmManualDiscard && (
+        <button type="button" className="decision-bar__zero" data-testid="manual-discard-confirm"
+          disabled={!focus.selectedIds.length} onClick={controller.confirmManualDiscard}>
+          {focus.selectedIds.length}枚捨てる
+        </button>
+      )}
       {teamwork && (
         <div className="decision-bar__teamwork" role="group" aria-label="チームワーク">
           <button

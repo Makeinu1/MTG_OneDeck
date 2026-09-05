@@ -180,10 +180,10 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
         });
       }
       const stackMoveTargets: Array<{ zone: ZoneId; label: string }> = [
-        { zone: 'battlefield', label: '戦場へ移す' },
-        { zone: 'graveyard', label: '墓地へ移す' },
-        { zone: 'exile', label: '追放へ移す' },
-        { zone: 'hand', label: '手札へ戻す' },
+        { zone: 'battlefield', label: '戦場に出す（手動）' },
+        { zone: 'graveyard', label: '墓地に置く（手動）' },
+        { zone: 'exile', label: '追放する' },
+        { zone: 'hand', label: '手札に戻す' },
       ];
       stackMoveTargets.forEach((target, index) => {
         specs.push({
@@ -297,7 +297,7 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
       specs.push({ id: 'cycle', label: `サイクリング(${cycleCost})` });
     }
     specs.push(...activationSpecsForZone(def, card.faceIndex, card.zone));
-    specs.push({ id: 'discard', label: '捨てる(墓地へ)' });
+    specs.push({ id: 'discard', label: '捨てる' });
   }
 
   // --- 統率領域(統率者) ---
@@ -383,12 +383,12 @@ export function buildCardActionCatalog(ctx: ActionCatalogContext): CardActionCat
   }
 
   const allMoveTargets: { zone: ZoneId; label: string }[] = [
-    { zone: 'battlefield', label: '戦場へ' },
-    { zone: 'hand', label: '手札へ' },
-    { zone: 'graveyard', label: '墓地へ' },
-    { zone: 'exile', label: '追放へ' },
-    { zone: 'library', label: 'ライブラリへ(一番上)' },
-    { zone: 'command', label: '統率領域へ' },
+    { zone: 'battlefield', label: '戦場に出す（手動）' },
+    { zone: 'hand', label: card.zone === 'library' ? '手札に加える' : '手札に戻す' },
+    { zone: 'graveyard', label: '墓地に置く（手動）' },
+    { zone: 'exile', label: '追放する' },
+    { zone: 'library', label: 'ライブラリーの上に置く' },
+    { zone: 'command', label: '統率領域に戻す' },
   ];
   allMoveTargets
     .filter((t) => t.zone !== card.zone)

@@ -134,6 +134,7 @@ export interface GameScreenInteractionPort {
   chooseDecisionCard?: (cardId: string) => void;
   chooseDecisionPlayer?: (playerId: PlayerId) => void;
   cancelDecision?: () => void;
+  confirmManualDiscard?: () => void;
   mulliganActive?: boolean;
   teamworkInfo?: {
     threshold: number;

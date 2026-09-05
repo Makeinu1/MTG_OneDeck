@@ -2398,6 +2398,24 @@
   gap: 6px;
   flex-wrap: wrap;}
 
+.zone-viewer__selection {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+}
+.zone-viewer__list--selectable { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); max-height: 35vh; }
+.zone-viewer__list--selectable .zone-viewer__item { flex-direction: column; cursor: pointer; }
+.zone-viewer__list--selectable .zone-viewer__info { align-items: center; }
+.zone-viewer__list--selectable .zone-viewer__name { overflow-wrap: anywhere; }
+.zone-viewer__selected-card { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.zone-viewer__select { display: flex; gap: 8px; align-items: center; min-height: var(--touch-target); cursor: pointer; }
+.zone-viewer__item:has(input:checked) { border-color: var(--gold-bright); }
+.zone-viewer__targets { align-items: center; }
+.zone-viewer__targets select { max-width: 100%; }
+.game-card__selection-check { position: absolute; top: 4px; right: 4px; z-index: 3; border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; background: var(--gold-bright); color: #17170e; pointer-events: none; }
+
 /* Mulligan grid */
 
 .mulligan-decision-panel {

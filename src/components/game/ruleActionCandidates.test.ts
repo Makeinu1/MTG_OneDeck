@@ -19,43 +19,44 @@ describe('ruleActionCandidatesFromTags', () => {
         ),
       ),
     ).toEqual([
-      { kind: 'draw', label: 'ドロー', testId: 'candidate-draw', requiresTarget: false },
-      { kind: 'mill', label: '切削', testId: 'candidate-mill', requiresTarget: false },
+      { kind: 'draw', label: '引く', testId: 'candidate-draw', requiresTarget: false },
+      { kind: 'mill', label: '切削する', testId: 'candidate-mill', requiresTarget: false },
       {
         kind: 'token',
-        label: 'トークン生成',
+        label: 'トークンを生成する',
         testId: 'candidate-token',
         requiresTarget: false,
       },
       {
         kind: 'proliferate',
-        label: '増殖',
+        label: 'カウンターを一括で増やす',
         testId: 'candidate-proliferate',
         requiresTarget: false,
       },
       {
         kind: 'discard',
-        label: 'ランダムに捨てる',
+        label: '捨てるカードを選ぶ',
         testId: 'candidate-discard',
         requiresTarget: false,
       },
       {
         kind: 'shuffle',
-        label: 'シャッフル',
+        label: '切り直す',
         testId: 'candidate-shuffle',
         requiresTarget: false,
       },
     ]);
   });
 
-  it('deduplicates the shared scry and surveil candidate', () => {
+  it('keeps scry and surveil as distinct actions', () => {
     expect(ruleActionCandidatesFromTags(tags('action.scry', 'action.surveil'))).toEqual([
       {
-        kind: 'scry-surveil',
-        label: '占術/諜報',
+        kind: 'scry',
+        label: '占術を行う',
         testId: 'candidate-scry',
         requiresTarget: false,
       },
+      { kind: 'surveil', label: '諜報を行う', testId: 'candidate-surveil', requiresTarget: false },
     ]);
   });
 
@@ -75,43 +76,43 @@ describe('ruleActionCandidatesFromTags', () => {
     ).toEqual([
       {
         kind: 'sacrifice-target',
-        label: '対象の生け贄',
+        label: '生け贄に捧げる',
         testId: 'candidate-sacrifice-target',
         requiresTarget: true,
       },
       {
         kind: 'destroy-target',
-        label: '対象を破壊',
+        label: '破壊する',
         testId: 'candidate-destroy-target',
         requiresTarget: true,
       },
       {
         kind: 'exile-target',
-        label: '対象を追放',
+        label: '追放する',
         testId: 'candidate-exile-target',
         requiresTarget: true,
       },
       {
         kind: 'counters-target',
-        label: '対象にカウンター',
+        label: '＋1/＋1カウンターを置く',
         testId: 'candidate-counters-target',
         requiresTarget: true,
       },
       {
         kind: 'attach-target',
-        label: '装備/付与',
+        label: 'つける（手動）',
         testId: 'candidate-attach-target',
         requiresTarget: true,
       },
       {
         kind: 'search-library',
-        label: 'ライブラリを探す',
+        label: 'ライブラリーを探す',
         testId: 'candidate-search-library',
         requiresTarget: false,
       },
       {
         kind: 'return-from-zone',
-        label: '墓地/追放から戻す',
+        label: '墓地を見る',
         testId: 'candidate-return-from-zone',
         requiresTarget: false,
       },

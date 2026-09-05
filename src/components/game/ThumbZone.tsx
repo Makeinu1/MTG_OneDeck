@@ -143,7 +143,7 @@ function GameMenuSheet({
             追放を見る
           </button>
           <button type="button" className="game-menu__action" data-testid="menu-search" onClick={act(() => controller.openZoneViewer('library'))}>
-            ライブラリを見る
+            ライブラリーを見る
           </button>
           <button type="button" className="game-menu__action" data-testid="menu-opponent-board" onClick={act(controller.openOpponentBoard)}>
             相手盤面を見る
@@ -155,7 +155,7 @@ function GameMenuSheet({
             全てアンタップ
           </button>
           <button type="button" className="game-menu__action" data-testid="menu-proliferate" onClick={act(controller.proliferateAll)}>
-            増殖
+            カウンターを一括で増やす
           </button>
           <button type="button" className="game-menu__action" data-testid="menu-die" onClick={act(() => controller.rollDie(20))}>
             ダイス(d20)

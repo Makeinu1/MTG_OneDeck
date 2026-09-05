@@ -134,6 +134,9 @@ export function GameCard({
   const def = state.defs[instance.defId];
   const commander = isCommander(state, cardId);
   const decisionRole = decisionCardRole(controller.decisionFocus, cardId);
+  const decisionSelectable = decisionRole === 'candidate' || Boolean(
+    controller.confirmManualDiscard && controller.decisionFocus?.candidateIds.includes(cardId),
+  );
   const combatAttacker = state.combat?.attackers.find((entry) => entry.cardId === cardId);
   const combatBlocker = state.combat?.blockers.find((entry) => entry.cardId === cardId);
   const quickAction = quickAbilityAction(instance, def);
@@ -201,7 +204,7 @@ export function GameCard({
 
   function handleTouchTap(event: React.PointerEvent<HTMLDivElement>): void {
     if (dragActiveRef.current) return;
-    if (decisionRole === 'candidate') {
+    if (decisionSelectable) {
       event.preventDefault();
       controller.chooseDecisionCard?.(cardId);
       return;
@@ -236,7 +239,7 @@ export function GameCard({
       onMouseLeave={closeTransientPreview}
       onClick={(event) => {
         if (dragActiveRef.current || event.detail !== 1) return;
-        if (decisionRole === 'candidate') {
+        if (decisionSelectable) {
           event.preventDefault();
           controller.chooseDecisionCard?.(cardId);
           return;
@@ -257,7 +260,7 @@ export function GameCard({
       onBlur={closeTransientPreview}
       onKeyDown={(event) => {
         if (event.repeat) return;
-        if (decisionRole === 'candidate' && (event.key === 'Enter' || event.key === ' ')) {
+        if (decisionSelectable && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
           controller.chooseDecisionCard?.(cardId);
           return;
@@ -293,6 +296,9 @@ export function GameCard({
         onTouchTap={handleTouchTap}
         onDoubleClick={handleDoubleClick}
       />
+      {controller.confirmManualDiscard && decisionRole === 'selected' && (
+        <span className="game-card__selection-check" aria-label="選択中">✓</span>
+      )}
       {commander && showCommanderBadge && (
         <span className="game-card__commander-marker" aria-label="統率者" title="統率者">統</span>
       )}

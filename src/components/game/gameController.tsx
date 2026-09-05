@@ -81,11 +81,12 @@ function cardSheetVariant(): 'sheet' | 'popover' {
 import { ZONE_LABELS_JA as ZONE_LABELS } from '../../data/zoneLabels';
 
 const TARGET_RULE_ACTION_TITLES: Record<string, string> = {
-  'sacrifice-target': '対象の生け贄',
-  'destroy-target': '対象を破壊',
-  'exile-target': '対象を追放',
-  'counters-target': '対象にカウンター',
-  'attach-target': '装備/付与',
+  discard: '捨てるカードを選ぶ',
+  'sacrifice-target': '生け贄に捧げるカードを選ぶ',
+  'destroy-target': '破壊するカードを選ぶ',
+  'exile-target': '追放するカードを選ぶ',
+  'counters-target': '＋1/＋1カウンターを置くカードを選ぶ',
+  'attach-target': 'つける先を選ぶ（手動）',
 };
 
 type MenuTriggerEvent = GameScreenMenuTriggerEvent;
@@ -109,7 +110,7 @@ type FetchDialogState = {
   ability: FetchAbility;
   publishResolveSound: boolean;
 };
-type PendingRuleTargetAction = { kind: string; sourceCardId: string };
+type PendingRuleTargetAction = { kind: string; sourceCardId: string; selectedIds?: string[]; warning?: string };
 type PendingResolvePresentation = {
   stackIds: string[];
   inSynchronousCall: boolean;
@@ -183,12 +184,13 @@ export function useGameController({
   const [pendingBloodCrackCardId, setPendingBloodCrackCardId] = useState<string | null>(null);
   const [manualKeywordsCardId, setManualKeywordsCardId] = useState<string | null>(null);
   const [arrangeTopOpen, setArrangeTopOpen] = useState(false);
+  const [arrangeTopMode, setArrangeTopMode] = useState<'scry' | 'surveil' | null>(null);
   const [countDialog, setCountDialog] = useState<CountDialogState | null>(null);
   const [peekCount, setPeekCount] = useState<number | null>(null);
   const [attackDialogOpen, setAttackDialogOpen] = useState(false);
   const [pendingAttackPreselect, setPendingAttackPreselect] = useState<string[] | null>(null);
   const [mulliganBottomCount, setMulliganBottomCount] = useState<number | null>(null);
-  const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'restart' | 'back-to-import' | 'counters-all' | null>(null);
   const [feedOpen, setFeedOpen] = useState(false);
   const [triggerSheetOpen, setTriggerSheetOpen] = useState(false);
   const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
@@ -477,6 +479,7 @@ export function useGameController({
     return state.zones.battlefield.filter((id) => cards[id] && !cards[id].isAbility);
   }
   function targetIdsForRuleAction(kind: string): string[] {
+    if (kind === 'discard') return state?.zones.hand ?? [];
     const ids = battlefieldPermanentIds();
     if (kind === 'attach-target') return ids.filter((id) => typeLineFor(id).includes('Creature'));
     return ids;
@@ -856,17 +859,19 @@ export function useGameController({
       case 'mill':
         setCountDialog({ kind: 'mill', defaultValue: 1 });
         break;
-      case 'scry-surveil':
+      case 'scry':
+      case 'surveil':
+        setArrangeTopMode(kind);
         setArrangeTopOpen(true);
         break;
       case 'token':
         setTokenDialogOpen(true);
         break;
       case 'proliferate':
-        store.proliferateAll();
+        setConfirmAction('counters-all');
         break;
       case 'discard':
-        setCountDialog({ kind: 'discard-random', defaultValue: 1 });
+        setPendingRuleTarget({ kind, sourceCardId, selectedIds: [] });
         break;
       case 'shuffle':
         requestShuffleLibrary();
@@ -889,6 +894,13 @@ export function useGameController({
   function pickRuleActionTarget(targetId: string): void {
     if (!pendingRuleTarget) return;
     switch (pendingRuleTarget.kind) {
+      case 'discard':
+        setPendingRuleTarget((pending) => pending && ({ ...pending, warning: undefined,
+          selectedIds: pending.selectedIds?.includes(targetId)
+            ? pending.selectedIds.filter((id) => id !== targetId)
+            : [...(pending.selectedIds ?? []), targetId],
+        }));
+        return;
       case 'sacrifice-target':
       case 'destroy-target':
         store.moveCard(targetId, 'graveyard');
@@ -903,6 +915,19 @@ export function useGameController({
         store.dispatch({ type: 'attach', cardId: pendingRuleTarget.sourceCardId, to: targetId });
         break;
     }
+    setPendingRuleTarget(null);
+  }
+
+  function confirmManualDiscard(): void {
+    if (pendingRuleTarget?.kind !== 'discard') return;
+    const selected = pendingRuleTarget.selectedIds ?? [];
+    const current = useGameStore.getState().state;
+    if (!selected.length) return;
+    if (!current || selected.some((id) => !current.zones.hand.includes(id))) {
+      setPendingRuleTarget({ ...pendingRuleTarget, selectedIds: [], warning: '手札が変わりました。選び直してください。' });
+      return;
+    }
+    store.discard(selected);
     setPendingRuleTarget(null);
   }
 
@@ -1069,12 +1094,13 @@ export function useGameController({
   function buildLibraryMenuItems(): MenuItem[] {
     return [
       { key: 'library-draw', label: '引く', testId: 'library-draw', onSelect: () => requestDraw(1) },
-      { key: 'library-draw-n', label: 'N枚引く', testId: 'library-draw-n', onSelect: () => setCountDialog({ kind: 'draw', defaultValue: 1 }) },
-      { key: 'library-shuffle', label: 'シャッフル', testId: 'library-shuffle', onSelect: requestShuffleLibrary },
-      { key: 'mill', label: '切削', testId: 'mill', onSelect: () => setCountDialog({ kind: 'mill', defaultValue: 1 }) },
-      { key: 'scry-surveil', label: '占術 / 諜報', testId: 'scry-surveil', onSelect: () => setArrangeTopOpen(true) },
-      { key: 'peek', label: '上を見る', testId: 'peek', onSelect: () => setCountDialog({ kind: 'peek', defaultValue: 3 }) },
-      { key: 'library-view', label: 'サーチ', testId: 'library-view', onSelect: () => setZoneViewer('library') },
+      { key: 'library-draw-n', label: '枚数を指定して引く', testId: 'library-draw-n', onSelect: () => setCountDialog({ kind: 'draw', defaultValue: 1 }) },
+      { key: 'library-shuffle', label: '切り直す', testId: 'library-shuffle', onSelect: requestShuffleLibrary },
+      { key: 'mill', label: '切削する', testId: 'mill', onSelect: () => setCountDialog({ kind: 'mill', defaultValue: 1 }) },
+      { key: 'scry', label: '占術を行う', testId: 'scry', onSelect: () => { setArrangeTopMode('scry'); setArrangeTopOpen(true); } },
+      { key: 'surveil', label: '諜報を行う', testId: 'surveil', onSelect: () => { setArrangeTopMode('surveil'); setArrangeTopOpen(true); } },
+      { key: 'peek', label: '上のカードを見る', testId: 'peek', onSelect: () => setCountDialog({ kind: 'peek', defaultValue: 3 }) },
+      { key: 'library-view', label: 'ライブラリーを探す', testId: 'library-view', onSelect: () => setZoneViewer('library') },
     ];
   }
 
@@ -1285,7 +1311,7 @@ export function useGameController({
       : countDialog?.kind === 'mill'
         ? { title: '切削', label: '枚数', inputTestId: 'mill-n', confirmTestId: 'mill-confirm' }
         : countDialog?.kind === 'peek'
-          ? { title: 'ライブラリの上を見る', label: '枚数', inputTestId: 'peek-n', confirmTestId: 'peek-confirm' }
+          ? { title: 'ライブラリーの上を見る', label: '枚数', inputTestId: 'peek-n', confirmTestId: 'peek-confirm' }
           : countDialog?.kind === 'discard-random'
             ? { title: 'ランダムに捨てる', label: '枚数', inputTestId: 'discard-random-n', confirmTestId: 'discard-random-confirm' }
             : null;
@@ -1372,9 +1398,9 @@ export function useGameController({
       requiredCount: guidedPrompt.count,
     };
     if (pendingRuleTarget) return {
-      kind: 'target', title: TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind] ?? '対象',
-      instruction: '金色の候補を選んでください。', sourceId: pendingRuleTarget.sourceCardId,
-      candidateIds: ruleTargetIds, selectedIds: [],
+      kind: pendingRuleTarget.kind === 'discard' ? 'discard' : 'target', title: TARGET_RULE_ACTION_TITLES[pendingRuleTarget.kind] ?? 'カードを選ぶ',
+      instruction: pendingRuleTarget.kind === 'discard' ? '捨てるカードを選び、枚数を確認して確定してください。' : '卓で確認した結果を手動で反映します。カードを1枚選んでください。', sourceId: pendingRuleTarget.sourceCardId,
+      candidateIds: ruleTargetIds, selectedIds: pendingRuleTarget.selectedIds ?? [], warning: pendingRuleTarget.warning,
     };
     if (pendingBloodCrackCardId) return {
       kind: 'discard', title: '血トークン：捨てるカード', instruction: '手札から1枚選んでください。',
@@ -1859,6 +1885,8 @@ export function useGameController({
       {arrangeTopOpen && (
         <ArrangeTopDialog
           state={state}
+          initialMode={arrangeTopMode ?? 'scry'}
+          lockMode={arrangeTopMode !== null}
           onConfirm={(topOrder, toBottom, toGraveyard) => {
             store.arrangeTop(topOrder, toBottom, toGraveyard);
             setArrangeTopOpen(false);
@@ -1893,7 +1921,7 @@ export function useGameController({
           onClose={() => setPeekCount(null)}
           readOnly
           searchEnabled={false}
-          title={`ライブラリの上${peekIds.length}枚`}
+          title={`ライブラリーの上${peekIds.length}枚`}
           testId="peek-dialog"
         />
       )}
@@ -1903,8 +1931,23 @@ export function useGameController({
           cardIds={state.zones[zoneViewer]}
           state={state}
           onMove={(cardId, to) => performMove({ cardId, to })}
+          onShuffle={zoneViewer === 'library' ? () => {
+            const before = useGameStore.getState().state;
+            requestShuffleLibrary();
+            return useGameStore.getState().state !== before;
+          } : undefined}
           onCardContextMenu={openCardMenu}
           onClose={() => setZoneViewer(null)}
+        />
+      )}
+      {confirmAction === 'counters-all' && (
+        <ConfirmDialog
+          title="カウンターを一括で増やす"
+          message="自分の各領域にあるカードと自分のプレイヤーカウンターを、各種類1個ずつ増やします。選んだパーマネントやプレイヤーだけに行う増殖とは異なります。"
+          confirmLabel="一括で増やす"
+          onConfirm={() => { store.proliferateAll(); setConfirmAction(null); }}
+          onCancel={() => setConfirmAction(null)}
+          testId="counters-all-confirm-dialog"
         />
       )}
       {confirmAction === 'restart' && (
@@ -2005,7 +2048,7 @@ export function useGameController({
     adjustCommanderDamage: (label, delta) => (
       store.dispatch({ type: 'adjustCommanderDamage', label, delta })
     ),
-    proliferateAll: () => store.proliferateAll(),
+    proliferateAll: () => setConfirmAction('counters-all'),
     rollDie: (sides) => store.rollDie(sides),
     flipCoin: () => store.flipCoin(),
     setAutoAdvance: (on) => store.setAutoAdvance(on),
@@ -2019,7 +2062,7 @@ export function useGameController({
     closeOpponentBoard: () => setOpponentBoardOpen(false),
     openTokenDialog: () => setTokenDialogOpen(true),
     openAttackDialog: () => setAttackDialogOpen(true),
-    openArrangeTop: () => setArrangeTopOpen(true),
+    openArrangeTop: () => { setArrangeTopMode(null); setArrangeTopOpen(true); },
     openCountDialog: (kind, defaultValue) => setCountDialog({ kind, defaultValue }),
     requestConfirm: (action) => setConfirmAction(action),
     triggerCandidateCount: store.triggerCandidates.length,
@@ -2039,6 +2082,7 @@ export function useGameController({
     chooseDecisionCard,
     chooseDecisionPlayer,
     cancelDecision,
+    confirmManualDiscard: pendingRuleTarget?.kind === 'discard' ? confirmManualDiscard : undefined,
     teamworkInfo,
     toggleTeamworkCreature,
     confirmTeamwork,

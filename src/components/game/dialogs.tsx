@@ -676,7 +676,7 @@ export function MulliganDecisionDialog({
         <p className="mulligan-decision-panel__message">
           {mulliganCount <= 1
             ? '初手です。盤面の手札を確認しながら、キープか7枚引き直しを選んでください。(1回目のマリガンは無料です)'
-            : `${mulliganCount}回マリガンしています。キープすると ${mulliganCount - 1} 枚をライブラリの下に戻します。`}
+            : `${mulliganCount}回マリガンしています。キープすると ${mulliganCount - 1} 枚をライブラリーの下に戻します。`}
         </p>
         <div className="dialog__actions mulligan-decision-panel__actions">
           <button type="button" className="btn mulligan-decision-panel__keep" onClick={onKeep} data-testid="mulligan-keep">
@@ -1132,12 +1132,12 @@ export function ArrangeTopDialog({
   const visibleBuckets =
     mode === 'scry'
       ? [
-          { title: '上', bucket: 'top' as const, ids: topOrder },
-          { title: '下', bucket: 'bottom' as const, ids: toBottom },
+          { title: '上に残す', bucket: 'top' as const, ids: topOrder },
+          { title: '下に置く', bucket: 'bottom' as const, ids: toBottom },
         ]
       : [
-          { title: '上', bucket: 'top' as const, ids: topOrder },
-          { title: '墓地', bucket: 'graveyard' as const, ids: toGraveyard },
+          { title: '上に残す', bucket: 'top' as const, ids: topOrder },
+          { title: '墓地に置く', bucket: 'graveyard' as const, ids: toGraveyard },
         ];
 
   return (
@@ -1148,11 +1148,11 @@ export function ArrangeTopDialog({
       testId="arrange-top-dialog"
     >
       {libraryCount === 0 ? (
-        <p className="zone-viewer__empty">ライブラリが空です。</p>
+        <p className="zone-viewer__empty">ライブラリーが空です。</p>
       ) : (
         <>
           <div className="arrange-top__toolbar">
-            <div className="arrange-top__mode" data-testid="scry-surveil-mode">
+            {!lockMode && <div className="arrange-top__mode" data-testid="scry-surveil-mode">
               <button
                 type="button"
                 className={`arrange-top__mode-button ${mode === 'scry' ? 'arrange-top__mode-button--active' : ''}`}
@@ -1169,7 +1169,7 @@ export function ArrangeTopDialog({
               >
                 諜報
               </button>
-            </div>
+            </div>}
             <label className="dialog__field arrange-top__count">
               枚数
               <input
@@ -1201,7 +1201,7 @@ export function ArrangeTopDialog({
           disabled={libraryCount === 0}
           data-testid="scry-confirm"
         >
-          決定
+          {mode === 'scry' ? '占術' : '諜報'}{count}を行う
         </button>
       </div>
     </Modal>
@@ -1333,7 +1333,7 @@ export function FetchSearchDialog({
   const sourceName = cardDisplayName(state, sourceId);
   const emptyMessage =
     libraryIds.length === 0
-      ? 'ライブラリが空です。'
+      ? 'ライブラリーが空です。'
       : filteredIds.length === 0 && !showAllCards
         ? '該当する土地がありません。「すべてのカード」をオンにすると全カードを表示できます。'
         : '該当するカードはありません。';
@@ -1466,21 +1466,21 @@ export function GuidedLibrarySearchDialog({
   const destinationLabel = spec.entersTapped ? 'タップ状態で戦場に出します。' : '戦場に出します。';
   const emptyMessage =
     libraryIds.length === 0
-      ? 'ライブラリが空です。'
+      ? 'ライブラリーが空です。'
       : filteredIds.length === 0
         ? '該当するカードはありません。'
         : '';
 
   return (
     <Modal
-      title="ライブラリから探す"
+      title="ライブラリーから探す"
       onClose={onClose}
       width="lg"
       testId="guided-library-search-dialog"
     >
       <p>
         《{sourceName}》の効果で{filterLabel}を探し、{destinationLabel}
-        その後ライブラリを切り直します。
+        その後ライブラリーを切り直します。
       </p>
       <label className="dialog__field">
         カード名で検索
@@ -1553,12 +1553,13 @@ export function GuidedLibrarySearchDialog({
   );
 }
 
-/** Modal listing every card in a zone with a per-card move menu. Library view includes a name search/filter. */
+/** Zone inspection and selection share one contextual action area. */
 export function ZoneViewerDialog({
   zone,
   cardIds,
   state,
   onMove,
+  onShuffle,
   onCardContextMenu,
   onClose,
   readOnly = false,
@@ -1570,6 +1571,7 @@ export function ZoneViewerDialog({
   cardIds: string[];
   state: GameState;
   onMove?: (cardId: string, to: ZoneId) => void;
+  onShuffle?: () => boolean;
   onCardContextMenu?: (
     cardId: string,
     e: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>
@@ -1582,18 +1584,28 @@ export function ZoneViewerDialog({
 }) {
   const [search, setSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(24);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [destination, setDestination] = useState<ZoneId>('hand');
+  const [shuffled, setShuffled] = useState(false);
+  const [notice, setNotice] = useState('');
+  const selectedCard = selectedId ? state.cards[selectedId] : undefined;
+  const selectedDef = selectedCard ? state.defs[selectedCard.defId] : undefined;
+  const selectedName = selectedDef?.printedName ?? selectedDef?.name ?? '';
+  const selectedHere = Boolean(selectedCard && selectedId && cardIds.includes(selectedId));
+  const writable = !readOnly && Boolean(onMove);
   const shouldShowSearch = searchEnabled
     ?? (!readOnly && (zone === 'library' || zone === 'graveyard' || zone === 'exile'));
 
   const allTargets: { zone: ZoneId; label: string }[] = [
-    { zone: 'hand', label: '手札へ' },
-    { zone: 'battlefield', label: '戦場へ' },
-    { zone: 'graveyard', label: '墓地へ' },
-    { zone: 'exile', label: '追放へ' },
-    { zone: 'library', label: 'ライブラリ最上部へ' },
-    { zone: 'command', label: '統率領域へ' },
+    { zone: 'hand', label: zone === 'library' ? '手札に加える' : '手札に戻す' },
+    { zone: 'battlefield', label: '戦場に出す（手動）' },
+    { zone: 'graveyard', label: '墓地に置く（手動）' },
+    { zone: 'exile', label: '追放する' },
+    { zone: 'library', label: 'ライブラリーの上に置く' },
+    { zone: 'command', label: '統率領域に戻す' },
   ];
   const targets = allTargets.filter((t) => t.zone !== zone);
+  const target = targets.find((t) => t.zone === destination) ?? targets[0];
 
   const query = search.trim().toLowerCase();
   const filteredIds = query
@@ -1627,14 +1639,14 @@ export function ZoneViewerDialog({
       ) : filteredIds.length === 0 ? (
         <p className="zone-viewer__empty">該当するカードはありません。</p>
       ) : (
-        <ul className="zone-viewer__list">
+        <ul className={`zone-viewer__list${writable ? ' zone-viewer__list--selectable' : ''}`}>
           {visibleIds.map((id) => {
             const card: CardInstance | undefined = state.cards[id];
             const def: CardDef | undefined = card ? state.defs[card.defId] : undefined;
             const face = card ? def?.faces[card.faceIndex] ?? def?.faces[0] : undefined;
             const displayName = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明';
             return (
-              <li key={id} className="zone-viewer__item">
+              <li key={id} className="zone-viewer__item" onClick={writable ? () => { setSelectedId(id); setNotice(''); } : undefined}>
                 <div className="zone-viewer__thumb">
                   {card && def && (
                     <CardView
@@ -1656,30 +1668,12 @@ export function ZoneViewerDialog({
                       <span className="zone-viewer__badge">統率者</span>
                     )}
                   </span>
-                  {!readOnly && onMove && (
-                    <div className="zone-viewer__targets">
-                      {onCardContextMenu && (
-                        <button
-                          type="button"
-                          className="btn btn--primary btn--sm"
-                          onClick={(event) => onCardContextMenu(id, event)}
-                          data-testid={`zone-actions-${id}`}
-                        >
-                          操作…
-                        </button>
-                      )}
-                      {targets.map((t) => (
-                        <button
-                          key={t.zone}
-                          type="button"
-                          className="btn btn--ghost btn--sm"
-                          onClick={() => onMove(id, t.zone)}
-                          data-testid={`move-${id}-${t.zone}`}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
+                  {writable && (
+                    <label className="zone-viewer__select">
+                      <input type="radio" name="zone-card" checked={selectedId === id}
+                        onChange={() => { setSelectedId(id); setNotice(''); }} data-testid={`zone-select-${id}`} />
+                      {selectedId === id ? '選択中' : '選ぶ'}
+                    </label>
                   )}
                 </div>
               </li>
@@ -1696,6 +1690,40 @@ export function ZoneViewerDialog({
         >
           さらに表示（残り {filteredIds.length - visibleCount} 枚）
         </button>
+      )}
+      {writable && (
+        <section className="zone-viewer__selection" aria-label="選択したカードの操作">
+          {selectedHere && selectedCard && selectedDef ? <>
+            <div className="zone-viewer__selected-card">
+              <CardView instance={selectedCard} def={selectedDef} size="small" />
+              <strong>《{selectedName}》</strong>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setSelectedId(null)}>選択を解除</button>
+            </div>
+            <div className="zone-viewer__targets">
+              <label>行うこと <select value={target.zone} onChange={(e) => setDestination(e.target.value as ZoneId)} data-testid="zone-destination">
+                {targets.map((t) => <option key={t.zone} value={t.zone}>{t.label}</option>)}
+              </select></label>
+              <button type="button" className="btn btn--accent" data-testid="zone-move-confirm" onClick={() => {
+                if (!selectedId || !cardIds.includes(selectedId)) return;
+                setShuffled(false);
+                setNotice('');
+                onMove?.(selectedId, target.zone);
+              }}>{target.label}</button>
+              {onCardContextMenu && <button type="button" className="btn" onClick={(e) => onCardContextMenu(selectedId!, e)}>その他の操作…</button>}
+            </div>
+          </> : <p role="status">{selectedCard && selectedCard.zone !== zone
+            ? `《${selectedName}》：現在は${ZONE_TITLES[selectedCard.zone]}です。`
+            : '操作するカードを選んでください。'}</p>}
+          {zone === 'library' && onShuffle && <div className="zone-viewer__targets">
+            <span role="status">{shuffled ? '切り直しました。' : 'この画面ではまだ切り直していません。'}</span>
+            <button type="button" className="btn" data-testid="zone-shuffle" disabled={shuffled} onClick={() => {
+              if (onShuffle()) { setShuffled(true); setSelectedId(null); setNotice(''); }
+              else setNotice('切り直せませんでした。盤面を確認してください。');
+            }}>切り直す</button>
+          </div>}
+          {notice && <p role="status">{notice}</p>}
+          <button type="button" className="btn" onClick={onClose}>閉じる</button>
+        </section>
       )}
     </Modal>
   );
@@ -1724,9 +1752,9 @@ export function MulliganBottomDialog({
   }
 
   return (
-    <Modal title="マリガン: ライブラリの下に戻すカード" width="lg" testId="mulligan-bottom-dialog">
+    <Modal title="マリガン: ライブラリーの下に戻すカード" width="lg" testId="mulligan-bottom-dialog">
       <p>
-        {count}枚を選んでライブラリの一番下に戻してください。(選択中: {selected.length} / {count})
+        {count}枚を選んでライブラリーの一番下に戻してください。(選択中: {selected.length} / {count})
       </p>
       <div className="mulligan-grid">
         {cardIds.map((id) => {
