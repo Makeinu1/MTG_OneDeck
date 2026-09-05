@@ -991,11 +991,12 @@ describe('O4P-09I full-match production evidence', () => {
     } catch (error) {
       failure = error;
     }
-    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+    expect(classifyO4p09iProductionFailureV1(failure)).toMatchObject({
       class: 'IMPLEMENTATION',
       code: 'PLAYER_JOURNEY_STAGE_FAILED',
       stage: 'advance/two-player-shared-mutation/revision-ack-advance-unsettled-pending-invalid-frame',
     });
+    expect(classifyO4p09iProductionFailureV1(failure).transportTimeline).toEqual(expect.any(Array));
   });
 
   it('advances from the enabled current actor page when the host does not hold the turn', async () => {
@@ -1083,11 +1084,24 @@ describe('O4P-09I full-match production evidence', () => {
   });
 
   it('classifies an unsettled disabled progress operation without retrying it', async () => {
-    await expect(runO4p09iFullMatchEvidenceV1({
-      browser: fakeBrowser([], { progressStuckAfterClick: true }),
-      readDeck: () => 'fixture deck',
-      timeoutMs: 250,
-    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/revision-ack-advance-unsettled-pending-invalid-frame');
+    let failure: unknown;
+    try {
+      await runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { progressStuckAfterClick: true }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    const classified = classifyO4p09iProductionFailureV1(failure);
+    expect(classified).toMatchObject({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'advance/two-player-main1/revision-ack-advance-unsettled-pending-invalid-frame',
+    });
+    const postClickPolls = (classified.transportTimeline ?? []).filter((entry) => entry.checkpoint === 'progress-poll');
+    expect(postClickPolls.some((entry) => entry.pendingCount > 0 && entry.projectionRequestsSent >= entry.projectionFramesReceived)).toBe(true);
   });
 
   it('fails before cast when the explicit stable-SBA operation is unavailable', async () => {

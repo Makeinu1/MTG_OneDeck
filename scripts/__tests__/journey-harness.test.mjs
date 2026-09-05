@@ -715,6 +715,19 @@ describe('journey harness', () => {
     });
     expect(accepted.failure.transportTimeline).toEqual([validEntry]);
     expect(Object.isFrozen(accepted.failure.transportTimeline)).toBe(true);
+    const acceptedPostClick = runWithTimeline(
+      [validEntry],
+      'advance/two-player-main1/revision-ack-advance-unsettled-pending',
+    );
+    expect(acceptedPostClick).toMatchObject({
+      status: 'failed',
+      failure: {
+        class: 'IMPLEMENTATION',
+        code: 'PLAYER_JOURNEY_STAGE_FAILED',
+        stage: 'advance/two-player-main1/revision-ack-advance-unsettled-pending',
+      },
+    });
+    expect(acceptedPostClick.failure.transportTimeline).toEqual([validEntry]);
     const maximumEntry = {
       checkpoint: 'actor-selection-start',
       elapsedMs: 86_400_000,
@@ -750,6 +763,10 @@ describe('journey harness', () => {
       failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
     });
     expect(runWithTimeline([validEntry], 'post-actions/actor-selection-player-resyncing')).toMatchObject({
+      status: 'failed',
+      failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
+    });
+    expect(runWithTimeline([validEntry], 'post-actions/revision-ack-advance-unsettled-pending')).toMatchObject({
       status: 'failed',
       failure: { class: 'EVIDENCE', code: 'TRUSTED_FAILURE_INVALID' },
     });

@@ -78,9 +78,26 @@ const TRANSPORT_TIMELINE_ACTOR_CHECKPOINTS = Object.freeze([
   'actor-selection-player-revision-lag',
   'actor-selection-app-busy',
 ]);
+const TRANSPORT_TIMELINE_REVISION_ACK_CHECKPOINTS = Object.freeze([
+  'revision-ack-advance-accepted-no-progress',
+  'revision-ack-advance-unsettled-player-not-open',
+  'revision-ack-advance-unsettled-pending',
+  'revision-ack-advance-unsettled-pending-invalid-frame',
+  'revision-ack-advance-unsettled-revision-lag',
+  'revision-ack-advance-unsettled-disabled',
+  'revision-ack-advance-unsettled-enabled',
+  'revision-ack-sba-accepted-no-progress',
+  'revision-ack-sba-unsettled-player-not-open',
+  'revision-ack-sba-unsettled-pending',
+  'revision-ack-sba-unsettled-pending-invalid-frame',
+  'revision-ack-sba-unsettled-revision-lag',
+  'revision-ack-sba-unsettled-disabled',
+  'revision-ack-sba-unsettled-enabled',
+]);
 const TRANSPORT_TIMELINE_STAGES = new Set(
   TRANSPORT_TIMELINE_ADVANCE_OPERATIONS.flatMap((operation) =>
-    TRANSPORT_TIMELINE_ACTOR_CHECKPOINTS.map((checkpoint) => `advance/${operation}/${checkpoint}`),
+    [...TRANSPORT_TIMELINE_ACTOR_CHECKPOINTS, ...TRANSPORT_TIMELINE_REVISION_ACK_CHECKPOINTS]
+      .map((checkpoint) => `advance/${operation}/${checkpoint}`),
   ),
 );
 const TRANSPORT_TIMELINE_CHECKPOINTS = new Set([
