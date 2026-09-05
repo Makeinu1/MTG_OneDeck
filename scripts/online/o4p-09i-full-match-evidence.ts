@@ -168,6 +168,7 @@ const ADVANCE_FAILURE_CHECKPOINTS = Object.freeze([
   'actor-selection-authority', 'actor-selection-window', 'actor-selection-player-not-open',
   'actor-selection-player-resyncing', 'actor-selection-player-recovering', 'actor-selection-player-failed',
   'actor-selection-player-pending', 'actor-selection-player-revision-lag', 'actor-selection-app-busy',
+  'player-transport-surface-missing',
   'click', 'revision-ack', 'revision-ack-advance',
   'revision-ack-sba', 'revision-ack-advance-accepted-no-progress',
   'revision-ack-advance-unsettled-player-not-open', 'revision-ack-advance-unsettled-pending',
@@ -279,6 +280,8 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       || stage === 'post-actions/probe-evaluation'
       || stage.startsWith('post-actions/transport-probe-')
       || stage.startsWith('post-actions/session-probe-'))
+      return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
+    if (stage.endsWith('/player-transport-surface-missing'))
       return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
     return finalize({
       class: 'IMPLEMENTATION',
@@ -1819,6 +1822,30 @@ async function waitForPregameTransportConvergence(
   }
 }
 
+async function requirePlayerTransportSurface(
+  pages: readonly O4p09iPageV1[],
+): Promise<void> {
+  const allowedPhases = JSON.stringify([...TRANSPORT_PHASES_V1]);
+  const probes = await Promise.all(pages.map((page) => page.evaluate<boolean>(`(() => { // playerTransportSurfaceProbe
+    const app = document.querySelector('[data-testid="public-online-app"]');
+    if (!(app instanceof HTMLElement)) return false;
+    const phase = app.getAttribute('data-player-phase') ?? '';
+    if (!${allowedPhases}.includes(phase)) return false;
+    return [
+      'data-player-projection-requests-sent',
+      'data-player-projection-frames-received',
+      'data-player-projection-frames-accepted',
+      'data-player-projection-frames-rejected',
+    ].every((name) => {
+      const value = app.getAttribute(name);
+      if (value === null || !/^(?:0|[1-9][0-9]*)$/u.test(value)) return false;
+      const count = Number(value);
+      return Number.isSafeInteger(count) && count >= 0 && count <= ${String(O4P09I_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1)};
+    });
+  })()`)));
+  if (probes.some((present) => present !== true)) throw new O4p09iActorSelectionError('player-transport-surface-missing');
+}
+
 async function waitForSavedDeck(page: O4p09iPageV1, timeoutMs: number): Promise<
   | 'ready' | 'already-online' | 'storage-error' | 'resolution-error' | 'resolution-pending' | 'notification-missing' | 'import-runtime-failed' | 'import-runtime-error' | 'error-boundary' | 'import-surface-disappeared' | 'invalid-workflow'> {
   const deadline = Date.now() + timeoutMs;
@@ -3081,6 +3108,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     advanceOperation = profile === 'reliability'
       ? 'two-player-shared-mutation'
       : playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
+    try {
+      await requirePlayerTransportSurface(pages);
+    } catch (error) {
+      if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
+      throw error;
+    }
     advanceCheckpoint.value = 'seat-convergence';
     try {
       await waitForPregameTransportConvergence(pages, timeoutMs, recordTransportTimeline);

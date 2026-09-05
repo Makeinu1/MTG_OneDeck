@@ -99,6 +99,7 @@ type FakeOptions = Readonly<{
   readonly lobbyReadyProbe?: 'delayed' | 'never';
   readonly progressStuckAfterClick?: boolean;
   readonly actorReadinessBlock?: 'not-open' | 'pending' | 'revision-lag' | 'app-busy';
+  readonly transportSurfaceMissing?: boolean;
   readonly actorWindowDivergentSeat?: number;
   readonly postPregameResyncProbes?: number;
   readonly postMutationHostLagProbes?: number;
@@ -207,6 +208,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       }
       if (expression.includes('pregameTerminalSurfaceProbe')) {
         return Promise.resolve((options.pregameReadyRevisionMissing === true && options.pregameTerminalSurfaceFailure !== true) as T);
+      }
+      if (expression.includes('playerTransportSurfaceProbe')) {
+        return Promise.resolve((options.transportSurfaceMissing !== true) as T);
       }
       if (expression.includes('detailsPanelReadyProbe:')) {
         detailsProbes += 1;
@@ -1070,6 +1074,25 @@ describe('O4P-09I full-match production evidence', () => {
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/actor-selection-player-resyncing');
+  });
+
+  it('fails before actor selection when the current player transport surface is missing', async () => {
+    const missingSurfaceExpressions: string[] = [];
+    await expect(runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(missingSurfaceExpressions, { transportSurfaceMissing: true }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/player-transport-surface-missing');
+    expect(missingSurfaceExpressions.some((expression) => expression.includes('playerTransportSurfaceProbe'))).toBe(true);
+    expect(missingSurfaceExpressions.some((expression) => expression.includes('priorityControlProbe:online-remote-advance'))).toBe(false);
+
+    const normalExpressions: string[] = [];
+    await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(normalExpressions),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(normalExpressions.some((expression) => expression.includes('playerTransportSurfaceProbe'))).toBe(true);
   });
 
   it('records a bounded secret-free transport timeline on actor-selection failure', async () => {
