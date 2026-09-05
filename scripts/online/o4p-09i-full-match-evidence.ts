@@ -70,6 +70,30 @@ const ENVIRONMENT_TRANSPORT_FAILURES: Readonly<Record<string, string>> = Object.
   'CDP remote result missing': 'remote-result-missing',
 });
 
+const RECONNECT_FAILURE_CHECKPOINTS: Readonly<Record<string, string>> = Object.freeze({
+  'reconnect page missing': 'page-missing',
+  'reconnect seat identity missing': 'seat-identity-missing',
+  'pre-reconnect convergence missing': 'before-convergence-missing',
+  'pre-reconnect private audience leak': 'before-private-leak',
+  'peer disconnected presence not observed': 'peer-disconnect-not-observed',
+  'reconnect recovery probe missing': 'recovery-probe-missing',
+  'reconnect private audience mismatch': 'private-audience-mismatch',
+  'reconnect private audience leak': 'private-audience-leak',
+  'reconnect continuity probe failed': 'continuity-failed',
+  'post-reconnect mutation convergence timeout': 'after-mutation-convergence-timeout',
+  'post-reconnect mutation did not advance': 'after-mutation-not-advanced',
+  'post-reconnect private audience leak': 'after-private-leak',
+  'private hand capture incomplete': 'private-hand-incomplete',
+  'private hand probe timeout': 'private-hand-timeout',
+  'private choice surface probe timeout': 'dom-scan-timeout',
+  'bounded private choice surface scan incomplete': 'dom-scan-incomplete',
+  'private choice surface snapshot changed': 'dom-snapshot-changed',
+  'private choice surface snapshot invalid': 'dom-snapshot-invalid',
+  'bounded leak scan incomplete': 'leak-scan-incomplete',
+  'page probe timeout': 'page-probe-timeout',
+  'browser console or secret violation observed': 'console-or-secret-violation',
+});
+
 const ADVANCE_FAILURE_STAGES = Object.freeze([
   'two-player-shared-mutation', 'two-player-main1', 'two-player-combat', 'four-player-main1', 'four-player-combat',
 ] as const);
@@ -151,6 +175,18 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
   ) {
     const rootStage = scenario.split('/')[0] ?? 'journey';
     const detail = scenario.slice(rootStage.length + 1);
+    if (rootStage === 'reconnect') {
+      const reconnectDetail = message.slice('production scenario stage failed: reconnect/'.length);
+      const checkpoint = Object.hasOwn(RECONNECT_FAILURE_CHECKPOINTS, reconnectDetail)
+        ? RECONNECT_FAILURE_CHECKPOINTS[reconnectDetail] : null;
+      const convergence = /^reconnect convergence not observed\/rejoined=(true|false),revision=(true|false),presence=(true|false),digest=(true|false),priority=(true|false)$/u.exec(reconnectDetail);
+      if (checkpoint !== null) return Object.freeze({
+        class: checkpoint.startsWith('dom-') || checkpoint.startsWith('leak-scan-') || checkpoint === 'page-probe-timeout' ? 'EVIDENCE' : 'IMPLEMENTATION',
+        code: checkpoint.startsWith('dom-') || checkpoint.startsWith('leak-scan-') || checkpoint === 'page-probe-timeout' ? 'EVIDENCE_HARNESS_FAILED' : 'PLAYER_JOURNEY_STAGE_FAILED',
+        stage: `reconnect/${checkpoint}`,
+      });
+      if (convergence !== null) return Object.freeze({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: `reconnect/convergence-${convergence.slice(1).map((value) => value === 'true' ? '1' : '0').join('')}` });
+    }
     const advanceDetail = detail.split('/');
     const safeAdvanceDetail = (ADVANCE_FAILURE_STAGES as readonly string[]).includes(advanceDetail[0] ?? '')
       && (advanceDetail.length === 1
@@ -1901,13 +1937,13 @@ async function readUnauthorizedDomSurfaces(page: O4p09iPageV1, tokens: readonly 
   ]);
   if (raw.complete !== true || typeof raw.chunk !== 'string' || raw.chunk.length === 0 || raw.chunk.length > 8192
     || !Number.isSafeInteger(raw.length) || raw.length < 2 || raw.length > MAX_DOM_SCAN_BYTES_V1 * 10
-    || !/^[0-9a-f]{64}$/u.test(raw.digest)
-    || (digest !== null && (raw.digest !== digest || raw.length !== length))) throw new Error('bounded private choice surface scan incomplete');
+    || !/^[0-9a-f]{64}$/u.test(raw.digest)) throw new Error('bounded private choice surface scan incomplete');
+  if (digest !== null && (raw.digest !== digest || raw.length !== length)) throw new Error('private choice surface snapshot changed');
   digest = raw.digest;
   length = raw.length;
   serialized += raw.chunk;
   } while (serialized.length < (length ?? 0));
-  if (serialized.length !== length || sha256(serialized) !== digest) throw new Error('bounded private choice surface scan incomplete');
+  if (serialized.length !== length || sha256(serialized) !== digest) throw new Error('private choice surface snapshot invalid');
   const surfaces: unknown = JSON.parse(serialized);
   if (!Array.isArray(surfaces) || surfaces.some((value) => typeof value !== 'string')) throw new Error('bounded private choice surface scan incomplete');
   return tokens.some((token) => surfaces.some((surface: string) => surface.includes(token)));

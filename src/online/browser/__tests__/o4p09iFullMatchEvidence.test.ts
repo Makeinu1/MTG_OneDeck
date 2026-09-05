@@ -1174,6 +1174,14 @@ describe('O4P-09I full-match production evidence', () => {
     expect(classifyO4p09iProductionFailureV1(new Error('CDP command failed')).stage).toBe('command-failed');
   });
 
+  it('distinguishes reconnect evidence failures from product convergence without exposing raw details', () => {
+    const classify = (detail: string) => classifyO4p09iProductionFailureV1(new Error(`production scenario stage failed: reconnect/${detail}`));
+    expect(classify('private choice surface snapshot changed')).toEqual({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'reconnect/dom-snapshot-changed' });
+    expect(classify('pre-reconnect private audience leak').stage).toBe('reconnect/before-private-leak');
+    expect(classify('reconnect convergence not observed/rejoined=false,revision=true,presence=true,digest=true,priority=true').stage).toBe('reconnect/convergence-01111');
+    expect(classify('private choice surface snapshot changed/private-token').stage).toBe('reconnect');
+  });
+
   it('fails closed until every seat observes the same target phase', async () => {
     await expect(
       runO4p09iFullMatchEvidenceV1({
