@@ -3108,15 +3108,15 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     advanceOperation = profile === 'reliability'
       ? 'two-player-shared-mutation'
       : playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
+    advanceCheckpoint.value = 'seat-convergence';
     try {
-      await requirePlayerTransportSurface(pages);
+      await waitForPregameTransportConvergence(pages, timeoutMs, recordTransportTimeline);
     } catch (error) {
       if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
       throw error;
     }
-    advanceCheckpoint.value = 'seat-convergence';
     try {
-      await waitForPregameTransportConvergence(pages, timeoutMs, recordTransportTimeline);
+      await requirePlayerTransportSurface(pages);
     } catch (error) {
       if (error instanceof O4p09iActorSelectionError) advanceCheckpoint.value = error.checkpoint;
       throw error;

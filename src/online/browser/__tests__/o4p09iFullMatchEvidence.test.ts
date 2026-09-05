@@ -1084,7 +1084,7 @@ describe('O4P-09I full-match production evidence', () => {
       timeoutMs: 250,
     })).rejects.toThrow('production scenario stage failed: advance/two-player-main1/player-transport-surface-missing');
     expect(missingSurfaceExpressions.some((expression) => expression.includes('playerTransportSurfaceProbe'))).toBe(true);
-    expect(missingSurfaceExpressions.some((expression) => expression.includes('priorityControlProbe:online-remote-advance'))).toBe(false);
+    expect(missingSurfaceExpressions.some((expression) => expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true'))).toBe(false);
 
     const normalExpressions: string[] = [];
     await runO4p09iFullMatchEvidenceV1({
@@ -1092,7 +1092,9 @@ describe('O4P-09I full-match production evidence', () => {
       readDeck: () => 'fixture deck',
       timeoutMs: 250,
     });
-    expect(normalExpressions.some((expression) => expression.includes('playerTransportSurfaceProbe'))).toBe(true);
+    const transportSurfaceProbe = normalExpressions.findIndex((expression) => expression.includes('playerTransportSurfaceProbe'));
+    const convergenceProbe = normalExpressions.findIndex((expression) => expression.includes('priorityControlProbe:online-remote-advance'));
+    expect(transportSurfaceProbe).toBeGreaterThan(convergenceProbe);
   });
 
   it('records a bounded secret-free transport timeline on actor-selection failure', async () => {
