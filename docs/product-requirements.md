@@ -80,8 +80,8 @@ OneDeckは、すべてのカードを常時同じ強さで見せる画面では�
 
 - 一人回し：自分のデッキ理解、発見、盤面記憶を最大化する。
 - 2人対戦：自分と相手の因果関係、stack、responseを明瞭にする。
-- 4人対戦：自分のcockpit、固定された3席、周辺認識、relevant seatのfocusを両立する。
-- 公開map：全席と公開された因果関係を一望できる構成にする。
+- 4人対戦：自分のCockpit内で固定された3席の概要、周辺認識、relevant seatのfocusを両立する。
+- 公開projection：全席と公開された因果関係を一望できるprojectionを保つ（独立したMVP画面を意味しない）。
 
 ## 自分の盤面と相手の情報
 
@@ -113,28 +113,29 @@ stackは単なる縦のcard列ではない。次をひと続きの因果とし�
 - 自分が選べるresponseと、その選択がどこへ積まれるか。
 - 解決後にどの共有状態が変わったか。
 
-stackが開いたら、誰のターンでも卓全体の視覚的中心になる。Display Aは自分だけの
-応答候補を、Display Bは公開された因果関係を示し、色、motion、focusを同期する。
+stackが開いたら、誰のターンでも卓全体の視覚的中心になる。Cockpit内の共有表示は
+自分の応答候補と公開された因果関係を、参加者間で一貫した色、motion、focusの手掛かりとともに示す。
 状態更新は演出待ちにしてはならない。
 
 ## Display model
 
-### Display A：各プレイヤーのprivate cockpit
+### Player cockpit（Display A）：各プレイヤーのprivate cockpit
 
-Display Aは自分の盤面とhandを主役にし、相手の公開情報を概略表示し、必要な部分を
-詳細化できるaction-authoritativeな画面である。一人・2人・4人の全旅程はA単独で
+Cockpitは自分の盤面とhandを主役にし、相手の公開情報を概略表示し、必要な部分を
+詳細化できるaction-authoritativeな画面である。一人・2人・4人の全旅程はCockpit単独で
 完遂できなければならない。stack、priority、HOLD、combat、warning、recoveryを
-Bだけへ追い出してはならない。
+Cockpitから追い出してはならない。
 
-### Display B：optionalなpublic table map
+MVPのplayer-facing surfaceはこのCockpit一つに集約する。4人戦の三人の相手概要、
+active/source/target/選択中の相手のfocus/detail、脱落後のread-only spectator表示も
+同じCockpit内で完結させる。独立Display B/Public Table UIはMVPのproduct surfaceに含めない。
 
-Display Bはpublic projectionだけから構成するread-onlyの全体mapである。安定した
+### Public projection（runtime boundary）
+
+既存のpublic projection/runtimeは維持する。projectionは安定した
 各seat、公開battlefield、stack、priority、target、combat、recent changeを示す。
-同じmapを各プレイヤーが開くことも中央displayへ出すこともできる。
-
-Bは第二の状態変更画面や第二の真実にならない。秘密のhand、library identity、
-限定audienceの情報、private choiceを表示せず、Bの切断や未使用で試合を止めない。
-公開objectのfocus、zoom、zone inspectは許すが、共有状態を変更する操作はAへ集約する。
+秘密のhand、library identity、限定audienceの情報、private choiceはprojection dataに含めず、
+projectionの切断や未使用で試合を止めない。
 
 ## 操作、accessibility、presentation
 
@@ -165,7 +166,7 @@ animation時間はこの要求の数値ではなく、証拠からdesign owner�
 - Arenaの1対1layout、auto-pass、ranking framing、過剰なfullscreen演出の直輸入。
 - 1人・2人・4人へ同じrigid layoutを強制すること。
 - 各modeまたは各displayへ別のreducer、rule logic、card componentを作ること。
-- Display Bまたは複数monitorを必須にすること。
+- 独立Display B/Public Table UIをMVPのplayer-facing surfaceにすること、または複数monitorを必須にすること。
 - hover、drag、double-clickだけに依存すること。
 - 未対応のCR・Oracle挙動を部分実行して自動化済みと表示すること。
 - substrate、監査、テスト量をplayer journeyの代替として報告すること。

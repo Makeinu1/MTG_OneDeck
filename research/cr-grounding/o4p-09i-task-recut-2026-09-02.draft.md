@@ -1,8 +1,9 @@
 # O4P-09I task recut (draft)
 
 O4P-09I の complete-match 証明は北極星として維持する。ただし、それを次の一手に
-必要な唯一の gate にはしない。先に価値仮説、共有 session の信頼性、意味のある
-Commander loop を個別に証明し、最後に既存 O4P-09I journey で総合認定する。
+必要な唯一の gate にはしない。先に価値仮説と共有 session の信頼性を個別に証明し、
+human observation ができない場合はCをdeferred/skippedとして証拠なしで保留し、
+既存 O4P-09I journey へ shipped B から直接進む。
 
 ## Task sequence
 
@@ -26,21 +27,25 @@ Commander loop を個別に証明し、最後に既存 O4P-09I journey で総合
   pending 操作、無反応、重複適用、秘密漏洩、孤児 process/profile はゼロ。
 - Non-goals: 勝者、完全試合、全 interaction、Arena-80、四人卓の総合認定。
 
-### O4P-09I-C — Meaningful Commander loop
+### O4P-09I-C — Meaningful Commander loop (deferred/skipped)
 
-- Goal: 信頼できる同一 session で、land、cast、HOLD、response または pass、resolve、
-  unsupported Manual fallback の会話ループがプレイヤーに理解できる。
-- Acceptance: 二人の production session で上記 loop を完了し、操作主体、待ち理由、
-  stack の因果、結果状態が視認できる。375x812、812x375、1440x900 は一つの
-  GameScreen、horizontal overflow なし、console error 0。人間の観察で最大摩擦を一つだけ
-  選び、必要ならその root cause を最小修正する。
-- Non-goals: combat corner の網羅、完全試合、四人卓総合、Arena-80。
+- Status: human observationを実施できないためdeferred/skippedとする。Cの成功は主張せず、
+  agent observationやsynthetic evidenceで代替しない。production loop、viewport、最大摩擦の証拠は記録せず、修正も行わない。
+- Non-goals: combat corner の網羅、完全試合、四人卓総合、Arena-80、C success claim。
+- Scope boundary: 隔離mock由来のUI採用は別のproduct/design判断であり、C/Iのacceptance、
+  旅程、viewport条件を拡張しない。Cを再開する場合も、観察なしの摩擦修正は行わない。
 
 ### O4P-09I — Complete-match certification
 
 既存の journey contract と acceptance brief を維持する。二人の短い完全試合、四人の
 continuity/reconnect/privacy、三 viewport、cleanup、fresh-context Arena review の全条件が
 揃った場合だけ close する。A/B/C の成功を I の成功へ読み替えない。
+
+隔離mockから得たCockpit/UI判断の採用は、既存runtimeのpublic projectionを削除したり、
+C/Iの受入を広げたりするものではなく、別のproduct/design変更として扱う。
+脱落後のread-only spectatorは同じCockpit内のplayer-surface採用に限り、別画面の外部Spectator
+Tableを公開projectionから作る deferred O4P-09Jを前倒し・代替するものではない。いずれもC/Iの受入を拡張しない。
+Cのdeferred/skippedはIのacceptanceを変更せず、shipped BからIへ直接進む。
 
 ## Audit policy for this sequence
 
