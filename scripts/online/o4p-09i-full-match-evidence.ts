@@ -3264,6 +3264,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-journey-play-land') {
         setStage('land');
+        await toggleDetails(hostPage, 'online-remote-manual-overlay', timeoutMs);
         await selectFirstVisibleOption(hostPage, 'online-journey-land', timeoutMs);
       }
       if (testId === 'online-remote-cast') {
@@ -3333,6 +3334,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-guided-declare-attacker') {
         setStage('attacker');
+        await toggleDetails(hostPage, 'online-remote-guided-overlay', timeoutMs);
         await selectFirstVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) select:nth-of-type(1)', timeoutMs);
         await selectFirstVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) select:nth-of-type(2)', timeoutMs);
         const baseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;

@@ -162,6 +162,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const postMutationHostLagProbeCounts = [0, 0];
   const pregameClickBaselines = [0, 0];
   const pregameResponseProbeCounts = [0, 0];
+  const openDetails: Array<'guided' | 'manual' | null> = [null, null];
   const pregameControls = ['pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready'];
   const page = (contextOrdinal: number, pageOrdinal: number): O4p09iPageV1 => {
     let revealButtonProbes = 0;
@@ -272,9 +273,20 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('playerTransportSurfaceProbe')) {
         return Promise.resolve((options.transportSurfaceMissing !== true) as T);
       }
+      const guidedDescendant = expression.includes('guided-combat')
+        || expression.includes('guided-confirmation')
+        || expression.includes('online-manual-damage-defender')
+        || expression.includes('online-manual-damage-amount');
+      const manualDescendant = expression.includes('data-testid="online-journey-land"')
+        || expression.includes('data-testid="visibility-look-subject"')
+        || expression.includes('data-testid="visibility-look-viewers"');
+      if (guidedDescendant && openDetails[scenarioIndex] !== 'guided') return Promise.reject(new Error('guided panel closed'));
+      if (manualDescendant && openDetails[scenarioIndex] !== 'manual') return Promise.reject(new Error('manual panel closed'));
       if (expression.includes('detailsPanelReadyProbe:')) {
         detailsProbes += 1;
-        return Promise.resolve((options.delayedDetailsMount !== true || detailsProbes > 1) as T);
+        const opened = options.delayedDetailsMount !== true || detailsProbes > 1;
+        if (opened) openDetails[scenarioIndex] = expression.includes('online-remote-guided-overlay') ? 'guided' : 'manual';
+        return Promise.resolve(opened as T);
       }
       if (expression.includes('priorityControlProbe:online-tabletop-submit-stack-entry')) {
         if (options.manualStackEnabledProbeNeverSettles === true) return new Promise<T>(() => {});
@@ -1014,6 +1026,14 @@ describe('O4P-09I full-match production evidence', () => {
     expect(expressions.some((expression) => expression.includes('priorityControlProbe:online-remote-sba-stable'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('data-testid="online-remote-sba-stable"') && expression.includes('node.click(); return true'))).toBe(true);
     expect(expressions.some((expression) => expression.includes('applyCommand') || /\bdispatch\s*\(/u.test(expression) || /\bfetch\s*\(/u.test(expression))).toBe(false);
+    const manualOverlayOpen = expressions.findIndex((expression) => expression.includes('detailsPanelReadyProbe:online-remote-manual-overlay'));
+    const landSelection = expressions.findIndex((expression) => expression.includes('data-testid="online-journey-land"') && expression.includes('HTMLSelectElement'));
+    expect(manualOverlayOpen).toBeGreaterThanOrEqual(0);
+    expect(landSelection).toBeGreaterThan(manualOverlayOpen);
+    const guidedOpenAfterLand = expressions.findIndex((expression, index) => index > manualOverlayOpen && expression.includes('detailsPanelReadyProbe:online-remote-guided-overlay'));
+    const guidedSelection = expressions.findIndex((expression) => expression.includes('guided-combat'));
+    expect(guidedOpenAfterLand).toBeGreaterThan(manualOverlayOpen);
+    expect(guidedSelection).toBeGreaterThan(guidedOpenAfterLand);
   });
 
   it('runs the bounded two-player reliability profile through a post-reconnect mutation', async () => {
