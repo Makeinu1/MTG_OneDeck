@@ -88,6 +88,11 @@ export type CoreTabletopTurnPayloadV1 = Readonly<{
   readonly transition: CoreTabletopTurnTransitionV1;
 }>;
 
+export type CoreTabletopTurnPayloadV2 = Readonly<{
+  readonly kind: 'table-turn-progress-v2';
+  readonly transition: CoreTabletopTurnTransitionV1;
+}>;
+
 export type CoreTabletopShufflePayloadV1 = Readonly<{
   readonly kind: 'table-shuffle';
   readonly manualMode?: unknown;
@@ -170,6 +175,7 @@ export type CoreTabletopCommandPayloadV1 =
   | CoreTabletopStackEntryPayloadV1
   | CoreTabletopManualResolvePayloadV1
   | CoreTabletopPriorityHoldPayloadV1
-  | CoreTabletopTurnPayloadV1;
+  | CoreTabletopTurnPayloadV1
+  | CoreTabletopTurnPayloadV2;
 
 export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];

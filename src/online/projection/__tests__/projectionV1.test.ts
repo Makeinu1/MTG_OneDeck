@@ -3,7 +3,7 @@ import * as Core from '../../../engine/core/index';
 import { coreSha256HexV1 } from '../../../engine/core/index';
 import type { CardDef } from '../../../types/card';
 import { buildVariableRoomGenesisV3, type VariableGenesisSeatInputV3 } from '../../genesis/index';
-import { createOnlineProtocolStateV1 } from '../../protocol/index';
+import { createOnlineProtocolStateV1, handleOnlineVariableCommandEnvelopeV2 } from '../../protocol/index';
 import { activateOnlineRoomV1, joinOnlineRoomV1, startOnlineRoomV1 } from '../../room/index';
 import {
   CAPABILITIES,
@@ -76,6 +76,36 @@ function variableState() {
   }));
   if (!result.ok) throw new Error('Expected variable state');
   return result.protocolState;
+}
+
+function exitVariablePlayer(state: ReturnType<typeof variableState>, seatIndex: number): ReturnType<typeof variableState> {
+  const seat = state.room.seats[seatIndex];
+  if (seat === undefined || seat.participantId === null) throw new Error('Expected exit seat');
+  const playerId = seat.corePlayerId;
+  const command = Core.createCoreCommandV1({
+    schemaVersion: 1,
+    sequence: state.coreRoot.acceptedCommandCount + 1,
+    actorPlayerId: playerId,
+    decisionMakerPlayerId: playerId,
+    decisionContext: { kind: 'decision', decisionKey: `exit-${playerId}` },
+    payload: { kind: 'player-exit', playerId, cause: 'defeat' },
+  });
+  const transition = handleOnlineVariableCommandEnvelopeV2({
+    ...state,
+    room: state.room,
+    coreRoot: state.coreRoot,
+  }, {
+    kind: 'online-command-envelope-v1',
+    protocolVersion: state.protocolVersion,
+    roomId: state.room.roomId,
+    participantId: seat.participantId,
+    participantCapability: seat.seatCapability,
+    commandId: `exit-${playerId}`,
+    baseRevision: state.revision,
+    command,
+  }, true);
+  if (transition.response.kind !== 'online-command-ack-v1') throw new Error('Expected accepted player exit');
+  return transition.state;
 }
 
 function rootWithRuleAuthority(
@@ -241,18 +271,40 @@ describe('O4P-02D audience projection', () => {
       damage: 7,
     });
     const coreRoot = Core.createModeNeutralCoreRootV1({ ...initial.coreRoot, commanderDamage });
-    const projected = projectOnlineVariableProtocolV4({ ...initial, coreRoot }, 'v4-player-1');
-    const eliminated = {
-      ...projected,
-      room: {
-        ...projected.room,
-        seats: projected.room.seats.map((seat) => seat.corePlayerId === 'P2' ? { ...seat, outcome: 'defeated' as const } : seat),
-      },
-    };
+    const exited = exitVariablePlayer({ ...initial, coreRoot }, 1);
+    const eliminated = projectOnlineVariableProtocolV4(exited, 'v4-player-1');
     expect(eliminated.game.commanderDamage).toContainEqual({
       commanderOwnerPlayerId: 'P1', commanderSlot: 0, defendingPlayerId: 'P2', damage: 7,
     });
     expect(validateOnlineParticipantProjectionV4(eliminated)).toMatchObject({ ok: true });
+  });
+
+  it('rejects missing survivors and extra departed records after a Core exit', () => {
+    const exited = exitVariablePlayer(variableState(), 1);
+    const projection = projectOnlineVariableProtocolV4(exited, 'v4-player-1');
+    expect(projection.game.turnOrder).not.toContain('P2');
+    expect(projection.room.seats.find((seat) => seat.corePlayerId === 'P2')?.outcome).toBe('defeated');
+
+    type MutableGame = {
+      turnOrder: Core.CorePlayerId[];
+      players: Array<Record<string, unknown>>;
+      zones: { byPlayer: Array<Record<string, unknown>> };
+    };
+    type MutableProjection = { game: MutableGame };
+    const sourceGame = projection.game as unknown as MutableGame;
+    const missingSurvivor = structuredClone(projection) as unknown as MutableProjection;
+    missingSurvivor.game.players = missingSurvivor.game.players.filter((player) => player.playerId !== 'P1');
+    missingSurvivor.game.zones.byPlayer = missingSurvivor.game.zones.byPlayer.filter((group) => group.playerId !== 'P1');
+    expect(validateOnlineParticipantProjectionV4(missingSurvivor)).toMatchObject({ ok: false });
+
+    const extraDeparted = structuredClone(projection) as unknown as MutableProjection;
+    const departed = sourceGame.players.find((player) => player.playerId === 'P1');
+    const departedZones = sourceGame.zones.byPlayer.find((group) => group.playerId === 'P1');
+    if (departed === undefined || departedZones === undefined) throw new Error('Expected survivor template');
+    extraDeparted.game.turnOrder = [...extraDeparted.game.turnOrder, 'P2' as Core.CorePlayerId];
+    extraDeparted.game.players = [...extraDeparted.game.players, { ...departed, playerId: 'P2', status: 'exited', exitCause: 'defeat' }];
+    extraDeparted.game.zones.byPlayer = [...extraDeparted.game.zones.byPlayer, { ...departedZones, playerId: 'P2' }];
+    expect(validateOnlineParticipantProjectionV4(extraDeparted)).toMatchObject({ ok: false });
   });
 
   it('projects an authenticated player and hides all library identities', () => {

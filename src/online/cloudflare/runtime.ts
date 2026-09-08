@@ -7,7 +7,9 @@ import {
   validateOnlineCommandEnvelopeV1,
   validateOnlineProtocolStateV1,
   validateOnlineVariableProtocolStateV2,
+  isOnlineProtocolCommandIdV1,
   type OnlineCommandRejectV1,
+  type OnlineProtocolIssueCodeV1,
   type OnlineVariableProtocolStateV2,
 } from '../protocol/index';
 import { handleOnlineProjectedSnapshotRequestV1, projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, projectOnlineVariableProtocolV4 } from '../projection/index';
@@ -51,7 +53,8 @@ import { isOnlineRoomApplicationIdV1, isOnlineRoomSeatCapabilityV1 } from '../ro
 import { OnlineDeckScryfallResolverV2 } from './scryfallResolver';
 import type { OnlineDeckResolverV2 } from '../deckSubmission/index';
 import { bindOnlineTabletopIntentOnServerV1 } from '../tabletopManual/index';
-import { bindOnlineVisibilityV1, validateOnlineVisibilityIntentV1 } from '../visibilityDecisions/index';
+import { bindOnlineVisibilityV1, validateOnlineVisibilityIntent } from '../visibilityDecisions/index';
+import type { OnlineVisibilityIntentEnvelope } from '../visibilityDecisions/index';
 import { validateOnlineTabletopIntentEnvelopeV1, type OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import { coreCanonicalDigestFromValueV1 } from '../../engine/core/index';
 import type { CoreCommandV1, CoreObjectId, CorePlayerId } from '../../engine/core/index';
@@ -106,6 +109,7 @@ type VariableTabletopBindingInputV1 = Readonly<{
   readonly transportCredential: string;
   readonly frame: OnlineCloudflareWebSocketFrameV1;
   readonly findAccepted: (commandId: string) => unknown;
+  readonly loadStateAtRevision: (revision: number) => OnlineVariableProtocolStateV2 | null;
 }>;
 
 function extractTabletopIntentV1(frame: OnlineCloudflareWebSocketFrameV1): OnlineTabletopIntentEnvelopeV1 {
@@ -122,7 +126,7 @@ function extractTabletopIntentV1(frame: OnlineCloudflareWebSocketFrameV1): Onlin
   return checked.value;
 }
 
-function extractVisibilityIntentV1(frame: OnlineCloudflareWebSocketFrameV1): import('../visibilityDecisions/types').OnlineVisibilityIntentEnvelopeV1 {
+function extractVisibilityIntent(frame: OnlineCloudflareWebSocketFrameV1): OnlineVisibilityIntentEnvelope {
   const intent: Record<string, unknown> = {
     kind: ownDataValue(frame, 'kind'),
     schemaVersion: ownDataValue(frame, 'schemaVersion'),
@@ -132,11 +136,11 @@ function extractVisibilityIntentV1(frame: OnlineCloudflareWebSocketFrameV1): imp
   // Preserve the exact one-branch union.  Adding absent optional branches as
   // `undefined` would turn an otherwise valid Look/Reveal/Choose envelope
   // into an explicit unknown/invalid branch during strict validation.
-  for (const key of ['look', 'reveal', 'choose'] as const) {
+  for (const key of ['look', 'reveal', 'choose', 'openChoice'] as const) {
     if (Object.prototype.hasOwnProperty.call(frame, key)) intent[key] = ownDataValue(frame, key);
   }
   const frozenIntent = Object.freeze(intent);
-  const checked = validateOnlineVisibilityIntentV1(frozenIntent);
+  const checked = validateOnlineVisibilityIntent(frozenIntent);
   if (!checked.ok) throw new Error('Invalid visibility intent');
   return checked.value;
 }
@@ -167,6 +171,7 @@ function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
   // command envelope would let an authenticated client skip projection and
   // server-side authority checks.
   if (payload.kind === 'visibility-open' || payload.kind === 'visibility-close') return true;
+  if (payload.kind === 'search-open') return true;
   if (payload.kind === 'search-complete') {
     const commandRecord = coreCommandRecord(command);
     return commandRecord !== null && commandRecord.actorPlayerId !== commandRecord.decisionMakerPlayerId;
@@ -176,7 +181,7 @@ function rejectsClientTabletopAuthorityBypass(command: unknown): boolean {
   // Resolution/turn-progress commands are steward-owned assisted intents;
   // accepting them on the legacy command envelope would bypass the shared
   // tabletop binder's HOLD and steward checks.
-  if (payload.kind === 'stack-remove-object' || payload.kind === 'table-turn-progress' || payload.kind === 'table-manual-resolve') return true;
+  if (payload.kind === 'stack-remove-object' || payload.kind === 'table-turn-progress' || payload.kind === 'table-turn-progress-v2' || payload.kind === 'table-manual-resolve') return true;
   if (payload.kind === 'manual-combat-damage') return true;
   if (
     payload.kind === 'table-zone-move'
@@ -217,6 +222,35 @@ function alterManualModeForReuseV1(command: unknown, mode: OnlineTabletopIntentE
   return Object.freeze({ ...record, sequence: changedSequence, payload: Object.freeze({ ...payload, manualMode: mode }) });
 }
 
+function downgradeFreshTurnProgressForLegacyRetryV1(existing: unknown, fresh: unknown): unknown {
+  const existingPayload = coreCommandPayload(existing);
+  const freshRecord = coreCommandRecord(fresh);
+  const freshPayload = coreCommandPayload(fresh);
+  if (existingPayload?.kind !== 'table-turn-progress' || freshRecord === null || freshPayload?.kind !== 'table-turn-progress-v2') return fresh;
+  return Object.freeze({
+    ...freshRecord,
+    payload: Object.freeze({ ...freshPayload, kind: 'table-turn-progress' }),
+  });
+}
+
+const TABLETOP_COMMAND_ID_REUSE_MISMATCH_ERROR_V1 = 'Command ID was already used for a different request';
+
+function historicalTabletopBindingStateV1(
+  current: OnlineVariableProtocolStateV2,
+  historical: OnlineVariableProtocolStateV2,
+): OnlineVariableProtocolStateV2 {
+  const participants = historical.room.participants.map((participant) => {
+    const currentParticipant = current.room.participants.find((candidate) => candidate.participantId === participant.participantId);
+    return currentParticipant === undefined
+      ? participant
+      : Object.freeze({ ...participant, presence: currentParticipant.presence });
+  });
+  return Object.freeze({
+    ...historical,
+    room: Object.freeze({ ...historical.room, participants: Object.freeze(participants) }),
+  });
+}
+
 /**
  * Converts the public six-field intent into the ordinary protocol envelope.
  * Validation and journal lookup happen before server entropy is requested.
@@ -237,18 +271,27 @@ function bindVariableTabletopIntentV1(input: VariableTabletopBindingInputV1): Re
     const exact = shuffleDuplicateCommandV1(existing, envelope, seat.corePlayerId);
     command = exact ?? alterManualModeForReuseV1(existing, envelope.mode);
   } else {
-    // Accepted non-shuffle retries are rebound without entropy; the protocol
-    // digest then accepts only an exact duplicate and rejects changed input.
-    // A new command id was required to match the current revision above.
-    const bindState = envelope.baseRevision === input.state.revision
+    // Accepted non-shuffle retries are rebound from the accepted command's
+    // pre-state; the protocol digest then accepts only an exact duplicate.
+    const bindState = existing === null
       ? input.state
-      : Object.freeze({ ...input.state, revision: envelope.baseRevision });
-    command = bindOnlineTabletopIntentOnServerV1({
-      state: bindState,
-      participantId: input.participantId,
-      envelope,
-      randomize: serverShuffleOrder,
-    }).command;
+      : (() => {
+        const historical = input.loadStateAtRevision(envelope.baseRevision);
+        if (historical === null) throw new Error(TABLETOP_COMMAND_ID_REUSE_MISMATCH_ERROR_V1);
+        return historicalTabletopBindingStateV1(input.state, historical);
+      })();
+    try {
+      const fresh = bindOnlineTabletopIntentOnServerV1({
+        state: bindState,
+        participantId: input.participantId,
+        envelope,
+        randomize: serverShuffleOrder,
+      }).command;
+      command = existing === null ? fresh : downgradeFreshTurnProgressForLegacyRetryV1(existing, fresh);
+    } catch (error: unknown) {
+      if (existing !== null && !isParticipantNotConnectedError(error)) throw new Error(TABLETOP_COMMAND_ID_REUSE_MISMATCH_ERROR_V1, { cause: error });
+      throw error;
+    }
   }
   return Object.freeze({
     kind: 'online-command-envelope-v1',
@@ -328,6 +371,72 @@ function participantNotConnectedReject(
 
 function isParticipantNotConnectedError(error: unknown): boolean {
   return error instanceof Error && error.message === 'PARTICIPANT_NOT_CONNECTED';
+}
+
+type TabletopBindingRejectionV1 = Readonly<{
+  readonly code: OnlineProtocolIssueCodeV1;
+  readonly message: string;
+  readonly path: string;
+  readonly resyncRequired: boolean;
+}>;
+
+const SEMANTIC_TABLETOP_BINDING_REJECTIONS_V1: ReadonlyMap<string, TabletopBindingRejectionV1> = new Map<string, TabletopBindingRejectionV1>([
+  [TABLETOP_COMMAND_ID_REUSE_MISMATCH_ERROR_V1, Object.freeze({ code: 'COMMAND_ID_REUSE_MISMATCH', message: 'Command ID was already used for a different request', path: '/commandId', resyncRequired: false })],
+  ['Stale tabletop revision', Object.freeze({ code: 'STALE_REVISION', message: 'Tabletop command revision is stale', path: '/baseRevision', resyncRequired: true })],
+  ['Tabletop room is not active', Object.freeze({ code: 'ROOM_NOT_ACTIVE', message: 'Tabletop room is not active', path: '/roomId', resyncRequired: false })],
+  ['Participant seat is unavailable', Object.freeze({ code: 'PLAYER_NOT_PENDING', message: 'Tabletop player is not available', path: '/participantId', resyncRequired: false })],
+  ['Cards enter the stack through cast-spell', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Active priority HOLD blocks land play or spell cast', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Card must be in the actor hand', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Land play is not legal in the current turn window', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Land cards use play-land', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['The actor must hold priority to cast a spell', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Non-Flash spells require the active player during an empty main-phase stack', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Active priority HOLD blocks priority pass', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Only the current priority holder may pass', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Active priority HOLD blocks SBA outcome', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Only the SBA priority recipient may submit an SBA outcome', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Active priority HOLD blocks source-less manual entries', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Source-less manual entries require the active player and an empty Core stack', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Only the current stack steward may add a source-backed manual entry', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Only the current manual stack top may resolve', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Only the manual entry author may resolve', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Active priority HOLD blocks manual resolve', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Manual resolution requires the active steward and an empty Core stack', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Manual source must be the current Core stack top', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Only the current stack steward may advance or resolve', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Active priority HOLD blocks advance or resolve', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Stack is not ready to resolve', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Stack object is unavailable', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['No assisted priority advance is available', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+  ['Hidden-information primitive is unavailable', Object.freeze({ code: 'CORE_COMMAND_REJECTED', message: 'Tabletop command was rejected', path: '/command', resyncRequired: false })],
+]);
+
+function tabletopBindingReject(
+  state: OnlineVariableProtocolStateV2,
+  input: Record<string, unknown>,
+  error: unknown,
+): OnlineCommandRejectV1 | null {
+  const rejection = error instanceof Error ? SEMANTIC_TABLETOP_BINDING_REJECTIONS_V1.get(error.message) : undefined;
+  if (rejection === undefined) return null;
+  const commandId = ownDataString(input, 'commandId');
+  const participantId = ownDataString(input, 'participantId');
+  const baseRevision = ownDataValue(input, 'baseRevision');
+  if (commandId === null || !isOnlineProtocolCommandIdV1(commandId) || participantId === null
+    || typeof baseRevision !== 'number' || !Number.isSafeInteger(baseRevision) || baseRevision < 0
+    || baseRevision > state.revision) return null;
+  return Object.freeze({
+    kind: 'online-command-reject-v1',
+    protocolVersion: state.protocolVersion,
+    roomId: state.room.roomId as OnlineCommandRejectV1['roomId'],
+    participantId: participantId as OnlineCommandRejectV1['participantId'],
+    commandId,
+    baseRevision,
+    currentRevision: state.revision,
+    duplicate: false,
+    resyncRequired: rejection.resyncRequired,
+    issues: Object.freeze([{ code: rejection.code, path: rejection.path, message: rejection.message }]),
+  });
 }
 
 function ownDataValue(value: Record<string, unknown>, key: string): unknown {
@@ -424,10 +533,10 @@ function isExactRecord(value: Record<string, unknown>, expected: readonly string
   }
 }
 
-function isVisibilityIntentRecord(value: Record<string, unknown>): boolean {
+function isVisibilityIntentRecord(value: Record<string, unknown>, fields: readonly string[]): boolean {
   try {
     if (Object.getPrototypeOf(value) !== Object.prototype || Object.getOwnPropertySymbols(value).length !== 0) return false;
-    const allowed = new Set(VISIBILITY_INTENT_FIELDS_V1);
+    const allowed = new Set(fields);
     const required = new Set(['kind', 'schemaVersion', 'protocolVersion', 'roomId', 'participantId', 'participantCapability', 'commandId', 'baseRevision']);
     const names = Object.getOwnPropertyNames(value);
     if (names.some((name) => !allowed.has(name)) || [...required].some((name) => !names.includes(name))) return false;
@@ -475,6 +584,17 @@ const VISIBILITY_INTENT_FIELDS_V1 = Object.freeze([
   'look',
   'reveal',
   'choose',
+]);
+const VISIBILITY_INTENT_FIELDS_V2 = Object.freeze([
+  'kind',
+  'schemaVersion',
+  'protocolVersion',
+  'roomId',
+  'participantId',
+  'participantCapability',
+  'commandId',
+  'baseRevision',
+  'openChoice',
 ]);
 
 const LEGACY_UPGRADE_REQUIRED = Object.freeze({
@@ -954,7 +1074,9 @@ export class OnlineRoomDurableObject {
         const tabletopIntent = ownDataString(body, 'kind') === 'online-tabletop-intent-envelope-v1';
         const sharedUndoIntent = ownDataString(body, 'kind') === 'online-shared-undo-intent-v1';
         const manualCombatDamageIntent = ownDataString(body, 'kind') === 'online-manual-combat-damage-intent-v1';
-        const visibilityIntent = ownDataString(body, 'kind') === 'online-visibility-intent-v1';
+        const visibilityIntentV1 = ownDataString(body, 'kind') === 'online-visibility-intent-v1';
+        const visibilityIntentV2 = ownDataString(body, 'kind') === 'online-visibility-intent-v2';
+        const visibilityIntent = visibilityIntentV1 || visibilityIntentV2;
         if (tabletopIntent && !isExactRecord(body, TABLETOP_INTENT_FIELDS_V1)) return genericError(400);
         if (sharedUndoIntent && !isExactRecord(body, SHARED_UNDO_INTENT_FIELDS_V1)) return genericError(400);
         if (manualCombatDamageIntent && !isExactRecord(body, MANUAL_COMBAT_DAMAGE_INTENT_FIELDS_V1)) return genericError(400);
@@ -962,7 +1084,7 @@ export class OnlineRoomDurableObject {
         if (tabletopIntent && roomId !== route.roomId) return genericError(400);
         if (sharedUndoIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
         if (manualCombatDamageIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
-        if (visibilityIntent && !isVisibilityIntentRecord(body)) return genericError(400);
+        if (visibilityIntent && !isVisibilityIntentRecord(body, visibilityIntentV2 ? VISIBILITY_INTENT_FIELDS_V2 : VISIBILITY_INTENT_FIELDS_V1)) return genericError(400);
         if (visibilityIntent && (ownDataValue(body, 'protocolVersion') !== state.protocolVersion || roomId !== route.roomId || ownDataValue(body, 'participantId') !== participantId)) return genericError(400);
         let internalMessage: Record<string, unknown>;
         try {
@@ -979,19 +1101,24 @@ export class OnlineRoomDurableObject {
               transportCredential: admission.authorization.protocolCapability,
               frame: body,
               findAccepted: (commandId) => this.repository.findVariableAcceptedCommandV2(route.roomId, participantId, commandId),
+              loadStateAtRevision: (revision) => this.repository.loadVariableProtocolStateAtRevisionV2(route.roomId, revision),
             });
             internalMessage = bound;
           } catch (error: unknown) {
             if (state.kind === 'online-protocol-state-v2' && isParticipantNotConnectedError(error)) {
               return publicProtocolResponse(participantNotConnectedReject(state, body, participantId));
             }
+            const rejection = state.kind === 'online-protocol-state-v2' && error instanceof Error && error.message === TABLETOP_COMMAND_ID_REUSE_MISMATCH_ERROR_V1
+              ? tabletopBindingReject(state, body, error)
+              : null;
+            if (rejection !== null) return publicProtocolResponse(rejection);
             return genericError(error instanceof ConflictError ? 409 : 400);
           }
         }
         if (visibilityIntent) {
           if (state.kind !== 'online-protocol-state-v2') return genericError(426);
           try {
-            const envelope = extractVisibilityIntentV1(body);
+            const envelope = extractVisibilityIntent(body);
             const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(route.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
             internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
           } catch (error: unknown) {
@@ -1130,7 +1257,7 @@ export class OnlineRoomDurableObject {
     }
     const frame = parsed.value;
     const kind = frameKind(frame);
-    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1' && kind !== 'online-visibility-intent-v1' && kind !== 'online-shared-undo-intent-v1' && kind !== 'online-manual-combat-damage-intent-v1') {
+    if (kind !== 'online-client-hello-v1' && kind !== 'online-projection-request-v1' && kind !== 'online-command-envelope-v1' && kind !== 'online-tabletop-intent-envelope-v1' && kind !== 'online-visibility-intent-v1' && kind !== 'online-visibility-intent-v2' && kind !== 'online-shared-undo-intent-v1' && kind !== 'online-manual-combat-damage-intent-v1') {
       this.malformedMessage(socket, counted.attachment, now);
       return;
     }
@@ -1165,7 +1292,9 @@ export class OnlineRoomDurableObject {
       const tabletopIntent = kind === 'online-tabletop-intent-envelope-v1';
       const sharedUndoIntent = kind === 'online-shared-undo-intent-v1';
       const manualCombatDamageIntent = kind === 'online-manual-combat-damage-intent-v1';
-      const visibilityIntent = kind === 'online-visibility-intent-v1';
+      const visibilityIntentV1 = kind === 'online-visibility-intent-v1';
+      const visibilityIntentV2 = kind === 'online-visibility-intent-v2';
+      const visibilityIntent = visibilityIntentV1 || visibilityIntentV2;
       if (tabletopIntent && !isExactRecord(frame, TABLETOP_INTENT_FIELDS_V1)) {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
@@ -1190,7 +1319,7 @@ export class OnlineRoomDurableObject {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }
-      if (visibilityIntent && (!isVisibilityIntentRecord(frame)
+      if (visibilityIntent && (!isVisibilityIntentRecord(frame, visibilityIntentV2 ? VISIBILITY_INTENT_FIELDS_V2 : VISIBILITY_INTENT_FIELDS_V1)
         || ownDataValue(frame, 'protocolVersion') !== state.protocolVersion
         || frameStringField(frame, 'roomId') !== state.room.roomId
         || frameStringField(frame, 'participantId') !== participantId)) {
@@ -1212,8 +1341,14 @@ export class OnlineRoomDurableObject {
             transportCredential: admission.authorization.protocolCapability,
             frame,
             findAccepted: (commandId) => this.repository.findVariableAcceptedCommandV2(state.room.roomId, participantId, commandId),
+            loadStateAtRevision: (revision) => this.repository.loadVariableProtocolStateAtRevisionV2(state.room.roomId, revision),
           });
         } catch (error: unknown) {
+          const rejection = tabletopBindingReject(state, frame, error);
+          if (rejection !== null) {
+            this.sendApplicationValue(socket, rejection);
+            return;
+          }
           if (state.kind === 'online-protocol-state-v2' && isParticipantNotConnectedError(error)) {
             this.sendApplicationValue(socket, participantNotConnectedReject(state, frame, participantId));
             return;
@@ -1224,7 +1359,7 @@ export class OnlineRoomDurableObject {
       }
       if (state.kind === 'online-protocol-state-v2' && visibilityIntent) {
         try {
-          const envelope = extractVisibilityIntentV1(frame);
+          const envelope = extractVisibilityIntent(frame);
           const bound = bindOnlineVisibilityV1({ state, participantId, envelope, projection: projectOnlineVariableProtocolV3(state, participantId), existingCommand: this.repository.findVariableAcceptedCommandV2(state.room.roomId, participantId, envelope.commandId), transportCredential: admission.authorization.protocolCapability });
           internalMessage = Object.freeze({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId, participantId, ['participantCapability']: admission.authorization.protocolCapability, commandId: envelope.commandId, baseRevision: envelope.baseRevision, command: bound.command });
         } catch (error: unknown) {
@@ -1236,7 +1371,7 @@ export class OnlineRoomDurableObject {
           return;
         }
       }
-      if ((kind === 'online-tabletop-intent-envelope-v1' || kind === 'online-visibility-intent-v1') && state.kind !== 'online-protocol-state-v2') {
+      if ((kind === 'online-tabletop-intent-envelope-v1' || visibilityIntent) && state.kind !== 'online-protocol-state-v2') {
         this.sendError(socket, 'INVALID_MESSAGE');
         return;
       }
@@ -1517,7 +1652,13 @@ export class OnlineRoomDurableObject {
     const acquired = this.security.acquireControllerLease(state, authorization.participantId, authorization.generation, { kind: 'socket', connectionId: this.attachment(socket)?.connectionId ?? null }, now);
     if (!acquired) { this.sendError(socket, 'CONTROLLER_LEASE_REQUIRED'); return; }
     if (transition.response.kind === 'online-command-ack-v1' && !transition.response.duplicate) {
-      this.repository.commitVariableAcceptedV2(state, transition.state, validation.value); this.sendApplicationValue(socket, transition.response); this.broadcastRevision(state.room.roomId, transition.state.revision); return;
+      this.repository.commitVariableAcceptedV2(state, transition.state, validation.value);
+      try {
+        this.sendApplicationValue(socket, transition.response);
+      } finally {
+        this.broadcastRevision(state.room.roomId, transition.state.revision);
+      }
+      return;
     }
     this.sendApplicationValue(socket, transition.response);
   }
@@ -1537,8 +1678,11 @@ export class OnlineRoomDurableObject {
         return;
       }
       this.repository.commitVariableUndoAcceptedV2(state, transition.state, intent);
-      this.sendApplicationValue(socket, transition.response);
-      this.broadcastRevision(state.room.roomId, transition.state.revision);
+      try {
+        this.sendApplicationValue(socket, transition.response);
+      } finally {
+        this.broadcastRevision(state.room.roomId, transition.state.revision);
+      }
       return;
     }
     this.sendApplicationValue(socket, transition.response);
@@ -1559,8 +1703,11 @@ export class OnlineRoomDurableObject {
         return;
       }
       this.repository.commitVariableManualCombatDamageAcceptedV2(state, transition.state, intent);
-      this.sendApplicationValue(socket, transition.response);
-      this.broadcastRevision(state.room.roomId, transition.state.revision);
+      try {
+        this.sendApplicationValue(socket, transition.response);
+      } finally {
+        this.broadcastRevision(state.room.roomId, transition.state.revision);
+      }
       return;
     }
     this.sendApplicationValue(socket, transition.response);

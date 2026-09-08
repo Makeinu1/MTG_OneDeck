@@ -1,21 +1,190 @@
 .online-remote-rail {
-  position: absolute;
+  --color-panel: var(--surface-1);
+  --color-panel-raised: var(--surface-2);
+  --color-text: var(--text-h);
+  --color-muted: var(--text-dim);
+  --color-accent: var(--gold-bright);
+  --color-warning: var(--warn);
+  position: relative;
   z-index: 8;
-  grid-column: 1;
-  grid-row: 2 / 4;
-  inset: auto 1rem 1rem;
-  max-height: min(46dvh, 30rem);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  inset: auto;
   overflow: auto;
   overscroll-behavior: contain;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: .45rem;
-  padding: .65rem .8rem;
+  padding: .45rem max(1rem, calc((100% - 82rem) / 2));
+  box-sizing: border-box;
   border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 44%, transparent);
-  border-radius: .8rem;
+  border-radius: .6rem;
   background: color-mix(in srgb, var(--color-panel, #121827) 92%, transparent);
   box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
   pointer-events: auto;
 }
+
+.online-remote-rail--overview {
+  overflow: hidden;
+}
+
+.online-remote-rail--actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: .25rem;
+  overflow: visible;
+}
+
+.online-remote-rail__context {
+  order: 1;
+  min-width: 0;
+}
+
+.online-remote-rail__context > summary {
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.online-remote-rail--actions .online-remote-rail__context {
+  grid-column: 2;
+  max-height: 2.5rem;
+  overflow: hidden;
+}
+
+.online-remote-rail--actions .online-remote-rail__context[open] {
+  max-height: 5.4rem;
+}
+
+.online-remote-rail--actions .online-remote-rail__context > summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 .35rem;
+  color: var(--color-text);
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+.online-remote-rail--actions > .online-remote-rail__header {
+  display: none;
+}
+
+.online-remote-rail--actions > .online-remote-rail__actions {
+  grid-column: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 2.5rem;
+  max-height: none;
+  flex-wrap: nowrap;
+  overflow: auto hidden;
+  align-items: center;
+}
+
+.online-remote-rail--actions > .online-remote-rail__actions > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.online-remote-rail--actions .online-remote-rail__actions .online-remote-rail__card-action {
+  order: 3;
+  flex: 0 0 auto;
+}
+
+.online-remote-rail--actions .online-remote-rail__actions .online-remote-rail__primary-action {
+  order: 1;
+}
+
+.online-remote-rail--actions .online-remote-rail__actions .online-remote-rail__secondary-action {
+  order: 2;
+}
+
+.online-remote-rail--actions .online-remote-rail__card-action small {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .online-remote-rail--overview {
+    gap: .3rem;
+    padding: .3rem max(.65rem, calc((100% - 82rem) / 2));
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents {
+    gap: .3rem;
+    padding: .3rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents-header span {
+    display: none;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-lane {
+    padding: .25rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus {
+    min-height: 1.4rem;
+    padding: .15rem .3rem;
+    font-size: .6rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-cards {
+    min-height: 2.35rem;
+    max-height: 3rem;
+    overflow: hidden;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-cards .game-card,
+  .online-remote-rail--overview .online-remote-rail__opponent-cards > .game-card {
+    width: 2.15rem;
+    flex-basis: 2.15rem;
+  }
+
+  .online-remote-rail--actions {
+    gap: .25rem;
+    padding: .25rem .6rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__actions {
+    gap: .2rem .35rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__actions button {
+    min-height: 2.5rem;
+    padding: .2rem .35rem;
+    font-size: .8rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__card-action small {
+    display: none;
+  }
+}
+
+.online-remote-rail__opponents { order: 0; }
+.online-remote-rail--overview > .online-remote-rail__opponents {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.online-remote-rail__header,
+.online-remote-rail__state,
+.online-remote-rail__causal,
+.online-remote-rail__command-result,
+.online-remote-rail__sba-guidance,
+.online-remote-rail__combat,
+.online-remote-rail__commander-damage,
+.online-remote-rail__outcome,
+.online-remote-rail__exposure-warning,
+.online-remote-rail__checkpoint { order: 1; }
+.online-remote-rail__actions { order: 2; }
+.online-remote-rail__manual-fallback { order: 3; }
 
 .online-remote-rail__header,
 .online-remote-rail__causal,
@@ -29,6 +198,14 @@
 .online-remote-rail__header {
   justify-content: space-between;
   font-size: .84rem;
+}
+
+.online-remote-rail__eyebrow {
+  margin: 0 0 .1rem;
+  color: var(--color-accent, #7dd3fc);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .14em;
 }
 
 .online-remote-rail__header h2 {
@@ -141,6 +318,89 @@
   font-size: .72rem;
 }
 
+.online-remote-rail__opponents {
+  display: grid;
+  gap: .4rem;
+  padding: .45rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 22%, transparent);
+  border-radius: .55rem;
+  background: color-mix(in srgb, var(--color-panel-raised, #202a3e) 34%, transparent);
+}
+
+.online-remote-rail__opponents-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.online-remote-rail__opponents-header h3 {
+  margin: 0;
+  color: var(--color-text, #fff);
+  font-size: .78rem;
+}
+
+.online-remote-rail__opponents-header span,
+.online-remote-rail__opponent-detail header span {
+  color: var(--color-muted, #a9b4c9);
+  font-size: .66rem;
+}
+
+.online-remote-rail__return,
+.online-remote-rail__lane-focus {
+  min-height: 1.8rem;
+  padding: .25rem .45rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 38%, transparent);
+  border-radius: .4rem;
+  color: var(--color-text, #fff);
+  background: color-mix(in srgb, var(--color-panel-raised, #202a3e) 88%, transparent);
+  font-size: .68rem;
+}
+
+.online-remote-rail__return:focus-visible,
+.online-remote-rail__lane-focus:focus-visible,
+.online-remote-rail__opponent-cards:focus-visible {
+  outline: 2px solid var(--color-accent, #7dd3fc);
+  outline-offset: 2px;
+}
+
+.online-remote-rail__opponent-lane {
+  display: grid;
+  gap: .25rem;
+}
+
+.online-remote-rail__lane-focus {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  justify-self: stretch;
+  width: 100%;
+  min-height: 1.55rem;
+  padding-inline: .35rem;
+  text-align: left;
+}
+
+.online-remote-rail__lane-focus strong {
+  color: var(--color-text, #fff);
+  font-size: .68rem;
+}
+
+.online-remote-rail__lane-focus span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted, #a9b4c9);
+  font-size: .56rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.online-remote-rail__lane-focus em {
+  grid-column: 1 / -1;
+  color: var(--color-accent, #7dd3fc);
+  font-size: .5rem;
+  font-style: normal;
+}
+
 .online-remote-rail__seat[aria-pressed="true"] {
   border-color: var(--color-accent, #7dd3fc);
   color: var(--color-text, #fff);
@@ -169,14 +429,6 @@
   opacity: 1;
 }
 
-.online-remote-rail__opponent-lane header {
-  display: flex;
-  justify-content: space-between;
-  gap: .3rem;
-  font-size: .68rem;
-}
-
-.online-remote-rail__opponent-lane header span,
 .online-remote-rail__empty {
   color: var(--color-muted, #a9b4c9);
   font-size: .65rem;
@@ -184,24 +436,134 @@
 
 .online-remote-rail__opponent-cards {
   display: flex;
+  flex-wrap: wrap;
   min-height: 3.5rem;
+  max-height: 8rem;
   gap: .25rem;
   align-items: center;
-  overflow: auto hidden;
+  align-content: flex-start;
+  overflow: auto;
+}
+
+.online-remote-rail__opponent-cards > .game-card {
+  width: clamp(2.2rem, 3vw, 3.4rem);
+  flex-basis: clamp(2.2rem, 3vw, 3.4rem);
 }
 
 .online-remote-rail__opponent-cards .game-card {
-  flex: 0 0 2.65rem;
+  flex: 0 0 clamp(2.2rem, 3vw, 3.4rem);
+}
+
+.online-remote-rail__opponent-detail {
+  display: grid;
+  gap: .4rem;
+  padding: .45rem;
+  border: 1px solid var(--color-accent, #7dd3fc);
+  border-radius: .5rem;
+  background: color-mix(in srgb, var(--color-panel, #121827) 92%, transparent);
+}
+
+.online-remote-rail__opponent-detail header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.online-remote-rail__opponent-detail header div {
+  display: grid;
+  gap: .15rem;
+}
+
+.online-remote-rail__opponent-detail-cards {
+  display: flex;
+  min-height: 5.8rem;
+  gap: .4rem;
+  overflow: auto hidden;
+  align-items: center;
+}
+
+.online-remote-rail__opponent-detail-cards > .game-card {
+  width: 5rem;
+  flex-basis: 5rem;
+}
+
+/* Focused opponent detail is a viewport dialog. It must not grow the bounded
+   overview row or cover the action/hand rows that remain authoritative. */
+.online-remote-detail-dialog {
+  position: fixed;
+  z-index: 96;
+  top: max(3.25rem, env(safe-area-inset-top, 0px));
+  right: max(.75rem, env(safe-area-inset-right, 0px));
+  width: min(600px, calc(100vw - 1.5rem));
+  max-height: min(45dvh, 32rem);
+  overflow: auto;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 58%, transparent);
+  border-radius: .6rem;
+  background: color-mix(in srgb, var(--color-panel) 96%, transparent);
+  box-shadow: 0 16px 36px rgb(0 0 0 / 32%);
+  pointer-events: auto;
+}
+
+.online-remote-detail-dialog > header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem .6rem;
+  padding: .55rem .6rem;
+  background: var(--color-panel);
+}
+
+.online-remote-detail-dialog > header > div {
+  min-width: min(16rem, 100%);
+}
+
+.online-remote-detail-dialog__back {
+  min-height: 2.5rem;
+  margin-left: auto;
+  padding: .35rem .65rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 48%, transparent);
+  border-radius: .45rem;
+  color: var(--color-text);
+  background: var(--color-panel-raised);
+  cursor: pointer;
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+/* Rail siblings live outside the themed rail when mounted in GameScreen's
+   dialog slot or through the body portal. Keep their colors on the same
+   product tokens in both light and dark themes. */
+.online-remote-guided-overlay,
+.online-remote-manual-overlay,
+.online-remote-detail-dialog {
+  --color-panel: var(--surface-1);
+  --color-panel-raised: var(--surface-2);
+  --color-text: var(--text-h);
+  --color-muted: var(--text-dim);
+  --color-accent: var(--gold-bright);
+  --color-warning: var(--warn);
+}
+
+/* The action toolbar is the only launcher for these panels. A closed details
+   node has no surface footprint, so it cannot cover the shared seat overview. */
+.online-remote-guided-overlay:not([open]),
+.online-remote-manual-overlay:not([open]) {
+  display: none;
 }
 
 .online-remote-rail__actions button {
-  min-height: 2rem;
+  min-height: 2.5rem;
   padding: .35rem .6rem;
   border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 36%, transparent);
   border-radius: .45rem;
   color: inherit;
   background: color-mix(in srgb, var(--color-panel-raised, #202a3e) 92%, transparent);
-  font-size: .76rem;
+  font-size: .8rem;
 }
 
 .online-remote-rail__card-action {
@@ -251,6 +613,56 @@
   border-radius: .45rem;
   color: var(--color-muted, #a9b4c9);
   font-size: .72rem;
+}
+
+.online-remote-rail__manual-fallback > summary {
+  cursor: pointer;
+}
+
+.online-remote-rail__manual-fallback-body {
+  display: grid;
+  gap: .25rem;
+}
+
+.online-remote-rail--actions .online-remote-rail__manual-fallback {
+  grid-column: 3;
+  min-height: 2.5rem;
+  padding: 0 .25rem;
+  overflow: hidden;
+}
+
+.online-remote-rail--actions .online-remote-rail__manual-fallback > summary {
+  overflow: hidden;
+  color: var(--color-warning, #f4c56b);
+  font-size: .8rem;
+  line-height: 2.5rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.online-remote-rail--actions .online-remote-rail__manual-fallback[open] {
+  position: absolute;
+  z-index: 20;
+  right: .35rem;
+  bottom: calc(100% + .35rem);
+  width: min(24rem, calc(100vw - .7rem));
+  max-height: min(42dvh, 20rem);
+  padding: .35rem .45rem;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #7dd3fc) 44%, transparent);
+  background: color-mix(in srgb, var(--color-panel, #121827) 96%, transparent);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 26%);
+}
+
+.online-remote-rail--actions .online-remote-rail__manual-fallback[open] > summary {
+  position: sticky;
+  z-index: 1;
+  top: -.35rem;
+  background: var(--color-panel, #121827);
+}
+
+.online-remote-rail--actions .online-remote-rail__summary-detail {
+  white-space: nowrap;
 }
 
 .online-remote-rail__manual-fallback strong {
@@ -341,9 +753,9 @@
 
 @media (max-width: 899px) {
   .online-remote-rail {
-    inset: auto .45rem .45rem;
-    padding: .5rem;
-    max-height: min(40dvh, 24rem);
+    inset: auto;
+    padding: .35rem;
+    max-height: none;
   }
 
   .online-remote-rail__actions {
@@ -352,14 +764,200 @@
   }
 
   .online-remote-rail__opponent-lanes {
-    grid-template-columns: 1fr;
-    max-height: 9rem;
-    overflow: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .online-remote-rail--actions {
+    grid-template-columns: minmax(0, 1fr) 3.2rem 3.2rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__context,
+  .online-remote-rail--actions .online-remote-rail__manual-fallback {
+    width: 3.2rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__summary-detail {
+    display: none;
   }
 
   .online-remote-guided-overlay,
   .online-remote-manual-overlay {
     width: calc(100% - .9rem);
     max-height: min(58dvh, 34rem);
+  }
+
+  .online-remote-detail-dialog {
+    top: max(2.75rem, env(safe-area-inset-top, 0px));
+    right: max(.45rem, env(safe-area-inset-right, 0px));
+    left: max(.45rem, env(safe-area-inset-left, 0px));
+    width: auto;
+    max-height: min(42dvh, 24rem);
+  }
+
+  .online-remote-detail-dialog > header {
+    padding: .45rem;
+  }
+
+  .online-remote-detail-dialog__back {
+    min-height: 2.5rem;
+    font-size: .8rem;
+  }
+}
+
+@media (max-width: 899px) and (orientation: landscape) {
+  .online-remote-detail-dialog {
+    top: max(2.25rem, env(safe-area-inset-top, 0px));
+    max-height: min(42dvh, 12rem);
+  }
+
+  .online-remote-rail--overview {
+    gap: 0;
+    padding: 0;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents {
+    gap: 0;
+    padding: .1rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents-header {
+    min-height: 0;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents-header h3,
+  .online-remote-rail--overview .online-remote-rail__opponents-header span {
+    display: none;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-lanes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .2rem;
+    max-height: 3.3rem;
+    overflow: hidden;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-lane {
+    gap: 0;
+    padding: 0;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus {
+    min-height: 2.1rem;
+    padding: .05rem .15rem;
+    font-size: .9rem;
+    line-height: .9rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus strong {
+    font-size: .9rem;
+    line-height: .9rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus span {
+    display: none;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus em {
+    display: none;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-cards {
+    min-height: .25rem;
+    max-height: .3rem;
+    overflow: hidden;
+  }
+
+  .online-remote-rail--actions {
+    gap: .15rem;
+    padding: .15rem .35rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__actions {
+    gap: .15rem .25rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__actions button {
+    min-height: 2.5rem;
+    padding: .1rem .25rem;
+    font-size: .8rem;
+  }
+}
+
+@media (max-width: 899px) and (orientation: portrait) {
+  .online-remote-rail--overview {
+    gap: .2rem;
+    padding: .2rem .35rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents {
+    gap: .2rem;
+    padding: .2rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponents-header span {
+    display: none;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-lanes {
+    display: grid;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-lanes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .15rem;
+    max-height: 3.2rem;
+    overflow: hidden;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-lane {
+    padding: .12rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus {
+    min-height: 2rem;
+    padding: .2rem .35rem;
+    line-height: .9rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus strong {
+    font-size: .9rem;
+    line-height: .9rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus span {
+    display: none;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__lane-focus em {
+    font-size: .52rem;
+    line-height: .6rem;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-cards {
+    min-height: .4rem;
+    max-height: .55rem;
+    overflow: hidden;
+  }
+
+  .online-remote-rail--overview .online-remote-rail__opponent-detail {
+    max-height: 5.5rem;
+    overflow: auto;
+  }
+
+  .online-remote-rail--actions {
+    gap: .15rem;
+    padding: .15rem .35rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__actions {
+    gap: .15rem .25rem;
+  }
+
+  .online-remote-rail--actions .online-remote-rail__actions button {
+    min-height: 2.5rem;
+    padding: .1rem .25rem;
+    font-size: .8rem;
   }
 }

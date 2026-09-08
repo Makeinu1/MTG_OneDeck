@@ -172,7 +172,7 @@ searchSessions:     readonly OnlineProjectedSearchSessionV1[]
 playPermissions:    readonly OnlineProjectedPlayPermissionV1[]
 ```
 
-Players and player-zone groups are in Core `turnOrder`. A projected player
+Players and player-zone groups are in Core `turnOrder`. After player exit, this is the surviving Core order: it must be an exact permutation of Room seats whose outcome is `pending`. Room seats remain the stable full roster, including departed seats and their outcomes. Departed player scalars and private zones are not reconstructed or padded into the returned projection. A projected player
 contains its Core player ID, the exact public scalar resource/state fields
 (`life`, poison, energy, experience, mana pool, mulligan/draw/land/spell
 counts, maximum hand-size override), plus lifecycle status and exit cause.

@@ -3,7 +3,7 @@ import type { CorePlayerZonesV1 } from '../identityZoneState';
 import { createCoreCommanderDamageProvenanceLedgerV1, recordCoreCommanderDamageProvenanceV1 } from '../commander/commanderDamageProvenanceV1';
 import { createCoreCommanderDamageStateV1, coreCommanderDamageAgainstV1, recordCoreCommanderDamageV1 } from '../commander/commanderDamageV1';
 import { recordCoreCommanderCastV1 } from '../commander/commanderTaxV1';
-import { addCoreCombatContextAttackV1, addCoreCombatContextBlockV1, reconcileCoreCombatContextForPlayerExitV1, setCoreCombatContextStepV1 } from '../combat/combatContextV1';
+import { addCoreCombatContextAttackV1, addCoreCombatContextBlockV1, createCoreCombatContextV1, reconcileCoreCombatContextForPlayerExitV1, setCoreCombatContextStepV1 } from '../combat/combatContextV1';
 import { createModeNeutralCoreObjectRegistryStateV2, createModeNeutralCoreObjectRuntimeStateV2, type ModeNeutralCoreObjectRegistryStateV2, type ModeNeutralCoreObjectRuntimeStateV2 } from '../object/objectRegistryStateV2';
 import { createCoreCardObjectIdentityV2 } from '../object/tokenObjectV2';
 import { createDefaultCoreCardRuntimeAfterZoneChangeV1 } from '../transition/cardReincarnation';
@@ -128,7 +128,7 @@ function zonesWith(registry: ModeNeutralCoreObjectRegistryStateV2, zone: CoreRul
 }
 type CoreRuleZoneRefV1Like = Readonly<{ readonly kind: 'player-zone'; readonly playerId: CorePlayerId; readonly zone: 'library' | 'hand' | 'graveyard' } | Readonly<{ readonly kind: 'shared-zone'; readonly zone: 'battlefield' | 'stack' | 'exile' | 'command' }>>;
 function stackBundle(root: ModeNeutralCoreRootV1): CoreStackTransactionBundleV1 { return root.ruleAuthority.turnPriorityBundle.stackBundle; }
-function replaceStackBundle(root: ModeNeutralCoreRootV1, nextStack: CoreStackTransactionBundleV1, nextLifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle): ModeNeutralCoreRootV1 {
+function replaceStackBundle(root: ModeNeutralCoreRootV1, nextStack: CoreStackTransactionBundleV1, nextLifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle, nextControl = root.ruleAuthority.control): ModeNeutralCoreRootV1 {
   const nextTurn = createCoreTurnPriorityBundleV1({ stackBundle: nextStack, pendingTriggers: root.ruleAuthority.turnPriorityBundle.pendingTriggers, lifecycle: nextLifecycle });
   // Stack commits/removals can make a source-bound or object-subject grant
   // stale.  Prune against the next stack before root validation so the
@@ -141,13 +141,77 @@ function replaceStackBundle(root: ModeNeutralCoreRootV1, nextStack: CoreStackTra
     searchSessionIds: root.ruleAuthority.searchSessions.sessionOrder,
     currentTurnNumber: nextLifecycle.turnNumber,
   }).value;
-  const nextAuthority = createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle: nextTurn, visibility });
+  const nextAuthority = createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, turnPriorityBundle: nextTurn, control: nextControl, visibility });
   return createModeNeutralCoreRootV1({ ...root, ruleAuthority: nextAuthority });
+}
+function controlAfterStackRemoval(root: ModeNeutralCoreRootV1, input: Extract<CoreCommandPayloadV1, { readonly kind: 'stack-remove-object' }>, result: ReturnType<typeof removeCoreStackObjectV1>): ModeNeutralCoreRootV1['ruleAuthority']['control'] {
+  const removal = input.input;
+  if (removal.kind !== 'card-to-zone' || removal.destination.kind !== 'battlefield' || result.nextObjectId === null) return root.ruleAuthority.control;
+  return createModeNeutralCoreControlSliceV1({
+    ...root.ruleAuthority.control,
+    continuityByObject: {
+      ...root.ruleAuthority.control.continuityByObject,
+      [result.nextObjectId]: {
+        controllerPlayerId: removal.destination.baseControllerPlayerId,
+        continuousSinceMostRecentTurnBegan: false,
+      },
+    },
+  });
 }
 function replaceAuthority(root: ModeNeutralCoreRootV1, patch: Partial<ModeNeutralCoreRootV1['ruleAuthority']>): ModeNeutralCoreRootV1 {
   return createModeNeutralCoreRootV1({ ...root, ruleAuthority: createCoreRuleAuthorityBundleV1({ ...root.ruleAuthority, ...patch }) });
 }
 function activePlayerIds(root: ModeNeutralCoreRootV1): readonly CorePlayerId[] { return root.playerLifecycle.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId); }
+
+function applyTabletopCombatProgressV2(previousRoot: ModeNeutralCoreRootV1, nextRoot: ModeNeutralCoreRootV1): ModeNeutralCoreRootV1 {
+  const previousLifecycle = previousRoot.ruleAuthority.turnPriorityBundle.lifecycle;
+  const previousRegistry = stackBundle(previousRoot).objectRegistry;
+  const current = previousRoot.combatContext;
+  if (current !== null) {
+    if (current.turnNumber !== previousLifecycle.turnNumber) adapterFailure('COMBAT_CONTEXT_MISMATCH', '/combatContext/turnNumber', 'Combat context turn does not match the current turn');
+    if (current.attackingPlayerId !== previousRegistry.activePlayerId) adapterFailure('COMBAT_CONTEXT_MISMATCH', '/combatContext/attackingPlayerId', 'Combat context attacker does not match the active player');
+  }
+  const lifecycle = nextRoot.ruleAuthority.turnPriorityBundle.lifecycle;
+  const registry = stackBundle(nextRoot).objectRegistry;
+  const activePlayerId = registry.activePlayerId;
+  const position = lifecycle.position;
+  if (position.phase !== 'combat') {
+    return current === null ? nextRoot : createModeNeutralCoreRootV1({ ...nextRoot, combatContext: null });
+  }
+  const defenders = registry.turnOrder.filter((playerId) => playerId !== activePlayerId);
+  const createEmpty = (step: 'declare-attackers' | 'declare-blockers'): ModeNeutralCoreRootV1 => createModeNeutralCoreRootV1({
+    ...nextRoot,
+    combatContext: createCoreCombatContextV1({
+      combatId: `combat-turn-${lifecycle.turnNumber}-position-${lifecycle.positionSequence}`,
+      turnNumber: lifecycle.turnNumber,
+      step,
+      attackingPlayerId: activePlayerId,
+      defendingPlayerIds: defenders,
+      attacks: [],
+      blocks: [],
+    }),
+  });
+  if (position.step === 'beginning-of-combat') {
+    if (current !== null) adapterFailure('COMBAT_CONTEXT_MISMATCH', '/combatContext/step', 'Combat context must be empty at beginning-of-combat');
+    return nextRoot;
+  }
+  if (position.step === 'declare-attackers') {
+    if (current === null) return createEmpty('declare-attackers');
+    if (current.step !== 'declare-attackers') adapterFailure('COMBAT_CONTEXT_MISMATCH', '/combatContext/step', 'Combat context step does not match declare-attackers');
+    return nextRoot;
+  }
+  if (position.step === 'declare-blockers') {
+    if (current === null) return createEmpty('declare-blockers');
+    if (current.step === 'declare-blockers') return nextRoot;
+    if (current.step !== 'declare-attackers') adapterFailure('COMBAT_CONTEXT_MISMATCH', '/combatContext/step', 'Combat context step does not match declare-blockers');
+    return createModeNeutralCoreRootV1({ ...nextRoot, combatContext: setCoreCombatContextStepV1(current, 'declare-blockers') });
+  }
+  if (position.step === 'combat-damage') {
+    if (current === null) return createEmpty('declare-blockers');
+    if (current.step !== 'declare-blockers') adapterFailure('COMBAT_CONTEXT_MISMATCH', '/combatContext/step', 'Combat context step does not match combat-damage');
+  }
+  return nextRoot;
+}
 function reconcileTabletopManualStateForPlayerExit(
   state: CoreTabletopManualStateV1 | undefined,
   exitingPlayerId: CorePlayerId,
@@ -229,7 +293,7 @@ function eventRoot(root: ModeNeutralCoreRootV1, command: CoreCommandV1, payloads
 function handleTabletopTurnProgress(
   root: ModeNeutralCoreRootV1,
   actorPlayerId: CorePlayerId,
-  transition: Extract<CoreCommandPayloadV1, { readonly kind: 'table-turn-progress' }>,
+  transition: Extract<CoreCommandPayloadV1, { readonly kind: 'table-turn-progress' | 'table-turn-progress-v2' }>,
 ): HandlerResult {
   const lifecycle = root.ruleAuthority.turnPriorityBundle.lifecycle;
   const registry = stackBundle(root).objectRegistry;
@@ -277,6 +341,7 @@ function handleTabletopTurnProgress(
     const nextBundle = advanceCoreToNextTurnV1({ stackBundle: turn.stackBundle, pendingTriggers: turn.pendingTriggers, lifecycle: turn.lifecycle });
     workingRoot = updateRegistryInRoot(workingRoot, nextBundle.stackBundle.objectRegistry, nextBundle.stackBundle.objectRuntime, undefined, nextBundle.lifecycle);
   }
+  if (transition.kind === 'table-turn-progress-v2') workingRoot = applyTabletopCombatProgressV2(root, workingRoot);
   payloads.push({ kind: 'table-turn-progressed', transition: transition.transition.kind === 'position' ? Object.freeze({ kind: transition.transition.kind, nextPosition: transition.transition.nextPosition }) : Object.freeze({ kind: transition.transition.kind }) });
   return { root: workingRoot, payloads, warnings: [] };
 }
@@ -544,16 +609,18 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
       };
     }
     else if (payload.kind === 'stack-remove-object') {
-      if (current.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'resolution-ready') requireSteward(current, checked.actorPlayerId, '/actorPlayerId');
+      const resolutionReady = current.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'resolution-ready';
+      if (resolutionReady) requireSteward(current, checked.actorPlayerId, '/actorPlayerId');
       const result = removeCoreStackObjectV1(stackBundle(current), payload.input);
-      let nextRoot = replaceStackBundle(current, result.bundle);
+      const nextControl = controlAfterStackRemoval(current, payload, result);
       const payloads: CoreDomainEventPayloadV1[] = [{ kind: 'stack-changed', operation: 'remove', objectId: result.removedObjectId }];
-      if (current.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'resolution-ready') {
+      let nextRoot: ModeNeutralCoreRootV1;
+      if (resolutionReady) {
         const completed = completeCoreResolutionAfterRemovalV1({
           stackBundle: stackBundle(current),
           lifecycle: current.ruleAuthority.turnPriorityBundle.lifecycle,
         }, result);
-        nextRoot = replaceStackBundle(current, completed.stackBundle, completed.lifecycle);
+        nextRoot = replaceStackBundle(current, completed.stackBundle, completed.lifecycle, nextControl);
         payloads.push({
           kind: 'priority-changed',
           holderPlayerId: null,
@@ -571,6 +638,8 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
           destination: resolutionDestination,
           acceptedRevision: checked.sequence,
         });
+      } else {
+        nextRoot = replaceStackBundle(current, result.bundle, undefined, nextControl);
       }
       handled = { root: nextRoot, payloads, warnings: [] };
     }
@@ -644,7 +713,7 @@ export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCom
     else if (payload.kind === 'player-exit') handled = handlePlayerExit(current, payload);
     else if (payload.kind === 'random-zone-order') { const registry = stackBundle(current).objectRegistry; const order = zoneIds(registry, payload.zone); const issues = validateCoreRandomZoneOrderV1(payload, order); if (issues.length) adapterFailure(issues[0]?.code ?? 'INVALID_RANDOM_ORDER', issues[0]?.path ?? '/payload', issues[0]?.message ?? 'Invalid random zone order'); const nextOrder = applyCoreRecordedZoneOrderV1(order, payload); const nextRegistry = registryWith(registry, { zones: zonesWith(registry, payload.zone, nextOrder) }); const manualMode = payload.manualMode === 'structured' || payload.manualMode === 'freeform' ? payload.manualMode : undefined; handled = { root: updateRegistryInRoot(current, nextRegistry), payloads: [{ kind: 'zone-randomized', randomDecisionId: payload.randomDecisionId, zoneKind: payload.zone.zone, count: payload.afterOrder.length, ...(manualMode === undefined ? {} : { manualMode }) }], warnings: [] }; }
     else if (payload.kind === 'correct-player-life') { if (coreCanonicalDigestFromValueV1(current) !== payload.expectedBeforeStateDigest) throw new Error('Correction digest is stale'); const registry = stackBundle(current).objectRegistry; const player = registry.players[payload.playerId]; if (!player) throw new Error('Correction player is not registered'); const players = { ...registry.players, [payload.playerId]: { ...player, life: payload.replacementLifeTotal } }; handled = { root: updateRegistryInRoot(current, registryWith(registry, { players })), payloads: [{ kind: 'manual-correction-applied', correction: 'player-life' }], warnings: [createCoreCorrectionWarningV1(payload.reason)] }; }
-    else if (payload.kind === 'table-turn-progress') { if (payload.transition.kind !== 'sba-check-outcome') requireSteward(current, checked.actorPlayerId, '/actorPlayerId'); handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload); }
+    else if (payload.kind === 'table-turn-progress' || payload.kind === 'table-turn-progress-v2') { if (payload.transition.kind !== 'sba-check-outcome') requireSteward(current, checked.actorPlayerId, '/actorPlayerId'); handled = handleTabletopTurnProgress(current, checked.actorPlayerId, payload); }
     else if (payload.kind === 'table-shuffle') adapterFailure('SHUFFLE_REQUIRES_SERVER_RANDOM', '/payload', 'Shuffle must be bound to a server-authoritative random order');
     else if (isTabletopPayload(payload)) {
       const result = applyCoreTabletopPayloadV1(current, checked.actorPlayerId, payload);

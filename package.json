@@ -57,6 +57,7 @@
     "evidence:o4p-06f": "tsx scripts/online/o4p-06f-four-browser-evidence.ts",
     "evidence:o4p-09i": "tsx scripts/online/o4p-09i-full-match-evidence.ts",
     "evidence:o4p-09i-b": "tsx scripts/online/o4p-09i-full-match-evidence.ts --profile reliability",
+    "evidence:o4p-09i-local": "VITE_ONLINE_LOCAL_REHEARSAL=1 tsx scripts/online/o4p-09i-full-match-evidence.ts --local",
     "journey:loop": "node scripts/journeys/journey-harness.mjs",
     "preview": "vite preview",
     "test": "node scripts/checks/vitest-projects.mjs",

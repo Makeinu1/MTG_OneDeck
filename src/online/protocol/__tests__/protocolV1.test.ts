@@ -102,19 +102,21 @@ function assertDeepFrozen(value: unknown, seen = new Set<object>()): void {
 }
 
 describe('O4P-02C in-memory protocol', () => {
-  it('rejects steward-owned turn progress on the ordinary command envelope', () => {
+  it('rejects steward-owned turn progress on the ordinary command envelope for V1 and V2', () => {
     const state = protocolState();
-    const forged = createCoreCommandV1({
-      schemaVersion: 1,
-      sequence: state.revision + 1,
-      actorPlayerId: 'P1' as never,
-      decisionMakerPlayerId: 'P1' as never,
-      decisionContext: { kind: 'decision', decisionKey: 'forged-turn' },
-      payload: { kind: 'table-turn-progress', transition: { kind: 'next-turn' } },
-    });
-    const transition = handleOnlineCommandEnvelopeV1(state, envelope(state, 'forged-turn', state.revision, forged));
-    expect(transition.response).toMatchObject({ kind: 'online-command-reject-v1', issues: [{ code: 'AUTHORIZATION_REJECTED' }] });
-    expect(transition.state.revision).toBe(state.revision);
+    for (const payloadKind of ['table-turn-progress', 'table-turn-progress-v2'] as const) {
+      const forged = createCoreCommandV1({
+        schemaVersion: 1,
+        sequence: state.revision + 1,
+        actorPlayerId: 'P1' as never,
+        decisionMakerPlayerId: 'P1' as never,
+        decisionContext: { kind: 'decision', decisionKey: `forged-turn-${payloadKind}` },
+        payload: { kind: payloadKind, transition: { kind: 'next-turn' } },
+      });
+      const transition = handleOnlineCommandEnvelopeV1(state, envelope(state, `forged-turn-${payloadKind}`, state.revision, forged));
+      expect(transition.response).toMatchObject({ kind: 'online-command-reject-v1', issues: [{ code: 'AUTHORIZATION_REJECTED' }] });
+      expect(transition.state.revision).toBe(state.revision);
+    }
   });
 
   it('exports fixed versions and validates hostile hello input without capability disclosure', () => {

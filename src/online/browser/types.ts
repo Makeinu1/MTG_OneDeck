@@ -12,13 +12,14 @@ import type {
 import type { OnlineRoomIdV1, OnlineRoomParticipantIdV1 } from '../room/index';
 import type { BuildId } from '../../versioning/index';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/types';
-import type { OnlineVisibilityIntentEnvelopeV1 } from '../visibilityDecisions/types';
+import type { OnlineVisibilityIntentEnvelope } from '../visibilityDecisions/types';
 
 export const ONLINE_BROWSER_CLIENT_SCHEMA_VERSION_V1 = 1 as const;
 export const ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1 = 64 as const;
 export const ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1 = 255 as const;
 export const ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1 = 15_000 as const;
 export const ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1 = 15_000 as const;
+export const ONLINE_BROWSER_HANDSHAKE_TIMEOUT_MS_V1 = 15_000 as const;
 export const ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1 = Object.freeze([
   250,
   500,
@@ -63,7 +64,7 @@ export type OnlineBrowserCommandIntentV1 = Readonly<{
 }>;
 
 export type OnlineBrowserTabletopIntentV1 = OnlineTabletopIntentEnvelopeV1;
-export type OnlineBrowserVisibilityIntentV1 = OnlineVisibilityIntentEnvelopeV1;
+export type OnlineBrowserVisibilityIntentV1 = OnlineVisibilityIntentEnvelope;
 /** Client payload for the server-owned shared undo intent. Transport context
  * and participant capability are supplied by the configured client. */
 export type OnlineBrowserSharedUndoIntentV1 = Readonly<{

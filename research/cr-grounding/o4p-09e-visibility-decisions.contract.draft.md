@@ -221,3 +221,38 @@ rejection; duplicate/stale/descriptor/persistence attacks; journal reconstructio
 and final Core digest parity; participant/table/observer redaction; reconnect
 without optimistic reveal; Solo and D regression; and the three responsive
 production browser viewports.
+
+
+## 2026-09-08 manual-choice opening addendum
+
+The real O4P-09I journey exposed that the public player surface could complete
+only seeded search sessions. Look remains a visibility operation and does not
+implicitly start a choice. The authorized Cockpit integration adds a separate
+exact `online-visibility-intent-v2` / schema version 2 with only
+`openChoice: { count }`, where count is an integer from 1 through 10 and no
+greater than the authenticated actor's current own-library size. The V1 wire
+and its three branches above remain unchanged.
+
+The server derives the actor and private session key, then binds the existing
+Core `search-open` primitive over that actor's top-library prefix with quantity
+minimum 0 / maximum 1, `revealFound: false`, and `shuffleAfter: false`. Fresh
+opens require an active, pending, connected actor and no active session whose
+rules actor or selector is that actor. This self-choice opening path cannot
+override delegated decision authority; Core must reject a different selector.
+Existing exact-selector V1 Choose completion remains unchanged. Empty
+completion is available, and neither opening nor completing moves cards or
+applies an arbitrary effect. Existing snapshot validation remains authoritative.
+
+A confirmed Japanese player control explicitly starts the choice. Candidate
+identity appears only in the existing authorized projection after acceptance.
+The ordinary receipt, outbox, replay and recovery paths are shared; V2 retry
+matching checks its complete fixed binding, while changed count/base or
+authority cannot reuse an accepted command. Direct client Core `search-open`
+envelopes are rejected at the HTTP/WS boundary. Persisted historical Core
+commands retain their semantics and storage format.
+
+This extends the existing manual permission/result boundary for the same
+bounded own-library subject; it adds no whole-library access, other-player
+access, predicate evaluation, card-text automation, or new result application.
+Implementation judgment and real-run evidence are recorded in
+[the Cockpit decision](../../docs/o4p-09i-cockpit-session-decision.md).

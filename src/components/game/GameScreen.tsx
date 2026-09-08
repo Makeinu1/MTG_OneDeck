@@ -77,6 +77,10 @@ export interface GameScreenProps {
   presentation?: ReactNode;
   /** Optional remote controls rendered inside the shared adaptive surface. */
   surfaceOverlay?: ReactNode;
+  /** Optional remote action rail rendered beside the self hand controls. */
+  surfaceActions?: ReactNode;
+  /** Optional remote guided/manual panels rendered above the bounded surface rows. */
+  surfaceDialogs?: ReactNode;
 }
 
 export function TabletopSurface() {
@@ -114,6 +118,8 @@ interface GameScreenSurfaceProps {
   setHandWorkspaceOpen: (open: boolean) => void;
   researchLayer?: ReactNode;
   surfaceOverlay?: ReactNode;
+  surfaceActions?: ReactNode;
+  surfaceDialogs?: ReactNode;
 }
 
 interface LocalGameScreenProps extends Omit<GameScreenSurfaceProps, 'interactionPort'> {
@@ -126,6 +132,8 @@ export function GameScreen({
   interactionPort,
   presentation,
   surfaceOverlay,
+  surfaceActions,
+  surfaceDialogs,
 }: GameScreenProps) {
   const initialHandLayout = useMemo(
     () => new URLSearchParams(window.location.search).get('hand'),
@@ -139,6 +147,8 @@ export function GameScreen({
     handWorkspaceOpen,
     setHandWorkspaceOpen,
     surfaceOverlay,
+    surfaceActions,
+    surfaceDialogs,
   };
   if (presentation !== undefined) return <div className="game-screen game-screen--pregame" data-testid="game-screen">{presentation}</div>;
   return interactionPort
@@ -181,6 +191,8 @@ function GameScreenSurface({
   setHandWorkspaceOpen,
   researchLayer,
   surfaceOverlay,
+  surfaceActions,
+  surfaceDialogs,
 }: GameScreenSurfaceProps) {
   const handWorkspaceAvailable = initialHandLayout !== 'flat';
   const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
@@ -293,6 +305,7 @@ function GameScreenSurface({
       <div
         className="game-screen"
         data-testid="game-screen"
+        data-surface-overlay={surfaceOverlay !== undefined || surfaceActions !== undefined || undefined}
         data-hand-workspace-open={handWorkspaceOpen || undefined}
         data-drag-active={activeDragId || undefined}
         data-stack-active={controller.state.zones.stack.length > 0 || undefined}
@@ -313,9 +326,8 @@ function GameScreenSurface({
             .game-screen の isolation 内 z-index:-1 に積層し全クロムの下に置く。 */}
         <AmbientBackdrop />
         <DanceFloorLights controller={controller} />
-        {/* 盤面セルの子は Board だけ。相手盤面を兄として差し込むと Board(height:100%)が
-            セルからはみ出し、自分の盤面が画面外へ消える(7b2c5c1 の回帰)。
-            相手盤面はメニュー「相手盤面を見る」のモーダルで出す=design-vision:80 原則7。 */}
+        {/* 盤面セルの子は自分の Board だけ。remote の公開相手概要は専用 sibling slot に
+            置くため、Board(height:100%) の測定領域を変えず、自分の盤面を保持する。 */}
         <div className="game-screen__board">
           <Board controller={controller} activeDragId={activeDragId} />
         </div>
@@ -333,6 +345,11 @@ function GameScreenSurface({
         <div className="game-screen__decision">
           <DecisionBar controller={controller} />
         </div>
+        {surfaceActions && (
+          <div className="game-screen__surface-actions-slot">
+            {surfaceActions}
+          </div>
+        )}
         <div className="game-screen__hand">
           <HandRibbon
             controller={controller}
@@ -356,7 +373,16 @@ function GameScreenSurface({
           <OpponentBoardDialog controller={controller} onClose={controller.closeOpponentBoard} />
         )}
         {controller.overlays}
-        {surfaceOverlay}
+        {surfaceOverlay && (
+          <div className="game-screen__surface-overlay">
+            {surfaceOverlay}
+          </div>
+        )}
+        {surfaceDialogs && (
+          <div className="game-screen__surface-dialogs">
+            {surfaceDialogs}
+          </div>
+        )}
         {researchLayer}
       </div>
       {/* A successful drop can remount the same card in its destination before

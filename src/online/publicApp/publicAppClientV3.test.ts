@@ -237,9 +237,9 @@ describe('public variable-room client v3', () => {
     const controller = createPublicOnlineControllerV3();
     await controller.createShared({ playerCount: 2, startingLife: 40 });
     await controller.start();
-    expect(socketCount).toBe(2);
+    expect(socketCount).toBe(1);
     await controller.refresh();
-    expect(socketCount).toBe(2);
+    expect(socketCount).toBe(1);
     controller.disconnect();
 
     const recoveringController = createPublicOnlineControllerV3();
@@ -249,10 +249,10 @@ describe('public variable-room client v3', () => {
       .mockImplementation(createBrowser);
     await recoveringController.createShared({ playerCount: 2, startingLife: 40 });
     await recoveringController.start();
-    expect(socketCount).toBe(2);
+    expect(socketCount).toBe(1);
     createBrowserSpy.mockRestore();
     await recoveringController.refresh();
-    expect(socketCount).toBe(4);
+    expect(socketCount).toBe(2);
     recoveringController.disconnect();
   });
 
@@ -348,5 +348,61 @@ describe('public variable-room client v3', () => {
     expect(controller.getSnapshot()).toMatchObject({ lifecycle: 'ready', pregame: null });
     expect(socketFactory).not.toHaveBeenCalled();
     controller.disconnect();
+  });
+
+  it('fences a delayed create response after disconnect', async () => {
+    const roomId = 'room-v3-delayed-create';
+    const inviteCode = encodeOnlineSharedInviteCodeV3(roomId, `admission_${'d'.repeat(40)}`);
+    let resolveFetch!: (response: Response) => void;
+    let participantId = '';
+    vi.stubGlobal('fetch', vi.fn((_input: string | URL | Request, init?: RequestInit) => {
+      if (typeof init?.body !== 'string') throw new Error('missing request body');
+      participantId = String((JSON.parse(init.body) as Record<string, unknown>).participantId);
+      return new Promise<Response>((resolve) => { resolveFetch = resolve; });
+    }));
+    const controller = createPublicOnlineControllerV3();
+    const create = controller.createShared({ playerCount: 2, startingLife: 40 });
+    controller.disconnect();
+    resolveFetch(new Response(JSON.stringify({
+      kind: 'online-forming-lobby-created-v5', schemaVersion: 5, roomId,
+      participantId, playerCount: 2, startingLife: 40,
+      seatCapability: `seat_${'d'.repeat(40)}`, inviteCode,
+      tableParticipantId: 'table-v3-delayed-create', tableCapability: `observer_${'e'.repeat(40)}`,
+      projection: { ...projection(2, 40), roomId, hostParticipantId: participantId,
+        seats: [{ ...(projection(2, 40).seats as readonly Record<string, unknown>[])[0], participantId }, (projection(2, 40).seats as readonly Record<string, unknown>[])[1]],
+      },
+    }), { status: 200 }));
+    await create;
+    expect(controller.getSnapshot()).toMatchObject({ mode: 'entry', busy: null, roomId: null, projection: null, error: null });
+    expect(controller.getSnapshot().recoveryAvailable).toBe(false);
+  });
+
+  it('keeps one saved-session recovery when refresh is invoked twice while the first response is pending', async () => {
+    const roomId = 'room-v3-recover-double';
+    const participantId = 'participant-v3-recover-double';
+    const seatCapability = `seat_${'r'.repeat(40)}`;
+    const tableParticipantId = 'table-v3-recover-double';
+    const tableCapability = `observer_${'t'.repeat(40)}`;
+    const inviteCode = encodeOnlineSharedInviteCodeV3(roomId, `admission_${'a'.repeat(40)}`);
+    localStorage.setItem('mtg-onedeck:online-recovery-v2', JSON.stringify({
+      kind: 'public-online-recovery-v2', schemaVersion: 2, wireGeneration: 'variable-v5', roomId,
+      participantId, seatCapability, isHost: true, tableParticipantId, tableCapability,
+    }));
+    let resolveFetch!: (response: Response) => void;
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => { resolveFetch = resolve; }));
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = createPublicOnlineControllerV3();
+    const first = controller.refresh();
+    await Promise.resolve();
+    const second = controller.refresh();
+    await second;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolveFetch(new Response(JSON.stringify({
+      kind: 'online-forming-lobby-recovered-v5', schemaVersion: 5, roomId, participantId,
+      playerCount: 2, startingLife: 40, admissionOpen: true, inviteCode, tableParticipantId, tableCapability,
+      projection: { ...readyProjection(participantId), roomId },
+    }), { status: 200 }));
+    await first;
+    expect(controller.getSnapshot()).toMatchObject({ busy: null, mode: 'forming', lifecycle: 'ready', roomId, participantId });
   });
 });

@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { OnlineParticipantProjectionV1 } from '../../online/projection';
-import type { OnlineVisibilityDurationV1, OnlineVisibilityIntentEnvelopeV1 } from '../../online/visibilityDecisions';
+import type { OnlineVisibilityDurationV1, OnlineVisibilityIntentEnvelope } from '../../online/visibilityDecisions';
 import './onlineVisibilityDecisions.css';
 
 export type OnlineVisibilityDecisionsProps = Readonly<{
   projection: OnlineParticipantProjectionV1;
   interactionState: 'ready' | 'updating' | 'offline';
   busy?: boolean;
-  onSubmit: (intent: OnlineVisibilityIntentEnvelopeV1) => void;
+  onSubmit: (intent: OnlineVisibilityIntentEnvelope) => void;
 }>;
 
 let intentCounter = 0;
@@ -73,8 +73,9 @@ export function OnlineVisibilityDecisions({ projection, interactionState, busy =
   const [topCount, setTopCount] = useState(1);
   const [duration, setDuration] = useState<OnlineVisibilityDurationV1>({ kind: 'next-command' });
   const [viewers, setViewers] = useState<readonly string[]>(playerId === null ? [] : [playerId]);
-  const [pending, setPending] = useState<Readonly<{ kind: 'look' | 'reveal'; handle?: string; count?: number }> | null>(null);
+  const [pending, setPending] = useState<Readonly<{ kind: 'look' | 'reveal'; handle?: string; count?: number } | { kind: 'open-choice'; count: number }> | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Readonly<Record<string, readonly string[]>>>({});
+  const [choiceCount, setChoiceCount] = useState(1);
   const disabled = busy || interactionState !== 'ready' || playerId === null;
   const durationFeasible = duration.kind === 'next-command' || duration.kind === 'end-of-turn' || (duration.kind === 'source-bound' && sourceHandles.includes(duration.sourceHandle)) || (duration.kind === 'choice-bound' && sessions.some((session) => session.sessionId === duration.searchSessionId));
   const activePlayerSet = new Set(game?.players.filter((entry) => entry.status === 'active').map((entry) => entry.playerId) ?? []);
@@ -92,10 +93,19 @@ export function OnlineVisibilityDecisions({ projection, interactionState, busy =
   };
   const ownLibraryCount = ownZones?.library.count ?? 0;
   const topCountOptions = Array.from({ length: Math.min(10, ownLibraryCount) }, (_, index) => index + 1);
+  const choiceCountOptions = Array.from({ length: Math.min(10, ownLibraryCount) }, (_, index) => index + 1);
   const topCountFeasible = topCountOptions.includes(topCount);
+  const choiceCountFeasible = choiceCountOptions.includes(choiceCount);
+  const ownPendingChoice = sessions.some((session) => session.selectorPlayerId === playerId);
   const selectedSubjectFeasible = selectedHandle !== 'top:1' || topCountFeasible;
   const confirm = () => {
-    if (pending === null || playerId === null || !durationFeasible || (pending.count !== undefined && !topCountOptions.includes(pending.count))) return;
+    if (pending === null || playerId === null) return;
+    if (pending.kind === 'open-choice') {
+      onSubmit({ kind: 'online-visibility-intent-v2', schemaVersion: 2, commandId: commandId(projection.revision), baseRevision: projection.revision, openChoice: { count: pending.count } });
+      setPending(null);
+      return;
+    }
+    if (!durationFeasible || (pending.count !== undefined && !topCountOptions.includes(pending.count))) return;
     const subject = pending.handle === undefined || pending.handle.startsWith('top:')
       ? { kind: 'top-of-library' as const, count: pending.count ?? Number(pending.handle?.slice(4) || 1) }
       : { kind: 'object' as const, handle: pending.handle };
@@ -122,23 +132,41 @@ export function OnlineVisibilityDecisions({ projection, interactionState, busy =
           <button type="button" data-testid="visibility-reveal-top" disabled={disabled || !durationFeasible || !topCountFeasible} onClick={() => setPending({ kind: 'reveal', count: topCount })}>ライブラリの上から公開</button>
         </fieldset>
         <fieldset><legend>選ぶ</legend>
+          <label>候補として見る枚数<select data-testid="visibility-choice-count" value={choiceCount} onChange={(event) => setChoiceCount(Number(event.target.value))} disabled={disabled || choiceCountOptions.length === 0 || ownPendingChoice}>{choiceCountOptions.map((count) => <option key={count} value={count}>{count}枚</option>)}</select></label>
+          <p className="online-visibility-decisions__manual">自分だけが自分のライブラリ上のカードを見て、0〜1枚を選びます。選択結果だけを記録し、カードの移動やシャッフルは自動で行いません。</p>
+          <button type="button" data-testid="visibility-open-choice" disabled={disabled || !choiceCountFeasible || ownLibraryCount === 0 || ownPendingChoice} onClick={() => setPending({ kind: 'open-choice', count: choiceCount })}>選択を開始</button>
           {sessions.length === 0 ? <p>現在選べる候補はありません。</p> : sessions.map((session) => {
             const selected = selectedCandidates[session.sessionId] ?? [];
             const isSelector = session.selectorPlayerId === playerId;
             const isQualified = session.criteria.kind === 'qualified';
             const mayCompleteEmpty = session.criteria.kind === 'qualified' && session.criteria.mayFailToFind === true;
+            const quantityMayCompleteEmpty = session.criteria.kind === 'quantity' && session.criteria.minimum === 0;
+            const mayCompleteWithoutSelection = mayCompleteEmpty || quantityMayCompleteEmpty;
+            const selectedCountValid = mayCompleteWithoutSelection
+              ? selected.length === 0 || selected.length >= session.criteria.minimum
+              : selected.length >= session.criteria.minimum;
             return <div key={session.sessionId} data-testid={`visibility-choice-${session.sessionId}`}>
               <p>{isSelector ? '候補を選択' : '候補を確認（選択は指定されたプレイヤーのみ）'}（{session.criteria.minimum}〜{session.criteria.maximum}枚）</p>
               {session.candidates.map((candidate) => isSelector && !isQualified
-                ? <label key={candidate.objectId}><input type="checkbox" checked={selected.includes(candidate.objectId)} disabled={disabled || (!selected.includes(candidate.objectId) && selected.length >= session.criteria.maximum)} onChange={() => setSelectedCandidates((current) => ({ ...current, [session.sessionId]: selected.includes(candidate.objectId) ? selected.filter((id) => id !== candidate.objectId) : [...selected, candidate.objectId] }))} />{projectedCardLabel(candidate)}</label>
+                ? <label key={candidate.objectId}><input type="checkbox" value={candidate.objectId} checked={selected.includes(candidate.objectId)} disabled={disabled || (!selected.includes(candidate.objectId) && selected.length >= session.criteria.maximum)} onChange={() => setSelectedCandidates((current) => ({ ...current, [session.sessionId]: selected.includes(candidate.objectId) ? selected.filter((id) => id !== candidate.objectId) : [...selected, candidate.objectId] }))} />{projectedCardLabel(candidate)}</label>
                 : <p key={candidate.objectId} className="online-visibility-decisions__candidate">{projectedCardLabel(candidate)}</p>)}
               {isSelector && isQualified && <p className="online-visibility-decisions__manual">Freeform Manual（条件付き候補は自動判定しません）</p>}
-              {isSelector && (isQualified ? mayCompleteEmpty : true) && <button type="button" data-testid={`visibility-choose-${session.sessionId}`} disabled={disabled || (isQualified ? selected.length !== 0 : selected.length < session.criteria.minimum)} onClick={() => onSubmit({ kind: 'online-visibility-intent-v1', schemaVersion: 1, commandId: commandId(projection.revision), baseRevision: projection.revision, choose: { searchSessionId: session.sessionId, candidateHandles: selected } })}>{isQualified ? '選ばずに完了' : '選ぶ'}</button>}
+              {isSelector && (isQualified ? mayCompleteEmpty : true) && <button type="button" data-testid={`visibility-choose-${session.sessionId}`} disabled={disabled || !selectedCountValid} onClick={() => onSubmit({ kind: 'online-visibility-intent-v1', schemaVersion: 1, commandId: commandId(projection.revision), baseRevision: projection.revision, choose: { searchSessionId: session.sessionId, candidateHandles: selected } })}>{mayCompleteWithoutSelection && selected.length === 0 ? '選ばずに完了' : '選ぶ'}</button>}
             </div>;
           })}
         </fieldset>
       </div>
-      {pending !== null && <div role="alertdialog" aria-label="操作の確認"><p>{pending.kind === 'look' ? '選択した対象を指定したプレイヤーに見せます。' : '選択した対象を全員に公開します。'}</p><p>対象: {pending.count === undefined ? '選択したカード' : `ライブラリー上${pending.count}枚`}</p><p>閲覧者: {pending.kind === 'look' ? viewers.map(viewerLabel).join('、') : '全員'} / 期間: {durationLabel(duration)}</p><button type="button" data-testid="visibility-confirm" disabled={disabled} onClick={confirm}>確認して送信</button><button type="button" onClick={() => setPending(null)}>キャンセル</button></div>}
+      {pending !== null && <div role="alertdialog" aria-label="操作の確認">
+        {pending.kind === 'open-choice' ? <>
+          <p>自分のライブラリー上{pending.count}枚を自分だけが見て、0〜1枚を選びます。</p>
+          <p>選択結果だけを記録し、カードの移動やシャッフルは自動で行いません。</p>
+        </> : <>
+          <p>{pending.kind === 'look' ? '選択した対象を指定したプレイヤーに見せます。' : '選択した対象を全員に公開します。'}</p>
+          <p>対象: {pending.count === undefined ? '選択したカード' : `ライブラリー上${pending.count}枚`}</p>
+          <p>閲覧者: {pending.kind === 'look' ? viewers.map(viewerLabel).join('、') : '全員'} / 期間: {durationLabel(duration)}</p>
+        </>}
+        <button type="button" data-testid="visibility-confirm" disabled={disabled} onClick={confirm}>確認して送信</button><button type="button" onClick={() => setPending(null)}>キャンセル</button>
+      </div>}
       <p className="online-visibility-decisions__manual">Freeform Manual（非公開情報は送信しません）</p>
       {interactionState !== 'ready' && <p role="status">接続を確認してから再試行してください。</p>}
     </section>

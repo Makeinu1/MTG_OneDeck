@@ -171,15 +171,15 @@ export function bindOnlineTabletopIntentOnServerV1(input: OnlineTabletopServerBi
         : { kind: 'stack-remove-object', input: { kind: 'cease', objectId: top } };
     } else {
       if (window.kind === 'turn-based-action-required') {
-        payload = { kind: 'table-turn-progress', transition: { kind: 'checkpoint' } };
+        payload = { kind: 'table-turn-progress-v2', transition: { kind: 'checkpoint' } };
       } else if (window.kind === 'position-advance-ready') {
         const firstTurnDrawSkip = turn.lifecycle.turnNumber === 1
           && turn.lifecycle.position.phase === 'beginning'
           && turn.lifecycle.position.step === 'upkeep'
           && turn.stackBundle.objectRegistry.turnOrder.length === 2;
-        payload = { kind: 'table-turn-progress', transition: firstTurnDrawSkip ? { kind: 'first-turn-draw-skip' } : { kind: 'position', nextPosition: nextPosition(turn.lifecycle.position) } };
+        payload = { kind: 'table-turn-progress-v2', transition: firstTurnDrawSkip ? { kind: 'first-turn-draw-skip' } : { kind: 'position', nextPosition: nextPosition(turn.lifecycle.position) } };
       } else if (window.kind === 'turn-advance-ready' || window.kind === 'cleanup-repeat-ready') {
-        payload = { kind: 'table-turn-progress', transition: { kind: 'next-turn' } };
+        payload = { kind: 'table-turn-progress-v2', transition: { kind: 'next-turn' } };
       } else {
         throw new Error('No assisted priority advance is available');
       }

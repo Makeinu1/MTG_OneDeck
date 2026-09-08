@@ -155,6 +155,12 @@ type DeckReadyRow = { room_id: unknown; seat_index: unknown; ready: unknown };
 type PregameRow = { singleton: unknown; schema_version: unknown; room_id: unknown; revision: unknown; phase: unknown; initial_state_json: unknown; state_json: unknown };
 type RecoveryVerificationResult = Readonly<{ readonly checkpointRevision: number; readonly replayCount: number }>;
 type MigrationRecoveryHandoff = RecoveryVerificationResult & Readonly<{ readonly roomId: string; readonly currentRevision: number; readonly versionIdentifier: string | null }>;
+type VariableReplayCache = Readonly<{
+  readonly roomId: string;
+  readonly checkpoint: Readonly<CheckpointRow>;
+  readonly journalPrefix: readonly JournalRow[];
+  readonly state: OnlineVariableProtocolStateV2;
+}>;
 
 function exactSubmissionEnvelope(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value)) return false;
@@ -365,6 +371,7 @@ export class OnlineCloudflareRepository {
   private readonly versionIdentifier: string | null;
   private migrationRecovery: MigrationRecoveryHandoff | null = null;
   private readonly deckInflight = new Map<string, Promise<OnlineDeckSubmissionResultV2>>();
+  private variableReplayCache: VariableReplayCache | null = null;
   constructor(storage: OnlineCloudflareSqlStorage, createBaseSchema = true, versionIdentifier: string | null = null) {
     this.storage = storage;
     this.securityRepository = new OnlineCloudflareSecurityRepository(storage);
@@ -802,6 +809,15 @@ export class OnlineCloudflareRepository {
   }
 
   loadVariableProtocolV2(roomId: string): OnlineVariableProtocolStateV2 | null {
+    return this.loadVariableProtocolV2AtRevision(roomId, null);
+  }
+
+  loadVariableProtocolStateAtRevisionV2(roomId: string, revision: number): OnlineVariableProtocolStateV2 | null {
+    if (!Number.isSafeInteger(revision) || revision < 0) return null;
+    return this.loadVariableProtocolV2AtRevision(roomId, revision);
+  }
+
+  private loadVariableProtocolV2AtRevision(roomId: string, targetRevision: number | null): OnlineVariableProtocolStateV2 | null {
     let rows: readonly { readonly singleton: unknown; readonly schema_version: unknown; readonly room_id: unknown; readonly revision: unknown; readonly room_lifecycle: unknown; readonly state_json: unknown }[];
     try { rows = this.storage.sql.exec<{ readonly singleton: unknown; readonly schema_version: unknown; readonly room_id: unknown; readonly revision: unknown; readonly room_lifecycle: unknown; readonly state_json: unknown }>(SELECT_VARIABLE_ROOM).toArray(); } catch (error: unknown) { if (error instanceof Error && (/no such table/i.test(error.message) || /Unexpected SQL/i.test(error.message))) return null; throw error; }
     if (rows.length === 0) return null;
@@ -809,19 +825,49 @@ export class OnlineCloudflareRepository {
     if (rows.length !== 1 || row === undefined || row.schema_version !== 2 || row.room_id !== roomId || typeof row.state_json !== 'string') throw new Error('Invalid variable protocol row');
     let parsed: unknown; try { parsed = JSON.parse(row.state_json); } catch { throw new Error('Invalid variable protocol JSON'); }
     const checked = validateOnlineVariableProtocolStateV2(parsed); if (!checked.ok || JSON.stringify(checked.value) !== row.state_json || row.revision !== checked.value.revision || row.room_lifecycle !== checked.value.room.lifecycle || checked.value.coreRoot.acceptedCommandCount !== checked.value.revision) throw new Error('Invalid variable protocol state');
+    if (targetRevision !== null && targetRevision > checked.value.revision) return null;
     let journal: readonly JournalRow[]; let checkpoints: readonly CheckpointRow[];
     try { journal = this.storage.sql.exec<JournalRow>(SELECT_JOURNAL).toArray(); checkpoints = this.storage.sql.exec<CheckpointRow>(SELECT_CHECKPOINT).toArray(); } catch { throw new Error('Invalid variable recovery state'); }
     const checkpoint = checkpoints[0]; if (journal.length !== checked.value.revision || checked.value.receipts.length !== checked.value.revision || checkpoints.length !== 1 || checkpoint === undefined || checkpoint.singleton !== 1 || checkpoint.room_id !== roomId || checkpoint.checkpoint_revision !== 0 || typeof checkpoint.state_json !== 'string') throw new Error('Invalid variable recovery relation');
     let initialParsed: unknown; try { initialParsed = JSON.parse(checkpoint.state_json); } catch { throw new Error('Invalid variable checkpoint JSON'); }
     const initial = validateOnlineVariableProtocolStateV2(initialParsed); if (!initial.ok || initial.value.revision !== 0 || initial.value.receipts.length !== 0 || JSON.stringify(initial.value.configuration) !== JSON.stringify(checked.value.configuration)) throw new Error('Invalid variable checkpoint state');
-    let replay = initial.value; const configuredCapabilities = [...checked.value.room.seats.map((seat) => seat.seatCapability), ...checked.value.observerAuthorizations.map((entry) => entry.observerCapability)];
+    const checkpointIdentity = Object.freeze({
+      singleton: checkpoint.singleton,
+      room_id: checkpoint.room_id,
+      checkpoint_revision: checkpoint.checkpoint_revision,
+      state_json: checkpoint.state_json,
+    });
+    const configuredCapabilities = [...checked.value.room.seats.map((seat) => seat.seatCapability), ...checked.value.observerAuthorizations.map((entry) => entry.observerCapability)];
     for (let index = 0; index < journal.length; index += 1) {
       const entry = journal[index]; const acceptedRevision = index + 1;
       if (entry === undefined || entry.accepted_revision !== acceptedRevision || entry.base_revision !== index || typeof entry.command_id !== 'string' || typeof entry.participant_id !== 'string' || typeof entry.command_json !== 'string') throw new Error('Invalid variable journal relation');
       assertNoConfiguredCapabilityFragmentV1(entry.command_id, configuredCapabilities); assertNoConfiguredCapabilityFragmentV1(entry.participant_id, configuredCapabilities);
       const receipt = checked.value.receipts.find((candidate) => candidate.acceptedRevision === acceptedRevision); if (receipt === undefined || receipt.commandId !== entry.command_id || receipt.participantId !== entry.participant_id) throw new Error('Invalid variable journal receipt');
+    }
+    const cached = this.variableReplayCache;
+    const canReuseCache = cached !== null
+      && cached.roomId === roomId
+      && cached.checkpoint.singleton === checkpointIdentity.singleton
+      && cached.checkpoint.room_id === checkpointIdentity.room_id
+      && cached.checkpoint.checkpoint_revision === checkpointIdentity.checkpoint_revision
+      && cached.checkpoint.state_json === checkpointIdentity.state_json
+      && cached.state.revision === cached.journalPrefix.length
+      && cached.state.revision <= journal.length
+      && (targetRevision === null || targetRevision >= cached.state.revision)
+      && this.journalRowsEqual(journal.slice(0, cached.state.revision), cached.journalPrefix);
+    let replay = initial.value;
+    let replayStart = 0;
+    let selected = targetRevision === 0 ? initial.value : null;
+    if (canReuseCache && cached !== null) {
+      replay = cached.state;
+      replayStart = cached.state.revision;
+      selected = targetRevision === replayStart ? replay : null;
+    }
+    for (let index = replayStart; index < journal.length; index += 1) {
+      const entry = journal[index]; const acceptedRevision = index + 1;
+      if (entry === undefined) throw new Error('Invalid variable journal relation');
       const participant = replay.room.participants.find((candidate) => candidate.participantId === entry.participant_id); const seat = participant === undefined || participant.seatIndex === null ? undefined : replay.room.seats[participant.seatIndex]; if (participant?.role !== 'player' || seat === undefined) throw new Error('Invalid variable journal participant');
-      let command: unknown; try { command = JSON.parse(entry.command_json); } catch { throw new Error('Invalid variable journal command JSON'); }
+      let command: unknown; try { command = JSON.parse(entry.command_json as string); } catch { throw new Error('Invalid variable journal command JSON'); }
       if (command !== null && typeof command === 'object' && !Array.isArray(command) && (command as Record<string, unknown>).kind === 'online-shared-undo-intent-v1') {
         const intent = { ...(command as Record<string, unknown>), participantCapability: seat.seatCapability };
         const transition = handleOnlineVariableSharedUndoIntentV2(replay, intent, true);
@@ -833,13 +879,20 @@ export class OnlineCloudflareRepository {
         if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected');
         replay = transition.state;
       } else {
-        const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: replay.protocolVersion, roomId, participantId: entry.participant_id, participantCapability: seat.seatCapability, commandId: entry.command_id, baseRevision: index, command };
+        const envelope = { kind: 'online-command-envelope-v1' as const, protocolVersion: replay.protocolVersion, roomId, participantId: entry.participant_id as string, participantCapability: seat.seatCapability, commandId: entry.command_id as string, baseRevision: index, command };
         const validation = validateOnlineCommandEnvelopeV1(envelope); if (!validation.ok || JSON.stringify(validation.value.command) !== entry.command_json) throw new Error('Invalid variable journal command');
         const transition = handleOnlineVariableCommandEnvelopeV2(replay, validation.value, true); if (transition.response.kind !== 'online-command-ack-v1' || transition.response.duplicate || transition.response.acceptedRevision !== acceptedRevision) throw new Error('Variable journal replay rejected'); replay = transition.state;
       }
+      if (targetRevision === acceptedRevision) selected = replay;
     }
     if (comparablePresenceState(JSON.stringify(replay), false) !== comparablePresenceState(row.state_json, false)) throw new Error('Variable journal replay mismatch');
-    return checked.value;
+    this.variableReplayCache = Object.freeze({
+      roomId,
+      checkpoint: checkpointIdentity,
+      journalPrefix: Object.freeze(journal.map((entry) => Object.freeze({ ...entry }))),
+      state: replay,
+    });
+    return targetRevision === null ? checked.value : selected;
   }
 
   findVariableAcceptedCommandV2(roomId: string, participantId: string, commandId: string): unknown {

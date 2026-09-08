@@ -78,8 +78,10 @@ function requestDigest(message: OnlineCommandEnvelopeV1): string {
 
 function requiresTrustedTabletopBinder(command: OnlineCommandEnvelopeV1['command']): boolean {
   const kind = command.payload.kind;
-  return kind === 'stack-remove-object'
+  return kind === 'search-open'
+    || kind === 'stack-remove-object'
     || kind === 'table-turn-progress'
+    || kind === 'table-turn-progress-v2'
     || kind === 'table-manual-resolve';
 }
 

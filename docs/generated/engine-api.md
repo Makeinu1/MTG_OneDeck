@@ -115,7 +115,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 - line 80: `export function coreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1): CorePlayerId | null {`
 - line 86: `export function isCoreUndoAuthorizedPlayerV1(root: ModeNeutralCoreRootV1, playerId: CorePlayerId): boolean {`
-- line 409: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
+- line 474: `export function applyCoreCommandV1(root: ModeNeutralCoreRootV1, command: CoreCommandV1): CoreCommandResultV1 {`
 
 ## `src/engine/core/closure/canonicalV1.ts`
 
@@ -1001,19 +1001,20 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 73: `export type CoreTabletopTokenRemovePayloadV1 = Readonly<{`
 - line 79: `export type CoreTabletopTurnTransitionV1 =`
 - line 86: `export type CoreTabletopTurnPayloadV1 = Readonly<{`
-- line 91: `export type CoreTabletopShufflePayloadV1 = Readonly<{`
-- line 95: `export type CoreTabletopReorderPayloadV1 = Readonly<{`
-- line 101: `export type CoreTabletopLifePayloadV1 = Readonly<{`
-- line 107: `export type CoreTabletopControllerPayloadV1 = Readonly<{`
-- line 113: `export type CoreTabletopAttachPayloadV1 = Readonly<{`
-- line 119: `export type CoreTabletopDamagePayloadV1 = Readonly<{`
-- line 125: `export type CoreTabletopNoteSetPayloadV1 = Readonly<{`
-- line 131: `export type CoreTabletopNoteClearPayloadV1 = Readonly<{`
-- line 136: `export type CoreTabletopStackEntryPayloadV1 = Readonly<{`
-- line 143: `export type CoreTabletopManualResolvePayloadV1 = Readonly<{`
-- line 148: `export type CoreTabletopPriorityHoldPayloadV1 = Readonly<{`
-- line 153: `export type CoreTabletopCommandPayloadV1 =`
-- line 175: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
+- line 91: `export type CoreTabletopTurnPayloadV2 = Readonly<{`
+- line 96: `export type CoreTabletopShufflePayloadV1 = Readonly<{`
+- line 100: `export type CoreTabletopReorderPayloadV1 = Readonly<{`
+- line 106: `export type CoreTabletopLifePayloadV1 = Readonly<{`
+- line 112: `export type CoreTabletopControllerPayloadV1 = Readonly<{`
+- line 118: `export type CoreTabletopAttachPayloadV1 = Readonly<{`
+- line 124: `export type CoreTabletopDamagePayloadV1 = Readonly<{`
+- line 130: `export type CoreTabletopNoteSetPayloadV1 = Readonly<{`
+- line 136: `export type CoreTabletopNoteClearPayloadV1 = Readonly<{`
+- line 141: `export type CoreTabletopStackEntryPayloadV1 = Readonly<{`
+- line 148: `export type CoreTabletopManualResolvePayloadV1 = Readonly<{`
+- line 153: `export type CoreTabletopPriorityHoldPayloadV1 = Readonly<{`
+- line 158: `export type CoreTabletopCommandPayloadV1 =`
+- line 181: `export type CoreTabletopCommandKindV1 = CoreTabletopCommandPayloadV1['kind'];`
 
 ## `src/engine/core/tabletop/manualStateV1.ts`
 

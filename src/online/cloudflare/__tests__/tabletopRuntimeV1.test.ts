@@ -6,7 +6,7 @@ import {
   createOnlineVariableLobbyV4,
 } from '../../lobby/index';
 import { projectOnlineVariableProtocolV2, projectOnlineVariableProtocolV3, validateOnlineParticipantProjectionV3, type OnlineProjectedZoneV1 } from '../../projection/index';
-import { OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
+import { createAuthenticatedOnlineCloudflareSocketAttachmentV1, OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
 import { isOnlineVariableProjectionWithinFrameBudgetV1 } from '../projectionBudgetV1';
 import { ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1, OnlineCloudflareSecurityRepository } from '../security';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
@@ -465,7 +465,26 @@ describe('O4P-09D server tabletop transport', () => {
         baseRevision: initial.revision, acceptedRevision: initial.revision + 1,
         currentRevision: initial.revision + 1, duplicate: false,
       });
-
+      const exactRetry = await post(object(), fixture.roomId, {
+        kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+        protocolVersion: initial.protocolVersion, roomId: fixture.roomId,
+        participantId: seat.participantId, ['participantCapability']: seat.seatCapability,
+        commandId: 'remote-cast-accepted', baseRevision: initial.revision,
+        mode: 'structured', primitive: { kind: 'cast-spell', objectId },
+      });
+      expect(exactRetry.status).toBe(200);
+      expect(await exactRetry.json()).toMatchObject({ kind: 'online-command-ack-v1', commandId: 'remote-cast-accepted', duplicate: true, acceptedRevision: initial.revision + 1 });
+      const changedPrimitive = await post(object(), fixture.roomId, {
+        kind: 'online-tabletop-intent-envelope-v1', schemaVersion: 1,
+        protocolVersion: initial.protocolVersion, roomId: fixture.roomId,
+        participantId: seat.participantId, ['participantCapability']: seat.seatCapability,
+        commandId: 'remote-cast-accepted', baseRevision: initial.revision,
+        mode: 'structured', primitive: { kind: 'play-land', objectId },
+      });
+      expect(changedPrimitive.status).toBe(200);
+      expect(await changedPrimitive.json()).toMatchObject({ kind: 'online-command-reject-v1', commandId: 'remote-cast-accepted', duplicate: false, issues: [{ code: 'COMMAND_ID_REUSE_MISMATCH' }] });
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(initial.revision + 1);
+      expect(fixture.storage.all<{ count: number }>('SELECT COUNT(*) AS count FROM online_accepted_command')[0]?.count).toBe(initial.revision + 1);
       const committed = fixture.repository.loadVariableProtocolV2(fixture.roomId);
       if (committed === null) throw new Error('Missing committed cast state');
       const projections = committed.room.seats.map((candidate) => {
@@ -968,6 +987,39 @@ describe('O4P-09D server tabletop transport', () => {
       expect(afterMissingProtocolIntent.revision).toBe(beforeMalformedIntent.revision);
       expect(coreCanonicalDigestFromValueV1(afterMissingProtocolIntent.coreRoot)).toBe(coreCanonicalDigestFromValueV1(beforeMalformedIntent.coreRoot));
       expect(randomCalls).toBe(0);
+      const futureIntent = { ...shuffle, commandId: 'tabletop-ws-future', baseRevision: beforeMalformedIntent.revision + 1 };
+      const beforeFutureMessages = sent.length;
+      object.webSocketMessage(socket, JSON.stringify(futureIntent));
+      expect(sent).toHaveLength(beforeFutureMessages + 1);
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
+      const afterFutureIntent = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (afterFutureIntent === null) throw new Error('Missing post-future state');
+      expect(afterFutureIntent.revision).toBe(beforeMalformedIntent.revision);
+      expect(coreCanonicalDigestFromValueV1(afterFutureIntent.coreRoot)).toBe(coreCanonicalDigestFromValueV1(beforeMalformedIntent.coreRoot));
+      expect(randomCalls).toBe(0);
+      const semanticBefore = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (semanticBefore === null) throw new Error('Missing semantic rejection state');
+      const landProbeObjectId = semanticBefore.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.byPlayer[activePlayerId]?.hand[0];
+      if (landProbeObjectId === undefined) throw new Error('Missing semantic rejection card');
+      const semanticRejection = {
+        ...shuffle,
+        commandId: 'tabletop-ws-semantic-rejection',
+        primitive: { kind: 'play-land', objectId: landProbeObjectId },
+      };
+      object.webSocketMessage(socket, JSON.stringify(semanticRejection));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({
+        kind: 'online-command-reject-v1',
+        commandId: semanticRejection.commandId,
+        baseRevision: semanticBefore.revision,
+        currentRevision: semanticBefore.revision,
+        duplicate: false,
+        resyncRequired: false,
+        issues: [{ code: 'CORE_COMMAND_REJECTED', path: '/command', message: 'Tabletop command was rejected' }],
+      });
+      const afterSemanticRejection = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (afterSemanticRejection === null) throw new Error('Missing post-rejection state');
+      expect(afterSemanticRejection.revision).toBe(semanticBefore.revision);
+      expect(coreCanonicalDigestFromValueV1(afterSemanticRejection.coreRoot)).toBe(coreCanonicalDigestFromValueV1(semanticBefore.coreRoot));
       object.webSocketMessage(socket, JSON.stringify(shuffle));
       expect(JSON.parse(sent.at(-2) ?? '{}')).toMatchObject({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: 1 });
       expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-revision-v1', revision: 1 });
@@ -989,15 +1041,93 @@ describe('O4P-09D server tabletop transport', () => {
     }
   }, 60000);
 
+  it('broadcasts a committed variable command when the sender ACK fails', async () => {
+    const fixture = await started(2);
+    try {
+      const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (initial === null) throw new Error('Missing protocol fixture');
+      const { activePlayerId, seat } = activeSeat(initial);
+      const participantId = seat.participantId;
+      if (participantId === null) throw new Error('Missing sender participant');
+      const otherSeat = initial.room.seats.find((candidate) => candidate !== seat);
+      if (otherSeat?.participantId === null || otherSeat === undefined) throw new Error('Missing peer seat');
+      const security = new OnlineCloudflareSecurityRepository(fixture.storage);
+      const now = security.read(initial).state.lastObservedAt + 1;
+      let senderAttachment: unknown = createAuthenticatedOnlineCloudflareSocketAttachmentV1(fixture.roomId, participantId, 'player', 1, 0, now + 60_000, now, 0, now, 0);
+      let peerAttachment: unknown = createAuthenticatedOnlineCloudflareSocketAttachmentV1(fixture.roomId, otherSeat.participantId, 'player', 2, 0, now + 60_000, now, 0, now, 0);
+      const senderFrames: Record<string, unknown>[] = [];
+      const peerFrames: Record<string, unknown>[] = [];
+      const sender = {
+        send: (data: string) => {
+          const value = JSON.parse(data) as Record<string, unknown>;
+          if (value.kind === 'online-command-ack-v1') throw new Error('sender closed before ACK');
+          senderFrames.push(value);
+        },
+        serializeAttachment: (value: unknown) => { senderAttachment = value; },
+        deserializeAttachment: () => senderAttachment,
+      };
+      const peer = {
+        send: (data: string) => { peerFrames.push(JSON.parse(data) as Record<string, unknown>); },
+        serializeAttachment: (value: unknown) => { peerAttachment = value; },
+        deserializeAttachment: () => peerAttachment,
+      };
+      const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [sender, peer], now: () => now });
+      const command = createCoreCommandV1({
+        schemaVersion: 1,
+        sequence: initial.revision + 1,
+        actorPlayerId: activePlayerId,
+        decisionMakerPlayerId: activePlayerId,
+        decisionContext: { kind: 'decision', decisionKey: 'sender-ack-failure' },
+        payload: {
+          kind: 'correct-player-life',
+          playerId: activePlayerId,
+          replacementLifeTotal: 39,
+          expectedBeforeStateDigest: coreCanonicalDigestFromValueV1(initial.coreRoot),
+          reason: 'sender ACK failure verification',
+        },
+      });
+      object.webSocketMessage(sender, JSON.stringify({
+        kind: 'online-command-envelope-v1', protocolVersion: initial.protocolVersion, roomId: fixture.roomId,
+        participantId, ['participantCapability']: seat.seatCapability,
+        commandId: 'sender-ack-failure', baseRevision: initial.revision, command,
+      }));
+      expect(senderFrames.at(-1)).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INTERNAL_ERROR' });
+      expect(peerFrames).toContainEqual({ kind: 'online-cloudflare-revision-v1', schemaVersion: 1, roomId: fixture.roomId, revision: initial.revision + 1 });
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(initial.revision + 1);
+      expect(fixture.storage.all<{ count: number }>('SELECT COUNT(*) AS count FROM online_accepted_command')[0]?.count).toBe(initial.revision + 1);
+    } finally {
+      fixture.storage.close();
+    }
+  }, 60000);
+
   it('acknowledges a priority advance high-level intent on the authenticated WebSocket', async () => {
     const fixture = await started(2);
-    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    const setupObject = () => new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
+    let initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
     if (initial === null) throw new Error('Missing protocol fixture');
+    for (let index = 0; index < 8 && initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind !== 'priority'; index += 1) {
+      const window = initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
+      const actorPlayerId = window.kind === 'sba-check-required'
+        ? window.priorityRecipientPlayerId
+        : initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+      const actorSeat = initial.room.seats.find((candidate) => candidate.corePlayerId === actorPlayerId);
+      if (actorSeat?.participantId === null || actorSeat === undefined) throw new Error('Missing setup priority actor seat');
+      const primitive = window.kind === 'sba-check-required'
+        ? { kind: 'sba-check-outcome', actionsWereApplied: false }
+        : { kind: 'priority-advance' };
+      const advanced = await post(setupObject(), fixture.roomId, {
+        ...tabletopIntentBody(initial, `tabletop-ws-priority-setup-${String(index)}`, primitive),
+        participantId: actorSeat.participantId,
+        ['participantCapability']: actorSeat.seatCapability,
+      });
+      expect(advanced.status).toBe(200);
+      initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (initial === null) throw new Error('Missing setup priority state');
+    }
+    expect(initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind).toBe('priority');
     const active = activeSeat(initial);
     const participantId = active.seat.participantId;
     if (participantId === null) throw new Error('Missing active participant');
-    const windowKind = initial.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind;
-    expect(['turn-based-action-required', 'position-advance-ready', 'turn-advance-ready', 'cleanup-repeat-ready']).toContain(windowKind);
     let attachment: unknown;
     const sent: string[] = [];
     const socket = {
@@ -1023,13 +1153,85 @@ describe('O4P-09D server tabletop transport', () => {
       object.webSocketMessage(socket, JSON.stringify({ kind: 'online-client-hello-v1', protocolVersion: 1, roomId: fixture.roomId, participantId, ['participantCapability']: active.seat.seatCapability, clientBuildId: initial.serverBuildId }));
       const before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
       if (before === null) throw new Error('Missing protocol state');
-      const beforeMessages = sent.length;
-      object.webSocketMessage(socket, JSON.stringify(tabletopIntentBody(before, 'tabletop-ws-priority-advance', { kind: 'priority-advance' })));
-      expect(sent.length).toBeGreaterThan(beforeMessages);
-      expect(JSON.parse(sent.at(-2) ?? sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-ack-v1', commandId: 'tabletop-ws-priority-advance' });
-      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(before.revision + 1);
+      const castObjectId = before.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.byPlayer[active.activePlayerId]?.hand[0];
+      if (castObjectId === undefined) throw new Error('Missing WebSocket cast object');
+      const castIntent = tabletopIntentBody(before, 'tabletop-ws-cast-retry', { kind: 'cast-spell', objectId: castObjectId });
+      object.webSocketMessage(socket, JSON.stringify(castIntent));
+      expect(JSON.parse(sent.at(-2) ?? '{}')).toMatchObject({ kind: 'online-command-ack-v1', commandId: 'tabletop-ws-cast-retry', duplicate: false, acceptedRevision: before.revision + 1 });
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-revision-v1', revision: before.revision + 1 });
+      const afterCast = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (afterCast === null) throw new Error('Missing WebSocket cast state');
+      object.webSocketMessage(socket, JSON.stringify(castIntent));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-ack-v1', commandId: 'tabletop-ws-cast-retry', duplicate: true, acceptedRevision: afterCast.revision });
+      object.webSocketMessage(socket, JSON.stringify({ ...castIntent, primitive: { kind: 'play-land', objectId: castObjectId } }));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-command-reject-v1', commandId: 'tabletop-ws-cast-retry', duplicate: false, issues: [{ code: 'COMMAND_ID_REUSE_MISMATCH' }] });
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(afterCast.revision);
+      expect(fixture.storage.all<{ count: number }>('SELECT COUNT(*) AS count FROM online_accepted_command')[0]?.count).toBe(afterCast.revision);
     } finally {
       fixture.storage.close();
     }
+  }, 60000);
+
+  it('retries an accepted legacy V1 priority advance through the fresh V2 binder', async () => {
+    const fixture = await started(2);
+    const setupObject = () => new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [] });
+    let before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (before === null) throw new Error('Missing protocol fixture');
+    for (let index = 0; index < 8 && before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind !== 'position-advance-ready'; index += 1) {
+      const window = before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window;
+      const actorPlayerId = window.kind === 'sba-check-required'
+        ? window.priorityRecipientPlayerId
+        : window.kind === 'priority'
+          ? window.holderPlayerId
+        : before.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+      const actorSeat = before.room.seats.find((candidate) => candidate.corePlayerId === actorPlayerId);
+      if (actorSeat?.participantId === null || actorSeat === undefined) throw new Error('Missing setup priority actor seat');
+      const primitive = window.kind === 'sba-check-required'
+        ? { kind: 'sba-check-outcome', actionsWereApplied: false }
+        : window.kind === 'priority'
+          ? { kind: 'priority-pass' }
+          : { kind: 'priority-advance' };
+      const response = await post(setupObject(), fixture.roomId, {
+        ...tabletopIntentBody(before, `tabletop-legacy-retry-setup-${String(index)}`, primitive),
+        participantId: actorSeat.participantId,
+        ['participantCapability']: actorSeat.seatCapability,
+      });
+      expect(response.status).toBe(200);
+      before = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (before === null) throw new Error('Missing setup priority state');
+    }
+    expect(before.coreRoot.ruleAuthority.turnPriorityBundle.lifecycle.window.kind).toBe('position-advance-ready');
+    const intent = tabletopIntentBody(before, 'tabletop-legacy-progress-retry', { kind: 'priority-advance' });
+    const accepted = await post(setupObject(), fixture.roomId, intent);
+    expect(await accepted.json()).toMatchObject({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: before.revision + 1 });
+    const after = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (after === null) throw new Error('Missing accepted legacy retry state');
+    const journalRow = fixture.storage.all<{ readonly command_json: string }>('SELECT command_json FROM online_accepted_command WHERE accepted_revision = ' + String(after.revision))[0];
+    if (journalRow === undefined) throw new Error('Missing accepted priority journal row');
+    const legacyCommand = JSON.parse(journalRow.command_json) as { payload?: { kind?: string } };
+    expect(legacyCommand.payload?.kind).toBe('table-turn-progress-v2');
+    if (legacyCommand.payload === undefined) throw new Error('Missing priority payload');
+    legacyCommand.payload.kind = 'table-turn-progress';
+    fixture.storage.sql.exec('UPDATE online_accepted_command SET command_json = ? WHERE accepted_revision = ?', JSON.stringify(legacyCommand), after.revision);
+    const stateRow = fixture.storage.all<{ readonly state_json: string }>('SELECT state_json FROM online_variable_room_state WHERE singleton = 1')[0];
+    if (stateRow === undefined) throw new Error('Missing current variable state row');
+    const stateDocument = JSON.parse(stateRow.state_json) as { receipts?: Array<{ commandId?: string; requestDigest?: string }> };
+    const receipt = stateDocument.receipts?.find((candidate) => candidate.commandId === intent.commandId);
+    if (receipt === undefined) throw new Error('Missing accepted priority receipt');
+    receipt.requestDigest = coreCanonicalDigestFromValueV1({
+      kind: 'online-command-envelope-v1',
+      protocolVersion: before.protocolVersion,
+      roomId: before.room.roomId,
+      participantId: intent.participantId,
+      commandId: intent.commandId,
+      baseRevision: before.revision,
+      command: legacyCommand,
+    });
+    fixture.storage.sql.exec('UPDATE online_variable_room_state SET state_json = ? WHERE singleton = 1', JSON.stringify(stateDocument));
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(after.revision);
+    const retry = await post(setupObject(), fixture.roomId, intent);
+    expect(await retry.json()).toMatchObject({ kind: 'online-command-ack-v1', commandId: intent.commandId, duplicate: true, acceptedRevision: after.revision });
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(after.revision);
+    fixture.storage.close();
   }, 60000);
 });

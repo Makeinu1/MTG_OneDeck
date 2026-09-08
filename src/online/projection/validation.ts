@@ -542,6 +542,7 @@ export function validateOnlineParticipantProjectionV1(
     const participantRoles = new Map<string, string>();
     const participantSeats = new Map<string, number | null>();
     const seatPlayers: string[] = [];
+    const pendingSeatPlayers: string[] = [];
     if (room !== null) {
       literal(room.lifecycle, ['forming', 'ready', 'started', 'active', 'finished'], '/room/lifecycle', issues);
       if (!isApplicationId(room.hostParticipantId)) invalid(issues, 'INVALID_ID', '/room/hostParticipantId', 'Invalid host participant ID');
@@ -570,6 +571,7 @@ export function validateOnlineParticipantProjectionV1(
         if (player(seat.corePlayerId, `/room/seats/${index}/corePlayerId`, issues)) {
           if (seatPlayers.includes(seat.corePlayerId)) invalid(issues, 'DUPLICATE_VALUE', `/room/seats/${index}/corePlayerId`, 'Duplicate seat player');
           else seatPlayers.push(seat.corePlayerId);
+          if (seat.outcome === 'pending') pendingSeatPlayers.push(seat.corePlayerId);
         }
         if (seat.participantId !== null && !isApplicationId(seat.participantId)) invalid(issues, 'INVALID_ID', `/room/seats/${index}/participantId`, 'Invalid seat participant ID');
         else if (typeof seat.participantId === 'string' && (participantRoles.get(seat.participantId) !== 'player' || participantSeats.get(seat.participantId) !== index)) invalid(issues, 'INVALID_RELATION', `/room/seats/${index}/participantId`, 'Seat participant relation is invalid');
@@ -610,7 +612,7 @@ export function validateOnlineParticipantProjectionV1(
         const playerId = turnOrder[index] as CorePlayerId;
         if (order.includes(playerId)) invalid(issues, 'DUPLICATE_VALUE', `/game/turnOrder/${index}`, 'Duplicate turn-order player'); else order.push(playerId);
       }
-      if (order.length !== seatPlayers.length || new Set(order).size !== seatPlayers.length || seatPlayers.some((id) => !order.includes(id))) invalid(issues, 'INVALID_RELATION', '/game/turnOrder', 'Turn order must be an exact seated-player permutation');
+      if (order.length !== pendingSeatPlayers.length || new Set(order).size !== pendingSeatPlayers.length || pendingSeatPlayers.some((id) => !order.includes(id))) invalid(issues, 'INVALID_RELATION', '/game/turnOrder', 'Turn order must be an exact pending-player permutation');
       const turn = readExactRecord(game.turn, ['activePlayerId', 'turnNumber', 'positionSequence', 'position'], '/game/turn', issues);
       if (turn !== null) {
         player(turn.activePlayerId, '/game/turn/activePlayerId', issues);
@@ -1017,8 +1019,17 @@ export function validateOnlineParticipantProjectionV3(
       if (keys.some((key) => !required.includes(key) && !optional.includes(key)) || required.some((key) => !keys.includes(key))) invalid('/game', 'Game has unknown or missing fields');
       if (root.schemaVersion === ONLINE_PROJECTION_SCHEMA_VERSION_V3 && Object.prototype.hasOwnProperty.call(g, 'priorityHolds')) invalid('/game/priorityHolds', 'Priority HOLD fields require projection schema version 4');
       if (root.schemaVersion === ONLINE_PROJECTION_SCHEMA_VERSION_V3 && Object.prototype.hasOwnProperty.call(g, 'assistedPriority')) invalid('/game/assistedPriority', 'Assisted priority fields require projection schema version 4');
-      if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== playerCount || new Set(g.turnOrder).size !== playerCount || g.turnOrder.some((id) => typeof id !== 'string' || !/^P[1-4]$/u.test(id)) || Array.from({ length: playerCount }, (_, i) => `P${i + 1}`).some((id) => !(g.turnOrder as readonly unknown[]).includes(id))) invalid('/game/turnOrder', 'Turn order must be an exact seated-player permutation');
-      if (!Array.isArray(g.players) || g.players.length !== playerCount) invalid('/game/players', 'Player coverage must match exact roster');
+      const pendingPlayerIds = room !== null && typeof room === 'object' && !Array.isArray(room)
+        ? (room as Record<string, unknown>).seats instanceof Array
+          ? ((room as Record<string, unknown>).seats as readonly unknown[]).flatMap((seat: unknown) => {
+            if (seat === null || typeof seat !== 'object' || Array.isArray(seat)) return [];
+            const value = seat as Record<string, unknown>;
+            return value.outcome === 'pending' && typeof value.corePlayerId === 'string' ? [value.corePlayerId] : [];
+          })
+          : []
+        : [];
+      if (!Array.isArray(g.turnOrder) || g.turnOrder.length !== pendingPlayerIds.length || new Set(g.turnOrder).size !== pendingPlayerIds.length || g.turnOrder.some((id: unknown) => typeof id !== 'string' || !/^P[1-4]$/u.test(id)) || pendingPlayerIds.some((id: string) => !(g.turnOrder as readonly unknown[]).includes(id))) invalid('/game/turnOrder', 'Turn order must be an exact pending-player permutation');
+      if (!Array.isArray(g.players) || g.players.length !== pendingPlayerIds.length) invalid('/game/players', 'Player coverage must match pending roster');
       if (!Array.isArray(g.visibilityGrants) || !Array.isArray(g.searchSessions) || !Array.isArray(g.playPermissions)) invalid('/game', 'Invalid game authority arrays');
       if (playerCount === 2 && containsPlayerReference(g, new Set(['P3', 'P4']))) invalid('/game', 'Two-player projection references an unavailable player');
     }
@@ -1070,7 +1081,7 @@ export function validateOnlineParticipantProjectionV3(
       const paddedPlayers = [...rawPlayers];
       const paddedByPlayer = [...rawByPlayer];
       const paddedTurnOrder = [...(g.turnOrder as readonly unknown[])];
-      for (let index = paddedSeats.length; index < 4; index += 1) {
+      for (let index = seats.length; index < 4; index += 1) {
         const playerId = `P${index + 1}`;
         paddedSeats.push({ seatIndex: index, corePlayerId: playerId, participantId: null, ready: false, outcome: 'pending' });
         paddedPlayers.push(inertPlayer(playerId));

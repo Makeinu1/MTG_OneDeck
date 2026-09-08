@@ -222,7 +222,7 @@ describe('O4P-09D authoritative tabletop binder', () => {
 
   it('recognizes an ability controller as steward and blocks active HOLD shortcuts', () => {
     const bound = bindOnlineTabletopIntentOnServerV1({ state: abilityStewardState(), participantId: 'player-two', envelope: advance(), randomize: (order) => order });
-    expect(bound.command.payload).toEqual({ kind: 'table-turn-progress', transition: { kind: 'next-turn' } });
+    expect(bound.command.payload).toEqual({ kind: 'table-turn-progress-v2', transition: { kind: 'next-turn' } });
     const held = stewardState();
     const heldRoot = held.coreRoot as Record<string, unknown>;
     const heldWithManual = { ...heldRoot, tabletopManual: { kind: 'core-tabletop-manual-state-v1', notes: {}, noteOrder: [], stackEntries: [], priorityHolds: [{ playerId: 'P1', setRevision: 1 }] } };
@@ -246,9 +246,9 @@ describe('O4P-09D authoritative tabletop binder', () => {
 
   it('uses the first-turn draw skip only for two-player upkeep', () => {
     const twoPlayer = bindOnlineTabletopIntentOnServerV1({ state: firstTurnUpkeepState(2), participantId: 'player-1', envelope: advance(), randomize: (order) => order });
-    expect(twoPlayer.command.payload).toEqual({ kind: 'table-turn-progress', transition: { kind: 'first-turn-draw-skip' } });
+    expect(twoPlayer.command.payload).toEqual({ kind: 'table-turn-progress-v2', transition: { kind: 'first-turn-draw-skip' } });
     const fourPlayer = bindOnlineTabletopIntentOnServerV1({ state: firstTurnUpkeepState(4), participantId: 'player-1', envelope: advance(), randomize: (order) => order });
-    expect(fourPlayer.command.payload).toEqual({ kind: 'table-turn-progress', transition: { kind: 'position', nextPosition: { phase: 'beginning', step: 'draw' } } });
+    expect(fourPlayer.command.payload).toEqual({ kind: 'table-turn-progress-v2', transition: { kind: 'position', nextPosition: { phase: 'beginning', step: 'draw' } } });
   });
 
   it('binds manual resolve only at the explicit empty-stack boundary', () => {

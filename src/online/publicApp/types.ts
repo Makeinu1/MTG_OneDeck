@@ -3,7 +3,7 @@ import type { OnlineBrowserStateV1 } from '../browser/index';
 import type { SavedDeckEntry } from '../../data/savedDecks';
 import type { OnlinePregameCommandV1, OnlinePregameProjectionV1 } from '../pregame/index';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
-import type { OnlineVisibilityIntentEnvelopeV1 } from '../visibilityDecisions/index';
+import type { OnlineVisibilityIntentEnvelope } from '../visibilityDecisions/index';
 
 export const PUBLIC_ONLINE_ERROR_V1 = 'オンライン操作を完了できませんでした。' as const;
 
@@ -214,7 +214,7 @@ export type PublicOnlineControllerV3 = Readonly<{
   readonly copyInvite: (invite: string) => Promise<boolean>;
   readonly submitGuidedAction: (action: unknown) => void;
   readonly submitTabletopIntent: (intent: OnlineTabletopIntentEnvelopeV1) => Promise<void>;
-  readonly submitVisibilityIntent: (intent: OnlineVisibilityIntentEnvelopeV1) => Promise<void>;
+  readonly submitVisibilityIntent: (intent: OnlineVisibilityIntentEnvelope) => Promise<void>;
   /** Request rollback of the latest server-owned shared checkpoint. */
   readonly submitSharedUndo: (baseRevision?: number, commandId?: string) => Promise<void>;
   readonly submitManualCombatDamage: (input: PublicOnlineManualCombatDamageInputV1) => Promise<void>;

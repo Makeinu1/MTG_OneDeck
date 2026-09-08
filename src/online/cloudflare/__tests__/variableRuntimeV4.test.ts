@@ -12,6 +12,7 @@ import {
 import { ConflictError, OnlineCloudflareRepository, OnlineRoomDurableObject } from '../index';
 import { createAuthenticatedOnlineCloudflareSocketAttachmentV1, createOnlineCloudflareSocketAttachmentV1 } from '../index';
 import { handleOnlineVariableCommandEnvelopeV2, handleOnlineVariableSharedUndoIntentV2 } from '../../protocol/index';
+import { projectOnlineVariableProtocolV3 } from '../../projection/index';
 import { disconnectOnlineVariableRoomParticipantV2 } from '../../room/index';
 import { ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1 } from '../security';
 import { ReviewSqliteStorage } from './reviewSqliteStorage';
@@ -263,6 +264,57 @@ describe('O4P-08C variable runtime persistence', () => {
     fixture.storage.close();
   }, 30000);
 
+  it('accepts V2 manual-choice intents through HTTP and WebSocket with private candidates', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const state = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (state === null) throw new Error('Missing active variable state');
+    const seat = state.room.seats[0];
+    const otherSeat = state.room.seats[1];
+    if (seat?.participantId === null || seat === undefined || otherSeat?.participantId === null || otherSeat === undefined) throw new Error('Missing runtime seats');
+    const body = {
+      kind: 'online-visibility-intent-v2', schemaVersion: 2, protocolVersion: state.protocolVersion,
+      roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability,
+      commandId: 'runtime-visibility-v2', baseRevision: state.revision, openChoice: { count: 1 },
+    };
+    const httpObject = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => [], now: () => Date.now() });
+    try {
+      const httpAccepted = await httpObject.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+      expect(httpAccepted.status).toBe(200);
+      expect(await httpAccepted.json()).toMatchObject({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: state.revision + 1 });
+      const afterHttp = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (afterHttp === null) throw new Error('Missing V2 HTTP state');
+      const sent: string[] = [];
+      let attachment: unknown;
+      const socket = { send: (data: string) => { sent.push(data); }, serializeAttachment: (value: unknown) => { attachment = value; }, deserializeAttachment: () => attachment };
+      const sockets = [socket];
+      const object = new OnlineRoomDurableObject({ id: { name: fixture.roomId }, storage: fixture.storage, acceptWebSocket: () => undefined, getWebSockets: () => sockets, now: () => Date.now() });
+      const client = Object.freeze({ side: 'client' });
+      class FakePair { readonly 0 = client; readonly 1 = socket; }
+      class CloudflareResponse { readonly status: number; readonly webSocket: unknown; constructor(_body: BodyInit | null, init: ResponseInit & { readonly webSocket?: unknown } = {}) { this.status = init.status ?? 200; this.webSocket = init.webSocket; } }
+      vi.stubGlobal('WebSocketPair', FakePair); vi.stubGlobal('Response', CloudflareResponse);
+      const wsBody = {
+        ...body, participantId: otherSeat.participantId, ['participantCapability']: otherSeat.seatCapability,
+        commandId: 'runtime-visibility-v2-ws', baseRevision: afterHttp.revision,
+      };
+      const upgraded = await object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/websocket`, { headers: { upgrade: 'websocket' } }));
+      expect(upgraded.status).toBe(101);
+      object.webSocketMessage(socket, JSON.stringify({ kind: 'online-client-hello-v1', protocolVersion: state.protocolVersion, roomId: fixture.roomId, participantId: otherSeat.participantId, ['participantCapability']: otherSeat.seatCapability, clientBuildId: state.serverBuildId }));
+      object.webSocketMessage(socket, JSON.stringify(wsBody));
+      const messages = sent.map((entry) => JSON.parse(entry) as Record<string, unknown>);
+      expect(messages).toContainEqual(expect.objectContaining({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: afterHttp.revision + 1 }));
+      const afterWebSocket = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+      if (afterWebSocket === null) throw new Error('Missing V2 WebSocket state');
+      expect(afterWebSocket.revision).toBe(afterHttp.revision + 1);
+      expect(projectOnlineVariableProtocolV3(afterWebSocket, seat.participantId).game.searchSessions).toHaveLength(1);
+      expect(projectOnlineVariableProtocolV3(afterWebSocket, otherSeat.participantId).game.searchSessions).toHaveLength(1);
+      expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)?.revision).toBe(afterWebSocket.revision);
+    } finally {
+      vi.unstubAllGlobals();
+      fixture.storage.close();
+    }
+  }, 60000);
+
   it('leaves protocol state, journal, revision, grants, and sessions unchanged when E persistence fails', async () => {
     const fixture = await startedRepository(2);
     completePregame(fixture.repository, fixture.roomId);
@@ -322,10 +374,12 @@ describe('O4P-08C variable runtime persistence', () => {
       },
     });
     const rawClose = createCoreCommandV1({ ...commandBase, payload: { kind: 'visibility-close', grantKey: 'raw-visibility-open' } });
+    const rawSearchOpen = createCoreCommandV1({ ...commandBase, payload: { kind: 'search-open', sessionKey: 'raw-search-open', input: { zone: { kind: 'player-zone', playerId: seat.corePlayerId, zone: 'library' }, portion: { kind: 'top', count: 1 }, criteria: { kind: 'quantity', minimum: 0, maximum: 1 }, revealFound: false, shuffleAfter: false, rulesActorPlayerId: seat.corePlayerId } } });
     const rawDelegatedSearch = createCoreCommandV1({ ...commandBase, decisionMakerPlayerId: otherSeat.corePlayerId, payload: { kind: 'search-complete', sessionKey: 'raw-search', selectedObjectIds: [] } });
     const post = (commandId: string, command: unknown) => object.fetch(new Request(`https://room.test/api/online/rooms/${fixture.roomId}/commands`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: fixture.roomId, participantId: seat.participantId, ['participantCapability']: seat.seatCapability, commandId, baseRevision: state.revision, command }) }));
     expect((await post('raw-open-http', rawOpen)).status).toBe(400);
     expect((await post('raw-close-http', rawClose)).status).toBe(400);
+    expect((await post('raw-search-open-http', rawSearchOpen)).status).toBe(400);
     expect((await post('raw-search-http', rawDelegatedSearch)).status).toBe(400);
     expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(before);
 
@@ -346,6 +400,8 @@ describe('O4P-08C variable runtime persistence', () => {
       wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-open-ws', rawOpen)));
       expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
       wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-close-ws', rawClose)));
+      expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
+      wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-search-open-ws', rawSearchOpen)));
       expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
       wsObject.webSocketMessage(socket, JSON.stringify(rawFrame('raw-search-ws', rawDelegatedSearch)));
       expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ kind: 'online-cloudflare-websocket-error-v1', code: 'INVALID_MESSAGE' });
@@ -676,6 +732,49 @@ describe('O4P-08C variable runtime persistence', () => {
     storage.sql.exec('DELETE FROM online_accepted_command WHERE accepted_revision = 1');
     expect(() => new OnlineCloudflareRepository(storage, false).loadVariableProtocolV2(current.roomId)).toThrow('Invalid variable recovery relation');
   }, 30000);
+
+  it('reuses a validated replay prefix, replays a journal tail, and fails closed on prefix tampering', async () => {
+    const fixture = await startedRepository(2);
+    completePregame(fixture.repository, fixture.roomId);
+    const initial = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (initial === null) throw new Error('Missing replay cache fixture');
+    const activePlayerId = initial.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.activePlayerId;
+    const activeSeat = initial.room.seats.find((seat) => seat.corePlayerId === activePlayerId);
+    if (activeSeat?.participantId === null || activeSeat === undefined) throw new Error('Missing replay cache seat');
+    const commandFor = (state: typeof initial, life: number) => createCoreCommandV1({
+      schemaVersion: 1,
+      sequence: state.revision + 1,
+      actorPlayerId: activePlayerId,
+      decisionMakerPlayerId: activePlayerId,
+      decisionContext: { kind: 'decision', decisionKey: 'variable-replay-cache' },
+      payload: { kind: 'correct-player-life', playerId: activePlayerId, replacementLifeTotal: life, expectedBeforeStateDigest: coreCanonicalDigestFromValueV1(state.coreRoot), reason: 'replay cache test' },
+    });
+    const envelopeFor = (state: typeof initial, commandId: string, command: ReturnType<typeof commandFor>) => ({
+      kind: 'online-command-envelope-v1' as const,
+      protocolVersion: state.protocolVersion,
+      roomId: state.room.roomId as never,
+      participantId: activeSeat.participantId as never,
+      ['participantCapability']: activeSeat.seatCapability as never,
+      commandId: commandId as never,
+      baseRevision: state.revision,
+      command,
+    });
+    const firstEnvelope = envelopeFor(initial, 'variable-replay-cache-1', commandFor(initial, 39));
+    const firstTransition = handleOnlineVariableCommandEnvelopeV2(initial, firstEnvelope);
+    expect(firstTransition.response).toMatchObject({ kind: 'online-command-ack-v1', acceptedRevision: 1 });
+    fixture.repository.commitVariableAcceptedV2(initial, firstTransition.state, firstEnvelope);
+    const first = fixture.repository.loadVariableProtocolV2(fixture.roomId);
+    if (first === null) throw new Error('Missing first replay cache state');
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(first);
+    const secondEnvelope = envelopeFor(first, 'variable-replay-cache-2', commandFor(first, 38));
+    const secondTransition = handleOnlineVariableCommandEnvelopeV2(first, secondEnvelope);
+    expect(secondTransition.response).toMatchObject({ kind: 'online-command-ack-v1', acceptedRevision: 2 });
+    fixture.repository.commitVariableAcceptedV2(first, secondTransition.state, secondEnvelope);
+    expect(fixture.repository.loadVariableProtocolV2(fixture.roomId)).toEqual(secondTransition.state);
+    fixture.storage.sql.exec('UPDATE online_accepted_command SET command_json = ? WHERE accepted_revision = 1', '{}');
+    expect(() => fixture.repository.loadVariableProtocolV2(fixture.roomId)).toThrow('Invalid variable journal command');
+    fixture.storage.close();
+  }, 90000);
 
   it('keeps configuration immutable and fails closed on redundant persisted metadata', () => {
     const storage = new ReviewSqliteStorage(); const repository = new OnlineCloudflareRepository(storage); repository.migrateApplicationSchema(); const initial = lobby(2, 20); repository.initializeVariableLobbyV4(initial);

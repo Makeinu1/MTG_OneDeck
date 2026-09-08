@@ -427,12 +427,14 @@ describe('O4P-03D Judge production gate', () => {
   it('emits exact allowlisted facts and silently omits hostile dynamic fields', () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     (emitWorkerRequestFactV1 as unknown as (...args: readonly unknown[]) => void)('room', 'GET', 200, 'ok', VERSION_ID, ROOM_ID);
+    (emitWorkerRequestFactV1 as unknown as (...args: readonly unknown[]) => void)('pregame', 'POST', 200, 'ok', VERSION_ID, ROOM_ID);
     (emitRuntimeStartFactV1 as unknown as (...args: readonly unknown[]) => void)(1, false, true, VERSION_ID, ROOM_ID);
     (emitRecoveryFactV1 as unknown as (...args: readonly unknown[]) => void)(64, 96, 32, 'ok', VERSION_ID, ROOM_ID);
     (emitWebSocketFactV1 as unknown as (...args: readonly unknown[]) => void)('reconnect', 'player', 'ok', VERSION_ID, ROOM_ID);
     (emitFailureFactV1 as unknown as (...args: readonly unknown[]) => void)('request-failure', 'REQUEST_FAILED', VERSION_ID, ROOM_ID);
     expect(log.mock.calls.map(([value]) => JSON.parse(String(value)) as unknown)).toEqual([
       { kind: 'worker-request', roomId: ROOM_ID, action: 'room', methodClass: 'GET', status: 200, outcome: 'ok', versionIdentifier: VERSION_ID },
+      { kind: 'worker-request', roomId: ROOM_ID, action: 'pregame', methodClass: 'POST', status: 200, outcome: 'ok', versionIdentifier: VERSION_ID },
       { kind: 'durable-object-runtime-start', roomId: ROOM_ID, applicationSchemaVersion: 1, migrationChangedStorage: false, roomPresent: true, versionIdentifier: VERSION_ID },
       { kind: 'recovery-verification', roomId: ROOM_ID, checkpointRevision: 64, currentRevision: 96, replayCount: 32, outcome: 'ok', versionIdentifier: VERSION_ID },
       { kind: 'websocket-lifecycle', roomId: ROOM_ID, event: 'reconnect', roleClass: 'player', outcome: 'ok', versionIdentifier: VERSION_ID },

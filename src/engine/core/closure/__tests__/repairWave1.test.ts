@@ -379,6 +379,83 @@ describe('O4P-01N repair wave 1', () => {
     expect(inactiveDamage).toMatchObject({ status: 'rejected', root: closure.finalRoot, events: [], issues: [{ code: 'PLAYER_INACTIVE' }] });
   }, 30_000);
 
+  it('atomically removes a resolution-ready card before completing its lifecycle', () => {
+    const source = makeRoot({ priorityHolder: 'P2' });
+    const sourceTurn = source.ruleAuthority.turnPriorityBundle;
+    let stackBundle = sourceTurn.stackBundle;
+    for (const objectId of ['@triggered-ability:fixture-trigger', '@activated-ability:fixture-activation', '@spell-copy:fixture-copy'] as CoreObjectId[]) {
+      stackBundle = Core.removeCoreStackObjectV1(stackBundle, { kind: 'cease', objectId }).bundle;
+    }
+    const lifecycle = Core.createModeNeutralCoreTurnLifecycleSliceV1({
+      turnNumber: sourceTurn.lifecycle.turnNumber,
+      positionSequence: sourceTurn.lifecycle.positionSequence,
+      position: sourceTurn.lifecycle.position,
+      window: { kind: 'resolution-ready', objectId: 'PC5:1' as CoreObjectId },
+    });
+    const turnPriorityBundle = Core.createCoreTurnPriorityBundleV1({
+      stackBundle,
+      pendingTriggers: sourceTurn.pendingTriggers,
+      lifecycle,
+    });
+    const ready = Closure.createModeNeutralCoreRootV1({
+      ...source,
+      ruleAuthority: Core.createCoreRuleAuthorityBundleV1({
+        ...source.ruleAuthority,
+        turnPriorityBundle,
+      }),
+    });
+    const result = Closure.applyCoreCommandV1(ready, command(1, 'P1', {
+      kind: 'stack-remove-object',
+      input: { kind: 'card-to-zone', objectId: 'PC5:1' as CoreObjectId, destination: { kind: 'owner-graveyard' } },
+    }));
+    expect(result.status).toBe('accepted');
+    if (result.status !== 'accepted') return;
+    expect(ready.ruleAuthority.turnPriorityBundle.lifecycle.window).toEqual({ kind: 'resolution-ready', objectId: 'PC5:1' });
+    expect(ready.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.shared.stack).toContain('PC5:1');
+    expect(result.root.ruleAuthority.turnPriorityBundle.lifecycle.window).toEqual({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P2', grantPriorityIfStable: true });
+    expect(result.root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.shared.stack).not.toContain('PC5:1');
+    expect(result.root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.byPlayer['P4' as CorePlayerId].graveyard).toContain('PC5:2');
+  });
+
+  it('starts battlefield continuity for a resolution-ready permanent incarnation', () => {
+    const source = makeRoot({ priorityHolder: 'P2' });
+    const sourceTurn = source.ruleAuthority.turnPriorityBundle;
+    let stackBundle = sourceTurn.stackBundle;
+    for (const objectId of ['@triggered-ability:fixture-trigger', '@activated-ability:fixture-activation', '@spell-copy:fixture-copy'] as CoreObjectId[]) {
+      stackBundle = Core.removeCoreStackObjectV1(stackBundle, { kind: 'cease', objectId }).bundle;
+    }
+    const lifecycle = Core.createModeNeutralCoreTurnLifecycleSliceV1({
+      turnNumber: sourceTurn.lifecycle.turnNumber,
+      positionSequence: sourceTurn.lifecycle.positionSequence,
+      position: sourceTurn.lifecycle.position,
+      window: { kind: 'resolution-ready', objectId: 'PC5:1' as CoreObjectId },
+    });
+    const turnPriorityBundle = Core.createCoreTurnPriorityBundleV1({
+      stackBundle,
+      pendingTriggers: sourceTurn.pendingTriggers,
+      lifecycle,
+    });
+    const ready = Closure.createModeNeutralCoreRootV1({
+      ...source,
+      ruleAuthority: Core.createCoreRuleAuthorityBundleV1({
+        ...source.ruleAuthority,
+        turnPriorityBundle,
+      }),
+    });
+    const result = Closure.applyCoreCommandV1(ready, command(1, 'P1', {
+      kind: 'stack-remove-object',
+      input: { kind: 'card-to-zone', objectId: 'PC5:1' as CoreObjectId, destination: { kind: 'battlefield', baseControllerPlayerId: 'P1' } },
+    }));
+    expect(result.status).toBe('accepted');
+    if (result.status !== 'accepted') return;
+    expect(ready.ruleAuthority.control.continuityByObject).toEqual(source.ruleAuthority.control.continuityByObject);
+    expect(result.root.ruleAuthority.turnPriorityBundle.lifecycle.window).toEqual({ kind: 'sba-check-required', priorityRecipientPlayerId: 'P2', grantPriorityIfStable: true });
+    expect(result.root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.shared.stack).not.toContain('PC5:1');
+    expect(result.root.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.shared.battlefield).toContain('PC5:2');
+    expect(result.root.ruleAuthority.control.continuityByObject['PC6:0' as CoreObjectId]).toEqual(source.ruleAuthority.control.continuityByObject['PC6:0' as CoreObjectId]);
+    expect(result.root.ruleAuthority.control.continuityByObject['PC5:2' as CoreObjectId]).toEqual({ controllerPlayerId: 'P1', continuousSinceMostRecentTurnBegan: false });
+  });
+
   it('reports first replay tampering and rejects hostile journal/package structures', () => {
     const root = makeRoot({ priorityHolder: 'P2' });
     const cmd = command(1, 'P2', { kind: 'priority-pass', playerId: 'P2' });
@@ -405,5 +482,107 @@ describe('O4P-01N repair wave 1', () => {
     expect(getterCalled).toBe(false);
     const proxied = new Proxy({}, { ownKeys: () => { throw new Error('trap'); } });
     expect(Closure.validateCoreReplayPackageV1(proxied)).toMatchObject({ ok: false, issues: [{ code: 'INVALID_DESCRIPTOR' }] });
+  });
+
+  it('creates and carries V2 combat context through declaration and clears it on combat exit', () => {
+    const source = makeRoot();
+    const sourceTurn = source.ruleAuthority.turnPriorityBundle;
+    const sourceRegistry = sourceTurn.stackBundle.objectRegistry;
+    const stackObjectIds = new Set<CoreObjectId>(sourceRegistry.zones.shared.stack);
+    const registry = Core.createModeNeutralCoreObjectRegistryStateV2({
+      players: sourceRegistry.players,
+      turnOrder: sourceRegistry.turnOrder,
+      activePlayerId: 'P3' as never,
+      cardDefinitions: sourceRegistry.cardDefinitions,
+      physicalCards: Object.fromEntries(Object.entries(sourceRegistry.physicalCards).filter(([physicalCardId]) => !stackObjectIds.has(`${physicalCardId}:1` as CoreObjectId))),
+      objects: Object.fromEntries(Object.entries(sourceRegistry.objects).filter(([objectId]) => !stackObjectIds.has(objectId as CoreObjectId))),
+      zones: { byPlayer: sourceRegistry.zones.byPlayer, shared: { ...sourceRegistry.zones.shared, stack: [] } },
+    });
+    const objectRuntime = Core.createModeNeutralCoreObjectRuntimeStateV2(registry, { byObject: Object.fromEntries(Object.entries(sourceTurn.stackBundle.objectRuntime.byObject).filter(([objectId]) => !stackObjectIds.has(objectId as CoreObjectId))) });
+    const stackBundle = Core.createCoreStackTransactionBundleV1({ objectRegistry: registry, objectRuntime, stackAnnouncements: Core.createModeNeutralCoreStackAnnouncementSliceV1(registry, { byObject: {} }) });
+    const pendingTriggers = Core.createModeNeutralCorePendingTriggerSliceV1(registry, { pendingObjectIds: [], byObject: {} });
+    const lifecycle = Core.createModeNeutralCoreTurnLifecycleSliceV1({
+      turnNumber: sourceTurn.lifecycle.turnNumber,
+      positionSequence: sourceTurn.lifecycle.positionSequence,
+      position: { phase: 'combat', step: 'beginning-of-combat' },
+      window: { kind: 'position-advance-ready' },
+    });
+    let root = Closure.createModeNeutralCoreRootV1({
+      ...source,
+      ruleAuthority: Core.createCoreRuleAuthorityBundleV1({
+        ...source.ruleAuthority,
+        turnPriorityBundle: Core.createCoreTurnPriorityBundleV1({ stackBundle, pendingTriggers, lifecycle }),
+      }),
+    });
+    const legacyResult = Closure.applyCoreCommandV1(root, command(1, 'P3', { kind: 'table-turn-progress', transition: { kind: 'position', nextPosition: { phase: 'combat', step: 'declare-attackers' } } }));
+    expect(legacyResult.status).toBe('accepted');
+    if (legacyResult.status === 'accepted') expect(legacyResult.root.combatContext).toBeNull();
+    expect(root.combatContext).toBeNull();
+    const apply = (actor: 'P1' | 'P2' | 'P3' | 'P4', payload: unknown): void => {
+      const result = Closure.applyCoreCommandV1(root, command(root.acceptedCommandCount + 1, actor, payload));
+      expect(result.status, JSON.stringify(result)).toBe('accepted');
+      if (result.status === 'accepted') root = result.root;
+    };
+    const passCycle = (): void => {
+      while (root.ruleAuthority.turnPriorityBundle.lifecycle.window.kind === 'priority') {
+        const holder = root.ruleAuthority.turnPriorityBundle.lifecycle.window.holderPlayerId as 'P1' | 'P2' | 'P3' | 'P4';
+        apply(holder, { kind: 'priority-pass', playerId: holder });
+      }
+    };
+    const advance = (nextPosition: Core.CoreTurnPositionV1): void => {
+      const window = root.ruleAuthority.turnPriorityBundle.lifecycle.window;
+      if (window.kind === 'sba-check-required') apply(window.priorityRecipientPlayerId as 'P1' | 'P2' | 'P3' | 'P4', { kind: 'table-turn-progress-v2', transition: { kind: 'sba-check-outcome', actionsWereApplied: false } });
+      passCycle();
+      apply('P3', { kind: 'table-turn-progress-v2', transition: { kind: 'position', nextPosition } });
+    };
+    apply('P3', { kind: 'table-turn-progress-v2', transition: { kind: 'position', nextPosition: { phase: 'combat', step: 'declare-attackers' } } });
+    expect(root.combatContext).toMatchObject({ step: 'declare-attackers', attackingPlayerId: 'P3', attacks: [] });
+    apply('P3', { kind: 'combat-attack-add', attack: { attackerObjectId: 'PC6:0', attackerControllerPlayerId: 'P3', defendingPlayerId: 'P1' } });
+    const attack = root.combatContext?.attacks[0];
+    expect(attack).toEqual({ attackerObjectId: 'PC6:0', attackerControllerPlayerId: 'P3', defendingPlayerId: 'P1' });
+    advance({ phase: 'combat', step: 'declare-blockers' });
+    expect(root.combatContext).toMatchObject({ step: 'declare-blockers', attacks: [attack] });
+    advance({ phase: 'combat', step: 'combat-damage' });
+    expect(root.combatContext).toMatchObject({ step: 'declare-blockers', attacks: [attack] });
+    advance({ phase: 'combat', step: 'end-of-combat' });
+    expect(root.combatContext).toMatchObject({ step: 'declare-blockers', attacks: [attack] });
+    advance({ phase: 'postcombat-main', step: null });
+    expect(root.combatContext).toBeNull();
+  });
+
+  it('rejects V2 progression when an existing context belongs to another turn', () => {
+    const source = makeRoot({ combat: true });
+    const sourceTurn = source.ruleAuthority.turnPriorityBundle;
+    const sourceRegistry = sourceTurn.stackBundle.objectRegistry;
+    const stackObjectIds = new Set<CoreObjectId>(sourceRegistry.zones.shared.stack);
+    const registry = Core.createModeNeutralCoreObjectRegistryStateV2({
+      players: sourceRegistry.players,
+      turnOrder: sourceRegistry.turnOrder,
+      activePlayerId: sourceRegistry.activePlayerId,
+      cardDefinitions: sourceRegistry.cardDefinitions,
+      physicalCards: Object.fromEntries(Object.entries(sourceRegistry.physicalCards).filter(([physicalCardId]) => !stackObjectIds.has(`${physicalCardId}:1` as CoreObjectId))),
+      objects: Object.fromEntries(Object.entries(sourceRegistry.objects).filter(([objectId]) => !stackObjectIds.has(objectId as CoreObjectId))),
+      zones: { byPlayer: sourceRegistry.zones.byPlayer, shared: { ...sourceRegistry.zones.shared, stack: [] } },
+    });
+    const objectRuntime = Core.createModeNeutralCoreObjectRuntimeStateV2(registry, { byObject: Object.fromEntries(Object.entries(sourceTurn.stackBundle.objectRuntime.byObject).filter(([objectId]) => !stackObjectIds.has(objectId as CoreObjectId))) });
+    const stackBundle = Core.createCoreStackTransactionBundleV1({ objectRegistry: registry, objectRuntime, stackAnnouncements: Core.createModeNeutralCoreStackAnnouncementSliceV1(registry, { byObject: {} }) });
+    const pendingTriggers = Core.createModeNeutralCorePendingTriggerSliceV1(registry, { pendingObjectIds: [], byObject: {} });
+    const lifecycle = Core.createModeNeutralCoreTurnLifecycleSliceV1({
+      turnNumber: sourceTurn.lifecycle.turnNumber,
+      positionSequence: sourceTurn.lifecycle.positionSequence,
+      position: { phase: 'combat', step: 'declare-attackers' },
+      window: { kind: 'position-advance-ready' },
+    });
+    const root = Closure.createModeNeutralCoreRootV1({
+      ...source,
+      combatContext: { ...source.combatContext!, turnNumber: sourceTurn.lifecycle.turnNumber + 1 },
+      ruleAuthority: Core.createCoreRuleAuthorityBundleV1({
+        ...source.ruleAuthority,
+        turnPriorityBundle: Core.createCoreTurnPriorityBundleV1({ stackBundle, pendingTriggers, lifecycle }),
+      }),
+    });
+    const result = Closure.applyCoreCommandV1(root, command(1, 'P2', { kind: 'table-turn-progress-v2', transition: { kind: 'position', nextPosition: { phase: 'combat', step: 'declare-blockers' } } }));
+    expect(result).toMatchObject({ status: 'rejected', issues: [{ code: 'COMBAT_CONTEXT_MISMATCH' }] });
+    expect(result.root).toBe(root);
   });
 });

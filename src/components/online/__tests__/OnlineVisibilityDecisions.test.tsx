@@ -107,6 +107,49 @@ describe('OnlineVisibilityDecisions', () => {
     act(() => mounted.root.unmount());
   });
 
+  it('starts an explicit private choice and allows an empty quantity choice', () => {
+    const mounted = mount();
+    change(mounted.container, 'visibility-choice-count', '2');
+    const start = mounted.container.querySelector<HTMLButtonElement>('[data-testid="visibility-open-choice"]');
+    expect(start?.disabled).toBe(false);
+    act(() => start?.click());
+    const confirmation = mounted.container.querySelector('[role="alertdialog"]');
+    expect(confirmation?.textContent).toContain('自分のライブラリー上2枚');
+    expect(confirmation?.textContent).toContain('0〜1枚');
+    expect(confirmation?.textContent).toContain('移動やシャッフルは自動で行いません');
+    expect(confirmation?.textContent).not.toContain('全員');
+    act(() => confirmation?.querySelector<HTMLButtonElement>('[data-testid="visibility-confirm"]')?.click());
+    expect(mounted.onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'online-visibility-intent-v2', schemaVersion: 2, baseRevision: 7,
+      openChoice: { count: 2 },
+    }));
+    act(() => mounted.root.unmount());
+
+    const quantityOptional = {
+      ...withSearchSession(),
+      game: {
+        ...withSearchSession().game,
+        searchSessions: [{
+          ...withSearchSession().game.searchSessions[0],
+          criteria: { kind: 'quantity', minimum: 0, maximum: 1 },
+        }],
+      },
+    } as never;
+    const optional = mount({ projection: quantityOptional });
+    const choose = optional.container.querySelector<HTMLButtonElement>('[data-testid="visibility-choose-search-1"]');
+    expect(choose?.textContent).toBe('選ばずに完了');
+    expect(choose?.disabled).toBe(false);
+    act(() => choose?.click());
+    expect(optional.onSubmit).toHaveBeenCalledWith(expect.objectContaining({ choose: { searchSessionId: 'search-1', candidateHandles: [] } }));
+    const optionalCheckbox = optional.container.querySelector<HTMLInputElement>('[data-testid="visibility-choice-search-1"] input[type="checkbox"]');
+    expect(optionalCheckbox).not.toBeNull();
+    expect(optionalCheckbox?.value).toBe('PC2:0');
+    act(() => optionalCheckbox?.click());
+    expect(choose?.disabled).toBe(false);
+    expect(choose?.textContent).toBe('選ぶ');
+    act(() => optional.root.unmount());
+  });
+
   it('renders only projected search candidates and gates Choose while offline or busy', () => {
     const onSubmit = vi.fn();
     const mounted = mount({ projection: withSearchSession(), interactionState: 'offline', busy: true, onSubmit });

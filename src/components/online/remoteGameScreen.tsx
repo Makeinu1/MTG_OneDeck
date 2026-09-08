@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode, SyntheticEvent } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameScreenInteractionPort } from '../game/gameScreenInteractionPort';
 import { GameCard } from '../game/GameCard';
 import type { DropIntent } from '../game/dragIntent';
@@ -31,6 +32,8 @@ export type RemoteGameScreenPortInput = Readonly<{
   /** Optional server-bound shared undo callback; no snapshot crosses this boundary. */
   readonly onSubmitSharedUndo?: () => void | Promise<void>;
 }>;
+
+type RemoteRailPlacement = 'all' | 'overview' | 'actions';
 
 let commandSequence = 0;
 const remoteSessionPrefix = (() => {
@@ -540,6 +543,8 @@ function openRemotePanel(event: ReactMouseEvent<HTMLAnchorElement>, detailsId: s
   event.preventDefault();
   const target = document.getElementById(detailsId);
   if (!(target instanceof HTMLDetailsElement)) return;
+  const fallback = document.querySelector<HTMLDetailsElement>('[data-testid="online-remote-manual-fallback"]');
+  if (fallback !== null) fallback.open = false;
   const surface = target.parentElement;
   for (const panelId of ['online-remote-guided-overlay', 'online-remote-manual-overlay']) {
     const panel = surface?.querySelector<HTMLDetailsElement>(`#${panelId}`) ?? document.getElementById(panelId);
@@ -547,6 +552,14 @@ function openRemotePanel(event: ReactMouseEvent<HTMLAnchorElement>, detailsId: s
   }
   target.open = true;
   target.querySelector<HTMLElement>('summary')?.focus();
+}
+
+function closeRemotePanelsWhenFallbackOpens(event: SyntheticEvent<HTMLDetailsElement>): void {
+  if (!event.currentTarget.open) return;
+  for (const panelId of ['online-remote-guided-overlay', 'online-remote-manual-overlay']) {
+    const panel = document.getElementById(panelId);
+    if (panel instanceof HTMLDetailsElement) panel.open = false;
+  }
 }
 
 function buildIntent(projection: OnlineParticipantProjectionV1, primitive: OnlineTabletopPrimitiveV1): OnlineTabletopIntentEnvelopeV1 {
@@ -745,8 +758,37 @@ export function RemoteGameScreenActionRail({
   lastCommandSettlement,
   recoveryOutcome,
   port,
-}: RemoteGameScreenPortInput & Readonly<{ readonly port: GameScreenInteractionPort }>): ReactNode {
+  placement = 'all',
+}: RemoteGameScreenPortInput & Readonly<{
+  readonly port: GameScreenInteractionPort;
+  readonly placement?: RemoteRailPlacement;
+}>): ReactNode {
   const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
+  const cockpitRef = useRef<HTMLElement | null>(null);
+  const overviewScrollTopRef = useRef(0);
+  const laneScrollRef = useRef<Record<string, Readonly<{ left: number; top: number }>>>({});
+  const laneRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const seatButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const returnFocusPlayerIdRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (focusedPlayerId !== null) return;
+    const cockpit = cockpitRef.current;
+    if (cockpit !== null) {
+      cockpit.scrollTop = overviewScrollTopRef.current;
+      for (const [id, node] of Object.entries(laneRefs.current)) {
+        const scroll = laneScrollRef.current[id];
+        if (node !== null && scroll !== undefined) {
+          node.scrollLeft = scroll.left;
+          node.scrollTop = scroll.top;
+        }
+      }
+    }
+    const returnFocusPlayerId = returnFocusPlayerIdRef.current;
+    if (returnFocusPlayerId !== null) {
+      returnFocusPlayerIdRef.current = null;
+      seatButtonRefs.current[returnFocusPlayerId]?.focus({ preventScroll: true });
+    }
+  }, [focusedPlayerId]);
   if (projection === null || port.state === null) return null;
   const local = projection.corePlayerId;
   if (local === null) return null;
@@ -818,6 +860,26 @@ export function RemoteGameScreenActionRail({
       : (entry as OnlineProjectedZoneEntryV1 & Readonly<{ readonly controllerPlayerId?: PlayerId | null }>).controllerPlayerId ?? null;
     return controller && controller !== local ? [{ controller, entry }] : [];
   });
+  const focusedSeat = focusedPlayerId === null
+    ? null
+    : opponentSeats.find(({ player }) => player.playerId === focusedPlayerId) ?? null;
+  const focusedCards = focusedPlayerId === null
+    ? []
+    : opponentLanes.filter(({ controller }) => controller === focusedPlayerId);
+  const focusOpponent = (playerId: string): void => {
+    overviewScrollTopRef.current = cockpitRef.current?.scrollTop ?? 0;
+    for (const [id, node] of Object.entries(laneRefs.current)) {
+      if (node !== null) laneScrollRef.current[id] = { left: node.scrollLeft, top: node.scrollTop };
+    }
+    setFocusedPlayerId((current) => {
+      if (current === playerId) returnFocusPlayerIdRef.current = playerId;
+      return current === playerId ? null : playerId;
+    });
+  };
+  const closeFocusedOpponent = (): void => {
+    if (focusedPlayerId !== null) returnFocusPlayerIdRef.current = focusedPlayerId;
+    setFocusedPlayerId(null);
+  };
   const sourceId = extras.sourceObjectId;
   const sourceEntry = sourceId === undefined || sourceId === null
     ? undefined
@@ -903,9 +965,11 @@ export function RemoteGameScreenActionRail({
   }> | undefined)?.recentResolution ?? null;
   return (
     <section
-      className="online-remote-rail"
-      data-testid="online-remote-game-rail"
-      aria-label="共有ゲーム操作"
+      ref={cockpitRef}
+      className={`online-remote-rail online-remote-rail--${placement}${focusedPlayerId === null ? '' : ' online-remote-rail--focused'}`}
+      data-testid={placement === 'actions' ? 'online-remote-actions-rail' : 'online-remote-game-rail'}
+      data-cockpit={placement === 'actions' ? 'online-remote-actions' : 'online-remote-cockpit'}
+      aria-label="Cockpit、共有ゲーム操作"
       data-projection-revision={projection.revision}
       data-public-seat-ids={publicSeatIds}
       data-local-player-id={local}
@@ -917,8 +981,14 @@ export function RemoteGameScreenActionRail({
       data-recent-resolution-object-id={recentResolution?.objectId ?? ''}
       data-recent-resolution-revision={recentResolution === null ? '' : String(recentResolution.acceptedRevision)}
     >
+      {placement !== 'overview' && (
+      <details className="online-remote-rail__context" open={placement === 'all'}>
+      <summary>状態<span className="online-remote-rail__summary-detail">・スタック・応答</span></summary>
       <header className="online-remote-rail__header">
-        <h2 id="online-remote-rail-title">共有テーブル</h2>
+        <div>
+          <p className="online-remote-rail__eyebrow">COCKPIT</p>
+          <h2 id="online-remote-rail-title">共有状態と自分の操作</h2>
+        </div>
         <span
           data-testid="online-remote-connection"
           data-recovery-outcome={recoveryOutcome ?? ''}
@@ -1037,27 +1107,58 @@ export function RemoteGameScreenActionRail({
       {facts.checkpointAvailable && !facts.informationExposureWarning && (
         <p className="online-remote-rail__checkpoint" data-testid="online-remote-checkpoint">共有チェックポイント: 利用可能（stewardのみ）</p>
       )}
-      <div className="online-remote-rail__seats" aria-label="対戦相手の公開情報">
-        {opponentSeats.map(({ player, handCount, graveyardCount, battlefieldCount }) => (
-          <button key={player.playerId} type="button" className="online-remote-rail__seat" data-testid="online-remote-opponent" aria-pressed={effectiveFocus === player.playerId} onClick={() => setFocusedPlayerId((current) => current === player.playerId ? null : player.playerId)}>
-            {player.playerId} ♥{player.life} / 手札 {handCount} / 墓地 {graveyardCount} / 戦場 {battlefieldCount}
-          </button>
-        ))}
-      </div>
-      <div className="online-remote-rail__opponent-lanes" data-opponent-count={opponentSeats.length} aria-label="対戦相手の公開パーマネント">
-        {opponentSeats.map(({ player }) => {
+      </details>)}
+      {placement !== 'actions' && (<section className="online-remote-rail__opponents" data-testid="online-remote-opponents-overview" aria-label="対戦相手の公開情報">
+        <header className="online-remote-rail__opponents-header">
+          <div>
+            <h3>対戦相手の概要</h3>
+            <span>公開カード・ライフ・手札の概況</span>
+          </div>
+        </header>
+        <div className="online-remote-rail__opponent-lanes" data-opponent-count={opponentSeats.length} aria-label="対戦相手の公開パーマネント">
+        {opponentSeats.map(({ player, handCount, graveyardCount, battlefieldCount }) => {
           const cards = opponentLanes.filter(({ controller }) => controller === player.playerId);
           return (
-            <section key={player.playerId} className="online-remote-rail__opponent-lane" data-focused={effectiveFocus === player.playerId || undefined}>
-              <header><strong>{player.playerId}</strong><span>{effectiveFocus === player.playerId ? 'フォーカス中' : '公開盤面'}</span></header>
-              <div className="online-remote-rail__opponent-cards">
+            <section key={player.playerId} className="online-remote-rail__opponent-lane" data-focused={effectiveFocus === player.playerId || undefined} data-player-id={player.playerId}>
+              <button type="button" className="online-remote-rail__lane-focus" data-testid="online-remote-opponent" data-player-id={player.playerId} aria-pressed={effectiveFocus === player.playerId} ref={(node) => { seatButtonRefs.current[player.playerId] = node; }} onClick={() => focusOpponent(player.playerId)}>
+                <strong>{player.playerId} · ♥{player.life}</strong>
+                <span>♥{player.life} / 手札 {handCount} / 墓地 {graveyardCount} / 戦場 {battlefieldCount}</span>
+                <em>{focusedPlayerId === player.playerId ? '詳細を表示中' : '公開カードを見る'}</em>
+              </button>
+              <div
+                className="online-remote-rail__opponent-cards"
+                ref={(node) => { laneRefs.current[player.playerId] = node; }}
+                tabIndex={0}
+                aria-label={`${player.playerId}の公開カード`}
+              >
                 {cards.length === 0 && <span className="online-remote-rail__empty">公開パーマネントなし</span>}
                 {cards.map(({ entry }) => <GameCard key={entry.objectId} controller={port} cardId={entry.objectId} size="board" draggable={false} />)}
               </div>
             </section>
           );
         })}
-      </div>
+        </div>
+        {focusedSeat !== null && typeof document !== 'undefined' && createPortal(
+          <section className="online-remote-rail__opponent-detail online-remote-detail-dialog" data-testid="online-remote-opponent-detail" data-player-id={focusedSeat.player.playerId} aria-label={`${focusedSeat.player.playerId}の公開盤面詳細`}>
+            <header>
+              <div>
+                <strong>{focusedSeat.player.playerId} の詳細</strong>
+                <span>公開された盤面だけを表示しています。選択や操作は開始しません。</span>
+              </div>
+              <span>♥{focusedSeat.player.life} / 手札 {focusedSeat.handCount} / 墓地 {focusedSeat.graveyardCount}</span>
+              <button type="button" className="online-remote-detail-dialog__back" data-testid="online-remote-opponent-back" onClick={closeFocusedOpponent}>
+                概要へ戻る
+              </button>
+            </header>
+            <div className="online-remote-rail__opponent-detail-cards">
+              {focusedCards.length === 0 && <span className="online-remote-rail__empty">公開パーマネントなし</span>}
+              {focusedCards.map(({ entry }) => <GameCard key={entry.objectId} controller={port} cardId={entry.objectId} size="board" draggable={false} />)}
+            </div>
+          </section>,
+          document.body,
+        )}
+      </section>)}
+      {placement !== 'overview' && (<>
       <div className="online-remote-rail__actions">
         {ownHandActions.slice(0, 8).map((entry) => {
           const descriptionId = `online-remote-${entry.action}-${entry.cardId.replaceAll(/[^A-Za-z0-9_-]/gu, '-')}-availability`;
@@ -1094,15 +1195,18 @@ export function RemoteGameScreenActionRail({
         <button type="button" className="online-remote-rail__primary-action" data-testid="online-remote-resolve" disabled={disabled || !canResolve} onClick={() => port.requestResolveTop()}>スタックを解決</button>
         <button type="button" className="online-remote-rail__secondary-action" data-testid="online-remote-undo" data-undo-authorized={undoAuthorized || undefined} disabled={!port.canUndo} onClick={() => port.undo()} aria-label={port.canUndo ? '共有チェックポイントへ1手戻す' : undoAuthorized ? 'UNDO unavailable (checkpoint unavailable or HOLD active)' : 'UNDO unavailable (steward only)'}>{port.canUndo ? 'UNDO（1手戻す）' : 'UNDO unavailable (checkpoint/steward)'}</button>
       </div>
-      <section className="online-remote-rail__manual-fallback" data-testid="online-remote-manual-fallback" aria-labelledby="online-remote-manual-fallback-title">
-        <strong id="online-remote-manual-fallback-title">未対応の複合効果 → Manual Resolve</strong>
-        <span>自動解決せず、公開事実を確認してから手動で記録します。</span>
+      <details className="online-remote-rail__manual-fallback" data-testid="online-remote-manual-fallback" onToggle={closeRemotePanelsWhenFallbackOpens}>
+        <summary id="online-remote-manual-fallback-title"><strong>手動<span className="online-remote-rail__summary-detail"> / Manual Resolve（未対応の複合効果）</span></strong></summary>
+        <div className="online-remote-rail__manual-fallback-body">
+          <span>自動解決せず、公開事実を確認してから手動で記録します。</span>
         <nav aria-label="ガイドと手動操作">
           <a className="online-remote-rail__manual-link" data-testid="online-remote-manual-damage-link" href="#online-remote-guided-overlay" onClick={(event) => openRemotePanel(event, 'online-remote-guided-overlay')}>戦闘 / Manual Damage</a>
           <a className="online-remote-rail__manual-link" href="#online-remote-manual-overlay" onClick={(event) => openRemotePanel(event, 'online-remote-manual-overlay')}>Structured / Freeform Manual Resolve</a>
           <a className="online-remote-rail__manual-link" href="#online-remote-manual-overlay" onClick={(event) => openRemotePanel(event, 'online-remote-manual-overlay')}>Visibility / Choose</a>
         </nav>
-      </section>
+        </div>
+      </details>
+      </>)}
     </section>
   );
 }

@@ -38,8 +38,11 @@ human observation ができない場合はCをdeferred/skippedとして証拠な
 ### O4P-09I — Complete-match certification
 
 既存の journey contract と acceptance brief を維持する。二人の短い完全試合、四人の
-continuity/reconnect/privacy、三 viewport、cleanup、fresh-context Arena review の全条件が
+continuity/reconnect/privacy、大きなPC画面（1440×900）、cleanup、fresh-context Arena review の全条件が
 揃った場合だけ close する。A/B/C の成功を I の成功へ読み替えない。
+
+2026-09-08のユーザー判断により、MVPの小画面・モバイル対応と三viewport必須条件を撤回する。
+これは画面対象の変更であり、実ブラウザでの対戦・同期・秘密の隔離や人間観察の証拠条件は緩めない。
 
 隔離mockから得たCockpit/UI判断の採用は、既存runtimeのpublic projectionを削除したり、
 C/Iの受入を広げたりするものではなく、別のproduct/design変更として扱う。

@@ -25,12 +25,13 @@ import type {
   OnlineBrowserWebSocketClientConfigV1,
   OnlineBrowserWebSocketClientV1,
 } from './types';
-import { validateOnlineVisibilityIntentV1 } from '../visibilityDecisions/index';
+import { validateOnlineVisibilityIntent } from '../visibilityDecisions/index';
 import type { OnlineBrowserVisibilityIntentV1 } from './types';
 import {
   ONLINE_BROWSER_MAX_OUTBOX_ENTRIES_V1,
   ONLINE_BROWSER_MAX_PROJECTION_DIAGNOSTIC_COUNT_V1,
   ONLINE_BROWSER_COMMAND_RESPONSE_TIMEOUT_MS_V1,
+  ONLINE_BROWSER_HANDSHAKE_TIMEOUT_MS_V1,
   ONLINE_BROWSER_PROJECTION_RESPONSE_TIMEOUT_MS_V1,
   ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1,
 } from './types';
@@ -211,7 +212,11 @@ function closedVisibilityIntent(value: unknown): value is ParsedRecordV1 {
     const prototype: object | null = Reflect.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) return false;
     if (Object.getOwnPropertySymbols(value).length !== 0) return false;
-    const allowed = new Set(['baseRevision', 'commandId', 'kind', 'schemaVersion', 'look', 'reveal', 'choose']);
+    const kindDescriptor = Object.getOwnPropertyDescriptor(value, 'kind');
+    const kind: unknown = kindDescriptor !== undefined && 'value' in kindDescriptor && kindDescriptor.get === undefined && kindDescriptor.set === undefined ? kindDescriptor.value as unknown : undefined;
+    const allowed = new Set(kind === 'online-visibility-intent-v2'
+      ? ['baseRevision', 'commandId', 'kind', 'schemaVersion', 'openChoice']
+      : ['baseRevision', 'commandId', 'kind', 'schemaVersion', 'look', 'reveal', 'choose']);
     const required = new Set(['baseRevision', 'commandId', 'kind', 'schemaVersion']);
     const names = Object.getOwnPropertyNames(value);
     if (names.some((name) => !allowed.has(name)) || [...required].some((name) => !names.includes(name))) return false;
@@ -475,6 +480,8 @@ export function createOnlineBrowserWebSocketClientV1(
   let scheduleGeneration = 0;
   let projectionResponseDeadline: OnlineBrowserScheduleHandleV1 | null = null;
   let projectionResponseDeadlineGeneration = 0;
+  let handshakeDeadline: OnlineBrowserScheduleHandleV1 | null = null;
+  let handshakeDeadlineGeneration = 0;
   const commandResponseDeadlines = new Map<string, CommandResponseDeadlineV1>();
   let commandResponseDeadlineGeneration = 0;
   let commandTimeoutRecoveryAttempt = 0;
@@ -547,6 +554,30 @@ export function createOnlineBrowserWebSocketClientV1(
     if (projectionResponseDeadline !== null) {
       try { config.cancelSchedule(projectionResponseDeadline); } catch { /* Cancellation is best effort. */ }
       projectionResponseDeadline = null;
+    }
+  };
+
+  const cancelHandshakeDeadline = (): void => {
+    handshakeDeadlineGeneration += 1;
+    if (handshakeDeadline !== null) {
+      try { config.cancelSchedule(handshakeDeadline); } catch { /* Cancellation is best effort. */ }
+      handshakeDeadline = null;
+    }
+  };
+
+  const scheduleHandshakeDeadline = (socket: OnlineBrowserSocketV1, epoch: number): void => {
+    cancelHandshakeDeadline();
+    const generation = handshakeDeadlineGeneration;
+    try {
+      handshakeDeadline = config.schedule(ONLINE_BROWSER_HANDSHAKE_TIMEOUT_MS_V1, () => {
+        if (generation !== handshakeDeadlineGeneration) return;
+        handshakeDeadline = null;
+        if (!current(socket, epoch) || phase === 'closed' || phase === 'failed' || phase === 'open') return;
+        beginRecovery(socket, epoch, 'SOCKET_ERROR');
+      });
+    } catch {
+      handshakeDeadline = null;
+      beginRecovery(socket, epoch, 'SOCKET_ERROR');
     }
   };
 
@@ -650,6 +681,7 @@ export function createOnlineBrowserWebSocketClientV1(
   };
 
   const failTerminalConnection = (code: OnlineBrowserIssueCodeV1): void => {
+    cancelHandshakeDeadline();
     cancelProjectionResponseDeadline();
     cancelCommandResponseDeadline();
     cancelRecovery();
@@ -712,7 +744,7 @@ export function createOnlineBrowserWebSocketClientV1(
       const validation = entry.kind === 'tabletop'
         ? validateOnlineTabletopIntentEnvelopeV1(entry.tabletop)
         : entry.kind === 'visibility'
-        ? validateOnlineVisibilityIntentV1(entry.visibility)
+        ? validateOnlineVisibilityIntent(entry.visibility)
         : entry.kind === 'sharedUndo'
         ? { ok: validSharedUndoPayload(entry.sharedUndo) }
         : entry.kind === 'manualCombatDamage'
@@ -755,6 +787,7 @@ export function createOnlineBrowserWebSocketClientV1(
 
   const beginRecovery = (socket: OnlineBrowserSocketV1, epoch: number, reason: OnlineBrowserIssueCodeV1 | null): void => {
     if (!current(socket, epoch) || phase === 'closed' || phase === 'failed') return;
+    cancelHandshakeDeadline();
     cancelProjectionResponseDeadline();
     cancelCommandResponseDeadline();
     currentSocket = null;
@@ -898,6 +931,7 @@ export function createOnlineBrowserWebSocketClientV1(
         failTerminalConnection(issueCodeFrom(issues, false) ?? 'AUTHENTICATION_REJECTED');
         return;
       }
+      cancelHandshakeDeadline();
       acceptedServerBuildId = ownDataValue(record, 'serverBuildId') as string;
       if (serverRevision > knownRevision) knownRevision = serverRevision;
       issueCode = null;
@@ -1004,7 +1038,7 @@ export function createOnlineBrowserWebSocketClientV1(
       const requiresProjectionResync = isAck && currentRevision > lastProjectedRevision;
       pending.splice(index, 1);
       if (settledEntry !== undefined) cancelCommandResponseDeadline(settledEntry.commandId);
-      resetCommandTimeoutRecovery(true);
+      resetCommandTimeoutRecovery();
       const settlementIssue = isAck
         ? null
         : issueCodeFrom(ownDataValue(record, 'issues'), false) ?? 'SOCKET_ERROR';
@@ -1045,6 +1079,7 @@ export function createOnlineBrowserWebSocketClientV1(
     try { socket = config.socketFactory(config.webSocketUrl); } catch { scheduleRecovery('SOCKET_ERROR'); return; }
     if (socket === null || typeof socket !== 'object') { scheduleRecovery('SOCKET_ERROR'); return; }
     currentSocket = Object.freeze({ socket, epoch });
+    scheduleHandshakeDeadline(socket, epoch);
     try {
       socket.onopen = () => {
         if (!current(socket, epoch)) return;
@@ -1079,6 +1114,7 @@ export function createOnlineBrowserWebSocketClientV1(
     if (phase === 'connecting' || phase === 'awaiting-ready' || phase === 'authenticating'
       || phase === 'resyncing' || phase === 'open') return;
     cancelRecovery();
+    cancelHandshakeDeadline();
     cancelProjectionResponseDeadline();
     cancelCommandResponseDeadline();
     if (currentSocket !== null) {
@@ -1094,6 +1130,7 @@ export function createOnlineBrowserWebSocketClientV1(
 
   const disconnect = (): void => {
     cancelRecovery();
+    cancelHandshakeDeadline();
     cancelProjectionResponseDeadline();
     cancelCommandResponseDeadline();
     if (currentSocket !== null) {
@@ -1203,7 +1240,7 @@ export function createOnlineBrowserWebSocketClientV1(
     try {
       if (!closedVisibilityIntent(intent)
         || capabilityFragmentPresent(intent, config.participantCapability)) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
-      const checked = validateOnlineVisibilityIntentV1(intent);
+      const checked = validateOnlineVisibilityIntent(intent);
       if (!checked.ok) return frozenSubmitResult({ ok: false, code: 'INVALID_COMMAND' });
       const normalized = checked.value;
       const commandId = normalized.commandId;

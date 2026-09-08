@@ -20,6 +20,7 @@ import {
   readyAllPlayers,
 } from '../../room/__tests__/testHelpers';
 import * as Browser from '../index';
+import { ONLINE_BROWSER_HANDSHAKE_TIMEOUT_MS_V1 } from '../types';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../../tabletopManual/types';
 import type { OnlineVisibilityIntentEnvelopeV1 } from '../../visibilityDecisions/types';
 
@@ -151,6 +152,15 @@ function openClient(client: Browser.OnlineBrowserWebSocketClientV1, socket: Test
 }
 
 describe('O4P-06D ordinary browser client coverage', () => {
+  it('bounds the initial ready and hello handshake at 15 seconds', () => {
+    const { client, scheduled } = harness();
+    client.connect();
+    expect(scheduled[0]?.delayMs).toBe(ONLINE_BROWSER_HANDSHAKE_TIMEOUT_MS_V1);
+    scheduled[0]?.task();
+    expect(client.getSnapshot()).toMatchObject({ phase: 'recovering', issueCode: 'SOCKET_ERROR', recoveryAttempt: 1 });
+    expect(scheduled.at(-1)?.delayMs).toBe(Browser.ONLINE_BROWSER_RECONNECT_DELAYS_MS_V1[0]);
+  });
+
   it('sends the server-owned shared undo intent without a Core snapshot', () => {
     const { client, sockets } = harness();
     client.connect();

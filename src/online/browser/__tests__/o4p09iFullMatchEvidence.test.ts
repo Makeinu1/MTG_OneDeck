@@ -48,6 +48,7 @@ type FakeOptions = Readonly<{
   readonly overflow?: number;
   readonly stagnantRevision?: boolean;
   readonly stagnantPhase?: boolean;
+  readonly combatSurfaceRequiresProgress?: boolean;
   readonly twoPlayerActionsBeforeMain?: number;
   readonly fourPlayerActionsBeforeMain?: number;
   readonly missingWinner?: boolean;
@@ -57,11 +58,11 @@ type FakeOptions = Readonly<{
   readonly privateChoiceCandidateLeak?: boolean;
   readonly privateChoiceCandidateLeakBeyondBound?: boolean;
   readonly privateChoiceScanBoundExceeded?: boolean;
-  readonly privateChoiceCandidateTokenLeak?: boolean;
   readonly privateChoiceCaptureBoundExceeded?: boolean;
   readonly leakScanBoundExceeded?: boolean;
   readonly geometryFailure?:
     | 'vertical-collision' | 'offscreen-panel' | 'inaccessible-scroll' | 'non-scrollable' | 'focus-inaccessible' | 'obscured-battlefield' | 'clipped-primary';
+  readonly primaryActionEnabled?: boolean;
   readonly consoleErrors?: number;
   readonly consoleWarnings?: number;
   readonly consoleSecretViolations?: number;
@@ -83,6 +84,7 @@ type FakeOptions = Readonly<{
   readonly advanceEnabledSeat?: number;
   readonly advanceEnabledSeats?: readonly number[];
   readonly advanceAuthoritySeat?: number;
+  readonly advanceWindowKinds?: string[];
   readonly sbaEnabledSeats?: readonly number[];
   readonly progressRejected?: boolean;
   readonly actorRevisionOffsetSeat?: number;
@@ -95,6 +97,7 @@ type FakeOptions = Readonly<{
   readonly priorityEnvironmentFailure?: boolean;
   readonly priorityHoldStuck?: 'off' | 'on';
   readonly missingPriorityReceipt?: boolean;
+  readonly priorityResolveRejected?: boolean;
   readonly missingResolutionEvidence?: boolean;
   readonly missingRejoined?: boolean;
   readonly peerPresenceStuck?: boolean;
@@ -121,6 +124,10 @@ type FakeOptions = Readonly<{
   readonly actorSelectionDelayMs?: number;
   readonly pregameResponseRejected?: boolean;
   readonly pregameResponseSurface?: 'missing-app' | 'missing-busy';
+  readonly pregameRevisionLagSeat?: number;
+  readonly mainActionSeat?: number;
+  readonly privateChoiceSelectorSeat?: number;
+  readonly privateChoiceRequiresScroll?: boolean;
 }>;
 
 function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBrowserV1 {
@@ -129,6 +136,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const disconnectedSeats = [new Set<number>(), new Set<number>()];
   const recoveredScenarios = [false, false];
   const sharedPhases = ['beginning', 'beginning'];
+  const priorityReady = [false, false];
   const progressWindows: Array<'advance' | 'sba'> = ['advance', 'advance'];
   const progressCompletions = [0, 0];
   const progressActionCounts = [0, 0];
@@ -163,6 +171,10 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
   const pregameClickBaselines = [0, 0];
   const pregameResponseProbeCounts = [0, 0];
   const openDetails: Array<'guided' | 'manual' | null> = [null, null];
+  const choicePending = [false, false];
+  const choiceOpened = [false, false];
+  const choiceSelected = [false, false];
+  const choiceScrolled = [false, false];
   const pregameControls = ['pregame-confirm-commanders', 'pregame-keep', 'pregame-complete-actions', 'pregame-ready'];
   const page = (contextOrdinal: number, pageOrdinal: number): O4p09iPageV1 => {
     let revealButtonProbes = 0;
@@ -227,6 +239,32 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (options.actorResyncSeat === seatIndex && postPregameResyncProbeCounts[scenarioIndex] >= 1) resyncActivated = true;
       return result;
     };
+    const priorityProbeReceipt = () => {
+      const state = prioritySettlements[scenarioIndex];
+      if (options.missingPriorityReceipt === true || state === null || state.senderSeat !== seatIndex) {
+        return { outcome: 'none', acceptedRevision: null, baseRevision: null, currentRevision: null, operation: '', issueCode: '', commandId: '' };
+      }
+      if (options.priorityResolveRejected === true && state.operation === 'priority-resolve') {
+        return {
+          outcome: 'rejected',
+          acceptedRevision: null,
+          baseRevision: state.baseRevision,
+          currentRevision: state.baseRevision,
+          operation: state.operation,
+          issueCode: 'CLIENT_CORE_COMMAND_REJECTED',
+          commandId: `remote-${state.operation}-${String(state.baseRevision)}`,
+        };
+      }
+      return {
+        outcome: 'accepted',
+        acceptedRevision: state.acceptedRevision,
+        baseRevision: state.baseRevision,
+        currentRevision: state.acceptedRevision,
+        operation: state.operation,
+        issueCode: '',
+        commandId: `remote-${state.operation}-${String(state.baseRevision)}`,
+      };
+    };
     let viewportWidth = 1440;
     let viewportHeight = 900;
     return {
@@ -273,13 +311,47 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
       if (expression.includes('playerTransportSurfaceProbe')) {
         return Promise.resolve((options.transportSurfaceMissing !== true) as T);
       }
+      if (expression.includes('publicActionAuthorityProbe:')) {
+        const playerIds = scenarioIndex === 0 ? ['P1', 'P2'] : ['P1', 'P2', 'P3', 'P4'];
+        const action = expression.includes('publicActionAuthorityProbe:steward')
+          ? 'steward'
+          : expression.includes('publicActionAuthorityProbe:active-combat') ? 'active-combat' : 'active-priority';
+        const authoritySeat = options.mainActionSeat ?? advanceEnabledSeats[0] ?? 0;
+        const activeSeat = authoritySeat;
+        const stewardSeat = authoritySeat;
+        return Promise.resolve({
+          enabled: seatIndex === (action === 'steward' ? stewardSeat : activeSeat),
+          revision: sharedRevisions[scenarioIndex],
+          localPlayerId: playerIds[seatIndex] ?? null,
+          activePlayerId: playerIds[activeSeat] ?? null,
+          holderPlayerId: action === 'active-priority' ? playerIds[activeSeat] ?? null : null,
+          stewardPlayerId: playerIds[stewardSeat] ?? null,
+          windowKind: action === 'active-priority' ? 'priority' : 'turn-based-action-required',
+        } as T);
+      }
+      if (expression.includes('privateChooseSelectorProbe')) {
+        const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+        const visible = options.privateChoiceRequiresScroll !== true || choiceScrolled[scenarioIndex];
+        return Promise.resolve((choiceOpened[scenarioIndex] && visible && seatIndex === selectorSeat ? 1 : 0) as T);
+      }
+      if (expression.includes('privateChooseRenderedProbe')) {
+        const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+        return Promise.resolve((choiceOpened[scenarioIndex] && seatIndex === selectorSeat ? 1 : 0) as T);
+      }
+      if (expression.includes('privateChooseScrollProbe')) {
+        choiceScrolled[scenarioIndex] = true;
+        return Promise.resolve(true as T);
+      }
       const guidedDescendant = expression.includes('guided-combat')
         || expression.includes('guided-confirmation')
         || expression.includes('online-manual-damage-defender')
         || expression.includes('online-manual-damage-amount');
       const manualDescendant = expression.includes('data-testid="online-journey-land"')
         || expression.includes('data-testid="visibility-look-subject"')
-        || expression.includes('data-testid="visibility-look-viewers"');
+        || expression.includes('data-testid="visibility-look-viewers"')
+        || expression.includes('data-testid="visibility-choice-count"')
+        || expression.includes('data-testid="visibility-open-choice"')
+        || expression.includes('data-testid^="visibility-choice-"');
       if (guidedDescendant && openDetails[scenarioIndex] !== 'guided') return Promise.reject(new Error('guided panel closed'));
       if (manualDescendant && openDetails[scenarioIndex] !== 'manual') return Promise.reject(new Error('manual panel closed'));
       if (expression.includes('detailsPanelReadyProbe:')) {
@@ -330,6 +402,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           return Promise.resolve({
             enabled: enabledSeats.includes(seatIndex),
             revision: priorityControlRevision(),
+            ...priorityProbeReceipt(),
             holdState: priorityHoldSeats[scenarioIndex].has(seatIndex)
               ? 'own'
               : priorityHoldSeats[scenarioIndex].size > 0 ? 'peer' : 'none'
@@ -340,6 +413,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           return Promise.resolve({
             enabled: enabledSeats.includes(seatIndex),
             revision: priorityControlRevision(),
+            ...priorityProbeReceipt(),
             holdState: 'not-applicable'
           } as T);
         }
@@ -351,6 +425,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           return Promise.resolve({
             enabled: enabledSeats.includes(seatIndex),
             revision: priorityControlRevision(),
+            ...priorityProbeReceipt(),
             holdState: 'not-applicable'
           } as T);
         }
@@ -377,7 +452,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           const progressSettlement = progressReceipt !== null;
           const advanceWindowKind = options.actorWindowDivergentSeat === seatIndex
             ? 'priority'
-            : options.advanceWindowKind ?? 'turn-based-action-required';
+            : options.advanceWindowKind ?? (priorityReady[scenarioIndex] ? 'priority' : 'turn-based-action-required');
           const visibleProgressRevision = progressSettlement
             && progressProjectionPending[scenarioIndex]
             && !progressProjectionSettled[scenarioIndex]
@@ -403,10 +478,13 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
               ? `P${String(seatIndex + 1)}`
               : advanceWindowKind === 'priority' ? `P${String(authoritySeat + 1)}` : null,
             stewardPlayerId: `P${String(authoritySeat + 1)}`,
-            windowKind: progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : advanceWindowKind,
+            windowKind: options.missingPriorityDomAttribute === 'window-kind'
+              ? undefined
+              : progressWindows[scenarioIndex] === 'sba' ? 'sba-check-required' : advanceWindowKind,
             holds: [],
             ...actorReadiness(),
           };
+          options.advanceWindowKinds?.push(String(result.windowKind));
           if (progressSettlement && options.progressTransportStates !== undefined) {
             options.progressTransportStates.push(`${String(result.outcome)}:${String(result.acceptedRevision)}:${String(result.revision)}:${String(result.playerPhase)}:${String(result.commandId)}`);
           }
@@ -442,7 +520,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
               ? 'sba-check-required'
               : options.actorWindowDivergentSeat === seatIndex
                 ? 'priority'
-                : options.advanceWindowKind ?? 'turn-based-action-required',
+              : options.advanceWindowKind ?? (priorityReady[scenarioIndex] ? 'priority' : 'turn-based-action-required'),
             holds: [],
             ...actorReadiness(),
           };
@@ -451,8 +529,16 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           }
           if (progressReceipt !== null && result.playerPhase === 'open') progressReceipts[scenarioIndex] = null;
           return Promise.resolve(result as T);
-        }
+      }
       if (expression.includes('startedSurfaceTerminalProbe')) return Promise.resolve((options.startedSurfaceFailure ?? 'game-screen-missing/count') as T);
+      if (expression.includes('pregameSurfaceProbe')) {
+        const state = pregameStates[scenarioIndex];
+        const stale = options.pregameRevisionLagSeat === seatIndex && pregameClickBaselines[scenarioIndex] > 0;
+        return Promise.resolve({
+          revision: sharedRevisions[scenarioIndex] - (stale ? 1 : 0),
+          phase: pregameControls[state.phaseIndex] ?? 'complete',
+        } as T);
+      }
       const pregameControlIndex = pregameControls.findIndex((control) => expression.includes(`data-testid="${control}"`));
       if (pregameControlIndex >= 0) {
         const state = pregameStates[scenarioIndex];
@@ -535,6 +621,24 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           !manualResolveEnabledSeats.includes(seatIndex)
         )
           return Promise.reject(new Error('manual resolve actor mismatch'));
+      const clickedChoiceControl = expression.includes('node.click(); return true') || expression.includes('target.click(); return true');
+      if (clickedChoiceControl && expression.includes('data-testid="visibility-open-choice"')) {
+        choicePending[scenarioIndex] = true;
+      }
+      if (clickedChoiceControl && expression.includes('data-testid="visibility-confirm"') && choicePending[scenarioIndex]) {
+        choicePending[scenarioIndex] = false;
+        choiceOpened[scenarioIndex] = true;
+        choiceSelected[scenarioIndex] = false;
+        choiceScrolled[scenarioIndex] = false;
+      }
+      if (clickedChoiceControl && expression.includes('visibility-choice-')) {
+        choiceSelected[scenarioIndex] = true;
+      }
+      if (clickedChoiceControl && expression.includes('visibility-choose-')) {
+        choiceOpened[scenarioIndex] = false;
+        choiceSelected[scenarioIndex] = false;
+        choiceScrolled[scenarioIndex] = false;
+      }
       const recoveryNavigation =
         pageOrdinal > 0 && (expression.includes('data-testid="open-online-mode"') || expression.includes('data-testid="online-recover"'));
       if (expression.includes('data-testid="online-recover"') && expression.includes('node.click(); return true')) {
@@ -542,9 +646,21 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         recoveryRequested = true;
       }
       if (
+        (expression.includes('node.click(); return true') || expression.includes('target.click(); return true'))
+        && !recoveryNavigation
+        && options.mainActionSeat !== undefined
+        && seatIndex !== options.mainActionSeat
+        && (expression.includes('data-testid="online-journey-play-land"')
+          || expression.includes('data-testid="online-remote-cast"')
+          || expression.includes('data-testid="online-manual-damage-submit"')
+          || expression.includes('guided-combat') && expression.includes('button[type="submit"]'))
+      ) return Promise.reject(new Error('main action actor mismatch'));
+      if (
         (expression.includes('node.click(); return true') ||
           expression.includes('target.click(); return true')) &&
         !recoveryNavigation &&
+        !expression.includes('data-testid="visibility-open-choice"') &&
+        !(expression.includes('visibility-choice-') && expression.includes('input[type="checkbox"]')) &&
         !(options.progressRejected === true && (expression.includes('data-testid="online-remote-advance"') || expression.includes('data-testid="online-remote-sba-stable"'))) &&
         !(options.progressStuckAfterClick === true && expression.includes('data-testid="online-remote-advance"'))
       )
@@ -563,7 +679,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           acceptedRevision: sharedRevisions[scenarioIndex],
           senderSeat: seatIndex,
         };
-        if (priorityOperation === 'priority-resolve') {
+        if (priorityOperation === 'priority-resolve' && options.priorityResolveRejected !== true) {
           const capturedTopObjectId = castStates[scenarioIndex]?.topObjectId ?? null;
           if (capturedTopObjectId !== null) {
             postResolutions[scenarioIndex] = `直近の変化: 解決: オーナーの墓地 (${capturedTopObjectId}) / 更新 ${String(sharedRevisions[scenarioIndex])}`;
@@ -582,7 +698,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         progressActionCounts[scenarioIndex] += 1;
         const advanceWindowKind = options.actorWindowDivergentSeat === seatIndex
           ? 'priority'
-          : options.advanceWindowKind ?? 'turn-based-action-required';
+          : options.advanceWindowKind ?? (priorityReady[scenarioIndex] ? 'priority' : 'turn-based-action-required');
         if (options.progressRejected !== true && options.progressStuckAfterClick !== true) {
           const receiptCount = progressReceiptCounts[scenarioIndex] + 1;
           progressReceiptCounts[scenarioIndex] = receiptCount;
@@ -595,7 +711,11 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             acceptedRevision: sharedRevisions[scenarioIndex],
           };
         }
-        progressWindows[scenarioIndex] = 'sba';
+        const entersPriorityAfterMain = sharedPhases[scenarioIndex] === 'main1'
+          && options.advanceWindowKind !== 'priority'
+          && advanceWindowKind === 'turn-based-action-required';
+        if (entersPriorityAfterMain) priorityReady[scenarioIndex] = true;
+        else progressWindows[scenarioIndex] = 'sba';
         if (options.progressAckBeforeProjection === true && !progressSettlementUsed[scenarioIndex]) {
           progressProjectionPending[scenarioIndex] = true;
           progressProjectionSettled[scenarioIndex] = false;
@@ -632,29 +752,37 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         const serialized = JSON.stringify(tokens);
         return Promise.resolve({ tokens, serialized, complete: true, bytes: serialized.length } as T);
       }
+      if (expression.includes('privateChoiceCheckedProbe')) {
+        const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+        return Promise.resolve((choiceOpened[scenarioIndex] && choiceSelected[scenarioIndex] && seatIndex === selectorSeat ? 1 : 0) as T);
+      }
       if (expression.includes('privateChoicePayload')) {
-        const hostContext = contextOrdinal === 0 || contextOrdinal === 2;
-        if (options.privateChoiceCaptureBoundExceeded === true && hostContext && pageOrdinal === 0) return Promise.resolve({ identifiers: [], candidateHandles: [], serialized: '', complete: false, roots: 129, attributes: 0, values: 0, tokens: 0, bytes: 0 } as T);
-        const payload = options.privateChoiceLeak === true || (hostContext && pageOrdinal === 0)
-          ? { identifiers: ['visibility-choose-fixture'], candidateHandles: [options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle'], serialized: 'private-choice-host-payload', complete: true, roots: 1, attributes: 2, values: 1, tokens: 4, bytes: 64 }
+        const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+        const selectorContext = scenarioIndex === 0 ? selectorSeat === 0 ? 0 : 1 : selectorSeat + 2;
+        const selectorContextPage = contextOrdinal === selectorContext && pageOrdinal === 0;
+        if (options.privateChoiceCaptureBoundExceeded === true && selectorContextPage) return Promise.resolve({ identifiers: [], candidateHandles: [], serialized: '', complete: false, roots: 129, attributes: 0, values: 0, tokens: 0, bytes: 0 } as T);
+        const payload = choiceOpened[scenarioIndex] && (options.privateChoiceLeak === true || selectorContextPage)
+          ? { identifiers: ['visibility-choose-fixture'], candidateHandles: ['private-card-handle'], serialized: 'private-choice-host-payload', complete: true, roots: 1, attributes: 2, values: 1, tokens: 4, bytes: 64 }
           : { identifiers: [], candidateHandles: [], serialized: 'private-choice-empty-payload', complete: true, roots: 0, attributes: 0, values: 0, tokens: 0, bytes: 0 };
         return Promise.resolve(payload as T);
       }
       if (expression.includes('privateChoiceIdentifiers')) {
-        // The harness runs the two-player scenario first (contexts 0/1) and
-        // the four-player scenario second (contexts 2/3/4/5); only each
-        // scenario's host is authorized to render the private choice.
-        const hostContext = contextOrdinal === 0 || contextOrdinal === 2;
-        const identifiers = options.privateChoiceLeak === true || (hostContext && pageOrdinal === 0) ? ['visibility-choose-fixture'] : [];
+        const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+        const selectorContext = scenarioIndex === 0 ? selectorSeat === 0 ? 0 : 1 : selectorSeat + 2;
+        const selectorContextPage = contextOrdinal === selectorContext && pageOrdinal === 0;
+        const identifiers = choiceOpened[scenarioIndex] && (options.privateChoiceLeak === true || selectorContextPage) ? ['visibility-choose-fixture'] : [];
         return Promise.resolve(identifiers as T);
       }
       if (expression.includes('privateChoiceDomSurfaces')) {
-        const leaked = options.privateChoiceCandidateLeak === true && contextOrdinal !== 0 && contextOrdinal !== 2;
+        const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+        const selectorContext = scenarioIndex === 0 ? selectorSeat === 0 ? 0 : 1 : selectorSeat + 2;
+        const selectorContextPage = contextOrdinal === selectorContext && pageOrdinal === 0;
+        const leaked = options.privateChoiceCandidateLeak === true && !selectorContextPage;
         let surfaces = leaked ? ['private-card-handle'] : [];
         if (options.reconnectPrivateLeakSeat === seatIndex && recoveredScenarios[scenarioIndex]) {
           surfaces = [`private-hand-object-${scenarioIndex}-0`];
         }
-        if ((options.privateChoiceCandidateLeakBeyondBound === true || options.privateChoiceCandidateTokenLeak === true) && contextOrdinal !== 0 && contextOrdinal !== 2) surfaces = Array.from({ length: options.privateChoiceCandidateLeakBeyondBound === true ? 2_049 : 1 }, (_entry, index) => index === (options.privateChoiceCandidateLeakBeyondBound === true ? 2_048 : 0) ? options.privateChoiceCandidateTokenLeak === true ? 'non-handle-public-token' : 'private-card-handle' : `surface-${index}`);
+        if (options.privateChoiceCandidateLeakBeyondBound === true && !selectorContextPage) surfaces = Array.from({ length: 2_049 }, (_entry, index) => index === 2_048 ? 'private-card-handle' : `surface-${index}`);
         expect(Object.keys(argument as object)).toEqual(['offset']);
         const serialized = JSON.stringify(surfaces);
         const offset = (argument as { offset: number }).offset;
@@ -669,6 +797,16 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
         return Promise.resolve((delayed ? null : 'fixture-invite') as T);
       }
       if (expression.includes('inviteFingerprintProbe')) return Promise.resolve('0d4a7e5bd65dbfd5c46b1d6a579fa5384ca7d9cc4cd6591e58da18bc087b3a77' as T);
+      if (expression.includes('combatSurfaceProbe')) {
+        const present = options.combatSurfaceRequiresProgress !== true || progressActionCounts[scenarioIndex] > 0;
+        return Promise.resolve({
+          present,
+          rendered: present,
+          step: present ? 'declare-attackers' : null,
+          revision: sharedRevisions[scenarioIndex],
+          ...actorReadiness(),
+        } as T);
+      }
       if (expression.includes('gameScreens')) {
         if (pageOrdinal > 0 && disconnectedSeats[scenarioIndex].has(seatIndex)) {
           if (!recoveryRequested) return Promise.reject(new Error('recovery action missing'));
@@ -706,7 +844,7 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           battlefield: { x: 8, y: boardY, width: Math.max(1, viewportWidth - 16), height: boardBottom - boardY, right: viewportWidth - 8, bottom: boardBottom },
           seatRects: Array.from({ length: (scenarioIndex === 0 ? 2 : 4) - 1 }, (_entry, index) => ({ x: 16 + index * 8, y: railY + 8, width: 120, height: 32, right: 136 + index * 8, bottom: railY + 40 })),
           boardRects: Array.from({ length: (scenarioIndex === 0 ? 2 : 4) - 1 }, (_entry, index) => ({ x: 16 + index * 8, y: boardY + 8, width: 120, height: 64, right: 136 + index * 8, bottom: boardY + 72 })),
-          primaryAction: { rect: { x: 16, y: railY + 8, width: 120, height: 32, right: 136, bottom: railY + 40 }, enabled: true as const },
+          primaryAction: { rect: { x: 16, y: railY + 8, width: 120, height: 32, right: 136, bottom: railY + 40 }, enabled: options.primaryActionEnabled ?? true },
           panel: { x: 16, y: 16, width: Math.max(1, viewportWidth - 32), height: Math.min(panelHeight, viewportHeight - 20), right: viewportWidth - 16, bottom: 16 + Math.min(panelHeight, viewportHeight - 20) },
           scroll: { rect: { x: 8, y: railY, width: Math.max(1, viewportWidth - 16), height: railHeight, right: viewportWidth - 8, bottom: railY + railHeight }, scrollWidth: viewportWidth, scrollHeight: railHeight * 2, clientWidth: Math.max(1, viewportWidth - 16), clientHeight: railHeight, scrollMoved: geometryFailure !== 'non-scrollable', focusReachable: geometryFailure !== 'focus-inaccessible' },
           clippedPrimaryAction: geometryFailure === 'clipped-primary',
@@ -738,7 +876,9 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
             : [...priorityHoldSeats[scenarioIndex]].map((index) => `P${String(index + 1)}`);
           const priorityWindowKind = options.missingPriorityDomAttribute === 'window-kind'
             ? undefined
-            : resolved ? 'sba-check-required' : priorityHolderPlayerId === null ? 'resolution-ready' : 'priority';
+            : projectedPhase === 'main1' && !priorityReady[scenarioIndex]
+              ? 'turn-based-action-required'
+              : resolved ? 'sba-check-required' : priorityHolderPlayerId === null ? 'resolution-ready' : 'priority';
           const recentResolutionObjectId = options.missingResolutionEvidence === true || !resolved ? null : castStates[scenarioIndex]?.topObjectId === null ? 'PC3:1' : null;
           const recentResolutionRevision = recentResolutionObjectId === null ? null : priorityState?.acceptedRevision ?? null;
           const disconnectedPlayerIds = [...disconnectedSeats[scenarioIndex]].sort((left, right) => left - right).map((index) => `P${String(index + 1)}`);
@@ -747,7 +887,8 @@ function fakeBrowser(expressions: string[], options: FakeOptions = {}): O4p09iBr
           const sharedPublicDigest = options.reconnectDigestDivergentSeat === seatIndex && recoveredScenarios[scenarioIndex]
             ? `${baseDigest[0] === 'f' ? 'e' : 'f'}${baseDigest.slice(1)}`
             : baseDigest;
-          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: true, manualStackControl: true, manualResolveControl: true, stackCount, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, publicPlayerIds, localPlayerId, disconnectedPlayerIds, recoveryOutcome: authoritativeRejoined ? 'rejoined' : null, sharedPublicDigest, priorityHolds, priorityHolderPlayerId, priorityStewardPlayerId: 'P1', priorityWindowKind, recentResolutionObjectId, recentResolutionRevision, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
+          const selectorSeat = options.privateChoiceSelectorSeat ?? 0;
+          return Promise.resolve({ gameScreens: gameScreenCount, overflow, geometry, revision: probeRevision, phase: projectedPhase, winner: options.missingWinner !== true, outcomeVisible: options.missingWinner !== true, activeSeatCount: 3, eliminatedSeats: options.missingWinner === true ? [] : ['P2'], opponentLeak, leakScanComplete: options.leakScanBoundExceeded !== true, privateLookControl: true, chooseControl: choiceOpened[scenarioIndex] && seatIndex === selectorSeat, manualStackControl: true, manualResolveControl: true, stackCount, stackTopObjectId: castState?.topObjectId ?? null, castSettlement, prioritySettlement, publicPlayerIds, localPlayerId, disconnectedPlayerIds, recoveryOutcome: authoritativeRejoined ? 'rejoined' : null, sharedPublicDigest, priorityHolds, priorityHolderPlayerId, priorityStewardPlayerId: 'P1', priorityWindowKind, recentResolutionObjectId, recentResolutionRevision, postResolution: options.missingResolutionEvidence === true ? null : postResolutions[scenarioIndex], consoleErrors, workerObserved: options.missingWorker !== true } as T);
       }
       return Promise.resolve(true as T);
     },
@@ -816,6 +957,11 @@ describe('O4P-09I full-match production evidence', () => {
     ).toEqual({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'post-actions/session-probe-type-error' });
     expect(
       classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: HOLD-pass-resolve/measurement-timeout')
+      )
+    ).toEqual({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage: 'HOLD-pass-resolve/measurement-timeout' });
+    expect(
+      classifyO4p09iProductionFailureV1(
         new Error('production scenario stage failed: post-actions/private-token')
       )
     ).toEqual({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: 'post-actions' });
@@ -854,6 +1000,29 @@ describe('O4P-09I full-match production evidence', () => {
       class: 'IMPLEMENTATION',
       code: 'PRIVACY_OR_CONSOLE_FAILED',
       stage: 'privacy'
+    });
+    for (const [message, checkpoint] of [
+      ['visible pregame transition acknowledgement timeout', 'ack-timeout'],
+      ['pregame command rejected', 'rejected'],
+      ['pregame actor transition timeout', 'actor-timeout'],
+      ['pregame response probe invalid', 'probe-invalid'],
+    ] as const) {
+      expect(classifyO4p09iProductionFailureV1(new Error('production scenario stage failed: pregame-control', {
+        cause: new Error(message),
+      }))).toEqual({
+        class: 'IMPLEMENTATION',
+        code: 'PLAYER_JOURNEY_STAGE_FAILED',
+        stage: `pregame-control/${checkpoint}`,
+      });
+    }
+    expect(
+      classifyO4p09iProductionFailureV1(
+        new Error('production scenario stage failed: manual-stack/guided-overlay-first/control-covered')
+      )
+    ).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'manual-stack/guided-overlay-first/control-covered',
     });
   });
 
@@ -996,7 +1165,7 @@ describe('O4P-09I full-match production evidence', () => {
 
   it('runs an injected UI-only harness for both player-count scenarios', async () => {
     const expressions: string[] = [];
-    const summary = await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions), readDeck: () => 'fixture deck' });
+    const summary = await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions, { combatSurfaceRequiresProgress: true, privateChoiceRequiresScroll: true }), readDeck: () => 'fixture deck' });
     expect(summary.pagesOrigin).toBe(O4P09I_PAGES_ORIGIN_V1);
     expect(summary.workerOrigin).toBe(O4P09I_WORKER_ORIGIN_V1);
     expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
@@ -1007,6 +1176,9 @@ describe('O4P-09I full-match production evidence', () => {
     expect(summary.scenarios.fourPlayer.outcome).toBe('three-continue');
     expect(summary.scenarios.twoPlayer.eliminatedSeats).toHaveLength(1);
     expect(summary.scenarios.fourPlayer.eliminatedSeats).toHaveLength(1);
+    expect(summary.scenarios.fourPlayer.viewportFacts).toHaveLength(1);
+    expect(summary.scenarios.fourPlayer.viewportFacts[0]?.width).toBe(1440);
+    expect(summary.scenarios.fourPlayer.viewportFacts[0]?.height).toBe(900);
     for (const viewport of summary.scenarios.fourPlayer.viewportFacts) {
       expect(viewport.pageGeometries).toHaveLength(4);
       for (const pageGeometry of viewport.pageGeometries) {
@@ -1034,6 +1206,85 @@ describe('O4P-09I full-match production evidence', () => {
     const guidedSelection = expressions.findIndex((expression) => expression.includes('guided-combat'));
     expect(guidedOpenAfterLand).toBeGreaterThan(manualOverlayOpen);
     expect(guidedSelection).toBeGreaterThan(guidedOpenAfterLand);
+    expect(expressions.some((expression) => expression.includes('guided-combat') && expression.includes('label:nth-of-type(1) select') && expression.includes('PC3:'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('guided-combat') && expression.includes('label:nth-of-type(2) select'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('form:nth-of-type(1) select:nth-of-type(2)'))).toBe(false);
+    const combatProbes = expressions
+      .map((expression, index) => expression.includes('combatSurfaceProbe') ? index : -1)
+      .filter((index): index is number => index >= 0);
+    expect(combatProbes).toHaveLength(12);
+    expect(expressions.slice(combatProbes[1] + 1, combatProbes[2]).some((expression) =>
+      expression.includes('data-testid="online-remote-advance"') && expression.includes('node.click(); return true')
+    )).toBe(true);
+    expect(expressions.some((expression) => expression.includes("target.scrollIntoView({ block: 'nearest', inline: 'center' })"))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('privateChooseRenderedProbe'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('privateChooseScrollProbe'))).toBe(true);
+    const geometryProbeExpression = expressions.find((expression) => expression.includes('focusReachable'));
+    expect(geometryProbeExpression).toContain('focus({ preventScroll: true })');
+    const privateChoicePayloadExpression = expressions.find((expression) => expression.includes('privateChoicePayload'));
+    expect(privateChoicePayloadExpression).toContain('[data-testid^="visibility-choose-"]');
+    expect(privateChoicePayloadExpression).toContain(':not([data-testid="visibility-choice-count"]) input[type="checkbox"][value]');
+    expect(privateChoicePayloadExpression).not.toContain('node.textContent');
+    expect(privateChoicePayloadExpression).not.toContain('node.attributes');
+  });
+
+  it('captures only private choice handles from representative DOM', async () => {
+    const expressions: string[] = [];
+    await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions), readDeck: () => 'fixture deck', timeoutMs: 250 });
+    const privateChoicePayloadExpression = expressions.find((expression) => expression.includes('privateChoicePayload'));
+    if (privateChoicePayloadExpression === undefined) throw new Error('private choice payload expression missing');
+    const previousBody = document.body.innerHTML;
+    try {
+      document.body.innerHTML = '<select data-testid="visibility-choice-count"><option>2</option></select><div data-testid="visibility-choice-search-1"><label><input type="checkbox" value="A:0">共有カード</label></div><button data-testid="visibility-choose-search-1">選ぶ</button>';
+      const payload = new Script(`(${privateChoicePayloadExpression})`).runInNewContext({ document, TextEncoder }) as { readonly identifiers: readonly string[]; readonly candidateHandles: readonly string[]; readonly serialized: string };
+      expect(payload.identifiers).toEqual(['visibility-choose-search-1']);
+      expect(payload.candidateHandles).toEqual(['A:0']);
+      expect(payload.serialized).not.toContain('visibility-choice-count');
+      expect(payload.serialized).not.toContain('共有カード');
+    } finally {
+      document.body.innerHTML = previousBody;
+    }
+  });
+
+  it('records a visible disabled primary action without treating it as enabled', async () => {
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser([], { primaryActionEnabled: false }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    for (const viewport of summary.scenarios.fourPlayer.viewportFacts) {
+      expect(viewport.geometry.primaryAction?.enabled).toBe(false);
+      expect(viewport.pageGeometries.every((geometry) => geometry.primaryAction?.enabled === false)).toBe(true);
+    }
+  });
+
+  it('probes the public authority seat before actor-bound actions', async () => {
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { mainActionSeat: 1 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenarios.twoPlayer.outcome).toBe('winner');
+    expect(summary.scenarios.fourPlayer.outcome).toBe('three-continue');
+    expect(summary.scenarios.twoPlayer.revision.afterPostReconnectMutation).toBeNull();
+    expect(summary.scenarios.fourPlayer.revision.afterPostReconnectMutation).toBeGreaterThan(summary.scenarios.fourPlayer.revision.afterReconnect);
+    expect(expressions.some((expression) => expression.includes('publicActionAuthorityProbe:active-priority'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('publicActionAuthorityProbe:active-combat'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('publicActionAuthorityProbe:steward'))).toBe(true);
+  });
+
+  it('keeps visibility confirmation and Choose on the projected seats when host is neither authority', async () => {
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({
+      browser: fakeBrowser(expressions, { mainActionSeat: 1, privateChoiceSelectorSeat: 1 }),
+      readDeck: () => 'fixture deck',
+      timeoutMs: 250,
+    });
+    expect(summary.scenarios.twoPlayer.outcome).toBe('winner');
+    expect(summary.scenarios.fourPlayer.outcome).toBe('three-continue');
+    expect(expressions.some((expression) => expression.includes('privateChooseSelectorProbe'))).toBe(true);
+    expect(expressions.some((expression) => expression.includes('entry.value === "P2"'))).toBe(true);
   });
 
   it('runs the bounded two-player reliability profile through a post-reconnect mutation', async () => {
@@ -1461,6 +1712,29 @@ describe('O4P-09I full-match production evidence', () => {
     ).rejects.toThrow('production scenario stage failed: HOLD-pass-resolve');
   });
 
+  it('fails fast on a rejected priority receipt with an allowlisted public issue code', async () => {
+    let failure: unknown;
+    try {
+      await runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser([], { priorityResolveRejected: true }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe(
+      'production scenario stage failed: HOLD-pass-resolve/action-rejected-CORE_COMMAND_REJECTED'
+    );
+    expect((failure as Error).message).not.toContain('CLIENT_');
+    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'HOLD-pass-resolve/action-rejected-CORE_COMMAND_REJECTED',
+    });
+  });
+
   it.each([
     ['accepted priority receipt', { missingPriorityReceipt: true }],
     ['resolved-top projection', { missingResolutionEvidence: true }],
@@ -1468,13 +1742,16 @@ describe('O4P-09I full-match production evidence', () => {
     ['local-seat DOM contract', { missingPriorityDomAttribute: 'local-player-id' }],
     ['priority-window DOM contract', { missingPriorityDomAttribute: 'window-kind' }],
   ] as const)('fails closed when the %s evidence is missing', async (_label, options) => {
+    const expectedStage = _label === 'priority-window DOM contract'
+      ? 'production scenario stage failed: advance/two-player-main1/actor-selection-contract-metadata'
+      : 'production scenario stage failed: HOLD-pass-resolve';
     await expect(
       runO4p09iFullMatchEvidenceV1({
         browser: fakeBrowser([], options),
         readDeck: () => 'fixture deck',
         timeoutMs: 250,
       })
-    ).rejects.toThrow('production scenario stage failed: HOLD-pass-resolve');
+    ).rejects.toThrow(expectedStage);
   });
 
   it.each([
@@ -1689,7 +1966,6 @@ describe('O4P-09I full-match production evidence', () => {
     ['private choice candidate leak beyond legacy scan bound', { privateChoiceCandidateLeakBeyondBound: true }],
     ['private choice scan bound exhaustion', { privateChoiceScanBoundExceeded: true }],
     ['authorized private capture bound exhaustion', { privateChoiceCaptureBoundExceeded: true }],
-    ['private choice non-handle attribute/text token leak', { privateChoiceCandidateTokenLeak: true }],
     ['probe leak scan bound exhaustion', { leakScanBoundExceeded: true }],
     ['vertical geometry collision', { geometryFailure: 'vertical-collision' }],
     ['offscreen active panel', { geometryFailure: 'offscreen-panel' }],
@@ -1751,6 +2027,34 @@ describe('O4P-09I full-match production evidence', () => {
     });
     expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
     expect(expressions.some((expression) => expression.includes('pregameTerminalSurfaceProbe'))).toBe(true);
+  });
+
+  it('does not click another Pregame seat while a visible seat revision is stale', async () => {
+    const expressions: string[] = [];
+    let failure: unknown;
+    try {
+      await runO4p09iFullMatchEvidenceV1({
+        browser: fakeBrowser(expressions, { pregameRevisionLagSeat: 1 }),
+        readDeck: () => 'fixture deck',
+        timeoutMs: 250,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(classifyO4p09iProductionFailureV1(failure)).toEqual({
+      class: 'IMPLEMENTATION',
+      code: 'PLAYER_JOURNEY_STAGE_FAILED',
+      stage: 'pregame-control/actor-timeout',
+    });
+    expect(expressions.filter((expression) =>
+      expression.includes('pregameSurfaceProbe')
+    ).length).toBeGreaterThan(0);
+    expect(expressions.filter((expression) =>
+      expression.includes('data-testid="pregame-confirm-commanders"') && expression.includes('node.click(); return true')
+    )).toHaveLength(1);
+    expect(expressions.some((expression) =>
+      expression.includes('data-testid="pregame-keep"') && expression.includes('node.click(); return true')
+    )).toBe(false);
   });
 
   it('does not count a rejected Pregame response as a completed seat action', async () => {

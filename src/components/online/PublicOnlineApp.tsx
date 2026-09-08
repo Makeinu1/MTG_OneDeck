@@ -5,7 +5,9 @@ import { GameScreen } from '../game/GameScreen';
 import {
   createPublicOnlineControllerV3,
   encodeOnlineSharedInviteCodeV3,
+  PUBLIC_ONLINE_LOCAL_ENDPOINT_V1,
   readAndScrubPublicOnlineInviteFragmentV3,
+  resolvePublicOnlineRuntimeRealmV1,
   type PublicOnlineDeckOptionV2,
   type PublicOnlineSnapshotV3,
   type PublicOnlineConfigurationV3,
@@ -40,7 +42,13 @@ function allReady(snapshot: PublicOnlineSnapshotV3): boolean {
 
 function keepRemotePanelsExclusive(event: SyntheticEvent<HTMLDetailsElement>): void {
   const current = event.currentTarget;
-  if (!current.open) return;
+  const fallback = document.querySelector<HTMLDetailsElement>('[data-testid="online-remote-manual-fallback"]');
+  if (!current.open) {
+    const otherOpen = document.querySelector<HTMLDetailsElement>('[data-testid="online-remote-guided-overlay"][open], [data-testid="online-remote-manual-overlay"][open]');
+    if (otherOpen === null) fallback?.querySelector<HTMLElement>('summary')?.focus();
+    return;
+  }
+  if (fallback !== null) fallback.open = false;
   for (const panelId of ['online-remote-guided-overlay', 'online-remote-manual-overlay']) {
     const panel = current.parentElement?.querySelector<HTMLDetailsElement>(`#${panelId}`);
     if (panel instanceof HTMLDetailsElement && panel !== current) panel.open = false;
@@ -57,6 +65,7 @@ export function PublicOnlineApp({
   onImportDeck,
 }: PublicOnlineAppProps) {
   const controller = useMemo(() => createPublicOnlineControllerV3(), []);
+  const runtimeRealm = resolvePublicOnlineRuntimeRealmV1();
   const [snapshot, setSnapshot] = useState<PublicOnlineSnapshotV3>(() => controller.getSnapshot());
   const [roomConfiguration, setRoomConfiguration] = useState<PublicOnlineConfigurationV3>({ playerCount: 2, startingLife: 40 });
   const [selectedDeckId, setSelectedDeckId] = useState(initialDeckId || decks[0]?.id || '');
@@ -191,6 +200,8 @@ export function PublicOnlineApp({
     <main
       className="public-online-app"
       data-testid="public-online-app"
+      data-online-runtime-realm={runtimeRealm === 'local-rehearsal' ? 'local-rehearsal' : undefined}
+      data-online-runtime-endpoint={runtimeRealm === 'local-rehearsal' ? PUBLIC_ONLINE_LOCAL_ENDPOINT_V1 : undefined}
       data-player-phase={playerBrowser?.phase ?? ''}
       data-player-pending-count={playerBrowser?.pendingCommands.length ?? 0}
       data-player-known-revision={playerBrowser?.knownRevision ?? ''}
@@ -678,7 +689,12 @@ export function PublicOnlineApp({
                 recoveryOutcome={snapshot.player.recoveryOutcome}
                 onSubmitSharedUndo={() => { void controller.submitSharedUndo(snapshot.player?.projection?.revision); }}
                 port={remoteInteractionPort}
+                placement="overview"
               />
+            </>
+          )}
+          surfaceDialogs={(
+            <>
               <details id="online-remote-guided-overlay" className="online-remote-guided-overlay" data-testid="online-remote-guided-overlay" onToggle={keepRemotePanelsExclusive}>
                 <summary>ガイド付き操作（戦闘・手動）</summary>
                 <OnlineGuidedActions
@@ -717,6 +733,19 @@ export function PublicOnlineApp({
                 </div>
               </details>
             </>
+          )}
+          surfaceActions={(
+            <RemoteGameScreenActionRail
+              projection={snapshot.player.projection}
+              interactionState={interactionState}
+              busy={tabletopBusy}
+              onSubmitTabletopIntent={controller.submitTabletopIntent}
+              lastCommandSettlement={snapshot.player.lastCommandSettlement}
+              recoveryOutcome={snapshot.player.recoveryOutcome}
+              onSubmitSharedUndo={() => { void controller.submitSharedUndo(snapshot.player?.projection?.revision); }}
+              port={remoteInteractionPort}
+              placement="actions"
+            />
           )}
         />
       )}

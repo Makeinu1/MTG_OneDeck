@@ -28,9 +28,13 @@ for tests.  It does not claim a production run from a synthetic browser or
 provide a command/Worker escape hatch.
 Invite values, deck material, capability strings, and private-choice candidate
 handles are runtime-only scanner material and are never emitted in the summary.
-For Look/Choose, the runner keeps a bounded in-memory candidate/attribute/text
-payload and digest, then probes every unauthorized seat's text, attributes,
-form values, and choice controls for exact-token or digest-equivalent leakage.
+For Look/Choose, the runner keeps bounded private session-control identifiers
+and opaque candidate object handles in memory, then probes every unauthorized
+seat's text, attributes, form values, and choice controls for those identifiers.
+Common attribute names, public count controls, and card names that another seat
+may independently know are not private tokens. This proves isolation of the
+rendered private handles and controls; server projection tests separately cover
+the audience's full data boundary.
 
 ## Fixed evidence facts
 
@@ -38,7 +42,7 @@ Each scenario records the ordered semantic phases and action labels only after
 the corresponding visible controls have been clicked successfully.  DOM probes
 derive monotonic revision checkpoints, `crossSeatLeak: false`, the explicit
 manual fallback boundary, outcome markers, and eliminated seats.  The
-responsive matrix is fixed at 375x812, 812x375, and 1440x900; each measured
+desktop viewport is fixed at 1440x900; each measured
 probe requires one `GameScreen`, zero horizontal overflow, zero console errors,
 and bounded DOM rectangles for the viewport, operation rail, hand, battlefield,
 an enabled primary action, an open panel, and an accessible scroll container.
@@ -46,6 +50,11 @@ The runner fails closed on a clipped primary action, rail/hand collision,
 off-screen panel, inaccessible scroll region, or fully obscured battlefield.
 Cleanup must close six isolated contexts, eight pages (including
 reconnect pages), and the adapter must remove its temporary profile.
+
+The product owner's 2026-09-08 ruling removes small-browser/mobile layouts
+from MVP acceptance. Earlier three-viewport evidence remains historical; all
+new scenario pages, including reconnect pages, use the desktop viewport from
+creation. Browser-based play remains in scope.
 
 ## Scoring rubric
 

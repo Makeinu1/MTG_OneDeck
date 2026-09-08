@@ -20,7 +20,7 @@ import type {
   OnlineRoomParticipantIdV1,
 } from '../../online/room';
 import type { OnlineTabletopIntentEnvelopeV1 } from '../../online/tabletopManual';
-import type { OnlineVisibilityIntentEnvelopeV1 } from '../../online/visibilityDecisions';
+import type { OnlineVisibilityIntentEnvelope } from '../../online/visibilityDecisions';
 import './tabletopManualFixture.css';
 
 const player = (value: string): CorePlayerId => value as CorePlayerId;
@@ -249,10 +249,12 @@ export function TabletopManualFixture() {
     document.documentElement.dataset.tabletopManualLastMode = envelope.mode;
   };
 
-  const submitVisibility = (intent: OnlineVisibilityIntentEnvelopeV1): void => {
+  const submitVisibility = (intent: OnlineVisibilityIntentEnvelope): void => {
     // Only the operation kind is retained as a bounded, non-secret fixture
     // marker; IDs, payloads, and transport errors never reach the DOM/log.
-    const operation = intent.look !== undefined ? 'look' : intent.reveal !== undefined ? 'reveal' : 'choose';
+    const operation = intent.kind === 'online-visibility-intent-v2'
+      ? 'choose'
+      : intent.look !== undefined ? 'look' : intent.reveal !== undefined ? 'reveal' : 'choose';
     document.documentElement.dataset.tabletopManualLastVisibilityOperation = operation;
   };
 

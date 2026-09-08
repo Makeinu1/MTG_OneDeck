@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { validateOnlineVisibilityIntentV1 } from '../validation';
+import { validateOnlineVisibilityIntent, validateOnlineVisibilityIntentV1 } from '../validation';
 
 const look = (duration: unknown) => ({
   kind: 'online-visibility-intent-v1', schemaVersion: 1, commandId: 'cmd-1', baseRevision: 0,
   look: { subject: { kind: 'object', handle: 'PC1:0' }, viewerPlayerIds: ['P1'], duration },
+});
+
+describe('online visibility intent v2', () => {
+  it('dispatches the exact bounded open-choice union and rejects extra branches', () => {
+    expect(validateOnlineVisibilityIntent({ kind: 'online-visibility-intent-v2', schemaVersion: 2, commandId: 'choice-1', baseRevision: 0, openChoice: { count: 1 } })).toMatchObject({ ok: true, value: { openChoice: { count: 1 } } });
+    expect(validateOnlineVisibilityIntent({ kind: 'online-visibility-intent-v2', schemaVersion: 2, commandId: 'choice-2', baseRevision: 0, openChoice: { count: 11 } }).ok).toBe(false);
+    expect(validateOnlineVisibilityIntent({ kind: 'online-visibility-intent-v2', schemaVersion: 2, commandId: 'choice-3', baseRevision: 0, openChoice: { count: 1 }, look: {} }).ok).toBe(false);
+  });
 });
 
 describe('online visibility intent v1', () => {

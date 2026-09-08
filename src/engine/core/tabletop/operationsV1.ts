@@ -968,7 +968,7 @@ export function applyCoreTabletopPayloadV1(
     case 'table-note-clear': result = clearNote(root, actorPlayerId, payload); break;
     case 'table-stack-entry': result = addStackEntry(root, actorPlayerId, payload); break;
     case 'table-manual-resolve': result = resolveManual(root, actorPlayerId, payload); break;
-    case 'table-turn-progress': fail('TURN_PROGRESS_REQUIRES_CLOSURE', '/payload', 'Turn progression is composed by the Core closure');
+    case 'table-turn-progress': case 'table-turn-progress-v2': fail('TURN_PROGRESS_REQUIRES_CLOSURE', '/payload', 'Turn progression is composed by the Core closure');
   }
   const mode = manualModeOf(payload);
   if (mode === undefined) return result;

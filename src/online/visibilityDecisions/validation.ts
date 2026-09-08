@@ -1,8 +1,11 @@
 import {
   ONLINE_VISIBILITY_INTENT_SCHEMA_VERSION_V1,
+  ONLINE_VISIBILITY_INTENT_SCHEMA_VERSION_V2,
   type OnlineVisibilityDurationV1,
+  type OnlineVisibilityIntentEnvelopeV2,
   type OnlineVisibilityIntentEnvelopeV1,
   type OnlineVisibilityValidationIssueV1,
+  type OnlineVisibilityValidationResult,
   type OnlineVisibilityValidationResultV1,
 } from './types';
 
@@ -245,3 +248,38 @@ export function validateOnlineVisibilityIntentV1(input: unknown): OnlineVisibili
 }
 
 export const validateOnlineVisibilityIntentEnvelopeV1 = validateOnlineVisibilityIntentV1;
+
+export function validateOnlineVisibilityIntentV2(input: unknown): Readonly<{ readonly ok: true; readonly value: OnlineVisibilityIntentEnvelopeV2 }> | Readonly<{ readonly ok: false; readonly issues: readonly OnlineVisibilityValidationIssueV1[] }> {
+  const issues: OnlineVisibilityValidationIssueV1[] = [];
+  const root = exact(input, ['kind', 'schemaVersion', 'commandId', 'baseRevision', 'openChoice'], ['kind', 'schemaVersion', 'commandId', 'baseRevision', 'openChoice'], '', issues);
+  if (!root) return Object.freeze({ ok: false, issues: Object.freeze(issues) });
+  if (root.kind !== 'online-visibility-intent-v2') issues.push(issue('INVALID_LITERAL', '/kind', 'Invalid visibility intent kind'));
+  if (root.schemaVersion !== ONLINE_VISIBILITY_INTENT_SCHEMA_VERSION_V2) issues.push(issue('INVALID_VERSION', '/schemaVersion', 'Unsupported visibility intent version'));
+  if (typeof root.commandId !== 'string' || !ID.test(root.commandId)) issues.push(issue('INVALID_ID', '/commandId', 'Invalid command ID'));
+  if (typeof root.baseRevision !== 'number' || !Number.isSafeInteger(root.baseRevision) || root.baseRevision < 0) issues.push(issue('INVALID_INTEGER', '/baseRevision', 'Invalid base revision'));
+  const choice = exact(root.openChoice, ['count'], ['count'], '/openChoice', issues);
+  if (choice !== null && (typeof choice.count !== 'number' || !Number.isSafeInteger(choice.count) || choice.count < 1 || choice.count > 10)) {
+    issues.push(issue('INVALID_INTEGER', '/openChoice/count', 'Choice count must be 1 through 10'));
+  }
+  if (issues.length > 0) return Object.freeze({ ok: false, issues: Object.freeze(issues.sort((a, b) => a.path.localeCompare(b.path) || a.code.localeCompare(b.code))) });
+  return Object.freeze({ ok: true, value: Object.freeze({
+    kind: 'online-visibility-intent-v2',
+    schemaVersion: ONLINE_VISIBILITY_INTENT_SCHEMA_VERSION_V2,
+    commandId: root.commandId as string,
+    baseRevision: root.baseRevision as number,
+    openChoice: Object.freeze({ count: (choice as Record<string, unknown>).count as number }),
+  }) });
+}
+
+export function validateOnlineVisibilityIntent(input: unknown): OnlineVisibilityValidationResult {
+  let kind: unknown;
+  try {
+    if (plain(input)) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, 'kind');
+      if (descriptor !== undefined && 'value' in descriptor && descriptor.get === undefined && descriptor.set === undefined) kind = descriptor.value;
+    }
+  } catch { /* The version-specific validator will return a bounded issue. */ }
+  return kind === 'online-visibility-intent-v2'
+    ? validateOnlineVisibilityIntentV2(input)
+    : validateOnlineVisibilityIntentV1(input);
+}

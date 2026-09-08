@@ -359,7 +359,7 @@ describe('online visibility binding', () => {
       commandId: 'search-reopen',
       baseRevision: completed.state.revision,
       command: reopenedCommand,
-    });
+    }, true);
     expect(reopened.response).toMatchObject({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: 2 });
     const reopenedProjection = projectOnlineVariableProtocolV3(reopened.state, 'host');
     const reopenedSession = reopenedProjection.game.searchSessions[0];
@@ -808,5 +808,38 @@ describe('online visibility binding', () => {
     if (reordered.status !== 'accepted') return;
     expect(reordered.root.ruleAuthority.visibility.grantOrder).toEqual([]);
     expect(reordered.events.filter((event) => event.payload.kind === 'visibility-closed')).toHaveLength(1);
+  });
+
+  it('opens a bounded private choice and completes one candidate without moving the library', () => {
+    const state = stateWithoutSearchWithTwoLibraryCards();
+    const beforeLibrary = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.byPlayer['P1' as Core.CorePlayerId]?.library ?? [];
+    const envelope = { kind: 'online-visibility-intent-v2', schemaVersion: 2, commandId: 'manual-choice-open', baseRevision: 0, openChoice: { count: 1 } } as const;
+    const bound = bindOnlineVisibilityV1({ state, participantId: 'host', envelope });
+    expect(bound.command.payload).toMatchObject({ kind: 'search-open', input: { portion: { kind: 'top', count: 1 }, criteria: { kind: 'quantity', minimum: 0, maximum: 1 }, revealFound: false, shuffleAfter: false, rulesActorPlayerId: 'P1' } });
+    expect(bound.command.decisionContext).toEqual({ kind: 'decision', decisionKey: 'search-open' });
+    const opened = handleOnlineVariableCommandEnvelopeV2(state, {
+      kind: 'online-command-envelope-v1', protocolVersion: state.protocolVersion, roomId: state.room.roomId,
+      participantId: 'host', ['participantCapability']: capabilities[0], commandId: envelope.commandId,
+      baseRevision: 0, command: bound.command,
+    }, true);
+    expect(opened.response).toMatchObject({ kind: 'online-command-ack-v1', duplicate: false, acceptedRevision: 1 });
+    const retry = bindOnlineVisibilityV1({ state: opened.state, participantId: 'host', envelope, existingCommand: bound.command });
+    expect(retry.command).toEqual(bound.command);
+    expect(() => bindOnlineVisibilityV1({ state: opened.state, participantId: 'host', envelope: { ...envelope, openChoice: { count: 2 } }, existingCommand: bound.command })).toThrow('COMMAND_ID_REUSE_MISMATCH');
+    expect(() => bindOnlineVisibilityV1({ state: opened.state, participantId: 'host', envelope: { ...envelope, commandId: 'manual-choice-stale', baseRevision: opened.state.revision - 1 } })).toThrow('stale');
+    const privateProjection = projectOnlineVariableProtocolV3(opened.state, 'host');
+    const publicProjection = projectOnlineVariableProtocolV3(opened.state, 'player-2');
+    const privateSessions = privateProjection.game.searchSessions as unknown as readonly Readonly<{ readonly candidates: readonly Readonly<{ readonly objectId?: unknown }>[]; readonly sessionId?: unknown }>[];
+    expect(privateSessions).toHaveLength(1);
+    expect(privateSessions[0]?.candidates).toHaveLength(1);
+    expect(publicProjection.game.searchSessions).toHaveLength(0);
+    const candidate = privateSessions[0]?.candidates[0]?.objectId;
+    const sessionId = privateSessions[0]?.sessionId;
+    if (typeof candidate !== 'string' || typeof sessionId !== 'string') throw new Error('Missing private candidate');
+    const chooseEnvelope = { kind: 'online-visibility-intent-v1', schemaVersion: 1, commandId: 'manual-choice-complete', baseRevision: opened.state.revision, choose: { searchSessionId: sessionId, candidateHandles: [candidate] } } as const;
+    const completed = bindOnlineVisibilityV1({ state: opened.state, participantId: 'host', envelope: chooseEnvelope, projection: privateProjection });
+    expect(completed.command.payload).toMatchObject({ kind: 'search-complete', selectedObjectIds: [candidate] });
+    const afterLibrary = opened.state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry.zones.byPlayer['P1' as Core.CorePlayerId]?.library ?? [];
+    expect(afterLibrary).toEqual(beforeLibrary);
   });
 });

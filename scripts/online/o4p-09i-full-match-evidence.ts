@@ -27,6 +27,8 @@ import {
 
 export const O4P09I_PAGES_ORIGIN_V1 = 'https://makeinu1.github.io/MTG_OneDeck/' as const;
 export const O4P09I_WORKER_ORIGIN_V1 = 'https://mtg-onedeck-online.makeinu1.workers.dev' as const;
+export const O4P09I_LOCAL_PAGES_ORIGIN_V1 = 'http://127.0.0.1:5173/' as const;
+export const O4P09I_LOCAL_WORKER_ORIGIN_V1 = 'http://127.0.0.1:8787' as const;
 
 export type O4p09iTransportTimelineCheckpointV1 =
   | 'pregame-converged'
@@ -265,13 +267,28 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       if (convergence !== null) return finalize({ class: 'IMPLEMENTATION', code: 'PLAYER_JOURNEY_STAGE_FAILED', stage: `reconnect/convergence-${convergence.slice(1).map((value) => value === 'true' ? '1' : '0').join('')}` });
     }
     const advanceDetail = detail.split('/');
+    const manualStackDetail = detail.split('/');
+    const priorityRejectionDetail = detail.startsWith('action-rejected-')
+      && (detail === 'action-rejected-other' || TRANSPORT_ISSUE_CODES_V1.has(detail.slice('action-rejected-'.length)));
+    const safePriorityDetail = rootStage === 'HOLD-pass-resolve'
+      && (detail === 'measurement-timeout' || priorityRejectionDetail);
+    const pregameCheckpoint = rootStage === 'pregame-control'
+      ? (PREGAME_FAILURE_STAGE_NAMES.includes(detail as (typeof PREGAME_FAILURE_STAGE_NAMES)[number]) ? detail : pregameFailureCheckpoint(error))
+      : null;
+    const safeManualStackDetail = (MANUAL_STACK_FAILURE_OPERATIONS as readonly string[]).includes(manualStackDetail[0] ?? '')
+      && (manualStackDetail.length === 1
+        || manualStackDetail.length === 2
+          && (MANUAL_STACK_CONTROL_FAILURES as readonly string[]).includes(manualStackDetail[1] ?? ''));
     const safeAdvanceDetail = (ADVANCE_FAILURE_STAGES as readonly string[]).includes(advanceDetail[0] ?? '')
       && (advanceDetail.length === 1
         || advanceDetail.length === 2
           && (ADVANCE_FAILURE_CHECKPOINTS as readonly string[]).includes(advanceDetail[1] ?? ''));
-    const stage = rootStage === 'start-probe' && (STARTED_SURFACE_FAILURES as readonly string[]).includes(detail)
-      || rootStage === 'manual-stack' && (detail === 'entry' || detail === 'resolve')
+    const stage = rootStage === 'pregame-control' && pregameCheckpoint !== null
+      ? `pregame-control/${pregameCheckpoint}`
+      : rootStage === 'start-probe' && (STARTED_SURFACE_FAILURES as readonly string[]).includes(detail)
+      || rootStage === 'manual-stack' && safeManualStackDetail
       || rootStage === 'advance' && safeAdvanceDetail
+      || safePriorityDetail
       || rootStage === 'post-actions' && (POST_ACTION_FAILURES as readonly string[]).includes(detail)
       ? scenario
       : rootStage;
@@ -279,7 +296,8 @@ export function classifyO4p09iProductionFailureV1(error: unknown): O4p09iProduct
       || stage === 'post-actions/leak-scan-bound'
       || stage === 'post-actions/probe-evaluation'
       || stage.startsWith('post-actions/transport-probe-')
-      || stage.startsWith('post-actions/session-probe-'))
+      || stage.startsWith('post-actions/session-probe-')
+      || stage === 'HOLD-pass-resolve/measurement-timeout')
       return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
     if (stage.endsWith('/player-transport-surface-missing'))
       return finalize({ class: 'EVIDENCE', code: 'EVIDENCE_HARNESS_FAILED', stage });
@@ -359,8 +377,6 @@ export const O4P09I_PUBLIC_DECK_TEXTS_V1 = Object.freeze([
   'Commander\n1 Muldrotha, the Gravetide\n\nDeck\n49 Forest\n50 Spore Frog',
 ] as const);
 const VIEWPORTS = Object.freeze([
-  Object.freeze({ width: 375, height: 812 }),
-  Object.freeze({ width: 812, height: 375 }),
   Object.freeze({ width: 1440, height: 900 }),
 ] as const);
 const UI_SEQUENCE = Object.freeze([
@@ -408,6 +424,45 @@ const SCENARIO_STAGES = Object.freeze([
   'visibility', 'private-leak-check', 'ui-action', 'post-actions', 'viewport-geometry', 'reconnect', 'finalize',
 ] as const);
 type O4p09iScenarioStageV1 = (typeof SCENARIO_STAGES)[number];
+const PREGAME_FAILURE_CHECKPOINTS = Object.freeze({
+  'visible pregame transition acknowledgement timeout': 'ack-timeout',
+  'pregame command rejected': 'rejected',
+  'pregame actor transition timeout': 'actor-timeout',
+  'pregame response probe invalid': 'probe-invalid',
+} as const);
+const PREGAME_FAILURE_STAGE_NAMES = Object.freeze(Object.values(PREGAME_FAILURE_CHECKPOINTS));
+
+const MANUAL_STACK_FAILURE_OPERATIONS = Object.freeze([
+  'guided-overlay-first', 'guided-overlay-repeat', 'manual-overlay', 'entry', 'resolve',
+] as const);
+const MANUAL_STACK_CONTROL_FAILURES = Object.freeze([
+  'control-missing', 'control-offscreen', 'control-covered', 'control-disabled', 'control-timeout',
+] as const);
+
+function manualStackControlFailure(error: unknown): (typeof MANUAL_STACK_CONTROL_FAILURES)[number] | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    const message = current.message;
+    if (message === 'visible control missing' || message === 'visible selector missing' || message === 'visible prefixed control missing') return 'control-missing';
+    if (message === 'visible control hidden' || message === 'visible selector hidden' || message === 'visible prefixed control hidden') return 'control-offscreen';
+    if (message === 'visible control covered' || message === 'visible selector covered' || message === 'visible prefixed control covered') return 'control-covered';
+    if (message === 'visible control disabled' || message === 'visible selector disabled' || message === 'visible prefixed control disabled') return 'control-disabled';
+    if ((message.startsWith('details ') || message.startsWith('control ') || message.startsWith('selector ') || message.startsWith('prefixed control ')) && message.endsWith(' timeout')) return 'control-timeout';
+    current = current.cause;
+  }
+  return null;
+}
+
+function pregameFailureCheckpoint(error: unknown): string | null {
+  let current: unknown = error;
+  for (let depth = 0; depth < 8 && current instanceof Error; depth += 1) {
+    const checkpoint = PREGAME_FAILURE_CHECKPOINTS[current.message as keyof typeof PREGAME_FAILURE_CHECKPOINTS];
+    if (checkpoint !== undefined) return checkpoint;
+    current = current.cause;
+  }
+  return null;
+}
+
 const STARTED_SURFACE_FAILURES = Object.freeze([
   'game-screen-missing/count', 'horizontal-overflow', 'opponent-leak', 'console-error', 'host-revision-missing',
   'start-rejected', 'start-pending', 'start-not-accepted',
@@ -567,7 +622,7 @@ type O4p09iScrollFactV1 = Readonly<{
 
 type O4p09iPrimaryActionFactV1 = Readonly<{
   readonly rect: O4p09iRectV1;
-  readonly enabled: true;
+  readonly enabled: boolean;
 }>;
 
 type O4p09iGeometryFactV1 = Readonly<{
@@ -611,7 +666,7 @@ export type O4p09iScenarioFactV1 = Readonly<{
   readonly cast: RemoteCastJourneyFactV1;
   /** Two-seat priority is a separately governed evidence lane; four-seat stays explicit null. */
   readonly priority: RemotePriorityJourneyFactV1 | null;
-  readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly continuous: true;
+  readonly revision: Readonly<{ readonly start: number; readonly afterSharedMutation: number; readonly afterReconnect: number; readonly afterPostReconnectMutation: number | null; readonly continuous: true;
   }>;
   readonly reconnect: Readonly<{
     readonly revision: number;
@@ -660,6 +715,18 @@ export type O4p09iEvidenceSummaryV1 = Readonly<{
 
 export type O4p09iSyntheticEvidenceSummaryV1 = Readonly<Omit<O4p09iEvidenceSummaryV1, 'kind'> & {
   readonly kind: 'o4p-09i-full-match-test-evidence-v1';
+}>;
+
+export type O4p09iLocalRehearsalSummaryV1 = Readonly<{
+  readonly kind: 'o4p-09i-full-match-local-rehearsal-v1';
+  readonly production: false;
+  readonly schemaVersion: 1;
+  readonly pagesOrigin: typeof O4P09I_LOCAL_PAGES_ORIGIN_V1;
+  readonly workerOrigin: typeof O4P09I_LOCAL_WORKER_ORIGIN_V1;
+  readonly chromeVersion: string;
+  readonly scenarios: O4p09iEvidenceSummaryV1['scenarios'];
+  readonly consoleCounts: O4p09iEvidenceSummaryV1['consoleCounts'];
+  readonly cleanup: O4p09iEvidenceSummaryV1['cleanup'];
 }>;
 
 export type O4p09iReliabilityEvidenceSummaryV1 = Readonly<{
@@ -762,7 +829,7 @@ function cloneGeometry(geometry: O4p09iGeometryFactV1): O4p09iGeometryFactV1 {
     battlefield: geometry.battlefield === null ? null : cloneRect(geometry.battlefield),
     seatRects: Object.freeze(geometry.seatRects.map(cloneRect)),
     boardRects: Object.freeze(geometry.boardRects.map(cloneRect)),
-    primaryAction: geometry.primaryAction === null ? null : Object.freeze({ rect: cloneRect(geometry.primaryAction.rect), enabled: true as const }),
+    primaryAction: geometry.primaryAction === null ? null : Object.freeze({ rect: cloneRect(geometry.primaryAction.rect), enabled: geometry.primaryAction.enabled }),
     panel: geometry.panel === null ? null : cloneRect(geometry.panel),
     scroll: geometry.scroll === null ? null : Object.freeze({
       rect: cloneRect(geometry.scroll.rect),
@@ -821,8 +888,9 @@ function validateGeometry(value: unknown, index: number): O4p09iGeometryFactV1 {
   let primaryAction: O4p09iPrimaryActionFactV1 | null = null;
   if (primaryValue !== null) {
     const primary = exact(primaryValue, ['rect', 'enabled'], `geometry ${index}.primaryAction malformed`);
-    if (own(primary, 'enabled') !== true) throw new Error(`geometry ${index}.primary action unavailable`);
-    primaryAction = Object.freeze({ rect: validateRect(own(primary, 'rect'), `geometry ${index}.primaryAction.rect`), enabled: true });
+    const enabled = own(primary, 'enabled');
+    if (typeof enabled !== 'boolean') throw new Error(`geometry ${index}.primary action state malformed`);
+    primaryAction = Object.freeze({ rect: validateRect(own(primary, 'rect'), `geometry ${index}.primaryAction.rect`), enabled });
   }
   const scrollValue = own(row, 'scroll');
   let scroll: O4p09iScrollFactV1 | null = null;
@@ -859,9 +927,7 @@ function validateViewport(value: unknown, index: number, expectedPlayers: 2 | 4)
   if (!Array.isArray(pageValues) || pageValues.length !== expectedPlayers) throw new Error(`viewport ${index} page geometry count mismatch`);
   const pageGeometries = Object.freeze(pageValues.map((entry, pageIndex) => validateGeometry(entry, index * expectedPlayers + pageIndex)));
   if (pageGeometries.some((entry) => entry.viewport.width !== width || entry.viewport.height !== height || entry.seatRects.length !== expectedPlayers - 1 || entry.boardRects.length !== expectedPlayers - 1)) throw new Error(`viewport ${index} public lane geometry mismatch`);
-  const normalizedWidth = width === 375 ? 375 : width === 812 ? 812 : 1440;
-  const normalizedHeight = height === 812 ? 812 : height === 375 ? 375 : 900;
-  return Object.freeze({ width: normalizedWidth, height: normalizedHeight, horizontalOverflow: 0, gameScreens: 1, consoleErrors: 0, geometry, pageGeometries });
+  return Object.freeze({ width, height, horizontalOverflow: 0, gameScreens: 1, consoleErrors: 0, geometry, pageGeometries });
 }
 
 function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: readonly string[]): O4p09iScenarioFactV1 {
@@ -892,11 +958,16 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
     }
     priority = Object.freeze({ startRevision, resolvedRevision, seatCount: 2, receiptsAccepted: true, revisionsConverged: true, holdConverged: true, priorityCycleComplete: true, capturedTopResolved: true });
   }
-  const revision = exact(own(row, 'revision'), ['start', 'afterSharedMutation', 'afterReconnect', 'continuous'], 'scenario revision malformed');
+  const revision = exact(own(row, 'revision'), ['start', 'afterSharedMutation', 'afterReconnect', 'afterPostReconnectMutation', 'continuous'], 'scenario revision malformed');
   const afterSharedMutation = own(revision, 'afterSharedMutation');
   const afterReconnect = own(revision, 'afterReconnect');
+  const afterPostReconnectMutation = own(revision, 'afterPostReconnectMutation');
   const start = own(revision, 'start');
-  if (!safeRevision(start) || !safeRevision(afterSharedMutation) || !safeRevision(afterReconnect) || start > afterSharedMutation || afterReconnect !== afterSharedMutation || own(revision, 'continuous') !== true) throw new Error('scenario revision continuity failed');
+  if (!safeRevision(start) || !safeRevision(afterSharedMutation) || !safeRevision(afterReconnect)
+    || (afterPostReconnectMutation !== null && !safeRevision(afterPostReconnectMutation))
+    || (expectedPlayers === 2 && afterPostReconnectMutation !== null)
+    || (expectedPlayers === 4 && (afterPostReconnectMutation === null || afterPostReconnectMutation <= afterReconnect))
+    || start > afterSharedMutation || afterReconnect !== afterSharedMutation || own(revision, 'continuous') !== true) throw new Error('scenario revision continuity failed');
   const reconnect = exact(own(row, 'reconnect'), ['revision', 'peerObservedDisconnected', 'recoveredSeatRejoined', 'presenceConverged', 'sharedPublicDigestConverged', 'privateAudienceIsolated', 'priorityStatePreserved'], 'reconnect evidence malformed');
   if (own(reconnect, 'revision') !== afterReconnect
     || own(reconnect, 'peerObservedDisconnected') !== true
@@ -922,7 +993,7 @@ function validateScenario(value: unknown, expectedPlayers: 2 | 4, fragments: rea
     actionKinds: Object.freeze(actionKinds.map((kind) => String(kind))),
     cast: Object.freeze({ acceptedRevision: castAcceptedRevision, seatCount: expectedPlayers, receiptAccepted: true, revisionsConverged: true, sharedStackTop: true }),
     priority,
-    revision: Object.freeze({ start, afterSharedMutation, afterReconnect, continuous: true }),
+    revision: Object.freeze({ start, afterSharedMutation, afterReconnect, afterPostReconnectMutation, continuous: true }),
     reconnect: Object.freeze({ revision: afterReconnect, peerObservedDisconnected: true, recoveredSeatRejoined: true, presenceConverged: true, sharedPublicDigestConverged: true, privateAudienceIsolated: true, priorityStatePreserved: true }),
     privateLookChoose: Object.freeze({ look: true, choose: true, crossSeatLeak: false }),
     unsupportedManual: Object.freeze({ stack: true, resolve: true }),
@@ -1016,14 +1087,14 @@ export function validateO4p09iFullMatchEvidenceV1(input: unknown, secretFragment
 async function clickVisible(page: O4p09iPageV1, testId: string, timeoutMs: number): Promise<void> {
   if (/applyCommand|dispatch\s*\(|fetch\s*\(|WebSocket|Core/iu.test(testId)) throw new Error('unsafe UI control');
   await Promise.race([
-    page.evaluate<boolean>(`(async () => { const deadline = Date.now() + ${String(timeoutMs)}; for (;;) { const node = document.querySelector('[data-testid="${testId}"]'); if (!(node instanceof HTMLElement)) { if (Date.now() >= deadline) throw new Error('visible control missing'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null; if (!visible) throw new Error('visible control hidden'); if (node instanceof HTMLButtonElement && node.disabled) { if (Date.now() >= deadline) throw new Error('visible control disabled'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } if (node instanceof HTMLInputElement && node.disabled) { if (Date.now() >= deadline) throw new Error('visible control disabled'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } node.click(); return true; } })()`),
+    page.evaluate<boolean>(`(async () => { const deadline = Date.now() + ${String(timeoutMs)}; for (;;) { const node = document.querySelector('[data-testid="${testId}"]'); if (!(node instanceof HTMLElement)) { if (Date.now() >= deadline) throw new Error('visible control missing'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } node.scrollIntoView({ block: 'center', inline: 'center' }); const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth && node.closest('details:not([open])') === null; if (!visible) throw new Error('visible control hidden'); const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2); if (hit !== node && !node.contains(hit)) throw new Error('visible control covered'); if (node instanceof HTMLButtonElement && node.disabled) { if (Date.now() >= deadline) throw new Error('visible control disabled'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } if (node instanceof HTMLInputElement && node.disabled) { if (Date.now() >= deadline) throw new Error('visible control disabled'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } node.click(); return true; } })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`control ${testId} timeout`)), timeoutMs)),
   ]);
 }
 
 async function clickVisibleSelector(page: O4p09iPageV1, selector: string, timeoutMs: number): Promise<void> {
   await Promise.race([
-    page.evaluate<boolean>(`(async () => { const deadline = Date.now() + ${String(timeoutMs)}; for (;;) { const node = document.querySelector(${JSON.stringify(selector)}); if (!(node instanceof HTMLElement)) { if (Date.now() >= deadline) throw new Error('visible selector missing'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) throw new Error('visible selector hidden'); if (node instanceof HTMLButtonElement && node.disabled) { if (Date.now() >= deadline) throw new Error('visible selector disabled'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } node.click(); return true; } })()`),
+    page.evaluate<boolean>(`(async () => { const deadline = Date.now() + ${String(timeoutMs)}; for (;;) { const node = document.querySelector(${JSON.stringify(selector)}); if (!(node instanceof HTMLElement)) { if (Date.now() >= deadline) throw new Error('visible selector missing'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } node.scrollIntoView({ block: 'center', inline: 'center' }); const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth || node.closest('details:not([open])') !== null) throw new Error('visible selector hidden'); const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2); if (hit !== node && !node.contains(hit)) throw new Error('visible selector covered'); if (node instanceof HTMLButtonElement && node.disabled) { if (Date.now() >= deadline) throw new Error('visible selector disabled'); await new Promise((resolve) => setTimeout(resolve, 25)); continue; } node.click(); return true; } })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`selector ${selector} timeout`)), timeoutMs)),
   ]);
 }
@@ -1034,8 +1105,11 @@ async function clickButtonByText(page: O4p09iPageV1, text: string, timeoutMs: nu
     const clicked = await page.evaluate<boolean>(`(() => {
       const target = [...document.querySelectorAll('button')].find((node) => (node.textContent ?? '').trim().includes(${JSON.stringify(text)}));
       if (!(target instanceof HTMLButtonElement)) return false;
+      target.scrollIntoView({ block: 'center', inline: 'center' });
       const style = getComputedStyle(target); const rect = target.getBoundingClientRect();
-      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || target.closest('details:not([open])') !== null || target.disabled) return false;
+      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth || target.closest('details:not([open])') !== null || target.disabled) return false;
+      const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
+      if (hit !== target && !target.contains(hit)) return false;
       target.click(); return true;
     })()`);
     if (clicked) return;
@@ -1100,6 +1174,8 @@ type O4p09iActorProbeV1 = Readonly<{
   readonly holdState: O4p09iHoldStateV1;
   readonly outcome: 'accepted' | 'rejected' | 'none';
   readonly acceptedRevision: number | null;
+  readonly baseRevision?: number | null;
+  readonly currentRevision?: number | null;
   readonly errorVisible: boolean;
   readonly operation: string;
   readonly issueCode: string;
@@ -1173,6 +1249,8 @@ async function actorControlProbe(
     holdState: 'invalid',
     outcome: 'none',
     acceptedRevision: null,
+    baseRevision: null,
+    currentRevision: null,
     errorVisible: false,
     operation: '',
     issueCode: '',
@@ -1195,6 +1273,10 @@ async function actorControlProbe(
       const outcome = outcomeValue === 'accepted' || outcomeValue === 'rejected' ? outcomeValue : 'none';
       const acceptedRevisionText = result?.getAttribute('data-accepted-revision') ?? '';
       const acceptedRevision = acceptedRevisionText === '' ? null : Number(acceptedRevisionText);
+      const baseRevisionText = result?.getAttribute('data-base-revision') ?? '';
+      const baseRevision = baseRevisionText === '' ? null : Number(baseRevisionText);
+      const currentRevisionText = result?.getAttribute('data-current-revision') ?? '';
+      const currentRevision = currentRevisionText === '' ? null : Number(currentRevisionText);
       const errorNode = document.querySelector('[data-testid="online-error"]');
       const operation = ${JSON.stringify(testId)} === 'online-remote-sba-stable' && result instanceof HTMLElement
         ? 'sba-check-outcome'
@@ -1232,15 +1314,82 @@ async function actorControlProbe(
         if (pressed === 'false' && status === '他プレイヤーがHOLD中') return 'peer';
         return 'invalid';
       })();
-      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt, projectionRequestsSent, projectionFramesReceived, projectionFramesAccepted, projectionFramesRejected };
+      if (!(node instanceof HTMLButtonElement)) return { enabled: false, present: false, visible: false, revision, holdState, outcome, acceptedRevision, baseRevision, currentRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt, projectionRequestsSent, projectionFramesReceived, projectionFramesAccepted, projectionFramesRejected };
       const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
       const visible = !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
-      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt, projectionRequestsSent, projectionFramesReceived, projectionFramesAccepted, projectionFramesRejected };
+      return { enabled: visible && !node.disabled, present: true, visible, revision, holdState, outcome, acceptedRevision, baseRevision, currentRevision, errorVisible, operation, issueCode, commandId, localPlayerId, holderPlayerId, stewardPlayerId, windowKind, holds, playerPhase, pendingCount, knownRevision, projectionRevision, appBusy, connectionEpoch, recoveryAttempt, projectionRequestsSent, projectionFramesReceived, projectionFramesAccepted, projectionFramesRejected };
     })()`),
     new Promise<never>((_resolve, reject) =>
       setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
     )
   ]);
+}
+
+type O4p09iPublicActionAuthorityProbeV1 = Readonly<{
+  readonly enabled: boolean;
+  readonly revision: number;
+  readonly localPlayerId: string | null;
+  readonly activePlayerId: string | null;
+  readonly holderPlayerId: string | null;
+  readonly stewardPlayerId: string | null;
+  readonly windowKind: string;
+}>;
+
+async function publicActionAuthorityProbe(
+  page: O4p09iPageV1,
+  action: 'active-priority' | 'active-combat' | 'steward',
+  timeoutMs: number,
+): Promise<O4p09iPublicActionAuthorityProbeV1> {
+  return Promise.race([
+    page.evaluate<O4p09iPublicActionAuthorityProbeV1>(`(() => { // publicActionAuthorityProbe:${action}
+      const rail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const state = document.querySelector('[data-testid="online-remote-state"]')?.textContent ?? '';
+      const localPlayerId = rail?.getAttribute('data-local-player-id') || null;
+      const holderPlayerId = rail?.getAttribute('data-priority-holder-player-id') || null;
+      const stewardPlayerId = rail?.getAttribute('data-priority-steward-player-id') || null;
+      const windowKind = rail?.getAttribute('data-priority-window-kind') ?? '';
+      const activePlayerId = /^\\s*手番:\\s*([^/\\s]+)/u.exec(state)?.[1] ?? null;
+      const revision = Number(rail?.getAttribute('data-projection-revision') ?? '-1');
+      const enabled = ${JSON.stringify(action)} === 'steward'
+        ? localPlayerId !== null && localPlayerId === stewardPlayerId
+        : ${JSON.stringify(action)} === 'active-combat'
+          ? localPlayerId !== null && localPlayerId === activePlayerId
+            && (holderPlayerId === null || holderPlayerId === '' || holderPlayerId === localPlayerId)
+          : localPlayerId !== null && localPlayerId === activePlayerId
+            && localPlayerId === holderPlayerId
+            && windowKind === 'priority';
+      return { enabled, revision, localPlayerId, activePlayerId, holderPlayerId, stewardPlayerId, windowKind };
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('public action authority probe timeout')), timeoutMs)),
+  ]);
+}
+
+async function findPublicActionAuthorityPage(
+  pages: readonly O4p09iPageV1[],
+  action: 'active-priority' | 'active-combat' | 'steward',
+  timeoutMs: number,
+): Promise<{ readonly page: O4p09iPageV1; readonly revision: number; readonly localPlayerId: string }> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error(`actor-selection-${action}`);
+    const results = await Promise.allSettled(pages.map((page) => publicActionAuthorityProbe(page, action, remaining)));
+    const probes = results.flatMap((result, index) => result.status === 'fulfilled' && pages[index] !== undefined
+      ? [{ page: pages[index], probe: result.value }]
+      : []);
+    const valid = probes.filter(({ probe }) => Number.isSafeInteger(probe.revision) && probe.revision >= 0);
+    const revisions = new Set(valid.map(({ probe }) => probe.revision));
+    if (valid.length === pages.length && revisions.size === 1) {
+      const enabled = valid.filter(({ probe }) => probe.enabled);
+      if (enabled.length > 1) throw new Error(`actor-selection-${action}-ambiguous`);
+      const selected = enabled[0];
+      if (selected !== undefined && selected.probe.localPlayerId !== null) {
+        return { page: selected.page, revision: selected.probe.revision, localPlayerId: selected.probe.localPlayerId };
+      }
+    }
+    if (Date.now() >= deadline) throw new Error(`actor-selection-${action}`);
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+  }
 }
 
 type O4p09iTransportTimelineSampleV1 = Readonly<{
@@ -1312,6 +1461,15 @@ class O4p09iProgressRejectedError extends Error {
   constructor(checkpoint: O4p09iAdvanceFailureCheckpointV1) {
     super('visible progress operation rejected');
     this.checkpoint = checkpoint;
+  }
+}
+
+class O4p09iPriorityRejectedError extends Error {
+  readonly issueCode: string;
+
+  constructor(issueCode: string) {
+    super('priority command rejected');
+    this.issueCode = issueCode;
   }
 }
 
@@ -1584,9 +1742,7 @@ async function clickPriorityAndAwaitConvergence(
   actor: O4p09iPageV1,
   testId: string,
   baseline: number,
-  workerOrigin: string,
   timeoutMs: number,
-  secretFragments: readonly string[]
 ): Promise<number> {
   const operation = testId === 'online-remote-hold'
     ? 'priority-hold'
@@ -1601,23 +1757,37 @@ async function clickPriorityAndAwaitConvergence(
   await clickVisible(actor, testId, timeoutMs);
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const probes = await Promise.all(
-      pages.map((page) =>
-        probePage(
-          page,
-          Math.min(1_000, Math.max(1, deadline - Date.now())),
-          workerOrigin,
-          secretFragments
-        )
-      )
-    );
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error(`${testId} revision convergence timeout`);
+    let probes: readonly O4p09iActorProbeV1[];
+    try {
+      probes = await Promise.all(pages.map((page) => actorControlProbe(
+        page,
+        testId,
+        remaining,
+        `${testId} priority measurement probe timeout`,
+      )));
+    } catch (error) {
+      if (error instanceof Error && error.message === `${testId} priority measurement probe timeout`) {
+        throw new Error('priority measurement timeout', { cause: error });
+      }
+      throw error;
+    }
     const revision = probes[0]?.revision ?? 0;
-    const settlement = probes[actorIndex]?.prioritySettlement ?? null;
+    const settlement = probes[actorIndex];
+    if (
+      settlement !== undefined
+      && settlement.operation === operation
+      && settlement.baseRevision === baseline
+      && settlement.outcome === 'rejected'
+    ) {
+      throw new O4p09iPriorityRejectedError(transportIssueCodeV1(settlement.issueCode) ?? 'other');
+    }
     if (
       safeRevision(revision) &&
       revision === baseline + 1 &&
       probes.every((probe) => safeRevision(probe.revision) && probe.revision === revision) &&
-      settlement !== null &&
+      settlement !== undefined &&
       settlement.operation === operation &&
       settlement.outcome === 'accepted' &&
       settlement.baseRevision === baseline &&
@@ -1642,14 +1812,21 @@ async function waitForResolvedTopConvergence(
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const probes = await Promise.all(
-      pages.map((page) => probePage(
-        page,
-        Math.min(1_000, Math.max(1, deadline - Date.now())),
-        workerOrigin,
-        secretFragments
-      ))
-    );
+    let probes: readonly O4p09iProbeV1[];
+    try {
+      probes = await Promise.all(
+        pages.map((page) => probePage(
+          page,
+          Math.max(1, deadline - Date.now()),
+          workerOrigin,
+          secretFragments
+        ))
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message === 'page probe timeout')
+        throw new Error('priority measurement timeout', { cause: error });
+      throw error;
+    }
     const resolution = probes[0]?.postResolution ?? null;
     if (
       resolution !== null &&
@@ -1814,31 +1991,104 @@ async function clickPregameActorControl(page: O4p09iPageV1, testId: string): Pro
   return page.evaluate<boolean>(`(() => { // pregameActorControlProbe
     const node = document.querySelector('[data-testid="${testId}"]');
     if (!(node instanceof HTMLElement)) return false;
+    node.scrollIntoView({ block: 'center', inline: 'center' });
     const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
-    if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) return false;
+    if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth || node.closest('details:not([open])') !== null) return false;
+    const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
+    if (hit !== node && !node.contains(hit)) return false;
     if (node instanceof HTMLButtonElement && node.disabled) return false;
     node.click(); return true;
   })()`);
 }
 
+type O4p09iPregameSurfaceV1 = Readonly<{
+  readonly revision: number;
+  readonly phase: string;
+}>;
+
+async function readPregameSurface(
+  page: O4p09iPageV1,
+  timeoutMs: number,
+): Promise<O4p09iPregameSurfaceV1> {
+  try {
+    return await Promise.race([
+      page.evaluate<O4p09iPregameSurfaceV1>(`(() => { // pregameSurfaceProbe
+        const layer = document.querySelector('[data-pregame-layer="true"]');
+        const visible = (node) => {
+          if (!(node instanceof HTMLElement)) return false;
+          const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+          return !node.hidden && node.getAttribute('aria-hidden') !== 'true'
+            && style.display !== 'none' && style.visibility !== 'hidden'
+            && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+        };
+        if (!visible(layer)) return { revision: -1, phase: '' };
+        const revisionNode = layer.querySelector('[data-testid="online-pregame-revision"]');
+        return {
+          revision: Number(revisionNode?.getAttribute('data-projection-revision') ?? '-1'),
+          phase: layer.getAttribute('data-pregame-phase') ?? '',
+        };
+      })()`),
+      new Promise<never>((_resolve, reject) =>
+        setTimeout(() => reject(new Error('pregame response probe invalid')), timeoutMs)
+      ),
+    ]);
+  } catch (error) {
+    rethrowProductionEnvironmentFailure(error, 'progress-probe');
+    throw error;
+  }
+}
+
+async function waitForPregameConvergence(
+  pages: readonly O4p09iPageV1[],
+  timeoutMs: number,
+): Promise<O4p09iPregameSurfaceV1> {
+  const deadline = Date.now() + timeoutMs;
+  let invalidSurface = false;
+  for (;;) {
+    const surfaces = await Promise.all(pages.map((page) => readPregameSurface(
+      page,
+      Math.min(1_000, Math.max(1, deadline - Date.now())),
+    )));
+    const first = surfaces[0];
+    const valid = first !== undefined
+      && safeRevision(first.revision)
+      && first.phase !== ''
+      && surfaces.length === pages.length
+      && surfaces.every((surface) => safeRevision(surface.revision) && surface.phase !== '');
+    if (valid && surfaces.every((surface) => surface.revision === first.revision && surface.phase === first.phase)) return first;
+    invalidSurface ||= !valid;
+    if (Date.now() >= deadline) {
+      throw new Error(invalidSurface ? 'pregame response probe invalid' : 'pregame actor transition timeout');
+    }
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now())))
+    );
+  }
+}
+
 async function drivePregamePhase(pages: readonly O4p09iPageV1[], playerCount: 2 | 4, testId: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  let completed = 0;
-  while (completed < playerCount) {
+  const completedSeats = new Set<number>();
+  while (completedSeats.size < playerCount) {
     let progressed = false;
-    for (const page of pages) {
+    for (const [seatIndex, page] of pages.entries()) {
+      if (completedSeats.has(seatIndex)) continue;
       if (Date.now() >= deadline) break;
-      const baseline = (await probePage(page, Math.min(timeoutMs, 1_000), workerOrigin, secretFragments)).revision;
+      const converged = await waitForPregameConvergence(
+        pages,
+        Math.min(timeoutMs, Math.max(250, deadline - Date.now())),
+      );
+      const baseline = converged.revision;
       const clicked = await clickPregameActorControl(page, testId);
       if (!clicked) continue;
       progressed = true;
-      completed += 1;
-      recordControl(testId);
-      const terminalReady = testId === 'pregame-ready' && completed >= playerCount;
+      const terminalReady = testId === 'pregame-ready' && completedSeats.size + 1 >= playerCount;
       await waitForPregameTransition(page, workerOrigin, baseline, Math.min(timeoutMs, Math.max(250, deadline - Date.now())), secretFragments, terminalReady);
+      completedSeats.add(seatIndex);
+      recordControl(testId);
       break;
     }
-    if (completed >= playerCount) return;
+    if (completedSeats.size >= playerCount) return;
     if (Date.now() >= deadline) throw new Error('pregame actor transition timeout');
     if (!progressed) await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
@@ -2029,6 +2279,17 @@ async function openOnlineFromSavedDeck(page: O4p09iPageV1, timeoutMs: number): P
   }
 }
 
+async function requireLocalRehearsalSurface(page: O4p09iPageV1): Promise<void> {
+  const valid = await page.evaluate<boolean>(`(() => {
+    const app = document.querySelector('[data-testid="public-online-app"]');
+    return location.origin === ${JSON.stringify(new URL(O4P09I_LOCAL_PAGES_ORIGIN_V1).origin)}
+      && app instanceof HTMLElement
+      && app.getAttribute('data-online-runtime-realm') === 'local-rehearsal'
+      && app.getAttribute('data-online-runtime-endpoint') === ${JSON.stringify(O4P09I_LOCAL_WORKER_ORIGIN_V1)};
+  })()`);
+  if (!valid) throw new Error('local rehearsal surface invalid');
+}
+
 async function selectFirstVisibleOption(page: O4p09iPageV1, testId: string, timeoutMs: number): Promise<void> {
   await Promise.race([
     page.evaluate<boolean>(`(() => {
@@ -2047,9 +2308,40 @@ async function selectFirstVisibleOption(page: O4p09iPageV1, testId: string, time
   ]);
 }
 
+async function selectVisibleOptionValue(page: O4p09iPageV1, testId: string, value: string, timeoutMs: number): Promise<void> {
+  await Promise.race([
+    page.evaluate<boolean>(`(() => {
+      const node = document.querySelector('[data-testid="${testId}"]');
+      if (!(node instanceof HTMLSelectElement)) throw new Error('visible select missing');
+      const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+      if (node.hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) throw new Error('visible select hidden');
+      if (node.disabled) throw new Error('visible select disabled');
+      const option = [...node.options].find((entry) => entry.value === ${JSON.stringify(value)} && !entry.disabled);
+      if (option === undefined) throw new Error('visible select has no requested choice');
+      node.value = option.value;
+      node.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`select ${testId} timeout`)), timeoutMs)),
+  ]);
+}
+
 async function selectFirstVisibleSelector(page: O4p09iPageV1, selector: string, timeoutMs: number): Promise<void> {
   await Promise.race([
     page.evaluate<boolean>(`(() => { const node = document.querySelector(${JSON.stringify(selector)}); if (!(node instanceof HTMLSelectElement)) throw new Error('visible selector missing'); const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); if (node.hidden || style.display === 'none' || style.visibility === 'hidden' || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) throw new Error('visible selector hidden'); if (node.disabled) throw new Error('visible selector disabled'); const option = [...node.options].find((entry) => entry.value !== '' && !entry.disabled); if (option === undefined) throw new Error('visible selector has no choice'); node.value = option.value; node.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`selector ${selector} timeout`)), timeoutMs)),
+  ]);
+}
+
+async function selectVisibleSelectorByPhysicalCardPrefix(
+  page: O4p09iPageV1,
+  selector: string,
+  physicalCardPrefix: string,
+  excludedObjectId: string,
+  timeoutMs: number,
+): Promise<void> {
+  await Promise.race([
+    page.evaluate<boolean>(`(() => { const node = document.querySelector(${JSON.stringify(selector)}); if (!(node instanceof HTMLSelectElement)) throw new Error('visible selector missing'); const style = getComputedStyle(node); const rect = node.getBoundingClientRect(); if (node.hidden || style.display === 'none' || style.visibility === 'hidden' || rect.width <= 0 || rect.height <= 0 || node.closest('details:not([open])') !== null) throw new Error('visible selector hidden'); if (node.disabled) throw new Error('visible selector disabled'); const option = [...node.options].find((entry) => entry.value !== '' && entry.value !== ${JSON.stringify(excludedObjectId)} && entry.value.startsWith(${JSON.stringify(physicalCardPrefix)}) && !entry.disabled); if (option === undefined) throw new Error('visible selector has no matching choice'); node.value = option.value; node.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`selector ${selector} timeout`)), timeoutMs)),
   ]);
 }
@@ -2059,13 +2351,108 @@ async function clickFirstVisiblePrefix(page: O4p09iPageV1, prefix: string, timeo
     page.evaluate<boolean>(`(() => {
       const target = [...document.querySelectorAll('[data-testid^="${prefix}"]')].find((node) => node instanceof HTMLButtonElement);
       if (!(target instanceof HTMLButtonElement)) throw new Error('visible prefixed control missing');
+      target.scrollIntoView({ block: 'center', inline: 'center' });
       const style = getComputedStyle(target); const rect = target.getBoundingClientRect();
-      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || target.closest('details:not([open])') !== null) throw new Error('visible prefixed control hidden');
+      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth || target.closest('details:not([open])') !== null) throw new Error('visible prefixed control hidden');
+      const hit = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
+      if (hit !== target && !target.contains(hit)) throw new Error('visible prefixed control covered');
       if (target.disabled) throw new Error('visible prefixed control disabled');
       target.click(); return true;
     })()`),
     new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`prefixed control ${prefix} timeout`)), timeoutMs)),
   ]);
+}
+
+async function readVisibleChooseCount(page: O4p09iPageV1, timeoutMs: number): Promise<number> {
+  const count = await Promise.race([
+    page.evaluate<number>(`(() => { // privateChooseSelectorProbe
+      const visible = (node) => {
+        if (!(node instanceof HTMLButtonElement)) return false;
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        return !node.hidden && node.getAttribute('aria-hidden') !== 'true'
+          && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0
+          && rect.width > 0 && rect.height > 0
+          && rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth
+          && node.closest('details:not([open])') === null;
+      };
+      return [...document.querySelectorAll('[data-testid^="visibility-choose-"]')].filter(visible).length;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choose selector probe timeout')), timeoutMs)),
+  ]);
+  if (!Number.isSafeInteger(count) || count < 0) throw new Error('private choose selector probe invalid');
+  return count;
+}
+
+async function readRenderedChooseCount(page: O4p09iPageV1, timeoutMs: number): Promise<number> {
+  const count = await Promise.race([
+    page.evaluate<number>(`(() => { // privateChooseRenderedProbe
+      const rendered = (node) => {
+        if (!(node instanceof HTMLButtonElement)) return false;
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        return !node.hidden && node.getAttribute('aria-hidden') !== 'true'
+          && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0
+          && rect.width > 0 && rect.height > 0
+          && node.closest('details:not([open])') === null;
+      };
+      return [...document.querySelectorAll('[data-testid^="visibility-choose-"]')].filter(rendered).length;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choose rendered probe timeout')), timeoutMs)),
+  ]);
+  if (!Number.isSafeInteger(count) || count < 0) throw new Error('private choose rendered probe invalid');
+  return count;
+}
+
+async function scrollRenderedChooseControl(page: O4p09iPageV1, timeoutMs: number): Promise<void> {
+  await Promise.race([
+    page.evaluate<boolean>(`(() => { // privateChooseScrollProbe
+      const target = [...document.querySelectorAll('[data-testid^="visibility-choose-"]')].find((node) => node instanceof HTMLButtonElement);
+      if (!(target instanceof HTMLButtonElement)) throw new Error('rendered private choose control missing');
+      const style = getComputedStyle(target); const rect = target.getBoundingClientRect();
+      if (target.hidden || target.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0 || rect.width <= 0 || rect.height <= 0 || target.closest('details:not([open])') !== null) throw new Error('rendered private choose control hidden');
+      target.scrollIntoView({ block: 'center', inline: 'center' });
+      return true;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choose scroll timeout')), timeoutMs)),
+  ]);
+}
+
+async function readVisibleChoiceCheckedCount(page: O4p09iPageV1, timeoutMs: number): Promise<number> {
+  const count = await Promise.race([
+    page.evaluate<number>(`(() => { // privateChoiceCheckedProbe
+      const visible = (node) => {
+        if (!(node instanceof HTMLInputElement)) return false;
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        return !node.hidden && node.getAttribute('aria-hidden') !== 'true'
+          && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0
+          && rect.width > 0 && rect.height > 0
+          && rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth
+          && node.closest('details:not([open])') === null;
+      };
+      return [...document.querySelectorAll('[data-testid^="visibility-choice-"] input[type="checkbox"]')]
+        .filter(visible)
+        .filter((node) => node.checked).length;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('private choice checked probe timeout')), timeoutMs)),
+  ]);
+  if (!Number.isSafeInteger(count) || count < 0) throw new Error('private choice checked probe invalid');
+  return count;
+}
+
+async function findVisibilitySelectorPage(
+  pages: readonly O4p09iPageV1[],
+  timeoutMs: number,
+): Promise<O4p09iPageV1> {
+  const probes = await Promise.all(pages.map(async (page) => {
+    await toggleDetails(page, 'online-remote-manual-overlay', timeoutMs);
+    return { page, count: await readRenderedChooseCount(page, timeoutMs) };
+  }));
+  const candidates = probes.filter(({ count }) => count > 0);
+  if (candidates.length !== 1) throw new Error('private choose selector ambiguous');
+  const selected = candidates[0];
+  if (selected === undefined) throw new Error('private choose selector missing');
+  await scrollRenderedChooseControl(selected.page, timeoutMs);
+  if (await readVisibleChooseCount(selected.page, timeoutMs) !== 1) throw new Error('private choose selector not visible');
+  return selected.page;
 }
 
 type O4p09iPrivateChoicePayloadV1 = Readonly<{
@@ -2099,7 +2486,9 @@ async function readPrivateChoicePayload(page: O4p09iPageV1, timeoutMs: number): 
       readonly tokens: number;
       readonly bytes: number;
     }>>(`(() => { // privateChoicePayload
-      const roots = [...document.querySelectorAll('[data-testid^="visibility-choice-"], [data-testid^="visibility-choose-"], [data-private-choice], [data-choice-handle], input[type="checkbox"]')];
+      const controlRoots = [...document.querySelectorAll('[data-testid^="visibility-choose-"]')];
+      const candidateInputs = [...document.querySelectorAll('[data-testid^="visibility-choice-"]:not([data-testid="visibility-choice-count"]) input[type="checkbox"][value]')];
+      const roots = [...controlRoots, ...candidateInputs];
       let complete = roots.length < ${String(MAX_PRIVATE_ROOTS_V1)};
       let attributes = 0;
       let values = 0;
@@ -2113,29 +2502,16 @@ async function readPrivateChoicePayload(page: O4p09iPageV1, timeoutMs: number): 
         bytes += size;
         return value;
       };
-      const rows = roots.slice(0, ${String(MAX_PRIVATE_ROOTS_V1)}).map((node) => {
-        const allAttributes = [...node.attributes];
-        if (allAttributes.length >= ${String(MAX_PRIVATE_ATTRIBUTES_PER_ROOT_V1)}) complete = false;
-        const attrs = allAttributes.slice(0, ${String(MAX_PRIVATE_ATTRIBUTES_PER_ROOT_V1)}).map((attribute) => {
-          attributes += 1;
-          return [appendToken(attribute.name), appendToken(attribute.value)];
-        });
-        const allValues = [...node.querySelectorAll('input, option')];
-        if (allValues.length >= ${String(MAX_PRIVATE_VALUES_PER_ROOT_V1)}) complete = false;
-        const valuesForRoot = allValues.slice(0, ${String(MAX_PRIVATE_VALUES_PER_ROOT_V1)}).map((child) => {
-          values += 1;
-          return 'value' in child && typeof child.value === 'string' ? appendToken(child.value) : '';
-        }).filter((value) => value !== '');
-        const text = appendToken(node.textContent ?? '');
-        return { attrs, values: valuesForRoot, text };
-      });
-      const identifiers = rows.flatMap((row) => row.attrs.filter(([name, value]) => name.startsWith('data-testid') && value.startsWith('visibility-choose-')).map(([, value]) => value)).filter((value) => value !== '');
-      const candidateHandles = rows.flatMap((row) => [
-        ...row.attrs.flatMap(([name, value]) => [name, value]),
-        ...row.values,
-        ...(row.text === '' ? [] : [row.text]),
-      ]).filter((value) => value.length >= 1);
-      const serializedCandidate = JSON.stringify(rows);
+      const identifiers = controlRoots.slice(0, ${String(MAX_PRIVATE_ROOTS_V1)}).map((node) => {
+        attributes += 1;
+        return appendToken(node.getAttribute('data-testid') ?? '');
+      }).filter((value) => value !== '');
+      const candidateHandles = candidateInputs.slice(0, ${String(MAX_PRIVATE_ROOTS_V1)}).map((node) => {
+        values += 1;
+        return appendToken(node.value);
+      }).filter((value) => value !== '');
+      if (controlRoots.length >= ${String(MAX_PRIVATE_ROOTS_V1)} || candidateInputs.length >= ${String(MAX_PRIVATE_VALUES_PER_ROOT_V1)}) complete = false;
+      const serializedCandidate = JSON.stringify({ identifiers, candidateHandles });
       if (new TextEncoder().encode(serializedCandidate).byteLength >= ${String(MAX_PRIVATE_CAPTURE_BYTES_V1)}) complete = false;
       const serialized = complete ? serializedCandidate : '';
       return { identifiers, candidateHandles, serialized, complete, roots: roots.length, attributes, values, tokens, bytes };
@@ -2242,27 +2618,74 @@ async function toggleDetails(page: O4p09iPageV1, testId: string, timeoutMs: numb
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw new Error(`details ${testId} timeout`);
     const opened = await Promise.race([
-      page.evaluate<boolean>(`(() => { // detailsPanelReadyProbe:${testId}
+      page.evaluate<boolean | 'control-missing' | 'control-offscreen' | 'control-covered'>(`(() => { // detailsPanelReadyProbe:${testId}
       const details = document.querySelector('[data-testid="${testId}"]');
       if (!(details instanceof HTMLDetailsElement)) return false;
-      if (!details.open) {
-        const summary = details.querySelector('summary');
-        const summaryStyle = summary instanceof HTMLElement ? getComputedStyle(summary) : null;
-        const summaryRect = summary instanceof HTMLElement ? summary.getBoundingClientRect() : null;
-        if (!(summary instanceof HTMLElement) || summaryStyle === null || summaryRect === null
-          || summary.hidden || summary.getAttribute('aria-hidden') === 'true'
-          || summaryStyle.display === 'none' || summaryStyle.visibility === 'hidden'
-          || Number(summaryStyle.opacity || '1') <= 0 || summaryRect.width <= 0 || summaryRect.height <= 0) return false;
-        summary.click();
+      const targetSummary = details.querySelector('summary');
+      if (details.open) {
+        if (!(targetSummary instanceof HTMLElement)) return 'control-missing';
+        const style = getComputedStyle(details); const rect = details.getBoundingClientRect();
+        return !details.hidden && details.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0
+          ? true : 'control-offscreen';
       }
-      const style = getComputedStyle(details); const rect = details.getBoundingClientRect();
-      return details.open && !details.hidden && details.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
+      const fallback = document.querySelector('[data-testid="online-remote-manual-fallback"]');
+      if (!(fallback instanceof HTMLDetailsElement)) return false;
+      const summary = fallback.querySelector('summary');
+      const summaryStyle = summary instanceof HTMLElement ? getComputedStyle(summary) : null;
+      const summaryRect = summary instanceof HTMLElement ? summary.getBoundingClientRect() : null;
+      if (!(summary instanceof HTMLElement) || summaryStyle === null || summaryRect === null) return 'control-missing';
+      if (summary.hidden || summary.getAttribute('aria-hidden') === 'true'
+        || summaryStyle.display === 'none' || summaryStyle.visibility === 'hidden'
+        || Number(summaryStyle.opacity || '1') <= 0 || summaryRect.width <= 0 || summaryRect.height <= 0) return 'control-offscreen';
+      summary.scrollIntoView({ block: 'center', inline: 'center' });
+      const centeredSummaryRect = summary.getBoundingClientRect();
+      const summaryHit = document.elementFromPoint((centeredSummaryRect.left + centeredSummaryRect.right) / 2, (centeredSummaryRect.top + centeredSummaryRect.bottom) / 2);
+      if (centeredSummaryRect.top < 0 || centeredSummaryRect.left < 0 || centeredSummaryRect.bottom > window.innerHeight || centeredSummaryRect.right > window.innerWidth
+        || (summaryHit !== summary && !summary.contains(summaryHit))) return 'control-covered';
+      if (!fallback.open) {
+        summary.click();
+        return false;
+      }
+      const link = fallback.querySelector('a[href="#${testId}"]');
+      if (!(link instanceof HTMLAnchorElement)) return 'control-missing';
+      link.scrollIntoView({ block: 'center', inline: 'center' });
+      const linkStyle = getComputedStyle(link); const linkRect = link.getBoundingClientRect();
+      if (link.hidden || link.getAttribute('aria-hidden') === 'true' || linkStyle.display === 'none' || linkStyle.visibility === 'hidden'
+        || Number(linkStyle.opacity || '1') <= 0 || linkRect.width <= 0 || linkRect.height <= 0 || linkRect.top < 0 || linkRect.left < 0
+        || linkRect.bottom > window.innerHeight || linkRect.right > window.innerWidth) return 'control-offscreen';
+      const linkHit = document.elementFromPoint((linkRect.left + linkRect.right) / 2, (linkRect.top + linkRect.bottom) / 2);
+      if (linkHit !== link && !link.contains(linkHit)) return 'control-covered';
+      link.click();
+      return details.open;
     })()`),
       new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error(`details ${testId} timeout`)), remaining)),
     ]);
-    if (opened) return;
+    if (opened === true) return;
+    if (opened !== false) throw new Error(opened);
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(25, Math.max(1, deadline - Date.now()))));
   }
+}
+
+async function prepareGeometryPage(page: O4p09iPageV1, timeoutMs: number): Promise<void> {
+  await Promise.race([
+    page.evaluate<boolean>(`(() => {
+      const owner = document.querySelector('[data-testid="online-remote-actions-rail"]')
+        ?? document.querySelector('[data-testid="online-remote-game-rail"]');
+      if (!(owner instanceof HTMLElement)) return false;
+      const visible = (node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const style = getComputedStyle(node); const rect = node.getBoundingClientRect();
+        return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && style.display !== 'none' && style.visibility !== 'hidden'
+          && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0 && node.closest('details:not([open])') === null;
+      };
+      const candidates = [...owner.querySelectorAll('button.online-remote-rail__primary-action, button[data-testid^="online-"]')].filter(visible);
+      const target = candidates.find((node) => !node.disabled) ?? candidates.find((node) => node.disabled) ?? null;
+      if (!(target instanceof HTMLElement)) return false;
+      target.scrollIntoView({ block: 'nearest', inline: 'center' });
+      return true;
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('geometry primary control preparation timeout')), timeoutMs)),
+  ]);
 }
 
 async function manualStackControlEnabled(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iActorProbeV1> {
@@ -2474,6 +2897,42 @@ async function waitForJourneyEvidence(page: O4p09iPageV1, playerCount: 2 | 4, wo
   }
 }
 
+type O4p09iCombatSurfaceProbeV1 = Readonly<{
+  readonly present: boolean;
+  readonly rendered: boolean;
+  readonly step: 'declare-attackers' | 'declare-blockers' | null;
+  readonly revision: number;
+  readonly playerPhase: string;
+  readonly pendingCount: number;
+  readonly knownRevision: number;
+  readonly projectionRevision: number;
+  readonly appBusy: string;
+}>;
+
+async function probeCombatSurface(page: O4p09iPageV1, timeoutMs: number): Promise<O4p09iCombatSurfaceProbeV1> {
+  return Promise.race([
+    page.evaluate<O4p09iCombatSurfaceProbeV1>(`(() => { // combatSurfaceProbe
+      const app = document.querySelector('[data-testid="public-online-app"]');
+      const rail = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const combat = document.querySelector('[data-testid="online-remote-combat"]');
+      const text = combat?.textContent ?? '';
+      const step = text.includes('攻撃指定') ? 'declare-attackers' : text.includes('ブロック指定') ? 'declare-blockers' : null;
+      return {
+        present: combat instanceof HTMLElement,
+        rendered: combat instanceof HTMLElement && step !== null,
+        step,
+        revision: Number(rail?.getAttribute('data-projection-revision') ?? '-1'),
+        playerPhase: app?.getAttribute('data-player-phase') ?? '',
+        pendingCount: Number(app?.getAttribute('data-player-pending-count') ?? '-1'),
+        knownRevision: Number(app?.getAttribute('data-player-known-revision') ?? '-1'),
+        projectionRevision: Number(app?.getAttribute('data-player-projection-revision') ?? '-1'),
+        appBusy: app?.getAttribute('data-online-busy') ?? '',
+      };
+    })()`),
+    new Promise<never>((_resolve, reject) => setTimeout(() => reject(new Error('combat surface probe timeout')), timeoutMs)),
+  ]);
+}
+
 async function advanceUntilPhase(
   pages: readonly O4p09iPageV1[], targetPhase: string, workerOrigin: string, timeoutMs: number, secretFragments: readonly string[], recordControl: (testId: string) => void,
   setCheckpoint: (checkpoint: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number]) => void,
@@ -2492,8 +2951,31 @@ async function advanceUntilPhase(
     const matchingRevision = snapshots.every(
       (probe) => safeRevision(probe.revision) && probe.revision === current.revision
     );
-    if (targetCount === snapshots.length && matchingRevision) return current;
-    if (targetCount > 0 || !matchingRevision) {
+    const targetNeedsProgress = targetCount === snapshots.length
+      && matchingRevision
+      && targetPhase === 'main1'
+      && snapshots.some((probe) => probe.priorityWindowKind !== 'priority');
+    let combatSurface: readonly O4p09iCombatSurfaceProbeV1[] | null = null;
+    if (targetPhase === 'combat' && targetCount === snapshots.length && matchingRevision) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      combatSurface = await Promise.all(pages.map((page) => probeCombatSurface(page, remaining)));
+    }
+    const combatNeedsProgress = targetPhase === 'combat'
+      && combatSurface !== null
+      && combatSurface.every((probe) => !probe.present);
+    const needsProgress = targetNeedsProgress || combatNeedsProgress;
+    const combatReady = targetPhase !== 'combat' || (combatSurface !== null
+      && combatSurface.every((probe) => probe.rendered
+        && probe.step === 'declare-attackers'
+        && probe.revision === current.revision
+        && probe.playerPhase === 'open'
+        && probe.pendingCount === 0
+        && probe.knownRevision === probe.projectionRevision
+        && probe.projectionRevision === current.revision
+        && probe.appBusy === ''));
+    if (targetCount === snapshots.length && matchingRevision && !needsProgress && combatReady) return current;
+    if ((targetCount > 0 || !matchingRevision) && !needsProgress) {
       setCheckpoint('target-convergence');
       if (Date.now() >= deadline) break;
       await new Promise<void>((resolvePromise) =>
@@ -2691,6 +3173,7 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
       };
       const viewportRect = { x: 0, y: 0, width: innerWidth, height: innerHeight, right: innerWidth, bottom: innerHeight };
       const railNode = document.querySelector('[data-testid="online-remote-game-rail"]');
+      const actionsNode = document.querySelector('[data-testid="online-remote-actions-rail"]');
       const handNode = document.querySelector('[data-testid="hand-ribbon"]');
       const battlefieldNode = document.querySelector('[data-testid="board"]') ?? document.querySelector('.game-screen__board');
       const rail = rectOf(railNode);
@@ -2698,12 +3181,21 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
       const battlefield = rectOf(battlefieldNode);
       const seatRects = [...document.querySelectorAll('[data-testid="online-remote-opponent"]')].map((node) => rectOf(node)).filter((value) => value !== null);
       const boardRects = [...document.querySelectorAll('.online-remote-rail__opponent-lane')].map((node) => rectOf(node)).filter((value) => value !== null);
-      const primaryNode = railNode === null ? null : [...railNode.querySelectorAll('button.online-remote-rail__primary-action')].find((node) => visible(node) && !node.disabled) ?? null;
+      const insideViewport = (value) => value !== null && value.x >= 0 && value.y >= 0 && value.right <= viewportRect.width && value.bottom <= viewportRect.height;
+      const primaryOwner = actionsNode ?? railNode;
+      const primaryCandidates = primaryOwner === null
+        ? []
+        : [...primaryOwner.querySelectorAll('button.online-remote-rail__primary-action, button[data-testid^="online-"]')].filter(visible);
+      const primaryNode = primaryCandidates.find((node) => !node.disabled && insideViewport(rectOf(node)))
+        ?? primaryCandidates.find((node) => node.disabled && insideViewport(rectOf(node)))
+        ?? primaryCandidates.find((node) => !node.disabled)
+        ?? primaryCandidates.find((node) => node.disabled)
+        ?? null;
       const primaryRect = rectOf(primaryNode);
-      const primaryAction = primaryRect === null ? null : { rect: primaryRect, enabled: true };
+      const primaryAction = primaryRect === null ? null : { rect: primaryRect, enabled: !primaryNode?.disabled };
       const panelNode = document.querySelector('[data-testid="online-remote-guided-overlay"][open], [data-testid="online-remote-manual-overlay"][open]');
       const panel = rectOf(panelNode);
-      const scrollNode = [panelNode, railNode, handNode, document.querySelector('[data-testid="hand-cards"]')]
+      const scrollNode = [panelNode, actionsNode, railNode, handNode, document.querySelector('[data-testid="hand-cards"]')]
         .find((node) => visible(node) && ['auto', 'scroll'].some((value) => { const style = getComputedStyle(node); return style.overflow === value || style.overflowX === value || style.overflowY === value; }) && (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth)) ?? null;
       const scrollRect = rectOf(scrollNode);
       const scrollElement = scrollNode;
@@ -2722,20 +3214,20 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         const previousActive = document.activeElement;
         const focusTarget = [...scrollElement.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].find((node) => visible(node));
         if (focusTarget instanceof HTMLElement) {
-          focusTarget.focus();
+          focusTarget.focus({ preventScroll: true });
           focusReachable = scrollElement.contains(document.activeElement);
-          if (previousActive instanceof HTMLElement) previousActive.focus();
+          if (previousActive instanceof HTMLElement) previousActive.focus({ preventScroll: true });
         }
       }
       const scroll = scrollRect === null || scrollElement === null ? null : { rect: scrollRect, scrollWidth: scrollElement.scrollWidth, scrollHeight: scrollElement.scrollHeight, clientWidth: scrollElement.clientWidth, clientHeight: scrollElement.clientHeight, scrollMoved, focusReachable };
       const overlaps = (left, right) => left !== null && right !== null && left.right > right.x && right.right > left.x && left.bottom > right.y && right.bottom > left.y;
-      const insideViewport = (value) => value !== null && value.x >= 0 && value.y >= 0 && value.right <= viewportRect.width && value.bottom <= viewportRect.height;
       const intersectionArea = (left, right) => {
         if (left === null || right === null) return 0;
         return Math.max(0, Math.min(left.right, right.right) - Math.max(left.x, right.x)) * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.y, right.y));
       };
       const battlefieldArea = battlefield === null ? 0 : battlefield.width * battlefield.height;
-      const coveredArea = intersectionArea(rail, battlefield) + intersectionArea(panel, battlefield);
+      const actions = rectOf(actionsNode);
+      const coveredArea = intersectionArea(rail, battlefield) + intersectionArea(actions, battlefield) + intersectionArea(panel, battlefield);
       const geometry = {
         viewport: viewportRect,
         rail,
@@ -2747,7 +3239,7 @@ async function probePage(page: O4p09iPageV1, timeoutMs: number, workerOrigin: st
         panel,
         scroll,
         clippedPrimaryAction: primaryRect !== null && !insideViewport(primaryRect),
-        railHandCollision: overlaps(rail, hand),
+        railHandCollision: overlaps(rail, hand) || overlaps(actions, hand),
         panelOutsideViewport: panel !== null && !insideViewport(panel),
         scrollAccessible: scroll !== null && insideViewport(scroll.rect) && scroll.clientWidth > 0 && scroll.clientHeight > 0 && scroll.scrollMoved && scroll.focusReachable,
         battlefieldObscured: battlefieldArea > 0 && coveredArea >= battlefieldArea * 0.98,
@@ -3080,6 +3572,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   };
   let revisionBeforeReconnect: number;
   let revisionAfterReconnect: number | undefined;
+  let revisionAfterPostReconnectMutation: number | null = null;
   let reliabilityAcceptedRevision: number | null = null;
   let initialRevision = 0;
   let manualDamageCount = 0;
@@ -3089,7 +3582,8 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
   let priorityCapturedTopObjectId: string | null = null;
   let castObjectId: string | null = null;
   let manualStackPage: O4p09iPageV1 | null = null;
-  let manualStackOperation: 'entry' | 'resolve' | null = null;
+  let manualStackOperation: (typeof MANUAL_STACK_FAILURE_OPERATIONS)[number] | null = null;
+  let guidedOverlayCount = 0;
   let advanceOperation: (typeof ADVANCE_FAILURE_STAGES)[number] | null = null;
   const advanceCheckpoint: { value: (typeof ADVANCE_FAILURE_CHECKPOINTS)[number] | null } = { value: null };
   let chooseObserved = false;
@@ -3126,9 +3620,10 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     'online-tabletop-submit-manual-resolve': 'unsupported Manual Stack/Resolve',
     'online-remote-guided-overlay': 'combat/manual damage',
   'online-remote-manual-overlay': 'unsupported Manual Stack/Resolve',
-    'online-guided-declare-attacker': 'combat/manual damage',
-    'visibility-look': 'private Look/Choose',
-    'visibility-confirm': 'private Look/Choose',
+  'online-guided-declare-attacker': 'combat/manual damage',
+  'visibility-look': 'private Look/Choose',
+  'visibility-open-choice': 'private Look/Choose',
+  'visibility-confirm': 'private Look/Choose',
   };
   const actionByControl = (testId: string): string => testId
     .replace(/^online-/, '')
@@ -3144,10 +3639,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     // visible join/deck/ready controls in their isolated browser contexts.
     const hostContext = await browser.createBrowserContext(); contexts.push(hostContext);
     const hostPage = await hostContext.createPage(); pages.push(hostPage);
+    await hostPage.setViewport?.({ width: 1440, height: 900 });
     pageSetSecret(hostPage, secretFragments);
     await hostPage.navigate(pagesOrigin);
     setStage('import');
     await importDeckAndOpenOnline(hostPage, deckTexts[0] ?? '', timeoutMs);
+    if (pagesOrigin === O4P09I_LOCAL_PAGES_ORIGIN_V1) await requireLocalRehearsalSurface(hostPage);
     setStage('lobby-probe');
     const lobby = await probePage(hostPage, timeoutMs, workerOrigin, secretFragments);
     if (lobby.gameScreens > 1 || lobby.overflow !== 0 || lobby.opponentLeak || lobby.consoleErrors !== 0) throw new Error('production lobby probe failed');
@@ -3173,10 +3670,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     for (let index = 1; index < playerCount; index += 1) {
       const context = await browser.createBrowserContext(); contexts.push(context);
       const page = await context.createPage(); pages.push(page);
+      await page.setViewport?.({ width: 1440, height: 900 });
       pageSetSecret(page, secretFragments);
       await page.navigate(pagesOrigin);
       setStage('join-seat-import');
       await importDeckAndOpenOnline(page, deckTexts[index] ?? '', timeoutMs);
+      if (pagesOrigin === O4P09I_LOCAL_PAGES_ORIGIN_V1) await requireLocalRehearsalSurface(page);
       const initial = await probePage(page, timeoutMs, workerOrigin, secretFragments);
       if (initial.gameScreens > 1 || initial.overflow !== 0 || initial.opponentLeak || initial.consoleErrors !== 0) throw new Error('production join probe failed');
       setStage('join-seat-join');
@@ -3253,6 +3752,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     // action; missing/disabled controls fail closed.
     const uiSequence = profile === 'reliability' ? [] : UI_SEQUENCE;
     for (const testId of uiSequence) {
+      let actionPageOverride: O4p09iPageV1 | null = null;
       if (testId === 'online-advance-to-main') {
         setStage('advance');
         advanceOperation = playerCount === 2 ? 'two-player-main1' : 'four-player-main1';
@@ -3264,12 +3764,14 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-journey-play-land') {
         setStage('land');
-        await toggleDetails(hostPage, 'online-remote-manual-overlay', timeoutMs);
-        await selectFirstVisibleOption(hostPage, 'online-journey-land', timeoutMs);
+        actionPageOverride = (await findPublicActionAuthorityPage(pages, 'active-priority', timeoutMs)).page;
+        await toggleDetails(actionPageOverride, 'online-remote-manual-overlay', timeoutMs);
+        await selectFirstVisibleOption(actionPageOverride, 'online-journey-land', timeoutMs);
       }
       if (testId === 'online-remote-cast') {
         setStage('cast');
-        castObjectId = await readRemoteCastObjectId(hostPage, timeoutMs);
+        actionPageOverride ??= (await findPublicActionAuthorityPage(pages, 'active-priority', timeoutMs)).page;
+        castObjectId = await readRemoteCastObjectId(actionPageOverride, timeoutMs);
       }
       if (testId === 'online-remote-advance') {
         setStage('HOLD-pass-resolve');
@@ -3279,12 +3781,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         // The first priority cycle is completed before entering combat. HOLD,
         // pass and resolve remain legal actions for their current seat only.
         const clearHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'none');
-        const setRevision = await clickPriorityAndAwaitConvergence(pages, clearHold.page, 'online-remote-hold', clearHold.revision, workerOrigin, timeoutMs, secretFragments);
+        const setRevision = await clickPriorityAndAwaitConvergence(pages, clearHold.page, 'online-remote-hold', clearHold.revision, timeoutMs);
         if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, clearHold.page, 'priority-hold', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         const setHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'owned-by-designated');
         if (setHold.revision < setRevision) throw new Error('online-remote-hold set revision stale');
         recordControl('online-remote-hold');
-        const clearRevision = await clickPriorityAndAwaitConvergence(pages, setHold.page, 'online-remote-hold', setHold.revision, workerOrigin, timeoutMs, secretFragments);
+        const clearRevision = await clickPriorityAndAwaitConvergence(pages, setHold.page, 'online-remote-hold', setHold.revision, timeoutMs);
         const clearedHold = await findPriorityActorPage(pages, 'online-remote-hold', timeoutMs, true, 'none');
         if (clearedHold.revision < clearRevision) throw new Error('online-remote-hold clear revision stale');
         if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, setHold.page, 'priority-hold', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
@@ -3299,7 +3801,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
             pages,
             passActor.page, 'online-remote-pass',
             passActor.revision,
-            workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-pass');
+            timeoutMs); recordControl('online-remote-pass');
           if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, passActor.page, 'priority-pass', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         }
         const resolveActor = await findPriorityActorPage(
@@ -3312,7 +3814,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
           pages,
           resolveActor.page, 'online-remote-resolve',
           resolveActor.revision,
-          workerOrigin, timeoutMs, secretFragments); recordControl('online-remote-resolve');
+          timeoutMs); recordControl('online-remote-resolve');
         if (playerCount === 2) prioritySteps.push(await readPriorityJourneyStep(pages, resolveActor.page, 'priority-resolve', capturedTopObjectId, workerOrigin, timeoutMs, secretFragments));
         await waitForResolvedTopConvergence(
           pages,
@@ -3334,22 +3836,29 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'online-guided-declare-attacker') {
         setStage('attacker');
-        await toggleDetails(hostPage, 'online-remote-guided-overlay', timeoutMs);
-        await selectFirstVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) select:nth-of-type(1)', timeoutMs);
-        await selectFirstVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) select:nth-of-type(2)', timeoutMs);
-        const baseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;
-        await clickVisibleSelector(hostPage, '[data-testid="guided-combat"] form:nth-of-type(1) button[type="submit"]', timeoutMs);
-        await clickVisibleSelector(hostPage, '[data-testid="guided-confirmation"] button:last-of-type', timeoutMs);
-        await waitForRevisionAdvance(hostPage, workerOrigin, baseline, timeoutMs, secretFragments);
+        actionPageOverride = (await findPublicActionAuthorityPage(pages, 'active-combat', timeoutMs)).page;
+        await toggleDetails(actionPageOverride, 'online-remote-guided-overlay', timeoutMs);
+        if (castObjectId === null || priorityCapturedTopObjectId === null) throw new Error('attacker cast identity missing');
+        const physicalSeparator = priorityCapturedTopObjectId.lastIndexOf(':');
+        const physicalCardPrefix = physicalSeparator > 0 ? priorityCapturedTopObjectId.slice(0, physicalSeparator + 1) : '';
+        if (physicalCardPrefix === '' || !castObjectId.startsWith(physicalCardPrefix)) throw new Error('attacker cast identity mismatch');
+        await selectVisibleSelectorByPhysicalCardPrefix(actionPageOverride, '[data-testid="guided-combat"] form:nth-of-type(1) label:nth-of-type(1) select', physicalCardPrefix, castObjectId, timeoutMs);
+        await selectFirstVisibleSelector(actionPageOverride, '[data-testid="guided-combat"] form:nth-of-type(1) label:nth-of-type(2) select', timeoutMs);
+        const baseline = (await probePage(actionPageOverride, timeoutMs, workerOrigin, secretFragments)).revision;
+        await clickVisibleSelector(actionPageOverride, '[data-testid="guided-combat"] form:nth-of-type(1) button[type="submit"]', timeoutMs);
+        await clickVisibleSelector(actionPageOverride, '[data-testid="guided-confirmation"] button:last-of-type', timeoutMs);
+        await waitForRevisionAdvance(actionPageOverride, workerOrigin, baseline, timeoutMs, secretFragments);
         recordControl(testId);
         continue;
       }
       if (testId === 'online-manual-damage-submit') {
         setStage('manual-damage');
-        await selectFirstVisibleOption(hostPage, 'online-manual-damage-defender', timeoutMs);
+        actionPageOverride = (await findPublicActionAuthorityPage(pages, 'steward', timeoutMs)).page;
+        await toggleDetails(actionPageOverride, 'online-remote-guided-overlay', timeoutMs);
+        await selectFirstVisibleOption(actionPageOverride, 'online-manual-damage-defender', timeoutMs);
         // First combat damage is deliberately nonlethal; the final repeated
         // entry (after private/manual semantics) is the lethal branch.
-        await fillVisible(hostPage, 'online-manual-damage-amount', manualDamageCount === 0 ? '1' : '120', timeoutMs);
+        await fillVisible(actionPageOverride, 'online-manual-damage-amount', manualDamageCount === 0 ? '1' : '120', timeoutMs);
         manualDamageCount += 1;
       }
       if (testId === 'online-tabletop-submit-stack-entry') {
@@ -3361,12 +3870,24 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       if (testId === 'visibility-look') {
         setStage('visibility');
-        await selectFirstVisibleOption(hostPage, 'visibility-look-subject', timeoutMs);
-        await selectFirstVisibleOption(hostPage, 'visibility-look-viewers', timeoutMs);
+        const visibilityActor = await findPublicActionAuthorityPage(pages, 'steward', timeoutMs);
+        actionPageOverride = visibilityActor.page;
+        await selectFirstVisibleOption(actionPageOverride, 'visibility-look-subject', timeoutMs);
+        // Deliberately include the requesting seat in the audience.  The
+        // resulting Choose authority may be delegated by Core, so it is
+        // discovered from the rendered projection after confirmation.
+        await selectVisibleOptionValue(actionPageOverride, 'visibility-look-viewers', visibilityActor.localPlayerId, timeoutMs);
+        await selectFirstVisibleOption(actionPageOverride, 'visibility-choice-count', timeoutMs);
       }
       if (testId === 'online-remote-guided-overlay' || testId === 'online-remote-manual-overlay') {
         setStage('manual-stack');
-        await toggleDetails(hostPage, testId, timeoutMs);
+        if (testId === 'online-remote-guided-overlay') {
+          guidedOverlayCount += 1;
+          manualStackOperation = guidedOverlayCount === 1 ? 'guided-overlay-first' : 'guided-overlay-repeat';
+        } else {
+          manualStackOperation = 'manual-overlay';
+        }
+        await toggleDetails(actionPageOverride ?? hostPage, testId, timeoutMs);
         recordControl(testId);
         continue;
       }
@@ -3379,33 +3900,46 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       const actionPage =
         testId === 'online-tabletop-submit-stack-entry' || testId === 'online-tabletop-submit-manual-resolve'
           ? (manualStackPage ?? hostPage)
-          : hostPage;
+          : (actionPageOverride ?? hostPage);
       const actionBaseline = REVISION_CONTROLS.has(testId) ? (await probePage(actionPage, timeoutMs, workerOrigin, secretFragments)).revision : null;
       await clickVisible(actionPage, testId, timeoutMs); recordControl(testId);
       if (actionBaseline !== null) await waitForRevisionAdvance(actionPage, workerOrigin, actionBaseline, timeoutMs, secretFragments);
       if (testId === 'online-remote-cast') {
         if (castObjectId === null) throw new Error('cast object missing');
-        castFact = await waitForRemoteCastEvidence(pages, hostPage, castObjectId, playerCount, workerOrigin, timeoutMs, secretFragments);
+        castFact = await waitForRemoteCastEvidence(pages, actionPage, castObjectId, playerCount, workerOrigin, timeoutMs, secretFragments);
       }
       if (testId === 'visibility-look') {
         setStage('private-leak-check');
-        const confirmBaseline = (await probePage(hostPage, timeoutMs, workerOrigin, secretFragments)).revision;
-        await clickVisible(hostPage, 'visibility-confirm', timeoutMs); recordControl('visibility-confirm');
-        await waitForRevisionAdvance(hostPage, workerOrigin, confirmBaseline, timeoutMs, secretFragments);
+        const lookPage = actionPage;
+        const confirmBaseline = (await probePage(lookPage, timeoutMs, workerOrigin, secretFragments)).revision;
+        await clickVisible(lookPage, 'visibility-confirm', timeoutMs); recordControl('visibility-confirm');
+        await waitForRevisionAdvance(lookPage, workerOrigin, confirmBaseline, timeoutMs, secretFragments);
+
+        // Start the actual private choice from the rendered controls.  The
+        // choice opener is local UI state; only its confirmation creates the
+        // server-authoritative search session.
+        await clickVisible(lookPage, 'visibility-open-choice', timeoutMs); recordControl('visibility-open-choice');
+        const choiceConfirmBaseline = (await probePage(lookPage, timeoutMs, workerOrigin, secretFragments)).revision;
+        await clickVisible(lookPage, 'visibility-confirm', timeoutMs); recordControl('visibility-confirm');
+        await waitForRevisionAdvance(lookPage, workerOrigin, choiceConfirmBaseline, timeoutMs, secretFragments);
 
         // Choose must be observed and completed while the match is still
-        // active.  Capture opaque identifiers on the authorized seat only,
-        // then verify no other seat renders one of those controls.  The IDs
-        // are runtime-only and never enter the evidence summary.
-        const chooseProbe = await probePage(hostPage, timeoutMs, workerOrigin, secretFragments);
-        const privateChoicePayload = await readPrivateChoicePayload(hostPage, timeoutMs);
-        if (!chooseProbe.chooseControl || privateChoicePayload.identifiers.length === 0) throw new Error('private choose control not rendered');
+        // active. Discover the one page with a visible Choose control from
+        // the projected UI. Capture opaque identifiers on that authorized
+        // seat only, then verify no other seat renders one of those controls.
+        // The IDs are runtime-only and never enter the evidence summary.
+        const selectorPage = await findVisibilitySelectorPage(pages, timeoutMs);
+        const chooseProbe = await probePage(selectorPage, timeoutMs, workerOrigin, secretFragments);
+        const privateChoicePayload = await readPrivateChoicePayload(selectorPage, timeoutMs);
+        if (!chooseProbe.chooseControl) throw new Error('private choose control missing from projection');
+        if (privateChoicePayload.identifiers.length === 0 || privateChoicePayload.candidateHandles.length === 0) throw new Error('private choose payload missing');
+        if (await readVisibleChooseCount(selectorPage, timeoutMs) !== 1) throw new Error('private choose control not visible');
         chooseObserved = true;
         for (const page of pages) {
-          if (page === hostPage) continue;
+          if (page === selectorPage) continue;
           const otherPayload = await readPrivateChoicePayload(page, timeoutMs);
           const candidateTokens = [...privateChoicePayload.identifiers, ...privateChoicePayload.candidateHandles];
-          const tokenLeak = await readUnauthorizedDomSurfaces(page, candidateTokens.filter((token) => token.length >= 4), timeoutMs);
+          const tokenLeak = await readUnauthorizedDomSurfaces(page, candidateTokens, timeoutMs);
           if (tokenLeak || otherPayload.digest === privateChoicePayload.digest) {
             crossSeatPrivateChoiceLeak = true;
             throw new Error('cross-seat private choice leak');
@@ -3416,9 +3950,12 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
             throw new Error('cross-seat private choice leak');
           }
         }
+        await clickVisibleSelector(selectorPage, '[data-testid^="visibility-choice-"] input[type="checkbox"]', timeoutMs);
+        if (await readVisibleChoiceCheckedCount(selectorPage, timeoutMs) !== 1) throw new Error('private choice candidate selection failed');
         const chooseBaseline = chooseProbe.revision;
-        await clickFirstVisiblePrefix(hostPage, 'visibility-choose-', timeoutMs); recordControl('visibility-choose-');
-        await waitForRevisionAdvance(hostPage, workerOrigin, chooseBaseline, timeoutMs, secretFragments);
+        await clickFirstVisiblePrefix(selectorPage, 'visibility-choose-', timeoutMs); recordControl('visibility-choose-');
+        await waitForRevisionAdvance(selectorPage, workerOrigin, chooseBaseline, timeoutMs, secretFragments);
+        if (await readVisibleChooseCount(selectorPage, timeoutMs) !== 0) throw new Error('private choose control remained after completion');
       }
     }
 
@@ -3465,14 +4002,18 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (profile === 'full') setStage('viewport-geometry');
     for (const viewport of profile === 'full' ? VIEWPORTS : []) {
       for (const page of pages) await page.setViewport?.(viewport);
-      const measuredPages = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
+      const measuredPages = await Promise.all(pages.map(async (page) => {
+        await toggleDetails(page, 'online-remote-guided-overlay', timeoutMs);
+        await prepareGeometryPage(page, timeoutMs);
+        return probePage(page, timeoutMs, workerOrigin, secretFragments);
+      }));
       const reference = measuredPages[0];
       if (reference === undefined) throw new Error('responsive page probe missing');
       const referenceSeatSignature = rectSignature(reference.geometry.seatRects);
       const referenceBoardSignature = rectSignature(reference.geometry.boardRects);
       for (const measured of measuredPages) {
         const geometry = measured.geometry;
-        if (measured.gameScreens !== 1 || measured.overflow !== 0 || measured.consoleErrors !== 0 || measured.opponentLeak || !measured.workerObserved || geometry.viewport.width !== viewport.width || geometry.viewport.height !== viewport.height || geometry.seatRects.length !== playerCount - 1 || geometry.boardRects.length !== playerCount - 1 || geometry.rail === null || geometry.hand === null || geometry.battlefield === null || geometry.primaryAction === null || geometry.panel === null || geometry.scroll === null || geometry.primaryAction.enabled !== true || geometry.clippedPrimaryAction || geometry.railHandCollision || geometry.panelOutsideViewport || !geometry.scrollAccessible || geometry.battlefieldObscured) throw new Error('responsive surface/geometry/worker probe failed');
+        if (measured.gameScreens !== 1 || measured.overflow !== 0 || measured.consoleErrors !== 0 || measured.opponentLeak || !measured.workerObserved || geometry.viewport.width !== viewport.width || geometry.viewport.height !== viewport.height || geometry.seatRects.length !== playerCount - 1 || geometry.boardRects.length !== playerCount - 1 || geometry.rail === null || geometry.hand === null || geometry.battlefield === null || geometry.primaryAction === null || geometry.panel === null || geometry.scroll === null || geometry.clippedPrimaryAction || geometry.railHandCollision || geometry.panelOutsideViewport || !geometry.scrollAccessible || geometry.battlefieldObscured) throw new Error('responsive surface/geometry/worker probe failed');
         if (rectSignature(geometry.seatRects) !== referenceSeatSignature || rectSignature(geometry.boardRects) !== referenceBoardSignature) throw new Error('responsive public lane geometry mismatch');
       }
       measuredViewports.push(Object.freeze({ width: viewport.width, height: viewport.height, horizontalOverflow: reference.overflow, gameScreens: reference.gameScreens, consoleErrors: reference.consoleErrors, geometry: cloneGeometry(reference.geometry), pageGeometries: Object.freeze(measuredPages.map((measured) => cloneGeometry(measured.geometry))) }));
@@ -3480,10 +4021,22 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     const viewportFacts = Object.freeze(measuredViewports);
 
     setStage('reconnect');
-    const disconnectedPage = pages[0];
-    if (disconnectedPage === undefined) throw new Error('reconnect page missing');
     const beforeReconnectProbes = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
-    const beforeReconnect = beforeReconnectProbes[0];
+    const initialReconnectProbe = beforeReconnectProbes[0];
+    let disconnectedIndex = 0;
+    if (initialReconnectProbe?.localPlayerId !== null
+      && initialReconnectProbe?.localPlayerId !== undefined
+      && initialReconnectProbe.eliminatedSeats.includes(initialReconnectProbe.localPlayerId)) {
+      disconnectedIndex = beforeReconnectProbes.findIndex((probe) =>
+        probe.localPlayerId !== null
+        && probe.localPlayerId !== undefined
+        && !probe.eliminatedSeats.includes(probe.localPlayerId)
+      );
+    }
+    if (disconnectedIndex < 0) throw new Error('reconnect surviving seat missing');
+    const disconnectedPage = pages[disconnectedIndex];
+    if (disconnectedPage === undefined) throw new Error('reconnect page missing');
+    const beforeReconnect = beforeReconnectProbes[disconnectedIndex];
     if (beforeReconnect === undefined || beforeReconnect.localPlayerId === null || beforeReconnect.localPlayerId === undefined) throw new Error('reconnect seat identity missing');
     const disconnectedPlayerId = beforeReconnect.localPlayerId;
     const sharedPublicDigestBeforeReconnect = beforeReconnect.sharedPublicDigest;
@@ -3494,25 +4047,28 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         || probe.disconnectedPlayerIds.length !== 0
         || probe.sharedPublicDigest !== sharedPublicDigestBeforeReconnect
         || priorityPresenceSignature(probe) !== prioritySignatureBeforeReconnect)) throw new Error('pre-reconnect convergence missing');
-    for (const peer of pages.slice(1)) {
+    const peerPages = pages.filter((_page, index) => index !== disconnectedIndex);
+    for (const peer of peerPages) {
       if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('pre-reconnect private audience leak');
     }
     snapshotConsole(disconnectedPage);
     await disconnectedPage.close(); counters.pagesClosed += 1;
-    await waitForPeerDisconnected(pages.slice(1), disconnectedPlayerId, revisionBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
-    const replacement = await contexts[0]?.createPage();
+    await waitForPeerDisconnected(peerPages, disconnectedPlayerId, revisionBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
+    const replacement = await contexts[disconnectedIndex]?.createPage();
     if (replacement === undefined) throw new Error('reconnect page missing');
-    pages[0] = replacement;
+    pages[disconnectedIndex] = replacement;
+    await replacement.setViewport?.({ width: 1440, height: 900 });
     pageSetSecret(replacement, secretFragments);
     await replacement.navigate(pagesOrigin);
     await openOnlineFromSavedDeck(replacement, timeoutMs);
+    if (pagesOrigin === O4P09I_LOCAL_PAGES_ORIGIN_V1) await requireLocalRehearsalSurface(replacement);
     await clickVisible(replacement, 'online-recover', timeoutMs);
     const recoveredProbes = await waitForReconnectConvergence(pages, replacement, revisionBeforeReconnect, sharedPublicDigestBeforeReconnect, prioritySignatureBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
-    const recovered = recoveredProbes[0];
+    const recovered = recoveredProbes[disconnectedIndex];
     if (recovered === undefined) throw new Error('reconnect recovery probe missing');
     const recoveredPrivateHand = await readPrivateHandPayload(replacement, timeoutMs);
     if (recoveredPrivateHand.digest !== privateHandBeforeReconnect.digest) throw new Error('reconnect private audience mismatch');
-    for (const peer of pages.slice(1)) {
+    for (const peer of peerPages) {
       if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('reconnect private audience leak');
     }
     revisionAfterReconnect = recovered.revision;
@@ -3536,7 +4092,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       }
       const afterPostReconnectMutation = convergedProbes[0]?.revision ?? 0;
       if (afterPostReconnectMutation <= revisionAfterReconnect) throw new Error('post-reconnect mutation did not advance');
-      for (const peer of pages.slice(1)) {
+      for (const peer of peerPages) {
         if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('post-reconnect private audience leak');
       }
       phases.add('disconnect/reconnect');
@@ -3552,6 +4108,42 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         revision: Object.freeze({ start: initialRevision, beforeReconnect: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect, afterPostReconnectMutation, continuous: true }),
         reconnect: reconnectFact,
       });
+    }
+    if (playerCount === 4) {
+      recordTransportTimeline('actor-selection-start');
+      const actor = await findProgressActorPage(pages, timeoutMs, recordTransportTimeline);
+      await clickVisible(actor.page, actor.testId, timeoutMs);
+      const acceptedRevision = await waitForProgressRevisionAdvance(
+        actor.page,
+        actor.testId,
+        actor.expectedOperation,
+        actor.revision,
+        actor.settlementCommandId,
+        timeoutMs,
+        recordTransportTimeline,
+      );
+      recordControl(actor.testId);
+      const deadline = Date.now() + timeoutMs;
+      for (;;) {
+        const probes = await Promise.all(pages.map((page) => probePage(
+          page,
+          Math.min(1_000, Math.max(1, deadline - Date.now())),
+          workerOrigin,
+          secretFragments,
+        )));
+        const digest = probes[0]?.sharedPublicDigest;
+        if (safeRevision(acceptedRevision)
+          && probes.length === playerCount
+          && probes.every((probe) => probe.revision === acceptedRevision && probe.sharedPublicDigest === digest)) {
+          revisionAfterPostReconnectMutation = acceptedRevision;
+          break;
+        }
+        if (Date.now() >= deadline) throw new Error('post-reconnect mutation convergence timeout');
+        await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, Math.min(50, Math.max(1, deadline - Date.now()))));
+      }
+      for (const peer of peerPages) {
+        if (await readUnauthorizedDomSurfaces(peer, privateHandBeforeReconnect.tokens, timeoutMs)) throw new Error('post-reconnect private audience leak');
+      }
     }
     const observedEliminatedSeats = recoveredProbes.flatMap((probe) => probe.eliminatedSeats);
     const uniqueEliminatedSeats = [...new Set(observedEliminatedSeats)];
@@ -3593,7 +4185,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
       actionKinds: Object.freeze(actionKinds),
       cast: castFact,
       priority: priorityFact,
-      revision: Object.freeze({ start: initialRevision, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, continuous: true }),
+      revision: Object.freeze({ start: initialRevision, afterSharedMutation: revisionBeforeReconnect, afterReconnect: revisionAfterReconnect ?? revisionBeforeReconnect, afterPostReconnectMutation: revisionAfterPostReconnectMutation, continuous: true }),
       reconnect: reconnectFact,
       privateLookChoose,
       unsupportedManual,
@@ -3611,14 +4203,35 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (failedStage === 'start-probe' && startedSurfaceFailureState.reason !== null && STARTED_SURFACE_FAILURES.includes(startedSurfaceFailureState.reason)) throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: start-probe/${startedSurfaceFailureState.reason}`,
         { cause: error }
       ), transportTimeline);
-    if (failedStage === 'manual-stack' && manualStackOperation !== null)
-      throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: manual-stack/${manualStackOperation}`, {
+    if (failedStage === 'manual-stack' && manualStackOperation !== null) {
+      const controlFailure = manualStackControlFailure(error);
+      const operation = controlFailure === null ? manualStackOperation : `${manualStackOperation}/${controlFailure}`;
+      throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: manual-stack/${operation}`, {
         cause: error
       }), transportTimeline);
+    }
     if (failedStage === 'advance' && advanceOperation !== null)
       throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: advance/${advanceOperation}${advanceCheckpoint.value === null ? '' : `/${advanceCheckpoint.value}`}`, {
         cause: error
       }), transportTimeline);
+    if (failedStage === 'pregame-control') {
+      const checkpoint = pregameFailureCheckpoint(error);
+      if (checkpoint !== null) {
+        throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: pregame-control/${checkpoint}`, {
+          cause: error
+        }), transportTimeline);
+      }
+    }
+    if (failedStage === 'HOLD-pass-resolve' && message === 'priority measurement timeout') {
+      throw rememberO4p09iFailureTimelineV1(new Error('production scenario stage failed: HOLD-pass-resolve/measurement-timeout', {
+        cause: error
+      }), transportTimeline);
+    }
+    if (failedStage === 'HOLD-pass-resolve' && error instanceof O4p09iPriorityRejectedError) {
+      throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: HOLD-pass-resolve/action-rejected-${error.issueCode}`, {
+        cause: error
+      }), transportTimeline);
+    }
     throw rememberO4p09iFailureTimelineV1(new Error(`production scenario stage failed: ${stage}/${message || 'unknown'}`, {
       cause: error
     }), transportTimeline);
@@ -3686,6 +4299,46 @@ export async function runO4p09iFullMatchEvidenceV1(inputDeps: O4p09iEvidenceDeps
   return Object.freeze({ ...synthetic, kind: 'o4p-09i-full-match-production-evidence-v1' });
 }
 
+export async function runO4p09iLocalRehearsalV1(inputDeps: O4p09iEvidenceDepsV1 = {}): Promise<O4p09iLocalRehearsalSummaryV1> {
+  const timeoutMs = inputDeps.timeoutMs ?? O4P09I_DEFAULT_TIMEOUT_MS_V1;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 250 || timeoutMs > 120_000) throw new Error('invalid evidence timeout');
+  const pagesOrigin = inputDeps.pagesOrigin ?? O4P09I_LOCAL_PAGES_ORIGIN_V1;
+  const workerOrigin = inputDeps.workerOrigin ?? O4P09I_LOCAL_WORKER_ORIGIN_V1;
+  if (pagesOrigin !== O4P09I_LOCAL_PAGES_ORIGIN_V1 || workerOrigin !== O4P09I_LOCAL_WORKER_ORIGIN_V1) throw new Error('local rehearsal origins are fixed');
+  const browser = inputDeps.browser ?? (inputDeps.launchBrowser ? await inputDeps.launchBrowser() : await defaultBrowser(timeoutMs));
+  const secretFragments: string[] = [];
+  const counters = { contextsClosed: 0, pagesClosed: 0 };
+  const lifetimeConsole: O4p09iConsoleAccumulatorV1 = { errors: 0, warnings: 0, secretViolations: 0 };
+  let scenarios: O4p09iEvidenceSummaryV1['scenarios'];
+  try {
+    const deckTexts = inputDeps.readDeck === undefined
+      ? [...O4P09I_PUBLIC_DECK_TEXTS_V1]
+      : ['Celes', 'Gogo', 'Kefka', 'Muldrotha'].map((label) => inputDeps.readDeck?.(label) ?? '');
+    for (const text of deckTexts) {
+      if (typeof text !== 'string' || text.length === 0) throw new Error('deck input missing');
+      secretFragments.push(sha256(text).slice(0, 16));
+    }
+    scenarios = Object.freeze({
+      twoPlayer: await driveScenario(browser, 2, pagesOrigin, workerOrigin, timeoutMs, secretFragments, counters, deckTexts, lifetimeConsole, 'full'),
+      fourPlayer: await driveScenario(browser, 4, pagesOrigin, workerOrigin, timeoutMs, secretFragments, counters, deckTexts, lifetimeConsole, 'full'),
+    });
+  } finally {
+    await browser.close();
+  }
+  const profileRemoved = browser.profilePath === undefined || !existsSync(browser.profilePath);
+  if (counters.contextsClosed !== 6 || counters.pagesClosed !== 8 || !profileRemoved) throw new Error('local rehearsal cleanup incomplete');
+  if (lifetimeConsole.errors !== 0 || lifetimeConsole.warnings !== 0 || lifetimeConsole.secretViolations !== 0) throw new Error('local rehearsal console or secret violation observed');
+  const summary: O4p09iLocalRehearsalSummaryV1 = Object.freeze({
+    kind: 'o4p-09i-full-match-local-rehearsal-v1', production: false, schemaVersion: 1,
+    pagesOrigin: O4P09I_LOCAL_PAGES_ORIGIN_V1, workerOrigin: O4P09I_LOCAL_WORKER_ORIGIN_V1,
+    chromeVersion: browser.chromeVersion, scenarios,
+    consoleCounts: Object.freeze({ errors: lifetimeConsole.errors, warnings: lifetimeConsole.warnings, secretViolations: lifetimeConsole.secretViolations }),
+    cleanup: Object.freeze({ contextsClosed: counters.contextsClosed, pagesClosed: counters.pagesClosed, profileRemoved: true }),
+  });
+  if (containsSecret(summary, secretFragments)) throw new Error('local rehearsal secret violation');
+  return summary;
+}
+
 export async function runO4p09iReliabilityEvidenceTestDriverV1(inputDeps: O4p09iEvidenceDepsV1 = {}): Promise<O4p09iSyntheticReliabilityEvidenceSummaryV1> {
   const timeoutMs = inputDeps.timeoutMs ?? O4P09I_DEFAULT_TIMEOUT_MS_V1;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 250 || timeoutMs > 120_000) throw new Error('invalid evidence timeout');
@@ -3731,10 +4384,14 @@ export async function runO4p09iReliabilityEvidenceV1(inputDeps: O4p09iEvidenceDe
 }
 
 async function main(): Promise<void> {
+  const local = process.argv.includes('--local');
   const profileIndex = process.argv.indexOf('--profile');
   const profile = profileIndex < 0 ? 'full' : process.argv[profileIndex + 1];
   if (profile !== 'full' && profile !== 'reliability') throw new Error('evidence profile invalid');
-  const summary = profile === 'reliability'
+  if (local && profile !== 'full') throw new Error('local rehearsal requires full profile');
+  const summary = local
+    ? await runO4p09iLocalRehearsalV1()
+    : profile === 'reliability'
     ? await runO4p09iReliabilityEvidenceV1()
     : await runO4p09iFullMatchEvidenceV1();
   output.write(`${JSON.stringify(canonical(summary))}\n`);

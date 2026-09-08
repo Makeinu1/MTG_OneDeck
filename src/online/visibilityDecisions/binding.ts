@@ -1,9 +1,9 @@
 import { coreVisibilityTopLibraryPrefixDigestV1, coreCanonicalDigestFromValueV1, type CoreObjectId } from '../../engine/core/index';
 import { createCoreCommandV1, type CoreCommandV1, type CoreRuleDurationV1 } from '../../engine/core/index';
 import { validateOnlineVariableProtocolStateV2, type OnlineVariableProtocolStateV2 } from '../protocol/variable';
-import { validateOnlineVisibilityIntentV1 } from './validation';
+import { validateOnlineVisibilityIntent, validateOnlineVisibilityIntentV1 } from './validation';
 import { onlineProjectedSearchSessionHandleV1 } from './sessionHandle';
-import type { OnlineVisibilityBindingInputV1, OnlineVisibilityBindingResultV1 } from './types';
+import type { OnlineVisibilityBindingInputV1, OnlineVisibilityBindingResultV1, OnlineVisibilityIntentEnvelopeV2 } from './types';
 
 type AnyRecord = Record<string, unknown>;
 function record(value: unknown): AnyRecord | null { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as AnyRecord : null; }
@@ -78,6 +78,19 @@ function authoritativeSearchSessionKey(state: OnlineVariableProtocolStateV2, han
 }
 function visibilityGrantKeyV1(sequence: number, actorPlayerId: string, commandId: string): string {
   return `visibility-${coreCanonicalDigestFromValueV1({ kind: 'visibility-grant-key-v1', sequence, actorPlayerId, commandId }).slice(0, 40)}`;
+}
+function manualChoiceInput(actorPlayerId: string, count: number): Readonly<Record<string, unknown>> {
+  return Object.freeze({
+    zone: Object.freeze({ kind: 'player-zone', playerId: actorPlayerId, zone: 'library' }),
+    portion: Object.freeze({ kind: 'top', count }),
+    criteria: Object.freeze({ kind: 'quantity', minimum: 0, maximum: 1 }),
+    revealFound: false,
+    shuffleAfter: false,
+    rulesActorPlayerId: actorPlayerId,
+  });
+}
+function manualChoiceSessionKey(sequence: number, actorPlayerId: string, commandId: string, count: number): string {
+  return `manual-library-choice-v2-${coreCanonicalDigestFromValueV1({ kind: 'manual-library-choice-v2', sequence, actorPlayerId, commandId, count, input: manualChoiceInput(actorPlayerId, count) }).slice(0, 40)}`;
 }
 function objectLocation(state: OnlineVariableProtocolStateV2, objectId: CoreObjectId): { kind: 'player-zone'; playerId: string; zone: string } | { kind: 'shared-zone'; zone: string } | null {
   const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
@@ -186,10 +199,70 @@ function visibilityDuplicateMatchesV1(
   return false;
 }
 
+function visibilityDuplicateMatchesV2(
+  state: OnlineVariableProtocolStateV2,
+  participantId: string,
+  envelope: OnlineVisibilityIntentEnvelopeV2,
+  existingValue: unknown,
+): existingValue is CoreCommandV1 {
+  const existing = record(existingValue);
+  const payload = record(existing?.payload);
+  const participant = state.room.participants.find((entry) => entry.participantId === participantId);
+  const seat = participant === undefined || participant.role !== 'player' || participant.seatIndex === null
+    ? undefined : state.room.seats[participant.seatIndex];
+  const actor = seat?.corePlayerId;
+  if (existing === null || payload === null || actor === undefined
+    || existing.kind !== 'mode-neutral-core-command-v1'
+    || existing.sequence !== envelope.baseRevision + 1
+    || existing.actorPlayerId !== actor || existing.decisionMakerPlayerId !== actor
+    || payload.kind !== 'search-open'
+    || payload.sessionKey !== manualChoiceSessionKey(existing.sequence, actor, envelope.commandId, envelope.openChoice.count)) return false;
+  const input = record(payload.input);
+  if (input === null || existing.decisionContext === null || typeof existing.decisionContext !== 'object') return false;
+  return coreCanonicalDigestFromValueV1(input) === coreCanonicalDigestFromValueV1(manualChoiceInput(actor, envelope.openChoice.count))
+    && coreCanonicalDigestFromValueV1(existing.decisionContext) === coreCanonicalDigestFromValueV1({ kind: 'decision', decisionKey: 'search-open' });
+}
+
+function bindOnlineVisibilityChoiceV2(
+  state: OnlineVariableProtocolStateV2,
+  participantId: string,
+  envelope: OnlineVisibilityIntentEnvelopeV2,
+  existingCommand: unknown,
+): OnlineVisibilityBindingResultV1 {
+  const seat = participantSeat(state, participantId);
+  const actor = seat.corePlayerId;
+  if (existingCommand !== undefined && existingCommand !== null) {
+    if (visibilityDuplicateMatchesV2(state, participantId, envelope, existingCommand)) {
+      const existing = existingCommand;
+      return Object.freeze({ command: existing, actorPlayerId: existing.actorPlayerId, decisionMakerPlayerId: existing.decisionMakerPlayerId });
+    }
+    throw new Error('COMMAND_ID_REUSE_MISMATCH');
+  }
+  if (envelope.baseRevision !== state.revision) throw new Error('stale');
+  if ((state.room.lifecycle !== 'started' && state.room.lifecycle !== 'active') || seat.outcome !== 'pending') throw new Error('authorization');
+  const count = envelope.openChoice.count;
+  const registry = state.coreRoot.ruleAuthority.turnPriorityBundle.stackBundle.objectRegistry;
+  const library = registry.zones.byPlayer[actor]?.library;
+  if (library === undefined || count > library.length) throw new Error('subject');
+  for (const sessionKey of state.coreRoot.ruleAuthority.searchSessions.sessionOrder) {
+    const session = state.coreRoot.ruleAuthority.searchSessions.bySession[sessionKey];
+    if (session !== undefined && (session.rulesActorPlayerId === actor || session.selectorPlayerId === actor)) throw new Error('choice');
+  }
+  const input = manualChoiceInput(actor, count);
+  const bound = command(state, actor, actor, { kind: 'decision', decisionKey: 'search-open' }, {
+    kind: 'search-open',
+    sessionKey: manualChoiceSessionKey(state.revision + 1, actor, envelope.commandId, count),
+    input: input as never,
+  });
+  return Object.freeze({ command: bound, actorPlayerId: actor, decisionMakerPlayerId: actor });
+}
+
 export function bindOnlineVisibilityV1(input: OnlineVisibilityBindingInputV1): OnlineVisibilityBindingResultV1 {
   const stateResult = validateOnlineVariableProtocolStateV2(input.state); if (!stateResult.ok) throw new Error('state');
-  const state = stateResult.value; const checked = validateOnlineVisibilityIntentV1(input.envelope); if (!checked.ok) throw new Error('intent');
-  const envelope = checked.value; const seat = participantSeat(state, input.participantId); const actor = seat.corePlayerId as string;
+  const state = stateResult.value; const checked = validateOnlineVisibilityIntent(input.envelope); if (!checked.ok) throw new Error('intent');
+  if (checked.value.kind === 'online-visibility-intent-v2') return bindOnlineVisibilityChoiceV2(state, input.participantId, checked.value, input.existingCommand);
+  const v1 = validateOnlineVisibilityIntentV1(checked.value); if (!v1.ok) throw new Error('intent');
+  const envelope = v1.value; const seat = participantSeat(state, input.participantId); const actor = seat.corePlayerId as string;
   const active = activePlayerIds(state);
   if (envelope.baseRevision !== state.revision) {
     if (input.existingCommand !== undefined && input.existingCommand !== null) {
