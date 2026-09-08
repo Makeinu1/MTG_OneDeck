@@ -110,21 +110,12 @@ describe('PersonalWorkbench', () => {
     act(() => root.unmount());
   });
 
-  it('renders public concealed damage and Japanese player lifecycle labels', () => {
+  it('renders public concealed damage and rejects departed scalars retained in the active roster', () => {
     const projection = JSON.parse(JSON.stringify(fixture)) as typeof fixture;
     const concealed = projection.game.zones.battlefield.entries[1] as unknown as {
       runtime: { markedDamage: number };
     };
     concealed.runtime.markedDamage = 3;
-    const exitedPlayer = projection.game.players[1] as unknown as {
-      status: string;
-      exitCause: string | null;
-    };
-    const concededSeat = projection.room.seats[1] as unknown as { outcome: string };
-    exitedPlayer.status = 'exited';
-    exitedPlayer.exitCause = 'concession';
-    concededSeat.outcome = 'conceded';
-
     const container = document.createElement('div');
     const root = createRoot(container);
     act(() => {
@@ -132,7 +123,21 @@ describe('PersonalWorkbench', () => {
     });
     expect(container.textContent).toContain('ダメージ 3');
     expect(container.textContent).toContain('状態 プレイ中');
-    expect(container.textContent).toContain('状態 退席済み');
+
+    const invalidProjection = JSON.parse(JSON.stringify(projection)) as typeof fixture;
+    const exitedPlayer = invalidProjection.game.players[1] as unknown as {
+      status: string;
+      exitCause: string | null;
+    };
+    const concededSeat = invalidProjection.room.seats[1] as unknown as { outcome: string };
+    exitedPlayer.status = 'exited';
+    exitedPlayer.exitCause = 'concession';
+    concededSeat.outcome = 'conceded';
+
+    act(() => {
+      root.render(<PersonalWorkbench projection={invalidProjection} interactionState="ready" onAction={() => {}} />);
+    });
+    expect(container.textContent).toBe('表示できません');
     act(() => root.unmount());
   });
 });

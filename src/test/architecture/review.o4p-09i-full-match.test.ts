@@ -209,7 +209,7 @@ describe('review O4P-09I full-match production evidence', () => {
     expect(source).toContain('primaryAction');
     expect(source.indexOf("'online-guided-declare-attacker'")).toBeLessThan(source.indexOf("'online-manual-damage-submit'"));
     expect(source).toContain("manualDamageCount === 0 ? '1' : '120'");
-    const confirmIndex = source.indexOf("await clickVisible(hostPage, 'visibility-confirm'");
+    const confirmIndex = source.indexOf("await clickVisible(lookPage, 'visibility-confirm'");
     const privateChoiceIndex = source.indexOf('const privateChoicePayload = await readPrivateChoicePayload');
     const sequenceStart = source.indexOf('const UI_SEQUENCE');
     const sequenceEnd = source.indexOf('] as const', sequenceStart);
