@@ -124,6 +124,7 @@
   }
 
   .online-remote-rail--overview .online-remote-rail__opponent-lane {
+    grid-template-rows: min-content minmax(0, 1fr);
     padding: .25rem;
   }
 
@@ -167,6 +168,7 @@
 
 .online-remote-rail__opponents { order: 0; }
 .online-remote-rail--overview > .online-remote-rail__opponents {
+  grid-template-rows: min-content minmax(0, 1fr);
   min-height: 0;
   height: 100%;
   max-height: 100%;

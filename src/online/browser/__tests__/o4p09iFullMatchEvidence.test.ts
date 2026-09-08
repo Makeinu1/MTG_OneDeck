@@ -1158,9 +1158,19 @@ describe('O4P-09I full-match production evidence', () => {
   });
 
   it('accepts the visible Online entry after a fresh-create remount clears save status', async () => {
-    const summary = await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser([], { freshCreateRemount: true }), readDeck: () => 'fixture deck', timeoutMs: 250 });
+    const expressions: string[] = [];
+    const summary = await runO4p09iFullMatchEvidenceV1({ browser: fakeBrowser(expressions, { freshCreateRemount: true }), readDeck: () => 'fixture deck', timeoutMs: 250 });
     expect(summary.scenarios.twoPlayer.playerCount).toBe(2);
     expect(summary.scenarios.fourPlayer.playerCount).toBe(4);
+    const roomSetupClicks = expressions.filter((expression) =>
+      expression.includes('node.click(); return true') &&
+      /data-testid="online-(player-count-[24]|create-shared)"/.test(expression)
+    );
+    expect(roomSetupClicks).toHaveLength(4);
+    expect(roomSetupClicks[0]).toContain('online-player-count-2');
+    expect(roomSetupClicks[1]).toContain('online-create-shared');
+    expect(roomSetupClicks[2]).toContain('online-player-count-4');
+    expect(roomSetupClicks[3]).toContain('online-create-shared');
   });
 
   it('runs an injected UI-only harness for both player-count scenarios', async () => {

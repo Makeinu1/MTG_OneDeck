@@ -149,7 +149,12 @@ function playerCanView(ctx: ProjectionContext, objectId: CoreObjectId): boolean 
 }
 
 function canView(ctx: ProjectionContext, objectId: CoreObjectId): boolean {
-  return ctx.playerId === null ? observerCanView(ctx, objectId) : playerCanView(ctx, objectId);
+  // A departed seat retains its room identity, but no longer has a Core
+  // viewer. Give it the public audience view instead of concealing face-up
+  // objects as if they were face-down; private zones remain observer-redacted.
+  return ctx.playerId === null || !ctx.registry.turnOrder.includes(ctx.playerId)
+    ? observerCanView(ctx, objectId)
+    : playerCanView(ctx, objectId);
 }
 
 function identityFacts(

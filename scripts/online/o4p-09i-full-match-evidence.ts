@@ -3649,6 +3649,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     const lobby = await probePage(hostPage, timeoutMs, workerOrigin, secretFragments);
     if (lobby.gameScreens > 1 || lobby.overflow !== 0 || lobby.opponentLeak || lobby.consoleErrors !== 0) throw new Error('production lobby probe failed');
     setStage('create-room');
+    await clickVisible(hostPage, `online-player-count-${playerCount}`, timeoutMs);
     await clickVisible(hostPage, 'online-create-shared', timeoutMs); recordControl('online-create-shared');
     await waitForVisible(hostPage, 'online-invite-link-copy', timeoutMs, 'online-error');
     setStage('reveal-invite');
@@ -3750,6 +3751,7 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     // Pregame and game controls are driven on the host surface after every
     // seat has joined.  Each successful click is recorded as an observed
     // action; missing/disabled controls fail closed.
+    const measuredViewports: O4p09iViewportFactV1[] = [];
     const uiSequence = profile === 'reliability' ? [] : UI_SEQUENCE;
     for (const testId of uiSequence) {
       let actionPageOverride: O4p09iPageV1 | null = null;
@@ -3856,6 +3858,31 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
         actionPageOverride = (await findPublicActionAuthorityPage(pages, 'steward', timeoutMs)).page;
         await toggleDetails(actionPageOverride, 'online-remote-guided-overlay', timeoutMs);
         await selectFirstVisibleOption(actionPageOverride, 'online-manual-damage-defender', timeoutMs);
+        // Measure the full-roster layout before the lethal action removes a
+        // seat and legitimately shortens its controls and opponent lanes.
+        if (manualDamageCount === 1) {
+          if (profile === 'full' && pages.some((page) => page.setViewport === undefined)) throw new Error('viewport adapter required');
+          setStage('viewport-geometry');
+          for (const viewport of VIEWPORTS) {
+            for (const page of pages) await page.setViewport?.(viewport);
+            const measuredPages = await Promise.all(pages.map(async (page) => {
+              await toggleDetails(page, 'online-remote-guided-overlay', timeoutMs);
+              await prepareGeometryPage(page, timeoutMs);
+              return probePage(page, timeoutMs, workerOrigin, secretFragments);
+            }));
+            const reference = measuredPages[0];
+            if (reference === undefined) throw new Error('responsive page probe missing');
+            const referenceSeatSignature = rectSignature(reference.geometry.seatRects);
+            const referenceBoardSignature = rectSignature(reference.geometry.boardRects);
+            for (const measured of measuredPages) {
+              const geometry = measured.geometry;
+              if (measured.gameScreens !== 1 || measured.overflow !== 0 || measured.consoleErrors !== 0 || measured.opponentLeak || !measured.workerObserved || geometry.viewport.width !== viewport.width || geometry.viewport.height !== viewport.height || geometry.seatRects.length !== playerCount - 1 || geometry.boardRects.length !== playerCount - 1 || geometry.rail === null || geometry.hand === null || geometry.battlefield === null || geometry.primaryAction === null || geometry.panel === null || geometry.scroll === null || geometry.clippedPrimaryAction || geometry.railHandCollision || geometry.panelOutsideViewport || !geometry.scrollAccessible || geometry.battlefieldObscured) throw new Error('responsive surface/geometry/worker probe failed');
+              if (rectSignature(geometry.seatRects) !== referenceSeatSignature || rectSignature(geometry.boardRects) !== referenceBoardSignature) throw new Error('responsive public lane geometry mismatch');
+            }
+            measuredViewports.push(Object.freeze({ width: viewport.width, height: viewport.height, horizontalOverflow: reference.overflow, gameScreens: reference.gameScreens, consoleErrors: reference.consoleErrors, geometry: cloneGeometry(reference.geometry), pageGeometries: Object.freeze(measuredPages.map((measured) => cloneGeometry(measured.geometry))) }));
+          }
+          setStage('manual-damage');
+        }
         // First combat damage is deliberately nonlethal; the final repeated
         // entry (after private/manual semantics) is the lethal branch.
         await fillVisible(actionPageOverride, 'online-manual-damage-amount', manualDamageCount === 0 ? '1' : '120', timeoutMs);
@@ -3994,33 +4021,10 @@ async function driveScenario(browser: O4p09iBrowserV1, playerCount: 2 | 4, pages
     if (postActions.consoleErrors !== 0) throw new Error('console-error');
     if (!postActions.workerObserved) throw new Error('worker-missing');
 
-    // Resize every live page and collect measured DOM facts rather than
-    // asserting a host-only or constant viewport matrix.  This keeps the
-    // opponent lanes observable for every seat at every required size.
-    const measuredViewports: O4p09iViewportFactV1[] = [];
-    if (profile === 'full' && pages.some((page) => page.setViewport === undefined)) throw new Error('viewport adapter required');
-    if (profile === 'full') setStage('viewport-geometry');
-    for (const viewport of profile === 'full' ? VIEWPORTS : []) {
-      for (const page of pages) await page.setViewport?.(viewport);
-      const measuredPages = await Promise.all(pages.map(async (page) => {
-        await toggleDetails(page, 'online-remote-guided-overlay', timeoutMs);
-        await prepareGeometryPage(page, timeoutMs);
-        return probePage(page, timeoutMs, workerOrigin, secretFragments);
-      }));
-      const reference = measuredPages[0];
-      if (reference === undefined) throw new Error('responsive page probe missing');
-      const referenceSeatSignature = rectSignature(reference.geometry.seatRects);
-      const referenceBoardSignature = rectSignature(reference.geometry.boardRects);
-      for (const measured of measuredPages) {
-        const geometry = measured.geometry;
-        if (measured.gameScreens !== 1 || measured.overflow !== 0 || measured.consoleErrors !== 0 || measured.opponentLeak || !measured.workerObserved || geometry.viewport.width !== viewport.width || geometry.viewport.height !== viewport.height || geometry.seatRects.length !== playerCount - 1 || geometry.boardRects.length !== playerCount - 1 || geometry.rail === null || geometry.hand === null || geometry.battlefield === null || geometry.primaryAction === null || geometry.panel === null || geometry.scroll === null || geometry.clippedPrimaryAction || geometry.railHandCollision || geometry.panelOutsideViewport || !geometry.scrollAccessible || geometry.battlefieldObscured) throw new Error('responsive surface/geometry/worker probe failed');
-        if (rectSignature(geometry.seatRects) !== referenceSeatSignature || rectSignature(geometry.boardRects) !== referenceBoardSignature) throw new Error('responsive public lane geometry mismatch');
-      }
-      measuredViewports.push(Object.freeze({ width: viewport.width, height: viewport.height, horizontalOverflow: reference.overflow, gameScreens: reference.gameScreens, consoleErrors: reference.consoleErrors, geometry: cloneGeometry(reference.geometry), pageGeometries: Object.freeze(measuredPages.map((measured) => cloneGeometry(measured.geometry))) }));
-    }
     const viewportFacts = Object.freeze(measuredViewports);
 
     setStage('reconnect');
+    await waitForSharedMutationConvergence(pages, revisionBeforeReconnect, workerOrigin, timeoutMs, secretFragments);
     const beforeReconnectProbes = await Promise.all(pages.map((page) => probePage(page, timeoutMs, workerOrigin, secretFragments)));
     const initialReconnectProbe = beforeReconnectProbes[0];
     let disconnectedIndex = 0;

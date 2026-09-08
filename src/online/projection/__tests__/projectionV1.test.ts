@@ -13,6 +13,7 @@ import {
   readyAllPlayers,
 } from '../../room/__tests__/testHelpers';
 import {
+  type OnlineProjectedGameV1,
   ONLINE_PROJECTION_SCHEMA_VERSION_V1,
   handleOnlineProjectedSnapshotRequestV1,
   validateOnlineParticipantProjectionV2,
@@ -277,6 +278,19 @@ describe('O4P-02D audience projection', () => {
       commanderOwnerPlayerId: 'P1', commanderSlot: 0, defendingPlayerId: 'P2', damage: 7,
     });
     expect(validateOnlineParticipantProjectionV4(eliminated)).toMatchObject({ ok: true });
+  });
+
+  it('keeps public identities visible to a departed seat without exposing remaining private zones', () => {
+    const exited = exitVariablePlayer(variableState(), 1);
+    const projection = projectOnlineVariableProtocolV4(exited, 'v4-player-2');
+    expect(validateOnlineParticipantProjectionV4(projection)).toMatchObject({ ok: true });
+    const game = projection.game as unknown as OnlineProjectedGameV1;
+    expect(game.zones.command.entries.length).toBeGreaterThan(0);
+    expect(game.zones.command.entries.every((entry) => entry.kind === 'visible-object')).toBe(true);
+    for (const group of game.zones.byPlayer) {
+      expect([...group.zones.library.entries, ...group.zones.hand.entries]
+        .every((entry) => entry.kind === 'hidden-card')).toBe(true);
+    }
   });
 
   it('rejects missing survivors and extra departed records after a Core exit', () => {
