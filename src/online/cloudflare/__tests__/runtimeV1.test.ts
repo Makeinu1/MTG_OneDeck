@@ -14,6 +14,7 @@ import {
 } from '../../protocol/index';
 import { OnlineRoomDurableObject, type OnlineCloudflareSocketAttachmentV1, type OnlineCloudflareWebSocket } from '../index';
 import worker from '../worker';
+import { emitWorkerRequestFactV1 } from '../facts';
 import { SecuritySqlFixture } from './securitySqlFixture';
 
 type Row = Record<string, unknown>;
@@ -250,4 +251,13 @@ describe('O4P-03A Worker and Durable Object boundary', () => {
       vi.unstubAllGlobals();
     }
   });
+});
+
+// Keep new fact coverage outside the frozen O4P-03D judge authority.
+it('emits the allowlisted Pregame request fact', () => {
+  const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  try {
+    emitWorkerRequestFactV1('pregame', 'POST', 200, 'ok', null);
+    expect(log.mock.calls).toEqual([[JSON.stringify({ kind: 'worker-request', roomId: null, action: 'pregame', methodClass: 'POST', status: 200, outcome: 'ok', versionIdentifier: null })]]);
+  } finally { log.mockRestore(); }
 });
