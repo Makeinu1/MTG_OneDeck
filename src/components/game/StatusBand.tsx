@@ -140,7 +140,7 @@ export function StatusBand({ controller, cockpit = false }: StatusBandProps) {
           data-testid="mana-details"
           onClick={() => cockpit ? setManaOpen(!manaOpen) : setLifeOpen(true)}
           aria-expanded={cockpit ? manaOpen : undefined}
-          aria-label={`マナプール ${mana.poolTotal}点。色別調整を${manaOpen ? '閉じる' : '開く'}`}
+          aria-label={cockpit ? `マナプール ${mana.poolTotal}点。色別調整を${manaOpen ? '閉じる' : '開く'}` : undefined}
           title="マナの詳細を開く"
         >
           <strong>{cockpit ? `◇ ${mana.poolTotal}` : mana.poolTotal}</strong>

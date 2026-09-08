@@ -45,7 +45,7 @@ import { AmbientBackdrop } from './AmbientBackdrop';
 import { DanceFloorLights } from './DanceFloorLights';
 import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { Toast } from './Toast';
-import type { KeybindingsMap } from '../../data/keybindings';
+import { normalizePressedKey, type KeybindingsMap } from '../../data/keybindings';
 import type { CardInstance } from '../../engine/types';
 import type { CardDef } from '../../types/card';
 import { CardView } from '../CardView';
@@ -165,19 +165,23 @@ function LocalGameScreen({
   handWorkspaceOpen,
   setHandWorkspaceOpen,
 }: LocalGameScreenProps) {
-  const [compactScreen, setCompactScreen] = useState(
-    () => window.matchMedia?.('(max-width: 899px)').matches ?? false,
-  );
   useEffect(() => {
-    const media = window.matchMedia?.('(max-width: 899px)');
-    if (!media) return;
-    const update = (event: MediaQueryListEvent) => setCompactScreen(event.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
+    // Read the viewport at key time: a resize must not leave one hidden action
+    // enabled while React is updating the desktop surface.
+    const blockHiddenShortcut = (event: KeyboardEvent) => {
+      if (!window.matchMedia?.('(max-width: 899px)').matches) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const key = normalizePressedKey(event.key, event.code);
+      if (!key || !Object.values(keybindings).includes(key)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    document.addEventListener('keydown', blockHiddenShortcut, true);
+    return () => document.removeEventListener('keydown', blockHiddenShortcut, true);
+  }, [keybindings]);
   const interactionPort = useGameController({
     keybindings,
-    externalShortcutsBlocked: handWorkspaceOpen || compactScreen,
+    externalShortcutsBlocked: handWorkspaceOpen,
   });
   return (
     <GameScreenSurface

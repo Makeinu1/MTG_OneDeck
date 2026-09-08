@@ -196,3 +196,22 @@ describe('GameScreen injected interaction port', () => {
     act(() => root.unmount());
   });
 });
+
+
+it('blocks a solo shortcut immediately after the viewport becomes too small', () => {
+  const state = buildVisualFixture('hand7').snapshot.state;
+  useGameStore.setState({ state });
+  const media = { matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  const matchMedia = vi.fn(() => media as unknown as MediaQueryList);
+  vi.stubGlobal('matchMedia', matchMedia);
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() => root.render(<GameScreen keybindings={DEFAULT_KEYBINDINGS} />));
+  media.matches = true;
+  act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', code: 'KeyD', bubbles: true })); });
+  expect(useGameStore.getState().state?.zones.library).toEqual(state.zones.library);
+  expect(useGameStore.getState().state?.zones.hand).toEqual(state.zones.hand);
+  act(() => root.unmount());
+  vi.unstubAllGlobals();
+});

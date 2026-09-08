@@ -5,6 +5,7 @@ const ORIGIN = 'https://mtg-onedeck-online.makeinu1.workers.dev';
 const SENSITIVE_PRODUCT = [
   'src/components/online/PublicOnlineApp.tsx',
   'src/online/publicApp/index.ts',
+  'src/online/publicApp/runtimeRealm.ts',
   'src/online/publicApp/client.ts',
   'src/online/publicApp/types.ts',
 ] as const;
@@ -41,6 +42,7 @@ describe('O4P-06E public Online App boundary review', () => {
 
     const publicAppFiles = [
       'src/online/publicApp/index.ts',
+      'src/online/publicApp/runtimeRealm.ts',
       'src/online/publicApp/client.ts',
       'src/online/publicApp/types.ts',
     ].filter(existsSync).map(source).join('\n');

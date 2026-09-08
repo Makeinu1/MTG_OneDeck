@@ -191,6 +191,8 @@ export function LandRow({ controller, activeDragId = null, cardIds }: LandRowPro
           '--land-bundle-w': `${mobileLayout.bundleWidth}px`,
         } as CSSProperties : undefined}
         onScroll={updateScrollState}
+        onTransitionEnd={updateScrollState}
+        onAnimationEnd={updateScrollState}
       >
         <div
           className="land-row__lands"

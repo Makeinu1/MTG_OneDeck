@@ -27,16 +27,13 @@
   .game-screen--cockpit .game-screen__support > .support-row {
     margin: 0 20px 0 230px;
     border: 0;
-    grid-template-columns: minmax(0, var(--support-land-share, 1fr)) minmax(0, var(--support-other-share, 1fr)) var(--support-commander-w);
+    display: flex; gap: 18px;
   }
-  .game-screen--cockpit .support-row:not([data-has-lands]),
-  .game-screen--cockpit .support-row:not([data-has-support]) {
-    grid-template-columns: minmax(0, 1fr) var(--support-commander-w);
+  .game-screen--cockpit .support-row__lands { flex: 0 1 var(--support-land-w); }
+  .game-screen--cockpit .support-row__others { flex: 0 1 var(--support-other-w); }
+  .game-screen--cockpit .commander-altar {
+    order: 3; flex: 0 0 var(--support-commander-w); margin-left: auto; border: 0; background: none;
   }
-  .game-screen--cockpit .support-row[data-land-drop-active='true'][data-has-support]:not([data-has-lands]) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, var(--support-other-share, 1fr)) var(--support-commander-w);
-  }
-  .game-screen--cockpit .commander-altar { grid-column: -2 / -1; order: 3; border: 0; background: none; }
   .game-screen--cockpit .commander-altar__meta { opacity: 0; transition: opacity 120ms; }
   .game-screen--cockpit .commander-altar:hover .commander-altar__meta,
   .game-screen--cockpit .commander-altar:focus-within .commander-altar__meta { opacity: 1; }
@@ -62,6 +59,7 @@
     box-shadow: -3px -3px 0 #233a31, -4px -4px 0 #83967a66, -7px -7px 0 #20332b, 0 5px 10px #0005;
     color: #e3dfd0;
   }
+  .game-screen--cockpit .hand-ribbon:not([data-layout='workspace']) .hand-ribbon__zone strong { color: inherit; }
   .game-screen--cockpit .hand-ribbon__zone--library > span,
   .game-screen--cockpit .hand-ribbon__zone--library > small { display: none; }
   .game-screen--cockpit .hand-ribbon__zone--library::before {
@@ -106,6 +104,8 @@
   .game-screen--cockpit .status-band__event-slot { flex: 0 1 160px; }
   .game-screen--cockpit .thumb-zone { height: 100%; padding: 10px 14px; border-radius: 10px 10px 0 0; background: #14221fe8; }
   .game-screen--cockpit .thumb-zone__primary { flex: 0 0 170px; margin-left: auto; }
+  .game-screen--cockpit .stack-pile__return { max-width: 280px; }
+  .game-screen--cockpit .stack-pile__return > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .game-screen--cockpit .game-screen__decision { z-index: 12; }
   .game-screen--cockpit .board[data-drop-active='true'] { border-radius: 24px; }
 }

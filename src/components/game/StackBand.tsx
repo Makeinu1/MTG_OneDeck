@@ -221,7 +221,7 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
             aria-label={`スタックに戻る ${items.length}件`}
             onClick={exitBoardPeek}
           >
-            <span>スタック</span>
+            <span>{cockpit ? items[0]?.name : 'スタック'}</span>
             <span className="stack-pile__count">{items.length}</span>
           </button>
         ) : (

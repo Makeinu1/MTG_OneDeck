@@ -82,6 +82,8 @@ export function SupportRow({
       data-drop-over={isOver || undefined}
       style={{
         '--support-card-w': `${layout.cardWidth}px`,
+        '--support-land-w': `${Math.max(1, landUnits) * (layout.cardWidth + 76)}px`,
+        '--support-other-w': `${Math.max(1, supportUnits) * (layout.cardWidth + 16)}px`,
         '--support-rows': layout.rows,
         '--support-land-share': `${landShare}fr`,
         '--support-other-share': `${supportShare}fr`,

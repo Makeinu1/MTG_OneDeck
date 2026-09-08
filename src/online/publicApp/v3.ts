@@ -20,7 +20,7 @@ import {
   type PublicOnlineSnapshotV3,
   type PublicOnlineManualCombatDamageInputV1,
 } from './types';
-import { resolvePublicOnlineEndpointV1, resolvePublicOnlineRuntimeRealmV1 } from './index';
+import { resolvePublicOnlineEndpointV1, resolvePublicOnlineRuntimeRealmV1 } from './runtimeRealm';
 import type { OnlineBrowserStateV1, OnlineBrowserSubmitErrorCodeV1 } from '../browser/index';
 import { validateOnlineTabletopIntentEnvelopeV1, type OnlineTabletopIntentEnvelopeV1 } from '../tabletopManual/index';
 import { validateOnlineVisibilityIntent, type OnlineVisibilityIntentEnvelope } from '../visibilityDecisions/index';
