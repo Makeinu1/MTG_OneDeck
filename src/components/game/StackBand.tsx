@@ -82,6 +82,7 @@ function StackTargetLines({ item }: { item: StackItemPresentation | undefined })
 
 export interface StackBandProps {
   controller: GameController;
+  cockpit?: boolean;
 }
 
 interface StackOverflowMenuProps {
@@ -148,7 +149,7 @@ function StackOverflowMenu({ item, controller, open, onToggle, onManualTarget }:
   );
 }
 
-export function StackBand({ controller }: StackBandProps) {
+export function StackBand({ controller, cockpit = false }: StackBandProps) {
   const bottomStackId = controller.state?.zones.stack[0];
   const bottomStackCard = bottomStackId ? controller.state?.cards[bottomStackId] : undefined;
   const sessionId = bottomStackCard
@@ -165,7 +166,7 @@ export function StackBand({ controller }: StackBandProps) {
     (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
   ) ?? false;
   const expanded = expandedSessionId === sessionId || hasStackCandidate;
-  const resolutionLocked = controller.resolutionSession !== null;
+  const resolutionLocked = !cockpit && controller.resolutionSession !== null;
   const boardPeek = boardPeekSessionId === sessionId && !hasStackCandidate && !resolutionLocked;
 
   useEffect(() => {

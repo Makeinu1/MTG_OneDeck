@@ -64,3 +64,28 @@ describe('CastFaceDialog', () => {
     act(() => root.unmount());
   });
 });
+
+
+describe('Cockpit pending choice', () => {
+  it('keeps the chosen scry destination across board peek without confirming or cancelling', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const state = buildVisualFixture('hand7').snapshot.state;
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    act(() => root.render(<ArrangeTopDialog state={state} onConfirm={onConfirm} onCancel={onCancel} />));
+    const button = (text: string) => Array.from(container.querySelectorAll('button'))
+      .find((item) => item.textContent === text)!;
+    act(() => button('下').click());
+    act(() => button('盤面を見る').click());
+    expect(container.querySelector('.modal__body')?.hasAttribute('hidden')).toBe(true);
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    act(() => button('選択に戻る').click());
+    act(() => container.querySelector<HTMLButtonElement>('[data-testid="scry-confirm"]')!.click());
+    expect(onConfirm).toHaveBeenCalledWith([], [state.zones.library[0]], []);
+    expect(onCancel).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+});

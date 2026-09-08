@@ -28,10 +28,12 @@ const MANA_LABELS = [
 
 export interface StatusBandProps {
   controller: GameController;
+  cockpit?: boolean;
 }
 
-export function StatusBand({ controller }: StatusBandProps) {
+export function StatusBand({ controller, cockpit = false }: StatusBandProps) {
   const { state } = controller;
+  const [manaOpen, setManaOpen] = useState(false);
   const [lifeOpen, setLifeOpen] = useState(false);
   // ライフ変化の色フラッシュ(D5④)。hooks は早期 return より前。
   const life = controller.state?.life ?? null;
@@ -136,12 +138,14 @@ export function StatusBand({ controller }: StatusBandProps) {
           type="button"
           className="status-band__mana-total"
           data-testid="mana-details"
-          onClick={() => setLifeOpen(true)}
+          onClick={() => cockpit ? setManaOpen(!manaOpen) : setLifeOpen(true)}
+          aria-expanded={cockpit ? manaOpen : undefined}
+          aria-label={`マナプール ${mana.poolTotal}点。色別調整を${manaOpen ? '閉じる' : '開く'}`}
           title="マナの詳細を開く"
         >
-          <strong>{mana.poolTotal}</strong>
+          <strong>{cockpit ? `◇ ${mana.poolTotal}` : mana.poolTotal}</strong>
         </button>
-        <span className="status-band__mana-colors">
+        <span className="status-band__mana-colors" hidden={cockpit && !manaOpen}>
           {MANA_LABELS.map(({ color, kanji, name }) => (
             <span
               key={color}

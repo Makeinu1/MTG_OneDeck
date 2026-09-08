@@ -54,6 +54,7 @@ import { resolveDropIntent, type DropTarget } from './dragIntent';
 import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverlayModel';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 import './game.css';
+import './cockpit.css';
 import { AudioVisualProvider } from './presentation/AudioVisualProvider';
 import { commanderOnBattlefield } from './presentation/twoPhaseBeat';
 import type { GameScreenInteractionPort } from './gameScreenInteractionPort';
@@ -116,6 +117,7 @@ interface GameScreenSurfaceProps {
   initialHandLayout: string | null;
   handWorkspaceOpen: boolean;
   setHandWorkspaceOpen: (open: boolean) => void;
+  cockpit?: boolean;
   researchLayer?: ReactNode;
   surfaceOverlay?: ReactNode;
   surfaceActions?: ReactNode;
@@ -163,13 +165,24 @@ function LocalGameScreen({
   handWorkspaceOpen,
   setHandWorkspaceOpen,
 }: LocalGameScreenProps) {
+  const [compactScreen, setCompactScreen] = useState(
+    () => window.matchMedia?.('(max-width: 899px)').matches ?? false,
+  );
+  useEffect(() => {
+    const media = window.matchMedia?.('(max-width: 899px)');
+    if (!media) return;
+    const update = (event: MediaQueryListEvent) => setCompactScreen(event.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   const interactionPort = useGameController({
     keybindings,
-    externalShortcutsBlocked: handWorkspaceOpen,
+    externalShortcutsBlocked: handWorkspaceOpen || compactScreen,
   });
   return (
     <GameScreenSurface
       interactionPort={interactionPort}
+      cockpit
       onOpenOpponentSetup={onOpenOpponentSetup}
       initialHandLayout={initialHandLayout}
       handWorkspaceOpen={handWorkspaceOpen}
@@ -193,6 +206,7 @@ function GameScreenSurface({
   surfaceOverlay,
   surfaceActions,
   surfaceDialogs,
+  cockpit = false,
 }: GameScreenSurfaceProps) {
   const handWorkspaceAvailable = initialHandLayout !== 'flat';
   const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
@@ -303,7 +317,7 @@ function GameScreenSurface({
       onDragCancel={finishDrag}
     >
       <div
-        className="game-screen"
+        className={`game-screen${cockpit ? ' game-screen--cockpit' : ''}`}
         data-testid="game-screen"
         data-surface-overlay={surfaceOverlay !== undefined || surfaceActions !== undefined || undefined}
         data-hand-workspace-open={handWorkspaceOpen || undefined}
@@ -316,11 +330,12 @@ function GameScreenSurface({
         data-mulligan-active={controller.mulliganActive || undefined}
       >
         <div className="game-screen__status">
-          <StatusBand controller={controller} />
+          <StatusBand controller={controller} cockpit={cockpit} />
         </div>
         <div className="game-screen__stack">
-          <StackBand controller={controller} />
+          <StackBand controller={controller} cockpit={cockpit} />
         </div>
+        {cockpit && <div className="cockpit-mobile-notice" role="note"><strong>一人回しCockpitはPCでお楽しみください</strong><p>カードと手元を広く使える画面で、保存したデッキから続けられます。</p></div>}
         <TabletopSurface />
         {/* §8a 生きた背景(アンビエント層)。既存 UI は不変——TabletopSurface 直後・
             .game-screen の isolation 内 z-index:-1 に積層し全クロムの下に置く。 */}

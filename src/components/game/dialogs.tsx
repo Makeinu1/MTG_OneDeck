@@ -1145,6 +1145,7 @@ export function ArrangeTopDialog({
       title={`${mode === 'scry' ? '占術' : '諜報'} ${count}`}
       onClose={onCancel}
       width="lg"
+      allowBoardPeek
       testId="arrange-top-dialog"
     >
       {libraryCount === 0 ? (
@@ -1339,7 +1340,7 @@ export function FetchSearchDialog({
         : '該当するカードはありません。';
 
   return (
-    <Modal title="サーチ(フェッチ)" onClose={onClose} width="lg" testId="fetch-search-dialog">
+    <Modal allowBoardPeek title="サーチ(フェッチ)" onClose={onClose} width="lg" testId="fetch-search-dialog">
       <p>
         《{sourceName}》のフェッチを解決します。{fetchFilterLabel(ability)} を探します。
       </p>
@@ -1476,6 +1477,7 @@ export function GuidedLibrarySearchDialog({
       title="ライブラリーから探す"
       onClose={onClose}
       width="lg"
+      allowBoardPeek
       testId="guided-library-search-dialog"
     >
       <p>
@@ -1618,7 +1620,7 @@ export function ZoneViewerDialog({
   const visibleIds = filteredIds.slice(0, visibleCount);
 
   return (
-    <Modal title={title ?? ZONE_TITLES[zone]} onClose={onClose} width="lg" testId={testId ?? `${zone}-viewer-dialog`}>
+    <Modal allowBoardPeek title={title ?? ZONE_TITLES[zone]} onClose={onClose} width="lg" testId={testId ?? `${zone}-viewer-dialog`}>
       {shouldShowSearch && cardIds.length > 0 && (
         <div className="zone-viewer__search">
           <input
