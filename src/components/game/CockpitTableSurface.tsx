@@ -301,6 +301,16 @@ export function CockpitTableSurface({
         aria-label={`${table.seats.find((seat) => seat.id === id)?.label}の戦場`}
       >
         <div className="table-board__permanents">
+          {ids.length > 0 && (
+            <button
+              className="table-board__browse"
+              title={`${table.seats.find((seat) => seat.id === id)?.label}の戦場一覧`}
+              onClick={() => openZone('battlefield', id)}
+            >
+              <Icon name="search" />
+              {ids.length}
+            </button>
+          )}
           {ids.filter((item) => !isLand(item)).map((item) => card(item))}
         </div>
         <div className="table-board__lands">

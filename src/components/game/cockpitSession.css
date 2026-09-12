@@ -773,6 +773,11 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+.table-board__browse {
+  flex: 0 0 40px;
+  align-self: flex-start;
+  min-height: 36px;
+}
 .table-board--overview {
   display: flex !important;
   flex-direction: column;
