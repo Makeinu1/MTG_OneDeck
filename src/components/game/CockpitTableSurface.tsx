@@ -1,7 +1,10 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { DndContext, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
-import type { CockpitSessionView } from '../../online/browser/cockpitClient';
-import { tableManaResources, type TableOperation } from '../../engine/cockpitTable';
+import {
+  tableManaResources,
+  type CockpitTable,
+  type TableOperation,
+} from '../../engine/cockpitTable';
 import { manaActivationChoices } from '../../engine/autotap';
 import type { ZoneId } from '../../engine/types';
 import { CardView } from '../CardView';
@@ -68,7 +71,19 @@ export function CockpitTableSurface({
   chooseSeat,
   peek,
 }: {
-  view: CockpitSessionView;
+  view: {
+    table: CockpitTable;
+    canUndo: boolean;
+    canRedo: boolean;
+    multiplayer?: {
+      ownSeatId: string;
+      started: boolean;
+      paused: boolean;
+      canOperate: boolean;
+      counts: Record<string, { hand: number; library: number }>;
+      peek: object | null;
+    };
+  };
   disabled: boolean;
   pending: boolean;
   selected: string[];
