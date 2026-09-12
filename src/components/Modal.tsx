@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 export interface ModalProps {
@@ -9,13 +9,18 @@ export interface ModalProps {
   testId?: string;
   /** Keep the pending selection mounted while the player looks at the board. */
   allowBoardPeek?: boolean;
+  open?: boolean;
 }
 
 /** A centered modal dialog with a dimmed backdrop. */
-export function Modal({ title, onClose, children, width = 'md', testId, allowBoardPeek = false }: ModalProps) {
+export function Modal({ title, onClose, children, width = 'md', testId, allowBoardPeek = false, open = true }: ModalProps) {
   const [boardPeek, setBoardPeek] = useState(false);
+  if (!open && boardPeek) setBoardPeek(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  const close = useEffectEvent(() => onClose?.());
+  const canClose = Boolean(onClose);
   useEffect(() => {
+    if (!open) return;
     const restoreFocusTo = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
@@ -25,13 +30,15 @@ export function Modal({ title, onClose, children, width = 'md', testId, allowBoa
     const firstFocusable = focusScope()?.querySelector<HTMLElement>(focusableSelector);
     (preferred ?? firstFocusable)?.focus();
     function handleKey(e: KeyboardEvent): void {
-      if (e.key === 'Escape' && onClose) {
+      const dialogs = [...document.querySelectorAll('[role="dialog"]')].filter((node) => !node.closest('[hidden]'));
+      if (dialogs[dialogs.length - 1] !== modalRef.current || boardPeek) return;
+      if (e.key === 'Escape' && canClose) {
         e.preventDefault();
-        onClose();
+        close();
         return;
       }
       if (e.key !== 'Tab' || !modalRef.current) return;
-      const focusable = Array.from(focusScope()?.querySelectorAll<HTMLElement>(focusableSelector) ?? []);
+      const focusable = Array.from(focusScope()?.querySelectorAll<HTMLElement>(focusableSelector) ?? []).filter((element) => element.getClientRects().length > 0);
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -48,16 +55,16 @@ export function Modal({ title, onClose, children, width = 'md', testId, allowBoa
       document.removeEventListener('keydown', handleKey);
       if (restoreFocusTo?.isConnected) restoreFocusTo.focus();
     };
-  }, [onClose, boardPeek]);
+  }, [canClose, boardPeek, open]);
 
   return (
-    <div className={`modal-backdrop${boardPeek ? ' modal-backdrop--board-peek' : ''}`} onClick={boardPeek ? undefined : onClose}>
+    <div hidden={!open} className={`modal-backdrop${boardPeek && open ? ' modal-backdrop--board-peek' : ''}`} onClick={boardPeek ? undefined : onClose}>
       <div
         ref={modalRef}
         className={`modal modal--${width}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-modal="true"
+        aria-modal={!boardPeek}
         aria-label={title}
         data-testid={testId}
       >

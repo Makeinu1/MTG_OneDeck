@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
 import { Modal } from '../Modal';
+import { CardView } from '../CardView';
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 export function CockpitSelectionTools({
@@ -158,13 +159,19 @@ export function CockpitSelectionTools({
       {arrange && (
         <Modal
           title={`${arrange.kind}・上から${arrange.examined.length}枚`}
+          width="lg"
           onClose={() => setArrange(null)}
           allowBoardPeek
         >
-          <p>上からの順序と行き先を選んで一度に確定します。本文閲覧では選択を失いません。</p>
-          <ol>
+          <ol className="table-arrange-cards">
             {arrange.rows.map((row, index) => (
               <li key={row.id}>
+                <CardView
+                  instance={table.cards[row.id]}
+                  def={table.defs[table.cards[row.id].defId]}
+                  size="hand"
+                  draggable={false}
+                />
                 <details>
                   <summary>《{label(row.id)}》の本文</summary>
                   <p>
@@ -196,6 +203,8 @@ export function CockpitSelectionTools({
                   )}
                 </select>
                 <button
+                  aria-label={`《${label(row.id)}》の順序を上へ`}
+                  title="順序を上へ"
                   disabled={index === 0}
                   onClick={() => {
                     const rows = [...arrange.rows];
@@ -203,7 +212,7 @@ export function CockpitSelectionTools({
                     setArrange({ ...arrange, rows });
                   }}
                 >
-                  順序を上へ
+                  ↑
                 </button>
               </li>
             ))}
@@ -230,16 +239,28 @@ export function CockpitSelectionTools({
         </Modal>
       )}
       {search !== null && (
-        <Modal title={`${seat.label}の山札をサーチ`} onClose={() => setSearch(null)} allowBoardPeek>
-          <p>
-            一人回しの私的閲覧です。公開や移動は別の明示操作です。条件の合法性は本文で確認してください。
-          </p>
+        <Modal
+          title={`${seat.label}の山札をサーチ`}
+          width="xl"
+          onClose={() => setSearch(null)}
+          allowBoardPeek
+        >
+          <p>閲覧は公開ではありません。検索条件は手動で判断します。</p>
           <label>
-            カード名 <input value={search} onChange={(event) => setSearch(event.target.value)} />
+            カード名{' '}
+            <input
+              data-autofocus="true"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </label>
-          <ul>
+          <ul className="table-search-cards">
             {seat.zones.library
-              .filter((id) => label(id).toLowerCase().includes(search.toLowerCase()))
+              .filter((id) =>
+                `${label(id)} ${table.defs[table.cards[id].defId]?.name ?? ''}`
+                  .toLowerCase()
+                  .includes(search.toLowerCase()),
+              )
               .map((id) => (
                 <li key={id}>
                   <label>
@@ -254,7 +275,13 @@ export function CockpitSelectionTools({
                         )
                       }
                     />
-                    {label(id)}
+                    <span>《{label(id)}》</span>
+                    <CardView
+                      instance={table.cards[id]}
+                      def={table.defs[table.cards[id].defId]}
+                      size="hand"
+                      draggable={false}
+                    />
                   </label>
                   <details>
                     <summary>本文</summary>
@@ -268,9 +295,12 @@ export function CockpitSelectionTools({
                 </li>
               ))}
           </ul>
-          <p>
-            選択 {selected.length}枚。閉じて移動先を選び、必要に応じて公開・シャッフルしてください。
-          </p>
+          <div className="table-opening__actions">
+            <span>選択 {selected.length}枚</span>
+            <button disabled={!selected.length} onClick={() => setSearch(null)}>
+              選択したカードを操作
+            </button>
+          </div>
         </Modal>
       )}
       {proliferate && (

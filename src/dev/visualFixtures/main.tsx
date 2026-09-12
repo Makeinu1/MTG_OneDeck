@@ -3,10 +3,7 @@ import '../../index.css';
 import '../../App.css';
 import { GameScreen } from '../../components/game/GameScreen';
 import { DEFAULT_KEYBINDINGS } from '../../data/keybindings';
-import {
-  disableSnapshotPersistenceForDevelopment,
-  useGameStore,
-} from '../../store/gameStore';
+import { disableSnapshotPersistenceForDevelopment, useGameStore } from '../../store/gameStore';
 import { loadResearchCheckpoint } from '../uxResearch/storage';
 import {
   buildVisualFixture,
@@ -15,14 +12,12 @@ import {
 } from './fixtureBuilder';
 import { initializeTheme, saveThemePreference } from '../../ui/theme';
 import { triggerCandidatesFromPendingTriggers } from '../../engine/triggers';
-import {
-  applyTabletopPrototypeMode,
-  resolveTabletopPrototypeMode,
-} from './tabletopPrototype';
+import { applyTabletopPrototypeMode, resolveTabletopPrototypeMode } from './tabletopPrototype';
 import { AmbientMacroFixture } from './AmbientMacroFixture';
 import { PregameFixture } from './PregameFixture';
 import { TabletopManualFixture } from './TabletopManualFixture';
 import { RemoteGameScreenFixture } from './RemoteGameScreenFixture';
+import { CockpitTableFixture } from './CockpitTableFixture';
 import './tabletopPrototype.css';
 
 function queryValue(name: string): string | null {
@@ -86,9 +81,7 @@ async function renderFixture(): Promise<void> {
   const sessionId = queryValue('session');
   const checkpointId = queryValue('checkpoint');
   const capturedCheckpoint =
-    sessionId && checkpointId
-      ? await loadResearchCheckpoint(sessionId, checkpointId)
-      : null;
+    sessionId && checkpointId ? await loadResearchCheckpoint(sessionId, checkpointId) : null;
 
   if ((sessionId || checkpointId) && !capturedCheckpoint) {
     throw new Error('指定したUX調査checkpointが見つかりません。');
@@ -110,16 +103,21 @@ async function renderFixture(): Promise<void> {
       false,
   });
 
-  const fixtureName = capturedCheckpoint
-    ? `captured-${capturedCheckpoint.reason}`
-    : scenario;
+  const fixtureName = capturedCheckpoint ? `captured-${capturedCheckpoint.reason}` : scenario;
   document.documentElement.dataset.fixtureScenario = fixtureName;
   document.title = `MTG OneDeck — ${fixtureName} — ${tabletopMode}`;
 
   createRoot(rootElement).render(<GameScreen keybindings={DEFAULT_KEYBINDINGS} />);
 }
 
-if (isAmbientMacroFixture) {
+if (requestedScenario === 'cockpit-table') {
+  createRoot(rootElement).render(
+    <CockpitTableFixture
+      players={queryValue('players') === '2' ? 2 : 4}
+      stress={queryValue('density') === '100'}
+    />,
+  );
+} else if (isAmbientMacroFixture) {
   document.documentElement.dataset.fixtureScenario = 'ambient-macro';
   document.title = 'MTG OneDeck — 長周期アンビエント比較fixture';
   createRoot(rootElement).render(<AmbientMacroFixture />);

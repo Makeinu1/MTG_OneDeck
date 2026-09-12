@@ -15,6 +15,7 @@ import type { GameCommand } from '../../engine/commands';
 import type { ZoneId } from '../../engine/types';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
 import { CockpitClient } from '../../online/browser/cockpitClient';
+import { CockpitTableSurface } from './CockpitTableSurface';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { CockpitSelectionTools } from './CockpitSelectionTools';
@@ -76,8 +77,9 @@ export function CockpitSessionScreen({
   const [message, setMessage] = useState('接続中…');
   const [busy, setBusy] = useState(true);
   const [uncertain, setUncertain] = useState(false);
+  const [operationError, setOperationError] = useState(false);
   const [seatId, setSeatId] = useState('P1');
-  const [zone, setZone] = useState<ZoneId>('hand');
+  const [menu, setMenu] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -101,6 +103,8 @@ export function CockpitSessionScreen({
   const [duration, setDuration] = useState('ターン終了まで');
   const clientRef = useRef<CockpitClient | null>(null);
   const viewRef = useRef<CockpitSessionView | null>(null);
+  const motionRef = useRef<Animation[]>([]);
+  const motionFrameRef = useRef<number | null>(null);
   const commanderCue = useCallback((id: string) => {
     const table = viewRef.current?.table;
     const card = table?.cards[id];
@@ -176,20 +180,66 @@ export function CockpitSessionScreen({
     return () => {
       active = false;
       client.dispose();
+      motionRef.current.forEach((animation) => animation.cancel());
+      if (motionFrameRef.current !== null) cancelAnimationFrame(motionFrameRef.current);
     };
   }, [deck, snapshot, seats, invitation]);
   async function send(operation: TableOperation | { type: 'undo' } | { type: 'redo' }) {
     if (busy || uncertain) return false;
+    setOperationError(false);
     setBusy(true);
     setMessage('送信中…');
     try {
       const before = viewRef.current?.table;
+      const drawOrigin =
+        operation.type === 'draw'
+          ? document.querySelector('[data-testid="library-tile"]')?.getBoundingClientRect()
+          : null;
       await clientRef.current?.commit(operation);
       const after = viewRef.current?.table;
       if (before && after) publishCockpitOperation(operation, before, after);
+      if (
+        operation.type === 'draw' &&
+        before &&
+        after &&
+        drawOrigin &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        const previousHand =
+          before.seats.find((seat) => seat.id === operation.seatId)?.zones.hand ?? [];
+        const arrived =
+          after.seats
+            .find((seat) => seat.id === operation.seatId)
+            ?.zones.hand.filter((id) => !previousHand.includes(id)) ?? [];
+        motionFrameRef.current = requestAnimationFrame(() => {
+          motionRef.current = motionRef.current.filter(
+            (animation) => animation.playState === 'running',
+          );
+          arrived.forEach((id, index) => {
+            const node = document.querySelector<HTMLElement>(
+              `.table-hand [data-card-id="${CSS.escape(id)}"]`,
+            );
+            if (!node) return;
+            const end = node.getBoundingClientRect();
+            motionRef.current.push(
+              node.animate(
+                [
+                  {
+                    translate: `${drawOrigin.x - end.x}px ${drawOrigin.y - end.y}px`,
+                    opacity: 0.3,
+                  },
+                  { translate: '0 0', opacity: 1 },
+                ],
+                { duration: 420, delay: index * 65, easing: 'ease-out' },
+              ),
+            );
+          });
+        });
+      }
       setMessage('サーバー保存済み');
       return true;
     } catch (error) {
+      setOperationError(true);
       setUncertain(
         !(
           error instanceof Error &&
@@ -211,6 +261,7 @@ export function CockpitSessionScreen({
   }
   async function control(operation: CockpitControl): Promise<void> {
     if (busy || uncertain) return;
+    setOperationError(false);
     setBusy(true);
     try {
       await clientRef.current?.control(operation);
@@ -254,6 +305,7 @@ export function CockpitSessionScreen({
   }
   async function reconnect() {
     setBusy(true);
+    setOperationError(false);
     try {
       const result = await clientRef.current?.reconnect();
       setUncertain(false);
@@ -288,10 +340,7 @@ export function CockpitSessionScreen({
     Object.values(table.cards)
       .filter((card) => card.zone === 'battlefield' && card.controllerId === id)
       .map((card) => card.id);
-  const displayZone = zone === 'battlefield' ? 'hand' : zone;
-  const visibleIds = seat.zones[displayZone].filter((id) => Boolean(table.cards[id]));
   const multi = view.multiplayer;
-  const pregameOwn = multi && !multi.started && multi.ownSeatId === seatId && !multi.paused;
   const canBlock = Boolean(
     multi?.started &&
     !multi.paused &&
@@ -341,54 +390,12 @@ export function CockpitSessionScreen({
       error,
     });
   }
-  function renderCard(id: string, compact = false) {
-    return (
-      <article key={id} className={selected.includes(id) ? 'is-selected' : ''}>
-        <div className="cockpit-session__card-image">
-          <CardView
-            instance={table.cards[id]}
-            def={table.defs[table.cards[id].defId]}
-            size={compact ? 'small' : 'hand'}
-            draggable={false}
-            badge={table.cards[id].isCommander ? '統率者' : undefined}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              setDetail(id);
-            }}
-            onTouchTap={() => setDetail(id)}
-            onDoubleClick={() => setDetail(id)}
-          />
-        </div>
-        <label>
-          <input
-            type="checkbox"
-            checked={selected.includes(id)}
-            onChange={() =>
-              setSelected((ids) =>
-                ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id],
-              )
-            }
-          />
-          {label(id)}
-          {table.cards[id].tapped ? ' ↷' : ''}
-        </label>
-        <button onClick={() => setDetail(id)}>本文・操作</button>
-        {table.modifiers
-          .filter((item) => item.cardId === id)
-          .map((item) => (
-            <small key={item.id}>
-              修整 {item.power >= 0 ? '+' : ''}
-              {item.power}/{item.toughness >= 0 ? '+' : ''}
-              {item.toughness}・{item.duration}
-            </small>
-          ))}
-        {table.cards[id].attachedTo && (
-          <small>添付先:《{label(table.cards[id].attachedTo)}》</small>
-        )}
-      </article>
-    );
-  }
-  const disabled = busy || uncertain || table.ended || Boolean(multi && !multi.canOperate);
+  const disabled =
+    busy ||
+    uncertain ||
+    table.ended ||
+    Boolean(multi && !multi.canOperate) ||
+    !table.seats.find((entry) => entry.id === (multi?.ownSeatId ?? table.seats[0].id))?.kept;
   return (
     <main
       className={`cockpit-session${multi ? ' cockpit-session--multiplayer' : ''}`}
@@ -404,407 +411,283 @@ export function CockpitSessionScreen({
           終局確定済みです。盤面は閲覧・保存できます。操作・undo・保存読込みでの再開はできません。
         </p>
       )}
-      <header className="cockpit-session__bar">
-        <strong>OneDeck · {multi ? `${table.seats.length}人対戦` : '非公開の一人回し'}</strong>
-        <span>
-          {table.turn}ターン /{' '}
-          {
-            {
-              untap: 'アンタップ',
-              upkeep: 'アップキープ',
-              draw: 'ドロー',
-              main1: '第1メイン',
-              combat: '戦闘',
-              main2: '第2メイン',
-              end: '終了',
-              cleanup: 'クリンナップ',
-            }[table.phase]
-          }{' '}
-          / {table.seats.find((entry) => entry.id === table.activeSeatId)?.label}
-        </span>
-        <span role="status">{message}</span>
-        <button onClick={() => void reconnect()} disabled={busy}>
-          再接続
-        </button>
-        <button disabled={disabled || !view.canUndo} onClick={() => void send({ type: 'undo' })}>
-          undo
-        </button>
-        <button disabled={disabled || !view.canRedo} onClick={() => void send({ type: 'redo' })}>
-          redo
-        </button>
-        {message.includes('失効') && (
-          <button disabled={busy} onClick={() => void checkpoint(true)}>
-            端末checkpointから新しいセッション
-          </button>
-        )}
-        <button
-          disabled={busy || uncertain || Boolean(multi)}
-          onClick={() => void checkpoint(false)}
-        >
-          端末へ保存
-        </button>
-        <button onClick={onBack}>デッキへ</button>
-        <details>
-          <summary>音・表示</summary>
-          <ThemeToggle compact />
-          <button
-            onClick={() => {
-              const next = { ...audio.preferences, bgmEnabled: !audio.preferences.bgmEnabled };
-              audio.setPreferences(next);
-              saveAudioPreferences(next);
-            }}
-          >
-            BGM {audio.preferences.bgmEnabled ? 'ON' : 'OFF'}
-          </button>
-          <button
-            onClick={() => {
-              const next = {
-                ...audio.preferences,
-                eventSoundsEnabled: !audio.preferences.eventSoundsEnabled,
-              };
-              audio.setPreferences(next);
-              saveAudioPreferences(next);
-            }}
-          >
-            操作音 {audio.preferences.eventSoundsEnabled ? 'ON' : 'OFF'}
-          </button>
-          <label>
-            操作音量{' '}
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={audio.preferences.sfxVolume ?? 80}
-              onChange={(event) => {
-                const next = { ...audio.preferences, sfxVolume: Number(event.target.value) };
-                audio.setPreferences(next);
-                saveAudioPreferences(next);
-              }}
-            />
-          </label>
-        </details>
-      </header>
-      <CockpitRoomControls
+      <CockpitTableSurface
         view={view}
-        invitation={roomInvitation}
-        busy={busy || uncertain}
-        send={control}
-      />
-      <p className="cockpit-session__note">
-        人が効果を判断し、操作を確定します。
-        {multi
-          ? '通常操作はマスターが代行し、防御側は自席のブロックを確定できます。'
-          : '受け身Botへの操作はあなたが代行します。'}
-        稼働セッションは最終利用から6時間で失効します。
-      </p>
-      <section className="cockpit-session__seats" aria-label="席">
-        {table.seats.map((entry) => (
-          <article key={entry.id} className={entry.id === seatId ? 'is-selected' : ''}>
-            <button onClick={() => setSeatId(entry.id)}>
-              {entry.label} · ライフ {entry.life}
-            </button>
-            <span>
-              手札 {multi?.counts[entry.id]?.hand ?? entry.zones.hand.length} / 山札{' '}
-              {multi?.counts[entry.id]?.library ?? entry.zones.library.length}
-            </span>
-            <button
-              disabled={disabled}
-              aria-label={`${entry.label}のライフを1減らす`}
-              onClick={() => void send({ type: 'life', seatIds: [entry.id], delta: -1 })}
-            >
-              −
-            </button>
-            <button
-              disabled={disabled}
-              aria-label={`${entry.label}のライフを1増やす`}
-              onClick={() => void send({ type: 'life', seatIds: [entry.id], delta: 1 })}
-            >
-              ＋
-            </button>
-            <section
-              className="cockpit-session__cards cockpit-session__board"
-              aria-label={`${entry.label}の戦場`}
-            >
-              {battlefieldFor(entry.id).map((id) => renderCard(id, true))}
-              {!battlefieldFor(entry.id).length && (
-                <p className="cockpit-session__note">戦場にカードはありません。</p>
-              )}
-            </section>
-          </article>
-        ))}
-      </section>
-      <section className="cockpit-session__bar" aria-label="進行">
-        <strong>操作対象: {seat.label}</strong>
-        {!seat.kept && (
-          <>
-            <span>
-              引き直し {seat.mulligans}回（練習では初回無料）。キープ時に
-              {Math.max(0, seat.mulligans - 1)}枚を選んで山札の下へ。
-            </span>
-            <button
-              disabled={busy || uncertain || Boolean(multi && !pregameOwn)}
-              onClick={() =>
-                void send({
-                  type: 'mulligan',
-                  seatId,
-                  seed: crypto.getRandomValues(new Uint32Array(1))[0],
-                })
-              }
-            >
-              マリガン
-            </button>
-            <button
-              disabled={busy || uncertain || Boolean(multi && !pregameOwn)}
-              onClick={() =>
-                void send({
-                  type: 'keep',
-                  seatId,
-                  bottom: selected.filter((id) => seat.zones.hand.includes(id)),
-                })
-              }
-            >
-              初手をキープ
-            </button>
-          </>
-        )}
-        <button disabled={disabled} onClick={() => void send({ type: 'draw', seatId, count: 1 })}>
-          1枚ドロー
-        </button>
-        <button
-          disabled={
-            disabled ||
-            table.hold ||
-            Boolean(table.resolution) ||
-            Boolean(table.combat) ||
-            table.stack.length > 0
-          }
-          onClick={() => void send({ type: 'phase' })}
-        >
-          次のフェイズ
-        </button>
-        <button
-          disabled={
-            disabled ||
-            table.hold ||
-            Boolean(table.resolution) ||
-            Boolean(table.combat) ||
-            table.stack.length > 0
-          }
-          onClick={() => void send({ type: 'turn' })}
-        >
-          次のターン
-        </button>
-        <button
-          disabled={disabled || Boolean(multi)}
-          onClick={() => void send({ type: 'hold', held: !table.hold })}
-        >
-          {table.hold ? 'HOLDを解除' : 'HOLD・進行を止める'}
-        </button>
-        {manaColors.map((color) => (
-          <span key={color}>
-            {color} {seat.mana[color]}{' '}
-            <button
-              aria-label={`${color}マナを追加`}
-              disabled={disabled}
-              onClick={() => void send({ type: 'mana', seatId, color, delta: 1 })}
-            >
-              ＋
-            </button>
-            <button
-              aria-label={`${color}マナを減らす`}
-              disabled={disabled || seat.mana[color] === 0}
-              onClick={() => void send({ type: 'mana', seatId, color, delta: -1 })}
-            >
-              −
-            </button>
-          </span>
-        ))}
-      </section>
-      <details className="cockpit-session__tools">
-        <summary>通常手順のショートカット</summary>
-        <p>
-          アンタップ開始時の任意操作です。途中で誘発や判断が必要なら個別に進めてください。HOLD・Stack・処理中は進みません。
-        </p>
-        <button
-          disabled={
-            disabled ||
-            table.hold ||
-            table.phase !== 'untap' ||
-            Boolean(table.resolution) ||
-            table.stack.length > 0
-          }
-          onClick={() => void send({ type: 'shortcut' })}
-        >
-          現在のターンの席をアンタップ→1枚ドロー→メイン
-        </button>
-        <button
+        disabled={disabled}
+        pending={busy || uncertain}
+        selected={selected}
+        select={setSelected}
+        inspect={setDetail}
+        cast={prepareCast}
+        send={send}
+        openMenu={() => setMenu(true)}
+        seatId={seatId}
+        chooseSeat={setSeatId}
+        peek={(targetSeat, targetZone) =>
+          control({ type: 'peek', seatId: targetSeat, zone: targetZone })
+        }
+      >
+        <div className="cockpit-session__bar">
+          {manaColors.map((color) => (
+            <label key={color}>
+              {color} {seat.mana[color]}
+              <button
+                disabled={disabled}
+                aria-label={color + 'マナを追加'}
+                onClick={() => void send({ type: 'mana', seatId, color, delta: 1 })}
+              >
+                ＋
+              </button>
+              <button
+                disabled={disabled || !seat.mana[color]}
+                aria-label={color + 'マナを減らす'}
+                onClick={() => void send({ type: 'mana', seatId, color, delta: -1 })}
+              >
+                −
+              </button>
+            </label>
+          ))}
+        </div>
+        <div className="cockpit-session__bar">
+          <span>選択 {selected.length}枚</span>
+          <button onClick={() => setSelected([])}>選択取消</button>
+          <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
+          <select
+            aria-label="移動先"
+            value={to}
+            onChange={(event) => setTo(event.target.value as ZoneId)}
+          >
+            {tableZones
+              .filter((item) => item !== 'stack')
+              .map((item) => (
+                <option key={item} value={item}>
+                  {zoneLabels[item]}
+                </option>
+              ))}
+          </select>
+          <select
+            aria-label="移動順"
+            value={position}
+            onChange={(event) => setPosition(event.target.value as 'top' | 'bottom')}
+          >
+            <option value="top">上へ・選択順</option>
+            <option value="bottom">下へ・選択順</option>
+          </select>
+          <button
+            disabled={disabled || !selected.length}
+            onClick={() => void send({ type: 'move', ids: selected, to, position })}
+          >
+            選択を移動
+          </button>
+          <button
+            disabled={disabled || !selected.length}
+            onClick={() => void send({ type: 'tap', ids: selected, tapped: true })}
+          >
+            タップ
+          </button>
+          <button
+            disabled={disabled || !selected.length}
+            onClick={() => void send({ type: 'tap', ids: selected, tapped: false })}
+          >
+            アンタップ
+          </button>
+        </div>
+        <CockpitSelectionTools
+          table={table}
+          seatId={seatId}
+          selected={selected}
           disabled={disabled}
-          onClick={() => {
-            const ids = battlefieldFor(seatId);
-            if (ids.length) void send({ type: 'tap', ids, tapped: false });
-          }}
-        >
-          {seat.label}の一括アンタップ
-        </button>
-        <button
-          disabled={disabled}
-          onClick={() => void send({ type: 'emptyMana', seatIds: [seatId] })}
-        >
-          {seat.label}のマナを空にする
-        </button>
-        <CockpitCleanupTools
+          send={send}
+          select={setSelected}
+        />
+        <CockpitTokenTools
           table={table}
           seatId={seatId}
           selected={selected}
           disabled={disabled}
           send={send}
         />
-      </details>
-      <section className="cockpit-session__stack" aria-label="Stackと処理" data-testid="stack-band">
-        <strong>Stack {table.stack.length}</strong>
+        <CockpitBattleTools
+          table={table}
+          selected={selected}
+          disabled={disabled}
+          defendingSeatId={multi?.ownSeatId}
+          canBlock={canBlock && !busy && !uncertain}
+          send={send}
+        />
+
+        <details className="cockpit-session__tools">
+          <summary>通常手順のショートカット</summary>
+          <button
+            disabled={
+              disabled ||
+              table.hold ||
+              Boolean(table.resolution) ||
+              Boolean(table.combat) ||
+              table.stack.length > 0
+            }
+            onClick={() => void send({ type: 'turn' })}
+          >
+            次のターン
+          </button>
+          <p>
+            アンタップ開始時の任意操作です。途中で誘発や判断が必要なら個別に進めてください。HOLD・Stack・処理中は進みません。
+          </p>
+          <button
+            disabled={
+              disabled ||
+              table.hold ||
+              table.phase !== 'untap' ||
+              Boolean(table.resolution) ||
+              table.stack.length > 0
+            }
+            onClick={() => void send({ type: 'shortcut' })}
+          >
+            現在のターンの席をアンタップ→1枚ドロー→メイン
+          </button>
+          <button
+            disabled={disabled}
+            onClick={() => {
+              const ids = battlefieldFor(seatId);
+              if (ids.length) void send({ type: 'tap', ids, tapped: false });
+            }}
+          >
+            {seat.label}の一括アンタップ
+          </button>
+          <button
+            disabled={disabled}
+            onClick={() => void send({ type: 'emptyMana', seatIds: [seatId] })}
+          >
+            {seat.label}のマナを空にする
+          </button>
+          <CockpitCleanupTools
+            table={table}
+            seatId={seatId}
+            selected={selected}
+            disabled={disabled}
+            send={send}
+          />
+        </details>
+
         {table.stack.map((entry) => (
           <button key={entry.id} onClick={() => setStackDetail(entry.id)}>
-            《{label(entry.source.id)}》 · {entry.copied ? 'コピー' : '支払済み'}
+            《{label(entry.source.id)}》の対象・支払い・コピー
           </button>
         ))}
-        {table.resolution ? (
-          <>
-            <strong>処理中:《{label(table.resolution.source.id)}》</strong>
-            <span>基本操作を続け、最後に行き先を選んで終了します。</span>
-            <select
-              aria-label="処理後の行き先"
-              value={to}
-              onChange={(event) => setTo(event.target.value as ZoneId)}
-            >
-              {tableZones
-                .filter((item) => item !== 'stack')
-                .map((item) => (
-                  <option key={item} value={item}>
-                    {zoneLabels[item]}
-                  </option>
-                ))}
-            </select>
-            <button disabled={disabled} onClick={() => void send({ type: 'resolve.end', to })}>
-              処理を終える
+      </CockpitTableSurface>
+      {menu && (
+        <Modal title="メニュー・保存" onClose={() => setMenu(false)}>
+          <CockpitRoomControls
+            view={view}
+            invitation={roomInvitation}
+            busy={busy || uncertain}
+            send={control}
+          />
+          <div className="cockpit-session__bar">
+            <strong>OneDeck · {multi ? `${table.seats.length}人対戦` : '非公開の一人回し'}</strong>
+            <span>
+              {table.turn}ターン /{' '}
+              {
+                {
+                  untap: 'アンタップ',
+                  upkeep: 'アップキープ',
+                  draw: 'ドロー',
+                  main1: '第1メイン',
+                  combat: '戦闘',
+                  main2: '第2メイン',
+                  end: '終了',
+                  cleanup: 'クリンナップ',
+                }[table.phase]
+              }{' '}
+              / {table.seats.find((entry) => entry.id === table.activeSeatId)?.label}
+            </span>
+            <span role="status">{message}</span>
+            <button onClick={() => void reconnect()} disabled={busy}>
+              再接続
             </button>
-          </>
-        ) : (
-          <button
-            disabled={disabled || !table.stack.length}
-            onClick={() => void send({ type: 'resolve.begin' })}
-          >
-            処理を始める
+            <button
+              disabled={disabled || !view.canUndo}
+              onClick={() => void send({ type: 'undo' })}
+            >
+              undo
+            </button>
+            <button
+              disabled={disabled || !view.canRedo}
+              onClick={() => void send({ type: 'redo' })}
+            >
+              redo
+            </button>
+            {message.includes('失効') && (
+              <button disabled={busy} onClick={() => void checkpoint(true)}>
+                端末checkpointから新しいセッション
+              </button>
+            )}
+            <button
+              disabled={busy || uncertain || Boolean(multi)}
+              onClick={() => void checkpoint(false)}
+            >
+              端末へ保存
+            </button>
+            <button onClick={onBack}>デッキへ</button>
+            <details>
+              <summary>音・表示</summary>
+              <ThemeToggle compact />
+              <button
+                onClick={() => {
+                  const next = { ...audio.preferences, bgmEnabled: !audio.preferences.bgmEnabled };
+                  audio.setPreferences(next);
+                  saveAudioPreferences(next);
+                }}
+              >
+                BGM {audio.preferences.bgmEnabled ? 'ON' : 'OFF'}
+              </button>
+              <button
+                onClick={() => {
+                  const next = {
+                    ...audio.preferences,
+                    eventSoundsEnabled: !audio.preferences.eventSoundsEnabled,
+                  };
+                  audio.setPreferences(next);
+                  saveAudioPreferences(next);
+                }}
+              >
+                操作音 {audio.preferences.eventSoundsEnabled ? 'ON' : 'OFF'}
+              </button>
+              <label>
+                操作音量{' '}
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={audio.preferences.sfxVolume ?? 80}
+                  onChange={(event) => {
+                    const next = { ...audio.preferences, sfxVolume: Number(event.target.value) };
+                    audio.setPreferences(next);
+                    saveAudioPreferences(next);
+                  }}
+                />
+              </label>
+            </details>
+          </div>
+
+          <p>稼働中の卓は最終利用から6時間で失効します。端末への保存は別に保持します。</p>
+          <button disabled={disabled} onClick={() => setConfirmEnd(true)}>
+            終局の確認へ
           </button>
-        )}
-      </section>
-      <nav className="cockpit-session__bar" aria-label="領域">
-        {tableZones
-          .filter((item) => item !== 'stack')
-          .map((item) => (
-            <button key={item} aria-pressed={zone === item} onClick={() => setZone(item)}>
-              {zoneLabels[item]}{' '}
-              {item === 'battlefield'
-                ? battlefieldFor(seatId).length
-                : (multi?.counts[seatId]?.[item] ?? seat.zones[item].length)}
+        </Modal>
+      )}
+      {(uncertain || operationError) && (
+        <div className="table-connection" role="alert">
+          {message}
+          {uncertain ? (
+            <button disabled={busy} onClick={() => void reconnect()}>
+              再接続
             </button>
-          ))}
-      </nav>
-      {multi && ['hand', 'library'].includes(displayZone) && (
-        <div className="cockpit-session__bar">
-          <span>非公開の領域は明示して閲覧します。閲覧は他の席には公開されません。</span>
-          {multi.canOperate && (
-            <button
-              disabled={busy || uncertain}
-              onClick={() =>
-                void control({ type: 'peek', seatId, zone: displayZone as 'hand' | 'library' })
-              }
-            >
-              この領域を自分だけ閲覧
-            </button>
-          )}
-          {multi.peek && (
-            <button
-              disabled={busy || uncertain}
-              onClick={() => void control({ type: 'peek', seatId, zone: null })}
-            >
-              非公開の閲覧を閉じる
-            </button>
+          ) : (
+            <button onClick={() => setOperationError(false)}>閉じる</button>
           )}
         </div>
       )}
-      <section
-        className="cockpit-session__cards"
-        aria-label={`${seat.label}の${zoneLabels[displayZone]}`}
-      >
-        {visibleIds.map((id) => renderCard(id))}
-      </section>
-      <footer className="cockpit-session__bar">
-        <span>選択 {selected.length}枚（席・画面を移っても保持）</span>
-        <button onClick={() => setSelected([])}>選択取消</button>
-        <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
-        <select
-          aria-label="移動先"
-          value={to}
-          onChange={(event) => setTo(event.target.value as ZoneId)}
-        >
-          {tableZones
-            .filter((item) => item !== 'stack')
-            .map((item) => (
-              <option key={item} value={item}>
-                {zoneLabels[item]}
-              </option>
-            ))}
-        </select>
-        <select
-          aria-label="移動順"
-          value={position}
-          onChange={(event) => setPosition(event.target.value as 'top' | 'bottom')}
-        >
-          <option value="top">上へ・選択順</option>
-          <option value="bottom">下へ・選択順</option>
-        </select>
-        <button
-          disabled={disabled || !selected.length}
-          onClick={() => void send({ type: 'move', ids: selected, to, position })}
-        >
-          選択を移動
-        </button>
-        <button
-          disabled={disabled || !selected.length}
-          onClick={() => void send({ type: 'tap', ids: selected, tapped: true })}
-        >
-          タップ
-        </button>
-        <button
-          disabled={disabled || !selected.length}
-          onClick={() => void send({ type: 'tap', ids: selected, tapped: false })}
-        >
-          アンタップ
-        </button>
-      </footer>
-      <CockpitSelectionTools
-        table={table}
-        seatId={seatId}
-        selected={selected}
-        disabled={disabled}
-        send={send}
-        select={setSelected}
-      />
-      <CockpitTokenTools
-        table={table}
-        seatId={seatId}
-        selected={selected}
-        disabled={disabled}
-        send={send}
-      />
-      <CockpitBattleTools
-        table={table}
-        selected={selected}
-        disabled={disabled}
-        defendingSeatId={multi?.ownSeatId}
-        canBlock={canBlock && !busy && !uncertain}
-        send={send}
-      />
       {stackEntry && (
         <Modal
           title={`Stack:《${label(stackEntry.source.id)}》`}
@@ -927,6 +810,14 @@ export function CockpitSessionScreen({
       )}
       {detailCard && (
         <Modal title={`《${label(detailCard.id)}》`} onClose={() => setDetail(null)} allowBoardPeek>
+          <div className="table-detail-image">
+            <CardView
+              instance={{ ...detailCard, tapped: false }}
+              def={detailDef}
+              size="hand"
+              draggable={false}
+            />
+          </div>
           <p>
             {detailDef?.faces[detailCard.faceIndex]?.manaCost} ·{' '}
             {detailDef?.faces[detailCard.faceIndex]?.typeLine}
@@ -935,6 +826,54 @@ export function CockpitSessionScreen({
             {detailDef?.faces[detailCard.faceIndex]?.printedText ??
               detailDef?.faces[detailCard.faceIndex]?.oracleText}
           </p>
+          <div className="cockpit-session__bar">
+            {(['battlefield', 'graveyard', 'exile', 'hand', 'library', 'command'] as const)
+              .filter((target) => target !== detailCard.zone)
+              .map((target) => (
+                <button
+                  key={target}
+                  disabled={disabled}
+                  onClick={() =>
+                    void send({
+                      type: 'move',
+                      ids: [detailCard.id],
+                      to: target,
+                      position: 'top',
+                    }).then((saved) => {
+                      if (saved) setDetail(null);
+                    })
+                  }
+                >
+                  {target === 'battlefield'
+                    ? /Land/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '')
+                      ? '土地を置く'
+                      : '戦場へ出す'
+                    : target === 'graveyard'
+                      ? detailCard.zone === 'hand'
+                        ? '捨てる'
+                        : '墓地へ置く'
+                      : target === 'exile'
+                        ? '追放する'
+                        : target === 'hand'
+                          ? '手札へ戻す'
+                          : target === 'library'
+                            ? '山札の上へ'
+                            : '統率領域へ'}
+                </button>
+              ))}
+            <button
+              onClick={() => {
+                setSelected((ids) =>
+                  ids.includes(detailCard.id)
+                    ? ids.filter((id) => id !== detailCard.id)
+                    : [...ids, detailCard.id],
+                );
+                setDetail(null);
+              }}
+            >
+              このカードを選択
+            </button>
+          </div>
           <p>
             所有者 {table.seats.find((seat) => seat.id === detailCard.ownerId)?.label} /
             コントローラー {table.seats.find((seat) => seat.id === detailCard.controllerId)?.label}{' '}
@@ -956,7 +895,11 @@ export function CockpitSessionScreen({
             send={send}
           />
           <button
-            disabled={disabled || !['hand', 'command'].includes(detailCard.zone)}
+            disabled={
+              disabled ||
+              !['hand', 'command'].includes(detailCard.zone) ||
+              /\bLand\b/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '')
+            }
             onClick={() => prepareCast(detailCard.id)}
           >
             支払い案を確認して唱える
@@ -999,101 +942,95 @@ export function CockpitSessionScreen({
               >
                 {detailCard.tapped ? 'アンタップ' : 'タップ'}
               </button>
-              <label>
-                キーワード
-                <select value={keyword} onChange={(event) => setKeyword(event.target.value)}>
-                  {Object.entries(keywordLabels).map(([id, text]) => (
-                    <option key={id} value={id}>
-                      {text}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                値
-                <input
-                  value={keywordValue}
-                  onChange={(event) => setKeywordValue(event.target.value)}
-                />
-              </label>
-              <label>
-                期間
-                <input value={duration} onChange={(event) => setDuration(event.target.value)} />
-              </label>
-              <label>
-                由来
-                <select
-                  value={keywordSource}
-                  onChange={(event) => setKeywordSource(event.target.value)}
+              <details>
+                <summary>キーワードを付与・解除</summary>
+                <label>
+                  キーワード
+                  <select value={keyword} onChange={(event) => setKeyword(event.target.value)}>
+                    {Object.entries(keywordLabels).map(([id, text]) => (
+                      <option key={id} value={id}>
+                        {text}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  値
+                  <input
+                    value={keywordValue}
+                    onChange={(event) => setKeywordValue(event.target.value)}
+                  />
+                </label>
+                <label>
+                  期間
+                  <input value={duration} onChange={(event) => setDuration(event.target.value)} />
+                </label>
+                <label>
+                  由来
+                  <select
+                    value={keywordSource}
+                    onChange={(event) => setKeywordSource(event.target.value)}
+                  >
+                    <option value="resolution">現在の処理の発生源</option>
+                    <option value="none">特定の発生源なし</option>
+                    {Object.values(table.cards).map((card) => (
+                      <option key={card.id} value={card.id}>
+                        {label(card.id)}・
+                        {table.seats.find((seat) => seat.id === card.ownerId)?.label}・
+                        {zoneLabels[card.zone]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  disabled={disabled}
+                  onClick={() =>
+                    void send({
+                      type: 'keyword',
+                      grant: {
+                        id: crypto.randomUUID(),
+                        cardId: detailCard.id,
+                        keyword,
+                        value: keywordValue,
+                        duration,
+                        sourceId:
+                          keywordSource === 'resolution'
+                            ? (table.resolution?.source.id ?? null)
+                            : keywordSource === 'none'
+                              ? null
+                              : keywordSource,
+                      },
+                      remove: false,
+                    })
+                  }
                 >
-                  <option value="resolution">現在の処理の発生源</option>
-                  <option value="none">特定の発生源なし</option>
-                  {Object.values(table.cards).map((card) => (
-                    <option key={card.id} value={card.id}>
-                      {label(card.id)}・
-                      {table.seats.find((seat) => seat.id === card.ownerId)?.label}・
-                      {zoneLabels[card.zone]}
-                    </option>
+                  付与
+                </button>
+                {table.grants
+                  .filter((grant) => grant.cardId === detailCard.id)
+                  .map((grant) => (
+                    <p key={grant.id}>
+                      {keywordLabels[grant.keyword as keyof typeof keywordLabels] ?? grant.keyword}{' '}
+                      {grant.value} / {grant.duration} / 由来:{' '}
+                      {grant.sourceSnapshot
+                        ? (table.defs[grant.sourceSnapshot.defId]?.printedName ??
+                          table.defs[grant.sourceSnapshot.defId]?.name)
+                        : grant.sourceId
+                          ? label(grant.sourceId)
+                          : '手動指定'}
+                      <button
+                        disabled={disabled}
+                        onClick={() => void send({ type: 'keyword', grant, remove: true })}
+                      >
+                        除去
+                      </button>
+                    </p>
                   ))}
-                </select>
-              </label>
-              <button
-                disabled={disabled}
-                onClick={() =>
-                  void send({
-                    type: 'keyword',
-                    grant: {
-                      id: crypto.randomUUID(),
-                      cardId: detailCard.id,
-                      keyword,
-                      value: keywordValue,
-                      duration,
-                      sourceId:
-                        keywordSource === 'resolution'
-                          ? (table.resolution?.source.id ?? null)
-                          : keywordSource === 'none'
-                            ? null
-                            : keywordSource,
-                    },
-                    remove: false,
-                  })
-                }
-              >
-                付与
-              </button>
-              {table.grants
-                .filter((grant) => grant.cardId === detailCard.id)
-                .map((grant) => (
-                  <p key={grant.id}>
-                    {keywordLabels[grant.keyword as keyof typeof keywordLabels] ?? grant.keyword}{' '}
-                    {grant.value} / {grant.duration} / 由来:{' '}
-                    {grant.sourceSnapshot
-                      ? (table.defs[grant.sourceSnapshot.defId]?.printedName ??
-                        table.defs[grant.sourceSnapshot.defId]?.name)
-                      : grant.sourceId
-                        ? label(grant.sourceId)
-                        : '手動指定'}
-                    <button
-                      disabled={disabled}
-                      onClick={() => void send({ type: 'keyword', grant, remove: true })}
-                    >
-                      除去
-                    </button>
-                  </p>
-                ))}
+              </details>
             </>
           )}
         </Modal>
       )}
-      <details className="cockpit-session__tools">
-        <summary>一人回しの終了</summary>
-        <p>
-          中断するだけなら端末へ保存してください。終局確定はundo・保存読込みでも取り消せません。
-        </p>
-        <button disabled={disabled} onClick={() => setConfirmEnd(true)}>
-          終局の確認へ
-        </button>
-      </details>
       {confirmEnd && (
         <Modal title="終局を確定しますか" onClose={() => setConfirmEnd(false)}>
           <p>
