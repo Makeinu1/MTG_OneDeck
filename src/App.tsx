@@ -1,3 +1,6 @@
+import { CockpitSessionScreen } from './components/game/CockpitSessionScreen';
+import { AudioVisualProvider } from './components/game/presentation/AudioVisualProvider';
+import { hasCockpitConnection } from './online/browser/cockpitClient';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import { ImportScreen } from './components/ImportScreen';
@@ -68,6 +71,12 @@ function loadStoredDeck(): { deckText: string; storedDeck: InitDeckCard[] | null
 
 function App() {
   const state = useGameStore((s) => s.state);
+  const [cockpit, setCockpit] = useState<{
+    deck: InitDeckCard[] | null;
+    snapshot?: GameSnapshot;
+    seats?: 2 | 4;
+    invitation?: string;
+  } | null>(() => (hasCockpitConnection() ? { deck: null } : null));
   const [{ deckText: legacyDeckText, storedDeck: legacyDeck }] = useState(() => loadStoredDeck());
   const [keybindings, setKeybindings] = useState<KeybindingsMap>(() => loadKeybindings());
   const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
@@ -80,6 +89,7 @@ function App() {
   const [gameView, setGameView] = useState<'game' | 'opponent-setup'>('game');
   const [pendingDeck, setPendingDeck] = useState<SavedDeck | 'new' | null>(null);
   const [editorVersion, setEditorVersion] = useState(0);
+  const [cockpitInvite, setCockpitInvite] = useState('');
   const [onlineMode, setOnlineMode] = useState<'solo' | 'online'>('solo');
   const [onlineImportOpen, setOnlineImportOpen] = useState(false);
   const [onlineImporting, setOnlineImporting] = useState(false);
@@ -110,12 +120,7 @@ function App() {
             deckText: legacyDeckText,
             entries: entriesFromExpandedDeck(legacyDeck),
           });
-          try {
-            localStorage.removeItem(DECK_TEXT_KEY);
-            localStorage.removeItem(DECK_CARDS_KEY);
-          } catch {
-            // IndexedDB already owns the deck; stale legacy keys are harmless.
-          }
+          // Keep the legacy source data until migration retirement is authorized.
           decks = await listSavedDecks();
           if (!cancelled) {
             setLegacyFallback(false);
@@ -176,7 +181,7 @@ function App() {
 
   const handleStart = (deck: InitDeckCard[]): void => {
     startAudioForGameGesture();
-    useGameStore.getState().newGame(deck);
+    setCockpit({ deck });
   };
 
   const handleDeckSaved = useCallback((deck: SavedDeck): void => {
@@ -231,6 +236,19 @@ function App() {
     },
     [selectedDeck?.id],
   );
+
+  if (cockpit)
+    return (
+      <AudioVisualProvider>
+        <CockpitSessionScreen
+          deck={cockpit.deck}
+          snapshot={cockpit.snapshot}
+          seats={cockpit.seats}
+          invitation={cockpit.invitation}
+          onBack={() => setCockpit(null)}
+        />
+      </AudioVisualProvider>
+    );
 
   if (state) {
     if (gameView === 'opponent-setup') {
@@ -309,6 +327,11 @@ function App() {
 
   return (
     <div className="app">
+      {hasCockpitConnection() && (
+        <button className="btn btn--primary" onClick={() => setCockpit({ deck: null })}>
+          非公開セッションへ再接続
+        </button>
+      )}
       {(snapshot?.state || (legacyFallback && legacyDeck && legacyDeck.length > 0)) && (
         <section className="app__resume-shelf" aria-label="前回の続き">
           {snapshot?.state && (
@@ -321,7 +344,7 @@ function App() {
                 type="button"
                 className="btn btn--primary"
                 data-testid="restore-game"
-                onClick={() => useGameStore.getState().restoreGame(snapshot)}
+                onClick={() => setCockpit({ deck: null, snapshot })}
               >
                 ゲームを再開
               </button>
@@ -339,7 +362,7 @@ function App() {
                 data-testid="resume-game"
                 onClick={() => {
                   startAudioForGameGesture();
-                  useGameStore.getState().newGame(legacyDeck);
+                  handleStart(legacyDeck);
                 }}
               >
                 このデッキで開始
@@ -361,18 +384,104 @@ function App() {
             onDelete={handleDelete}
           />
           {selectedDeck && (
-            <section className="app__play-choice" aria-label="選択したデッキで遊ぶ" data-testid="play-choice">
+            <section
+              className="app__play-choice"
+              aria-label="選択したデッキで遊ぶ"
+              data-testid="play-choice"
+            >
               <div>
                 <p className="app__play-choice-eyebrow">選択中のデッキ</p>
-                <h2>《{safeSavedDeckName(selectedDeck.name, Math.max(0, savedDecks.findIndex((deck) => deck.id === selectedDeck.id)))}》</h2>
-                <p>{selectedDeck.entries.reduce((total, entry) => total + entry.quantity, 0)}枚。次の遊び方を選べます。</p>
+                <h2>
+                  《
+                  {safeSavedDeckName(
+                    selectedDeck.name,
+                    Math.max(
+                      0,
+                      savedDecks.findIndex((deck) => deck.id === selectedDeck.id),
+                    ),
+                  )}
+                  》
+                </h2>
+                <p>
+                  {selectedDeck.entries.reduce((total, entry) => total + entry.quantity, 0)}
+                  枚。次の遊び方を選べます。
+                </p>
               </div>
               <div className="app__play-choice-actions">
-                <button type="button" className="btn btn--primary" data-testid="open-solo-mode" onClick={() => { startAudioForGameGesture(); handleStart(selectedDeck.entries.flatMap((entry) => Array.from({ length: entry.quantity }, () => ({ def: entry.card, isCommander: entry.section === 'commander' })))); }}>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="open-solo-mode"
+                  onClick={() => {
+                    startAudioForGameGesture();
+                    handleStart(
+                      selectedDeck.entries.flatMap((entry) =>
+                        Array.from({ length: entry.quantity }, () => ({
+                          def: entry.card,
+                          isCommander: entry.section === 'commander',
+                        })),
+                      ),
+                    );
+                  }}
+                >
                   一人回し
                 </button>
-                <button type="button" className="btn btn--primary" data-testid="open-online-mode" onClick={() => setOnlineMode('online')}>
-                  オンライン対戦
+                {([2, 4] as const).map((seats) => (
+                  <button
+                    key={seats}
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={() => {
+                      startAudioForGameGesture();
+                      setCockpit({
+                        seats,
+                        deck: selectedDeck.entries.flatMap((entry) =>
+                          Array.from({ length: entry.quantity }, () => ({
+                            def: entry.card,
+                            isCommander: entry.section === 'commander',
+                          })),
+                        ),
+                      });
+                    }}
+                  >
+                    {seats}人対戦を作成
+                  </button>
+                ))}
+                <label>
+                  招待コード
+                  <input
+                    aria-label="参加する招待コード"
+                    value={cockpitInvite}
+                    autoComplete="off"
+                    onChange={(event) => setCockpitInvite(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={!cockpitInvite.trim()}
+                  onClick={() => {
+                    startAudioForGameGesture();
+                    setCockpit({
+                      invitation: cockpitInvite.trim(),
+                      deck: selectedDeck.entries.flatMap((entry) =>
+                        Array.from({ length: entry.quantity }, () => ({
+                          def: entry.card,
+                          isCommander: entry.section === 'commander',
+                        })),
+                      ),
+                    });
+                  }}
+                >
+                  このデッキで参加
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  data-testid="open-online-mode"
+                  onClick={() => setOnlineMode('online')}
+                >
+                  以前のオンライン対戦部屋
                 </button>
               </div>
             </section>

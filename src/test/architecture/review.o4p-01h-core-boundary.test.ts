@@ -166,6 +166,9 @@ function productionImportViolations(units: readonly SourceUnit[]): readonly stri
       ) || (
         sourcePath === 'src/components/online/PublicOnlineApp.tsx'
         && targetPath === 'src/online/publicApp/index.ts'
+      ) || (
+        ['src/App.tsx', 'src/components/game/CockpitSessionScreen.tsx', 'src/components/game/CockpitRoomControls.tsx'].includes(sourcePath)
+        && targetPath === 'src/online/browser/cockpitClient.ts'
       );
       if (targetIsCore && isOnlineReference) {
         violations.push(`${sourcePath}|core-online|${reference.specifier}|${reference.dynamic ? 'dynamic' : 'static'}`);

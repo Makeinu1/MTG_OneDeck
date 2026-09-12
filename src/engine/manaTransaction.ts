@@ -164,7 +164,7 @@ export function resolveManaAbilityTransaction(
     const plan = triggeredManaAbilityPlan(workingState, pending, triggerEvent);
     if (plan.decision === 'manual') {
       warnings.push(
-        `${pending.label}は CR 605.1b の誘発型マナ能力です。スタックには置かず、手動で解決してください。`
+        `${pending.label}は CR 605.1b の誘発型マナ能力です。スタックには置かず、手動で解決してください。`,
       );
       log.push({
         kind: 'manual-no-stack',
@@ -212,15 +212,31 @@ export function resolveManaAbilityTransaction(
   return { state: workingState, warnings, manaEvents, log };
 }
 
+export interface ManaTriggerResources {
+  cards: GameState['cards'];
+  defs: GameState['defs'];
+  battlefield: readonly string[];
+}
+
 export function collectTriggeredManaAbilities(
   state: GameState,
+  events: readonly ManaAbilityTransactionEvent[],
+): PendingManaTrigger[] {
+  return collectResourceManaTriggers(
+    { cards: state.cards, defs: state.defs, battlefield: state.zones.battlefield },
+    events,
+  );
+}
+
+function collectResourceManaTriggers(
+  state: ManaTriggerResources,
   events: readonly ManaAbilityTransactionEvent[],
 ): PendingManaTrigger[] {
   const pending: PendingManaTrigger[] = [];
   const seen = new Set<string>();
 
   for (const event of events) {
-    for (const cardId of state.zones.battlefield) {
+    for (const cardId of state.battlefield) {
       const snapshot = snapshotOfCurrentCard(state, cardId);
       if (!snapshot) {
         continue;
@@ -262,7 +278,7 @@ export function collectTriggeredManaAbilities(
 }
 
 export function triggeredManaAbilityPlan(
-  state: GameState,
+  state: Pick<GameState, 'defs'>,
   pending: PendingManaTrigger,
   triggerEvent?: ManaAbilityTransactionEvent,
 ): TriggeredManaAbilityPlan {
@@ -284,8 +300,7 @@ export function triggeredManaAbilityPlan(
     controllerId: pending.sourceSnapshot.controllerId ?? pending.sourceSnapshot.ownerId,
   });
   const autoManaCommands = compiled.commands.filter(
-    (command): command is Extract<GameCommand, { type: 'addMana' }> =>
-      command.type === 'addMana',
+    (command): command is Extract<GameCommand, { type: 'addMana' }> => command.type === 'addMana',
   );
   if (compiled.decision === 'auto' && autoManaCommands.length > 0) {
     return { decision: 'auto', commands: compiled.commands };
@@ -376,16 +391,18 @@ function contextualManaCommands(
   }
   const [color] = produced[0];
   const amount = manaAmountFromText(manaEffect.raw) ?? 1;
-  return [{
-    type: 'addMana',
-    color,
-    amount,
-    ...(controllerId && controllerId !== 'P1' ? { playerId: controllerId } : {}),
-  }];
+  return [
+    {
+      type: 'addMana',
+      color,
+      amount,
+      ...(controllerId && controllerId !== 'P1' ? { playerId: controllerId } : {}),
+    },
+  ];
 }
 
 function collectManaAddedEventsFromCommands(
-  stateBeforeCommands: GameState,
+  stateBeforeCommands: Pick<GameState, 'cards' | 'defs'>,
   commands: readonly GameCommand[],
   causeEventId: string | undefined,
   fallbackSourceSnapshot: ObjectSnapshot | null,
@@ -459,7 +476,7 @@ function nextTransactionEventSequence(state: GameState): number {
 }
 
 function snapshotOfCurrentCard(
-  state: GameState,
+  state: Pick<GameState, 'cards' | 'defs'>,
   cardId: string,
 ): ObjectSnapshot | undefined {
   const card = state.cards[cardId];
@@ -469,7 +486,7 @@ function snapshotOfCurrentCard(
   return snapshotOfCard(state, card);
 }
 
-function snapshotOfCard(state: GameState, card: CardInstance): ObjectSnapshot {
+function snapshotOfCard(state: Pick<GameState, 'defs'>, card: CardInstance): ObjectSnapshot {
   const def = state.defs[card.defId];
   const face = def?.faces[card.faceIndex] ?? def?.faces[0];
   const ownerId = card.ownerId ?? 'P1';
@@ -493,11 +510,10 @@ function snapshotOfCard(state: GameState, card: CardInstance): ObjectSnapshot {
   };
 }
 
-function cardLabelFromSnapshot(state: GameState, snapshot: ObjectSnapshot): string {
+function cardLabelFromSnapshot(state: Pick<GameState, 'defs'>, snapshot: ObjectSnapshot): string {
   const def = state.defs[snapshot.defId];
   const face = def?.faces[snapshot.faceIndex] ?? def?.faces[0];
-  const name =
-    face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード';
+  const name = face?.printedName ?? face?.name ?? def?.printedName ?? def?.name ?? '不明なカード';
   return `《${name}》`;
 }
 
@@ -522,9 +538,7 @@ function positiveManaEntries(pool: ManaPool): Array<[ManaColor, number]> {
 
 function manaAmountFromText(raw: string): number | null {
   const match =
-    /\badd(?:s|ed)?\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+mana\b/i.exec(
-      raw,
-    );
+    /\badd(?:s|ed)?\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+mana\b/i.exec(raw);
   if (!match) {
     return null;
   }
@@ -533,4 +547,62 @@ function manaAmountFromText(raw: string): number | null {
     return Number.parseInt(normalized, 10);
   }
   return NUMBER_WORDS.get(normalized) ?? null;
+}
+
+/** The manual table shares mana parsing only; ordinary triggers never resolve here. */
+export function planTableManaTriggers(
+  before: ManaTriggerResources,
+  after: ManaTriggerResources,
+  sourceId: string,
+  commands: readonly GameCommand[],
+): GameCommand[] {
+  const source = snapshotOfCurrentCard(before, sourceId);
+  let sequence = 0;
+  const events = collectManaAddedEventsFromCommands(
+    before,
+    commands,
+    undefined,
+    source ?? null,
+    sequence,
+  );
+  sequence += events.length;
+  const result: GameCommand[] = [];
+  for (let index = 0; index < events.length; index++) {
+    if (index >= DEFAULT_ITERATION_CAP)
+      throw new Error(
+        'マナ誘発が循環しています。生成を確定せず、本文を確認して手動調整してください。',
+      );
+    const event = events[index];
+    for (const pending of collectResourceManaTriggers(after, [event])) {
+      const card = after.cards[pending.sourceId];
+      const def = after.defs[pending.sourceSnapshot.defId];
+      const line = def && splitAbilityLines(def)[pending.abilityLineIndex ?? -1];
+      if (!line || card?.faceDown || line.faceIndex !== card?.faceIndex) continue;
+      const ir = parseAbilityIR(line.text, def.faces[line.faceIndex]?.typeLine ?? def.typeLine);
+      const condition = ir.trigger?.raw.trim().replace(/,$/, '') ?? '';
+      const controller = pending.controllerId;
+      const own = /^whenever you (?:tap a land for mana|add mana)$/i.test(condition);
+      const every = /^whenever a player (?:taps a land for mana|adds mana)$/i.test(condition);
+      if (own && event.playerId !== controller) continue;
+      if (!own && !every)
+        throw new Error('このマナ誘発の条件は手動確認が必要です。生成は未確定です。');
+      const plan = triggeredManaAbilityPlan(after, pending, event);
+      if (plan.decision !== 'auto' || plan.commands.some((command) => command.type !== 'addMana')) {
+        throw new Error('このマナ誘発は手動確認が必要です。生成は未確定です。');
+      }
+      const recipient = /\bthat player adds?\b/i.test(line.text) ? event.playerId : controller;
+      const additions = plan.commands.map((command) => ({ ...command, playerId: recipient }));
+      result.push(...additions);
+      const next = collectManaAddedEventsFromCommands(
+        after,
+        additions,
+        event.eventId,
+        pending.sourceSnapshot,
+        sequence,
+      ).map((nextEvent) => ({ ...nextEvent, playerId: recipient }));
+      sequence += next.length;
+      events.push(...next);
+    }
+  }
+  return result;
 }

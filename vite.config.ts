@@ -4,6 +4,14 @@ import react from '@vitejs/plugin-react';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api/cockpit': {
+        target: process.env.COCKPIT_WORKER_ORIGIN ?? 'http://127.0.0.1:8789',
+        headers: { origin: 'http://localhost:5173' },
+      },
+    },
+  },
   test: {
     globals: true,
     setupFiles: ['./src/test/setup.ts'],

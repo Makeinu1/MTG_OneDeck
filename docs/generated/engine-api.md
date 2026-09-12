@@ -9,11 +9,14 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/autotap.ts`
 
-- line 16: `export interface AutoTapPlan {`
-- line 24: `export interface AutoTapActivation {`
-- line 636: `export function planAutoTap(`
-- line 646: `export function planAutoManaPayment(`
-- line 656: `export function autoTapCommands(`
+- line 18: `export interface ManaResources {`
+- line 43: `export interface AutoTapPlan {`
+- line 51: `export interface AutoTapActivation {`
+- line 509: `export function planManaPayment(`
+- line 659: `export function planAutoTap(`
+- line 669: `export function planAutoManaPayment(`
+- line 679: `export function autoTapCommands(`
+- line 709: `export function manaActivationChoices(`
 
 ## `src/engine/batch.ts`
 
@@ -38,6 +41,39 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 54: `export function parseClassLevelBars(oracleText: string | undefined | null): ClassLevelBar[] {`
 - line 139: `export function classLevelBarKeywords(bars: ClassLevelBar[], level: number): string[] {`
 - line 174: `export function classLevelActivationLegal(state: GameState, cardId: string, barLevel: number): boolean {`
+
+## `src/engine/cockpitAbilities.ts`
+
+- line 8: `export interface TableAbilityChoice {`
+- line 18: `export function tableAbilityChoices(table: CockpitTable, sourceId: string): TableAbilityChoice[] {`
+- line 63: `export interface TableManualCosts {`
+- line 74: `export const emptyManualCosts = (): TableManualCosts => ({`
+
+## `src/engine/cockpitMigration.ts`
+
+- line 13: `export function migrateCockpitSnapshot(snapshot: GameSnapshot): CockpitTable {`
+
+## `src/engine/cockpitTable.ts`
+
+- line 25: `export const tableZones: readonly ZoneId[] = [`
+- line 34: `export const manaColors: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];`
+- line 35: `export const emptyTableMana = (): ManaPool => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });`
+- line 36: `export interface TableSeat {`
+- line 50: `export interface TableStackEntry {`
+- line 63: `export interface TableGrant {`
+- line 72: `export interface TableModifier {`
+- line 81: `export interface TableCombat {`
+- line 89: `export interface CockpitTable {`
+- line 108: `export interface TableTokenCharacteristics {`
+- line 116: `export type TableOperation =`
+- line 237: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
+- line 295: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
+- line 388: `export function tableActivationPayment(`
+- line 520: `export function tableAutoPayment(`
+- line 540: `export function tableCastPayment(`
+- line 615: `export function applyTableOperation(before: CockpitTable, operation: TableOperation): CockpitTable {`
+- line 1619: `export function createCockpitTable(`
+- line 1744: `export function assertCockpitCardDef(def: CardDef): void {`
 
 ## `src/engine/commander.ts`
 
@@ -1390,8 +1426,10 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 28: `export type ManaAbilityTransactionLogEntry =`
 - line 52: `export interface ManaAbilityTransactionResult {`
 - line 79: `export function resolveManaAbilityTransaction(`
-- line 215: `export function collectTriggeredManaAbilities(`
-- line 264: `export function triggeredManaAbilityPlan(`
+- line 215: `export interface ManaTriggerResources {`
+- line 221: `export function collectTriggeredManaAbilities(`
+- line 280: `export function triggeredManaAbilityPlan(`
+- line 553: `export function planTableManaTriggers(`
 
 ## `src/engine/priority.ts`
 

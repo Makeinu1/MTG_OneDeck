@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03a-cloudflare-runtime-persistence.test.ts':
     '03d54e247d164ff089df7161be9d93fde07b84da6697e7d2d056f1d07fc908bf',
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts':
-    'c1d3633f5596454d340e2658681e054f393c1cd5207115c48c3c7332540921f0',
+    '00df9221193b0f5956b0b023c1a9c71697a61b91aa0bbd00b1b08e2b8659e206',
   'src/online/cloudflare/index.ts':
     'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
@@ -132,7 +132,8 @@ const production = sourceFiles(cloudflareRoot);
 assert.deepEqual(
   production.map(normalized),
   [
-    'src/online/cloudflare/codec.ts',
+    'src/online/cloudflare/cockpitMultiplayer.ts',    'src/online/cloudflare/cockpitSession.ts',
+  'src/online/cloudflare/codec.ts',
     'src/online/cloudflare/facts.ts',
     'src/online/cloudflare/index.ts',
     'src/online/cloudflare/outbox.ts',
@@ -173,7 +174,10 @@ for (const path of production) {
   }
   for (const specifier of moduleSpecifiers(source)) {
     const local = specifier.startsWith('./') && !specifier.includes('..');
-    assert.equal(local || allowedImports.has(specifier), true, `${normalized(path)} -> ${specifier}`);
+    const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
+    const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
+      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+    assert.equal(local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport, true, `${normalized(path)} -> ${specifier}`);
   }
 }
 

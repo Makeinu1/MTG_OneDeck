@@ -42,10 +42,8 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
    `docs/judge-protocol.md`や台帳を追加で読む。
 3. 一つのroot causeへ一つの修正を優先する。patchの積み上げ、旧実装を残す第二実装、
    rare caseの先回り、将来用framework、多数の無関係file変更を始めたら停止し、planを縮める。
-4. MVPのUI変更は大きなPC画面（代表viewport 1440×900）で操作とconsole error 0を
-   確認する。2026-09-08のユーザー判断により、小さいbrowser画面・モバイルは対象外であり、
-   従来の375×812、812×375は完了条件に含めない。根拠のない自動化を表示せず、
-   未対応の複合効果はguided/manualと明示する。
+4. UI変更は同じbrowser sessionで375×812、812×375、1440×900とconsole error 0を
+   確認する。根拠のない自動化を表示せず、未対応の複合効果はguided/manualと明示する。
 5. 中断後は`git status`、`HEAD`、必要なCI状態から再構成する。過去の会話や一時fileを
    状態の正本にしない。
 

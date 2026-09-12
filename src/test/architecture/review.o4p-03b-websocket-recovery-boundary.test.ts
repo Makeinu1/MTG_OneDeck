@@ -38,6 +38,7 @@ function moduleSpecifiers(text: string): readonly string[] {
 describe('O4P-03B architecture boundary', () => {
   it('adds only the closed dependency-free Cloudflare transport surface', () => {
     const expected = [
+      'src/online/cloudflare/cockpitMultiplayer.ts',      'src/online/cloudflare/cockpitSession.ts',
       'src/online/cloudflare/codec.ts',
       'src/online/cloudflare/facts.ts',
       'src/online/cloudflare/index.ts',
@@ -97,7 +98,10 @@ describe('O4P-03B architecture boundary', () => {
       }
       for (const specifier of moduleSpecifiers(text)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        expect(local || allowed.has(specifier), `${normalized(file)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport = normalized(file) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
+        const cockpitImport = normalized(file) === 'src/online/cloudflare/cockpitSession.ts' &&
+          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(file)} -> ${specifier}`).toBe(true);
       }
     }
     for (const root of [

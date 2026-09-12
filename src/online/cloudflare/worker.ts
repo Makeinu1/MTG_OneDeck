@@ -180,6 +180,12 @@ export default {
     try {
       const pathname = new URL(request.url).pathname;
       if (origin !== null && !allowedOrigin(origin)) response = genericError(403);
+      else if (/^\/api\/cockpit\/[a-f0-9-]{36}$/.test(pathname)) {
+        action = 'cockpit';
+        if (request.method === 'OPTIONS' && origin !== null && request.headers.get('access-control-request-method')?.toUpperCase() === 'POST') response = preflight(origin, 'POST', request.headers.get('access-control-request-headers'));
+        else if (!env.ONLINE_ROOMS || request.method !== 'POST') response = genericError(400);
+        else response = await env.ONLINE_ROOMS.getByName(`cockpit_${pathname.split('/').at(-1)}`).fetch(request);
+      }
       else if (request.method === 'OPTIONS') {
         const route = pathname === CREATE_PATH ? { action: 'create' as const } : parseRoomPath(pathname);
         const requestedMethod = request.headers.get('access-control-request-method')?.toUpperCase() ?? '';

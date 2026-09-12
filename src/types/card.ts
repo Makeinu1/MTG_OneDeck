@@ -1,6 +1,8 @@
 export type ManaColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
 
 export interface CardFace {
+  /** Explicit copiable colors, e.g. a manually authored token; separate from commander color identity. */
+  colors?: ManaColor[];
   name: string; // English face name
   printedName?: string; // Japanese printed name if resolved
   manaCost?: string; // e.g. "{2}{W/U}"

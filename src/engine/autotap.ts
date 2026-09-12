@@ -11,7 +11,34 @@ import {
 } from './grammar/manaShortcut';
 import { parseManaCost, type ParsedCost, solvePayment } from './mana';
 import { isSummoningSick } from './status';
-import type { GameState, ManaPool, PlayerId } from './types';
+import type { CardInstance, GameState, ManaPool, PlayerId } from './types';
+import type { CardDef } from '../types/card';
+
+/** Read-only resources for one seat; no store, history, or private-zone surrogate. */
+export interface ManaResources {
+  cards: Readonly<Record<string, CardInstance>>;
+  defs: Readonly<Record<string, CardDef>>;
+  battlefield: readonly string[];
+  commanderIds: readonly string[];
+  manaPool: ManaPool;
+  unavailableSourceIds: readonly string[];
+}
+
+function resourcesForPlayer(state: GameState, playerId: PlayerId): ManaResources {
+  return {
+    cards: state.cards,
+    defs: state.defs,
+    battlefield: state.zones.battlefield,
+    commanderIds: state.commanders
+      .map((entry) => entry.cardId)
+      .filter((id) => state.cards[id]?.ownerId === playerId),
+    manaPool:
+      playerId === state.localPlayerId
+        ? state.manaPool
+        : (state.players[playerId]?.manaPool ?? emptyPool()),
+    unavailableSourceIds: state.zones.battlefield.filter((id) => isSummoningSick(state, id)),
+  };
+}
 
 export interface AutoTapPlan {
   ok: boolean;
@@ -125,7 +152,7 @@ function candidateTypePriority(typeLine: string): number {
   return 2;
 }
 
-function currentTypeLine(state: GameState, cardId: string): string {
+function currentTypeLine(state: ManaResources, cardId: string): string {
   const card = state.cards[cardId];
   if (!card) return '';
   const def = state.defs[card.defId];
@@ -133,10 +160,10 @@ function currentTypeLine(state: GameState, cardId: string): string {
   return face?.typeLine ?? def?.typeLine ?? '';
 }
 
-function commanderColors(state: GameState): ManaColor[] {
+function commanderColors(state: ManaResources): ManaColor[] {
   const colors = new Set<ManaColor>();
-  for (const commander of state.commanders) {
-    const card = state.cards[commander.cardId];
+  for (const commanderId of state.commanderIds) {
+    const card = state.cards[commanderId];
     const def = card ? state.defs[card.defId] : undefined;
     for (const color of def?.colorIdentity ?? []) {
       if (ALL_COLORS.includes(color as ManaColor) && color !== 'C') {
@@ -147,9 +174,9 @@ function commanderColors(state: GameState): ManaColor[] {
   return ALL_COLORS.filter((color) => colors.has(color));
 }
 
-function controlsLandType(state: GameState, playerId: PlayerId, landType: string): boolean {
+function controlsLandType(state: ManaResources, playerId: PlayerId, landType: string): boolean {
   const probe = new RegExp(`\\b${landType}\\b`);
-  return state.zones.battlefield.some((cardId) => {
+  return state.battlefield.some((cardId) => {
     const card = state.cards[cardId];
     return card?.controllerId === playerId && probe.test(currentTypeLine(state, cardId));
   });
@@ -169,12 +196,12 @@ function colorsInManaCost(manaCost: string | undefined): ManaColor[] {
 }
 
 function legendaryPermanentColors(
-  state: GameState,
+  state: ManaResources,
   playerId: PlayerId,
   creaturesAndPlaneswalkersOnly: boolean,
 ): ManaColor[] {
   return dedupeColors(
-    state.zones.battlefield.flatMap((cardId) => {
+    state.battlefield.flatMap((cardId) => {
       const card = state.cards[cardId];
       if (!card || card.controllerId !== playerId) return [];
       const typeLine = currentTypeLine(state, cardId);
@@ -189,14 +216,9 @@ function legendaryPermanentColors(
   );
 }
 
-function automaticSacrificeCreatureId(
-  state: GameState,
-  playerId: PlayerId,
-): string | null {
-  const battlefieldOrder = new Map(
-    state.zones.battlefield.map((cardId, index) => [cardId, index]),
-  );
-  const candidates = state.zones.battlefield.filter((cardId) => {
+function automaticSacrificeCreatureId(state: ManaResources, playerId: PlayerId): string | null {
+  const battlefieldOrder = new Map(state.battlefield.map((cardId, index) => [cardId, index]));
+  const candidates = state.battlefield.filter((cardId) => {
     const card = state.cards[cardId];
     return card?.controllerId === playerId && /\bCreature\b/.test(currentTypeLine(state, cardId));
   });
@@ -214,7 +236,7 @@ function automaticSacrificeCreatureId(
 }
 
 function compiledManaOptions(
-  state: GameState,
+  state: ManaResources,
   cardId: string,
   playerId: PlayerId,
 ): SourceOption[] {
@@ -229,18 +251,18 @@ function compiledManaOptions(
     if (!ir.effects.some((effect) => effect.atom === 'effect.add-mana')) return [];
     const swampGate = /\bActivate only if you control a Swamp\b/i.test(line.text);
     if (swampGate && !controlsLandType(state, playerId, 'Swamp')) return [];
-    const chargeCounterOutput = /\bAdd \{C\} for each charge counter on (?:this artifact|[^.]+)\b/i.test(
-      line.text,
-    );
-    const legendaryColorGate = /\bAdd one mana of any color among legendary (creatures and planeswalkers|permanents) you control\b/i.exec(
-      line.text,
-    );
-    if (
-      ((!swampGate && /\bActivate only\b/i.test(line.text)) ||
-      /\bSpend this mana only\b|\bwhere X\b|\bequal to\b/i.test(
+    const chargeCounterOutput =
+      /\bAdd \{C\} for each charge counter on (?:this artifact|[^.]+)\b/i.test(line.text);
+    const legendaryColorGate =
+      /\bAdd one mana of any color among legendary (creatures and planeswalkers|permanents) you control\b/i.exec(
         line.text,
-      ) || (!chargeCounterOutput && /\bfor each\b/i.test(line.text)))
-    ) return [];
+      );
+    if (
+      (!swampGate && /\bActivate only\b/i.test(line.text)) ||
+      /\bSpend this mana only\b|\bwhere X\b|\bequal to\b/i.test(line.text) ||
+      (!chargeCounterOutput && /\bfor each\b/i.test(line.text))
+    )
+      return [];
 
     const sacrificeCreatureCost = /(?:^|,)\s*Sacrifice (?:a|one) creature\s*(?:,|$)/i.test(
       ir.cost?.raw ?? '',
@@ -249,29 +271,30 @@ function compiledManaOptions(
       ? automaticSacrificeCreatureId(state, playerId)
       : null;
     if (sacrificeCreatureCost && !sacrificeCreatureId) return [];
-    const compiledCost = sacrificeCreatureCost && sacrificeCreatureId
-      ? {
-          decision: 'auto' as const,
-          manaCost: ir.cost?.mana ?? null,
-          commands: [
-            ...(ir.cost?.tap
-              ? [{ type: 'setTapped', cardId, tapped: true } satisfies GameCommand]
-              : []),
-            {
-              type: 'moveCard',
-              cardId: sacrificeCreatureId,
-              to: 'graveyard',
-              position: 'top',
-              reason: 'sacrifice',
-            } satisfies GameCommand,
-          ],
-        }
-      : compileAbilityCost(ir.cost, {
-          sourceId: cardId,
-          def,
-          controllerId: playerId,
-          commanderColorIdentity: commanderColors(state),
-        });
+    const compiledCost =
+      sacrificeCreatureCost && sacrificeCreatureId
+        ? {
+            decision: 'auto' as const,
+            manaCost: ir.cost?.mana ?? null,
+            commands: [
+              ...(ir.cost?.tap
+                ? [{ type: 'setTapped', cardId, tapped: true } satisfies GameCommand]
+                : []),
+              {
+                type: 'moveCard',
+                cardId: sacrificeCreatureId,
+                to: 'graveyard',
+                position: 'top',
+                reason: 'sacrifice',
+              } satisfies GameCommand,
+            ],
+          }
+        : compileAbilityCost(ir.cost, {
+            sourceId: cardId,
+            def,
+            controllerId: playerId,
+            commanderColorIdentity: commanderColors(state),
+          });
     if (compiledCost.decision === 'manual') return [];
 
     let outputs = ir.effects
@@ -307,26 +330,26 @@ function compiledManaOptions(
       line.text,
     );
     const effectCommands: GameCommand[] = selfDamage
-      ? [{
-          type: 'dealDamage',
-          sourceId: cardId,
-          amount: Number.parseInt(selfDamage[1], 10),
-          combatDamage: false,
-          targetPlayerId: playerId,
-        }]
+      ? [
+          {
+            type: 'dealDamage',
+            sourceId: cardId,
+            amount: Number.parseInt(selfDamage[1], 10),
+            combatDamage: false,
+            targetPlayerId: playerId,
+          },
+        ]
       : [];
     const sacrificesOrExiles = compiledCost.commands.some(
       (command) =>
-        command.type === 'moveCard' &&
-        (command.to === 'graveyard' || command.to === 'exile'),
+        command.type === 'moveCard' && (command.to === 'graveyard' || command.to === 'exile'),
     );
     const paysLife = compiledCost.commands.some(
       (command) => command.type === 'adjustLife' && command.delta < 0,
     );
     const drawbackPriority = sacrificesOrExiles ? 3 : paysLife || selfDamage ? 2 : 0;
-    const activationCost = compiledCost.manaCost === null
-      ? null
-      : parseManaCost(compiledCost.manaCost);
+    const activationCost =
+      compiledCost.manaCost === null ? null : parseManaCost(compiledCost.manaCost);
 
     return outputs.map((output) => ({
       output,
@@ -339,24 +362,26 @@ function compiledManaOptions(
   });
 }
 
-function buildSources(state: GameState, playerId: PlayerId, includeCosted: boolean): Source[] {
+function buildSources(state: ManaResources, playerId: PlayerId, includeCosted: boolean): Source[] {
   const battlefieldOrder = new Map<string, number>(
-    state.zones.battlefield.map((cardId, index) => [cardId, index])
+    state.battlefield.map((cardId, index) => [cardId, index]),
   );
 
-  const sources = state.zones.battlefield
+  const sources = state.battlefield
     .map((cardId) => {
       const card = state.cards[cardId];
       if (
         !card ||
         card.controllerId !== playerId ||
         card.tapped ||
-        isSummoningSick(state, cardId)
-      ) return null;
+        state.unavailableSourceIds.includes(cardId)
+      )
+        return null;
       const def = state.defs[card.defId];
-      const simpleOutputs = includeCosted && hasActivatedAddManaLine(def)
-        ? intrinsicBasicLandColors(def).map((color) => ({ [color]: 1 }))
-        : naiveTapManaOutputs(def);
+      const simpleOutputs =
+        includeCosted && hasActivatedAddManaLine(def)
+          ? intrinsicBasicLandColors(def).map((color) => ({ [color]: 1 }))
+          : naiveTapManaOutputs(def);
       const simpleOptions: SourceOption[] = simpleOutputs
         .map(normalizedPool)
         .filter((pool) => poolTotal(pool) > 0)
@@ -372,9 +397,7 @@ function buildSources(state: GameState, playerId: PlayerId, includeCosted: boole
         ...(includeCosted ? compiledManaOptions(state, cardId, playerId) : []),
       ];
       const optionColors = dedupeColors(
-        options.flatMap((option) =>
-          ALL_COLORS.filter((color) => option.output[color] > 0),
-        ),
+        options.flatMap((option) => ALL_COLORS.filter((color) => option.output[color] > 0)),
       );
       if (optionColors.length === 0 || def?.tokenKind === 'treasure') return null;
       const typeLine = currentTypeLine(state, cardId);
@@ -435,7 +458,7 @@ function colorSupplyCounts(sources: Source[]): Record<ManaColor, number> {
 
 function orderedColorOptions(
   colors: ManaColor[],
-  supplyCounts: Record<ManaColor, number>
+  supplyCounts: Record<ManaColor, number>,
 ): ManaColor[] {
   return colors.slice().sort((left, right) => {
     const supplyDiff = supplyCounts[left] - supplyCounts[right];
@@ -448,10 +471,7 @@ function representativeColor(output: ManaPool): ManaColor {
   return ALL_COLORS.find((color) => output[color] > 0) ?? 'C';
 }
 
-function orderedOptions(
-  source: Source,
-  supplyCounts: Record<ManaColor, number>,
-): SourceOption[] {
+function orderedOptions(source: Source, supplyCounts: Record<ManaColor, number>): SourceOption[] {
   const colorOrder = orderedColorOptions(source.colors, supplyCounts);
   return source.options.slice().sort((left, right) => {
     if (left.drawbackPriority !== right.drawbackPriority) {
@@ -486,15 +506,14 @@ function betterPlan(
   return poolTotal(candidate.payment) < poolTotal(best.payment);
 }
 
-function planManaPayment(
-  state: GameState,
+export function planManaPayment(
+  state: ManaResources,
   cost: ParsedCost,
   xValue: number,
   playerId: PlayerId,
   includeCosted: boolean,
 ): AutoTapPlan {
-  const player = state.players[playerId];
-  const manaPool = playerId === state.localPlayerId ? state.manaPool : player?.manaPool ?? emptyPool();
+  const manaPool = state.manaPool;
   const baseSolution = solvePayment(manaPool, cost, xValue);
   let best: RankedPlan = {
     ok: baseSolution.ok,
@@ -515,14 +534,16 @@ function planManaPayment(
   }
 
   const supplyCounts = colorSupplyCounts(sources);
-  const optimizeActivationCount = includeCosted && sources.some((source) =>
-    source.options.some(
-      (option) =>
-        option.activationCost !== null ||
-        option.drawbackPriority > 0 ||
-        poolTotal(option.output) > 1,
-    ),
-  );
+  const optimizeActivationCount =
+    includeCosted &&
+    sources.some((source) =>
+      source.options.some(
+        (option) =>
+          option.activationCost !== null ||
+          option.drawbackPriority > 0 ||
+          poolTotal(option.output) > 1,
+      ),
+    );
   // A filter/signet activation can require one preparatory source, so activation
   // depth is allowed to exceed the spell's raw shortfall by a small bounded amount.
   const maxUsefulTaps = Math.min(
@@ -588,11 +609,13 @@ function planManaPayment(
         const commands: GameCommand[] = [
           ...option.costCommands,
           ...(option.activationCost
-            ? [{
-                type: 'payMana',
-                payment: activationPayment.payment,
-                ...(playerId !== 'P1' ? { playerId } : {}),
-              } satisfies GameCommand]
+            ? [
+                {
+                  type: 'payMana',
+                  payment: activationPayment.payment,
+                  ...(playerId !== 'P1' ? { playerId } : {}),
+                } satisfies GameCommand,
+              ]
             : []),
           ...commandsForManaOutput(option.output, playerId),
           ...option.effectCommands,
@@ -639,7 +662,7 @@ export function planAutoTap(
   xValue: number,
   playerId: PlayerId = state.localPlayerId,
 ): AutoTapPlan {
-  return planManaPayment(state, cost, xValue, playerId, false);
+  return planManaPayment(resourcesForPlayer(state, playerId), cost, xValue, playerId, false);
 }
 
 /** Cast/payment planner that may activate costed mana abilities atomically. */
@@ -649,7 +672,7 @@ export function planAutoManaPayment(
   xValue: number,
   playerId: PlayerId = state.localPlayerId,
 ): AutoTapPlan {
-  return planManaPayment(state, cost, xValue, playerId, true);
+  return planManaPayment(resourcesForPlayer(state, playerId), cost, xValue, playerId, true);
 }
 
 /** Commands matching the exact mana bundles selected by planAutoTap. */
@@ -670,12 +693,38 @@ function commandsForManaOutput(output: ManaPool, playerId?: PlayerId): GameComma
   return ALL_COLORS.flatMap((color) => {
     const amount = output[color];
     return amount > 0
-      ? [{
-          type: 'addMana',
-          color,
-          amount,
-          ...(playerId && playerId !== 'P1' ? { playerId } : {}),
-        } satisfies GameCommand]
+      ? [
+          {
+            type: 'addMana',
+            color,
+            amount,
+            ...(playerId && playerId !== 'P1' ? { playerId } : {}),
+          } satisfies GameCommand,
+        ]
       : [];
+  });
+}
+
+/** Explicit source choices share the same recognizer and cost planner as casting. */
+export function manaActivationChoices(
+  resources: ManaResources,
+  playerId: PlayerId,
+  cardId: string,
+): GameCommand[][] {
+  const source = buildSources(resources, playerId, true).find((entry) => entry.cardId === cardId);
+  if (!source) return [];
+  return source.options.flatMap((option) => {
+    const payment = option.activationCost
+      ? solvePayment(resources.manaPool, option.activationCost, 0)
+      : null;
+    if (payment && !payment.ok) return [];
+    return [
+      [
+        ...option.costCommands,
+        ...(payment ? [{ type: 'payMana' as const, payment: payment.payment, playerId }] : []),
+        ...commandsForManaOutput(option.output, playerId),
+        ...option.effectCommands,
+      ],
+    ];
   });
 }

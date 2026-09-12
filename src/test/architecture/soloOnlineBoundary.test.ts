@@ -238,6 +238,9 @@ function isAuthorizedOnlineDisplayPublicImport(unit: SourceUnit, targetPath: str
   ) || (
     sourcePath === 'src/components/online/PublicOnlineApp.tsx'
     && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/publicApp/index'))
+  ) || (
+    ['src/App.tsx', 'src/components/game/CockpitSessionScreen.tsx', 'src/components/game/CockpitRoomControls.tsx'].includes(sourcePath)
+    && sourceTargetMatches(targetPath, resolve(unitSourceRoot, 'online/browser/cockpitClient'))
   );
 }
 

@@ -1,0 +1,239 @@
+.cockpit-session {
+  min-height: 100dvh;
+  position: relative;
+  isolation: isolate;
+  padding: 16px;
+  color: var(--text);
+  background: var(--table-vignette), var(--table-light), var(--surface-0);
+  font-family: system-ui, sans-serif;
+}
+.cockpit-session button,
+.cockpit-session input,
+.cockpit-session select {
+  font: inherit;
+}
+.cockpit-session button,
+.cockpit-session select {
+  padding: 7px 10px;
+  border: 1px solid #758b89;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.cockpit-session button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cockpit-session button:focus-visible {
+  outline: 3px solid #ffd990;
+}
+.cockpit-session__bar,
+.cockpit-session__stack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  background: var(--surface-1);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.cockpit-session__note {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.cockpit-session__seats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.cockpit-session__seats article {
+  padding: 12px;
+  background: var(--surface-1);
+  border: 1px solid #596b6b;
+  border-radius: 10px;
+}
+.cockpit-session__seats span {
+  margin: 0 12px;
+}
+.cockpit-session__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px 0;
+  min-height: 290px;
+}
+.cockpit-session__cards article {
+  width: 160px;
+  padding: 7px;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  background: var(--surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cockpit-session__cards .card {
+  width: 142px;
+}
+.cockpit-session .is-selected {
+  border-color: #e7bb70;
+  box-shadow: 0 0 0 1px #e7bb70;
+}
+.cockpit-session__cards label {
+  font-size: 12px;
+}
+.cockpit-session__opponent-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.cockpit-session .modal {
+  color: var(--text);
+  background: var(--surface-1);
+}
+@media (max-width: 600px) {
+  .cockpit-session {
+    padding: 6px;
+  }
+  .cockpit-session__seats {
+    grid-template-columns: 1fr;
+  }
+  .cockpit-session__cards {
+    gap: 6px;
+  }
+  .cockpit-session__cards article {
+    width: 145px;
+  }
+}
+.cockpit-session__tools {
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid #596b6b;
+  border-radius: 10px;
+  background: var(--surface-1);
+}
+.cockpit-session__tools summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.cockpit-session__tools label,
+.cockpit-session .modal label {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 10px 8px 0;
+}
+.cockpit-session input,
+.cockpit-session textarea {
+  padding: 7px;
+  border: 1px solid #758b89;
+  border-radius: 5px;
+  background: var(--surface-0);
+  color: var(--text);
+  max-width: 100%;
+}
+.cockpit-session input[type='number'] {
+  width: 76px;
+}
+.cockpit-session .modal select {
+  max-width: 100%;
+}
+.cockpit-session .modal li {
+  margin: 10px 0;
+}
+
+/* One card surface serves the shared table and the selected private zone. */
+.cockpit-session__card-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+.cockpit-session__cards .card-view {
+  flex: none;
+}
+.cockpit-session__board {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-height: 184px;
+  padding: 8px 0 2px;
+  gap: 6px;
+}
+.cockpit-session__seats .cockpit-session__board article {
+  flex: 0 0 118px;
+  width: 118px;
+  padding: 4px;
+  border: 2px solid transparent;
+  background: var(--surface-0);
+}
+.cockpit-session__board .cockpit-session__card-image {
+  min-height: 112px;
+  height: 112px;
+}
+.cockpit-session__board .card-view--small,
+.cockpit-session__board .card-view__face {
+  width: 76px;
+  height: 106px;
+}
+.cockpit-session__board label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cockpit-session__board button {
+  padding: 3px 6px;
+  font-size: 12px;
+}
+.cockpit-session__seats .cockpit-session__board .is-selected {
+  border-color: #e7bb70;
+}
+@media (min-width: 1000px) {
+  .cockpit-session {
+    padding: 10px;
+  }
+  .cockpit-session__bar,
+  .cockpit-session__stack {
+    padding: 6px 8px;
+    margin-bottom: 6px;
+  }
+  .cockpit-session__seats {
+    margin: 6px 0;
+  }
+  .cockpit-session__seats > article {
+    padding: 8px;
+  }
+  .cockpit-session__note {
+    margin: 6px 0;
+  }
+  .cockpit-session__tools {
+    margin: 6px 0;
+    padding: 8px;
+  }
+  .cockpit-session__cards:not(.cockpit-session__board) {
+    padding: 6px 0;
+    min-height: 240px;
+  }
+}
+.cockpit-session__seats > article {
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .cockpit-session--multiplayer .cockpit-session__seats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .cockpit-session--multiplayer .cockpit-session__seats:has(> article:nth-child(2):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cockpit-session--multiplayer .cockpit-session__board {
+    min-height: 110px;
+    max-height: 230px;
+    overflow: auto;
+    align-content: flex-start;
+  }
+}

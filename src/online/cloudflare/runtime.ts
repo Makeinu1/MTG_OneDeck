@@ -1,3 +1,4 @@
+import { handleCockpitSession } from './cockpitSession';
 import {
   handleOnlineCommandEnvelopeV1,
   handleOnlineVariableCommandEnvelopeV2,
@@ -713,6 +714,9 @@ export class OnlineRoomDurableObject {
     try {
       if (!allowedBrowserOrigin(request.headers.get('origin'))) return genericError(403);
       const pathname = new URL(request.url).pathname;
+      if (/^\/api\/cockpit\/[a-f0-9-]{36}$/.test(pathname) && this.state.id.name === `cockpit_${pathname.split('/').at(-1)}`) {
+        return handleCockpitSession(request, this.state.storage, this.state.now?.() ?? Date.now());
+      }
       const route = parseRoomPath(pathname);
       if (route === null) return genericError(isInvalidRoomPath(pathname) ? 400 : 404);
       if (this.state.id.name !== route.roomId) return genericError(400);

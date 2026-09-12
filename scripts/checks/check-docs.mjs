@@ -253,6 +253,10 @@ function checkLastVerifiedCommits(manifest, traceability) {
       ...clauseEvidence,
     ])].filter((path) => !['scripts/checks/check-docs.mjs', 'scripts/checks/generate-engine-api.mjs'].includes(path));
     for (const path of paths) {
+      // This generated index is verified against current source by --check below.
+      // Pinning its bytes to a historical commit makes every local API edit fail
+      // even when regeneration is exact; authored contract/evidence hashes stay pinned.
+      if (entry.id === 'GENERATED-ENGINE-API' && entry.status === 'generated' && path === 'docs/generated/engine-api.md') continue;
       const expectedHash = commitBlobHash(sha, path);
       const actualHash = workingTreeHash(path);
       if (expectedHash === null) {

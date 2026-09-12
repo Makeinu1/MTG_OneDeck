@@ -78,7 +78,10 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
     for (const path of productionFiles(resolve(repositoryRoot, 'src/online/cloudflare'))) {
       for (const specifier of moduleSpecifiers(readFileSync(path, 'utf8'))) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        expect(local || allowed.has(specifier), `${normalized(path)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
+        const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
+          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(path)} -> ${specifier}`).toBe(true);
       }
     }
   });

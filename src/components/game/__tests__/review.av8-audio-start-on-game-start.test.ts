@@ -12,7 +12,7 @@ describe('AV8 game-start audio gesture ordering', () => {
   it('starts the session before initializing the opening hand', () => {
     const app = read('src/App.tsx');
     const unlock = app.indexOf('startAudioForGameGesture()');
-    const newGame = app.indexOf('useGameStore.getState().newGame(deck)');
+    const newGame = app.indexOf('setCockpit({ deck })');
     expect(unlock).toBeGreaterThanOrEqual(0);
     expect(newGame).toBeGreaterThan(unlock);
   });

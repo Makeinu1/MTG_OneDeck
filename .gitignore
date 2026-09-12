@@ -38,3 +38,6 @@ research/mydeck-scoring/report.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local Worker sessions and development runtime caches
+.wrangler/

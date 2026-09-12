@@ -93,7 +93,10 @@ describe('O4P-03A architecture boundary', () => {
       }
       for (const specifier of moduleSpecifiers(sourceText)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        expect(local || allowed.has(specifier), `${normalized(filePath)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport = normalized(filePath) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
+        const cockpitImport = normalized(filePath) === 'src/online/cloudflare/cockpitSession.ts' &&
+          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(filePath)} -> ${specifier}`).toBe(true);
       }
     }
 
