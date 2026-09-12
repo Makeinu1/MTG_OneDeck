@@ -2,10 +2,12 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { DndContext, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
 import {
   tableManaResources,
+  manaColors,
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
 import { manaActivationChoices } from '../../engine/autotap';
+import { tableAbilityChoices } from '../../engine/cockpitAbilities';
 import type { ZoneId } from '../../engine/types';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
@@ -56,6 +58,30 @@ function DropZone({
   );
 }
 
+function TableWorkPanel({
+  title,
+  open = true,
+  onClose,
+  children,
+}: {
+  title: string;
+  open?: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <aside className="table-work-panel modal" aria-label={title} hidden={!open}>
+      <header className="modal__header">
+        <h2>{title}</h2>
+        <button className="modal__close" aria-label="作業面を閉じる" onClick={onClose}>
+          ×
+        </button>
+      </header>
+      <div className="modal__body">{children}</div>
+    </aside>
+  );
+}
+
 export function CockpitTableSurface({
   view,
   disabled,
@@ -70,6 +96,8 @@ export function CockpitTableSurface({
   seatId,
   chooseSeat,
   peek,
+  openStackEntry,
+  activate,
 }: {
   view: {
     table: CockpitTable;
@@ -90,12 +118,14 @@ export function CockpitTableSurface({
   select: (ids: string[]) => void;
   inspect: (id: string) => void;
   cast: (id: string) => void;
+  activate?: (id: string) => void;
   send: (op: TableOperation | { type: 'undo' } | { type: 'redo' }) => Promise<boolean>;
   openMenu: () => void;
-  children: ReactNode;
+  children: ReactNode | ((browse: (zone: ZoneId, seatId: string) => void) => ReactNode);
   peek: (seatId: string, zone: 'hand' | 'library' | null) => Promise<void>;
   seatId: string;
   chooseSeat: (id: string) => void;
+  openStackEntry?: (id: string) => void;
 }) {
   const { table, multiplayer: multi } = view;
   const ownId = multi?.ownSeatId ?? table.seats[0].id;
@@ -108,8 +138,15 @@ export function CockpitTableSurface({
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState('all');
-  const [work, setWork] = useState(false);
-  const [stack, setStack] = useState(false);
+  const [panel, setPanel] = useState<'zone' | 'work' | 'stack' | null>(null);
+  const work = panel === 'work';
+  const stack = panel === 'stack';
+  const setWork = (open: boolean) => setPanel(open ? 'work' : null);
+  const setStack = (open: boolean) => setPanel(open ? 'stack' : null);
+  const [zoneViews, setZoneViews] = useState(
+    new Map<string, { query: string; page: number; filter: string }>(),
+  );
+  const [mana, setMana] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bottomMode, setBottomMode] = useState(false);
   const [expandedBundles, setExpandedBundles] = useState<string[]>([]);
@@ -153,11 +190,17 @@ export function CockpitTableSurface({
     table.stack.length > 0;
   const opponents = table.seats.filter((seat) => seat.id !== ownId);
   function openZone(next: ZoneId, owner = ownId) {
+    if (zone) setZoneViews(new Map(zoneViews).set(`${zoneSeat}:${zone}`, { query, page, filter }));
+    const saved =
+      zone === next && zoneSeat === owner
+        ? { query, page, filter }
+        : zoneViews.get(`${owner}:${next}`);
     setZone(next);
+    setPanel('zone');
     setZoneSeat(owner);
-    setQuery('');
-    setPage(0);
-    setFilter('all');
+    setQuery(saved?.query ?? '');
+    setPage(saved?.page ?? 0);
+    setFilter(saved?.filter ?? 'all');
     setHover(null);
   }
   function quick(id: string) {
@@ -173,12 +216,19 @@ export function CockpitTableSurface({
     )
       void send({ type: 'generate', cardId: id, commands: choices[0] });
     else if (choices.length) inspect(id);
+    else if (
+      card.zone === 'battlefield' &&
+      !card.tapped &&
+      activate &&
+      tableAbilityChoices(table, id).length
+    )
+      activate(id);
     else if (card.zone === 'battlefield')
       void send({ type: 'tap', ids: [id], tapped: !card.tapped });
     else if (isLand(id)) void send({ type: 'move', ids: [id], to: 'battlefield', position: 'top' });
     else cast(id);
   }
-  function card(id: string, index = 0, handCount = 0) {
+  function card(id: string, index = 0, handCount = 0, inZone = false) {
     const instance = table.cards[id];
     if (!instance) return null;
     const manaChoices =
@@ -186,7 +236,7 @@ export function CockpitTableSurface({
         ? manaActivationChoices(resources.get(instance.controllerId)!, instance.controllerId, id)
         : [];
     const fan = handCount ? handFanCardLayout(index, handCount) : null;
-    const selectable = selectionMode || (opening && bottomMode) || !!zone;
+    const selectable = selectionMode || (opening && bottomMode) || inZone;
     return (
       <article
         key={id}
@@ -223,7 +273,9 @@ export function CockpitTableSurface({
             const rect = event.currentTarget.getBoundingClientRect();
             setHover({
               id,
-              left: Math.min(window.innerWidth - 300, Math.max(8, rect.right + 12)),
+              left: inZone
+                ? Math.max(8, window.innerWidth - 670)
+                : Math.min(window.innerWidth - 660, Math.max(8, rect.right + 12)),
               top: Math.max(8, Math.min(window.innerHeight - 430, rect.top - 150)),
             });
           }}
@@ -233,7 +285,7 @@ export function CockpitTableSurface({
             instance={instance}
             def={table.defs[instance.defId]}
             size="hand"
-            draggable={!disabled && !opening && !zone && instance.ownerId === ownId}
+            draggable={!disabled && !opening && !inZone && instance.ownerId === ownId}
             onContextMenu={(event) => {
               event.preventDefault();
               setHover(null);
@@ -251,14 +303,16 @@ export function CockpitTableSurface({
             {selected.includes(id) ? selected.indexOf(id) + 1 : '選択'}
           </button>
         )}
-        {!opening && !zone && (
+        {!opening && !inZone && (
           <button className="table-card__quick" disabled={disabled} onClick={() => quick(id)}>
             {instance.zone === 'battlefield'
               ? instance.tapped
                 ? 'アンタップ'
                 : manaChoices.length
                   ? 'マナを出す'
-                  : 'タップ'
+                  : activate && tableAbilityChoices(table, id).length
+                    ? '能力を起動'
+                    : 'タップ'
               : isLand(id)
                 ? '土地を置く'
                 : '唱える'}
@@ -281,7 +335,25 @@ export function CockpitTableSurface({
   }
   function board(id: string, compact = false) {
     const ids = battlefield(id);
-    const lands = ids.filter(isLand);
+    const localParent = (item: string) => {
+      const parent = table.cards[item].attachedTo;
+      return parent && ids.includes(parent) ? parent : null;
+    };
+    const roots = ids.filter((item) => !localParent(item));
+    const attachedCard = (item: string): ReactNode => {
+      const attached = ids.filter((candidate) => localParent(candidate) === item);
+      return (
+        <div className="table-permanent-group" key={item}>
+          {card(item)}
+          {attached.length > 0 && (
+            <div className="table-attachments" aria-label={`《${name(item)}》への取り付け`}>
+              {attached.map(attachedCard)}
+            </div>
+          )}
+        </div>
+      );
+    };
+    const lands = roots.filter(isLand);
     if (ids.length - lands.length > 30 || lands.length > 30)
       return (
         <div
@@ -306,7 +378,11 @@ export function CockpitTableSurface({
     const groups = new Map<string, string[]>();
     for (const land of lands) {
       // Keep tapped and modified physical cards in the same stable land group.
-      const key = compact ? id : `${id}:${table.cards[land].defId}`;
+      const key = ids.some((item) => localParent(item) === land)
+        ? land
+        : compact
+          ? id
+          : `${id}:${table.cards[land].defId}`;
       groups.set(key, [...(groups.get(key) ?? []), land]);
     }
     return (
@@ -326,14 +402,14 @@ export function CockpitTableSurface({
               {ids.length}
             </button>
           )}
-          {ids.filter((item) => !isLand(item)).map((item) => card(item))}
+          {roots.filter((item) => !isLand(item)).map(attachedCard)}
         </div>
         <div className="table-board__lands">
           {[...groups].map(([key, group]) => {
             if (group.length === 1 || expandedBundles.includes(key))
               return (
                 <div className="table-land-group" key={key}>
-                  {group.map((item) => card(item))}
+                  {group.map(attachedCard)}
                   {group.length > 1 && (
                     <button
                       onClick={() =>
@@ -347,7 +423,7 @@ export function CockpitTableSurface({
               );
             return (
               <div className="table-land-bundle" key={key}>
-                {card(group[0])}
+                {attachedCard(group[0])}
                 <button
                   className="table-land-bundle__count"
                   onClick={() => setExpandedBundles([...expandedBundles, key])}
@@ -523,7 +599,8 @@ export function CockpitTableSurface({
             className="table-hand"
             data-testid="hand-ribbon"
             aria-label="自分の手札"
-            hidden={opening || zone === 'hand'}
+            style={{ '--hand-count': openingIds.length } as CSSProperties}
+            hidden={opening}
           >
             {openingIds.length > 15 ? (
               <button className="table-large-hand" onClick={() => openZone('hand')}>
@@ -571,7 +648,7 @@ export function CockpitTableSurface({
         <footer className="table-progress" aria-label="進行">
           <button
             title="元に戻す"
-            aria-label="undo"
+            aria-label="元に戻す"
             disabled={disabled || !view.canUndo}
             onClick={() => void send({ type: 'undo' })}
           >
@@ -579,7 +656,7 @@ export function CockpitTableSurface({
           </button>
           <button
             title="やり直す"
-            aria-label="redo"
+            aria-label="やり直す"
             disabled={disabled || !view.canRedo}
             onClick={() => void send({ type: 'redo' })}
           >
@@ -587,6 +664,13 @@ export function CockpitTableSurface({
           </button>
           <button title="手札を展開" onClick={() => openZone('hand')}>
             <Icon name="stack" />
+          </button>
+          <button
+            className="table-mana-toggle"
+            title="マナを増減する"
+            onClick={() => setMana(true)}
+          >
+            マナ {manaColors.reduce((sum, color) => sum + own.mana[color], 0)}
           </button>
           <button aria-pressed={selectionMode} onClick={() => setSelectionMode(!selectionMode)}>
             複数選択{selected.length ? ` ${selected.length}` : ''}
@@ -612,7 +696,7 @@ export function CockpitTableSurface({
               onClick={() => setStack(true)}
             >
               <Icon name="stack" />
-              {resolution ? '処理中' : `Stack ${table.stack.length}`} · 《{sourceName}》
+              {resolution ? '解決中' : `スタック ${table.stack.length}`} · 《{sourceName}》
             </button>
           )}
           <button onClick={() => setWork(true)}>
@@ -718,8 +802,26 @@ export function CockpitTableSurface({
           </div>
         </Modal>
       )}
+      <nav className="table-work-nav" aria-label="作業面">
+        <button aria-pressed={work} onClick={() => setWork(true)}>
+          操作 · 選択 {selected.length}
+        </button>
+        <button aria-pressed={stack} onClick={() => setStack(true)}>
+          スタック {table.stack.length}
+        </button>
+        {zone && (
+          <button aria-pressed={panel === 'zone'} onClick={() => setPanel('zone')}>
+            {zoneNames[zone]}に戻る
+          </button>
+        )}
+        {!panel && <p>領域やカードを選んで操作。作業を閉じても未確定の入力は残ります。</p>}
+      </nav>
       {zone && (
-        <Modal title={zoneNames[zone]} width="xl" onClose={() => setZone(null)} allowBoardPeek>
+        <TableWorkPanel
+          title={zoneNames[zone]}
+          open={panel === 'zone'}
+          onClose={() => setPanel(null)}
+        >
           {multi && (zone === 'library' || (zone === 'hand' && zoneSeat !== ownId)) && (
             <div className="cockpit-session__bar">
               <span>本人の選択は本人が決めます。閲覧した内容は他席へ公開されません。</span>
@@ -746,8 +848,7 @@ export function CockpitTableSurface({
                 key={seat.id}
                 aria-pressed={zoneSeat === seat.id}
                 onClick={() => {
-                  setZoneSeat(seat.id);
-                  setPage(0);
+                  openZone(zone, seat.id);
                 }}
               >
                 {seat.label}
@@ -813,7 +914,18 @@ export function CockpitTableSurface({
             <div className="table-zone-cards__row">
               {zoneIds.slice(visiblePage * 24, (visiblePage + 1) * 24).map((id) => (
                 <div key={id}>
-                  {card(id)}
+                  {zone === 'hand' && zoneSeat === ownId && openingIds.length <= 15 ? (
+                    <div className="table-hand-index" data-card-id={id}>
+                      <button aria-pressed={selected.includes(id)} onClick={() => toggle(id)}>
+                        《{name(id)}》
+                      </button>
+                      <button aria-label={`《${name(id)}》を読む`} onClick={() => inspect(id)}>
+                        <Icon name="info" />
+                      </button>
+                    </div>
+                  ) : (
+                    card(id, 0, 0, true)
+                  )}
                   <small>
                     {
                       table.seats.find(
@@ -837,24 +949,21 @@ export function CockpitTableSurface({
               disabled={!selected.length}
               onClick={() => {
                 chooseSeat(zoneSeat === 'all' ? ownId : zoneSeat);
-                setZone(null);
                 setWork(true);
               }}
             >
               選択を操作
             </button>
           </div>
-        </Modal>
+        </TableWorkPanel>
       )}
-      <Modal
+      <TableWorkPanel
         open={work}
         title={resolution ? `《${sourceName}》の処理` : '卓の操作'}
-        width="lg"
         onClose={() => setWork(false)}
-        allowBoardPeek
       >
         <label>
-          操作する席{' '}
+          操作するプレイヤー{' '}
           <select value={seatId} onChange={(event) => chooseSeat(event.target.value)}>
             {table.seats.map((seat) => (
               <option key={seat.id} value={seat.id}>
@@ -864,15 +973,81 @@ export function CockpitTableSurface({
             ))}
           </select>
         </label>
-        {children}
-      </Modal>
+        {typeof children === 'function' ? children(openZone) : children}
+      </TableWorkPanel>
+      {mana && (
+        <Modal title="マナ・プール" onClose={() => setMana(false)}>
+          <div className="table-mana-pool">
+            {manaColors.map((color, index) => (
+              <div key={color} className={`table-mana-color table-mana-color--${color}`}>
+                <strong>{['白', '青', '黒', '赤', '緑', '無色'][index]}</strong>
+                <button
+                  title={`${color}マナを1減らす`}
+                  aria-label={`${color}マナを1減らす`}
+                  disabled={disabled || own.mana[color] === 0}
+                  onClick={() => void send({ type: 'mana', seatId: ownId, color, delta: -1 })}
+                >
+                  −
+                </button>
+                <output>{own.mana[color]}</output>
+                <button
+                  title={`${color}マナを1増やす`}
+                  aria-label={`${color}マナを1増やす`}
+                  disabled={disabled}
+                  onClick={() => void send({ type: 'mana', seatId: ownId, color, delta: 1 })}
+                >
+                  ＋
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            disabled={disabled || !Object.values(own.mana).some(Boolean)}
+            onClick={() => void send({ type: 'emptyMana', seatIds: [ownId] })}
+          >
+            マナをすべて消す
+          </button>
+        </Modal>
+      )}
       {stack && (
-        <Modal
-          title={resolution ? `《${sourceName}》の処理` : 'Stack'}
-          width="lg"
+        <TableWorkPanel
+          title={resolution ? `《${sourceName}》を解決` : 'スタック'}
           onClose={() => setStack(false)}
-          allowBoardPeek
         >
+          <ol className="table-stack-order">
+            {table.stack.map((entry, index) => (
+              <li key={entry.id} className={index === 0 ? 'is-next' : ''}>
+                <CardView
+                  instance={{ ...entry.source, tapped: false }}
+                  def={table.defs[entry.source.defId]}
+                  size="small"
+                  draggable={false}
+                />
+                <div>
+                  <small>
+                    {index === 0 ? (resolution ? '解決中' : '次に解決') : `${index + 1}番目`} ·{' '}
+                    {table.seats.find((seat) => seat.id === entry.controllerId)?.label}
+                  </small>
+                  <strong>
+                    《
+                    {table.defs[entry.source.defId]?.printedName ??
+                      table.defs[entry.source.defId]?.name}
+                    》
+                  </strong>
+                  <span>
+                    {entry.kind === 'spell'
+                      ? '呪文'
+                      : entry.kind === 'activated'
+                        ? '起動型能力'
+                        : '誘発型能力'}
+                  </span>
+                  {openStackEntry && (
+                    <button onClick={() => openStackEntry(entry.id)}>対象・支払いを見る</button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
           {current && (
             <div className="table-stack-source">
               <CardView
@@ -899,18 +1074,6 @@ export function CockpitTableSurface({
               </div>
             </div>
           )}
-          {table.stack.length > 1 && (
-            <ol>
-              {table.stack.map((entry) => (
-                <li key={entry.id}>
-                  《
-                  {table.defs[entry.source.defId]?.printedName ??
-                    table.defs[entry.source.defId]?.name}
-                  》
-                </li>
-              ))}
-            </ol>
-          )}
           {resolution ? (
             <>
               <button
@@ -919,7 +1082,7 @@ export function CockpitTableSurface({
                   setWork(true);
                 }}
               >
-                基本操作を続ける
+                カードを動かす・数値を変える
               </button>
               <label>
                 処理後の行き先{' '}
@@ -944,7 +1107,7 @@ export function CockpitTableSurface({
                   })
                 }
               >
-                処理を終える
+                解決を終える
               </button>
             </>
           ) : (
@@ -962,10 +1125,10 @@ export function CockpitTableSurface({
                 void send({ type: 'resolve.begin' });
               }}
             >
-              処理を始める
+              一番上を解決する
             </button>
           )}
-        </Modal>
+        </TableWorkPanel>
       )}
       {hover && table.cards[hover.id] && !opening && (
         <aside

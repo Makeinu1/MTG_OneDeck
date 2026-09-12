@@ -17,12 +17,14 @@ export function CockpitAbilityTools({
   selected,
   disabled,
   send,
+  expanded = false,
 }: {
   table: CockpitTable;
   sourceId: string;
   selected: string[];
   disabled: boolean;
   send: (operation: TableOperation) => Promise<boolean>;
+  expanded?: boolean;
 }) {
   const choices = tableAbilityChoices(table, sourceId);
   const [key, setKey] = useState(choices[0]?.key ?? 'manual');
@@ -38,17 +40,36 @@ export function CockpitAbilityTools({
   const [error, setError] = useState('');
   const choice = choices.find((item) => item.key === key);
   const useManual = manual || choice?.manual || key === 'manual';
+  let automaticProposal: typeof proposal = null;
+  let paymentError = '';
+  if (choice && !useManual) {
+    try {
+      automaticProposal = {
+        type: 'activate',
+        id: '',
+        sourceId,
+        choice: key,
+        text,
+        targets: [...targets, ...targetSeats],
+        manualCosts: null,
+        paymentPlan: tableActivationPayment(table, sourceId, key, null).paid,
+      };
+    } catch (error) {
+      paymentError = error instanceof Error ? error.message : 'コストを支払えません。';
+    }
+  }
+  const shownProposal = automaticProposal ?? proposal;
   const name = (id: string) => {
     const entry = table.stack.find((entry) => entry.id === id);
     const def = table.defs[table.cards[id]?.defId ?? entry?.source.defId ?? ''];
     return def?.printedName ?? def?.name ?? table.seats.find((seat) => seat.id === id)?.label ?? id;
   };
   return (
-    <details>
-      <summary>能力の起動・誘発登録</summary>
+    <details open={expanded || undefined}>
+      <summary>能力を起動・誘発させる</summary>
       <p>
         発生源:《{name(sourceId)}
-        》。効果はStack登録後に手動で処理します。マナ能力はマナ生成の入口を使います。
+        》。コストを支払ってスタックに置きます。解決時の効果は手動です。
       </p>
       <label>
         能力{' '}
@@ -64,7 +85,7 @@ export function CockpitAbilityTools({
         >
           {choices.map((item) => (
             <option key={item.key} value={item.key}>
-              {item.label} — {item.costText}
+              {item.costText}
             </option>
           ))}
           <option value="manual">手動で起動型能力を登録</option>
@@ -184,7 +205,7 @@ export function CockpitAbilityTools({
             )}
           </fieldset>
           <label>
-            コストの確認記録{' '}
+            コストについてのメモ{' '}
             <input
               value={costs.note}
               onChange={(event) => {
@@ -221,7 +242,7 @@ export function CockpitAbilityTools({
               setProposal(null);
             }}
           />
-          対象Stack {index + 1}: 《{name(entry.source.id)}》
+          スタック {index + 1}: 《{name(entry.source.id)}》を対象にする
         </label>
       ))}
       {table.seats.map((seat) => (
@@ -241,15 +262,16 @@ export function CockpitAbilityTools({
           対象: {seat.label}
         </label>
       ))}
-      <label>
+      <label hidden={!useManual && !!choice}>
         <input
           type="checkbox"
           checked={confirmed}
           onChange={(event) => setConfirmed(event.target.checked)}
         />
-        本文の対象・タイミング・非マナコストと、手動処理の範囲を確認した
+        対象と起動条件を確認した
       </label>
       <button
+        hidden={!useManual && !!choice}
         disabled={disabled || !confirmed || (!choice && !text.trim())}
         onClick={() => {
           try {
@@ -271,21 +293,22 @@ export function CockpitAbilityTools({
           }
         }}
       >
-        能力の支払い案を確認
+        支払うコストを確認
       </button>
       {error && <p role="alert">{error}</p>}
-      {proposal && (
+      {paymentError && <p role="alert">{paymentError}</p>}
+      {shownProposal && (
         <section aria-label="能力の確定内容">
           <ul>
-            {proposal.paymentPlan.map((command, index) => (
+            {shownProposal.paymentPlan.map((command, index) => (
               <li key={index}>{cockpitCostText(command, name)}</li>
             ))}
           </ul>
-          <p>対象: {proposal.targets.map(name).join('、') || 'なし'}</p>
+          <p>対象: {shownProposal.targets.map(name).join('、') || 'なし'}</p>
           <button
-            disabled={disabled || !confirmed}
+            disabled={disabled || (!automaticProposal && !confirmed)}
             onClick={() =>
-              void send(proposal).then((saved) => {
+              void send({ ...shownProposal, id: crypto.randomUUID() }).then((saved) => {
                 if (saved) {
                   setProposal(null);
                   setConfirmed(false);
@@ -293,9 +316,9 @@ export function CockpitAbilityTools({
               })
             }
           >
-            このコストで能力をStackへ
+            コストを支払って起動する
           </button>
-          <button onClick={() => setProposal(null)}>支払い案を取消</button>
+          {!automaticProposal && <button onClick={() => setProposal(null)}>選び直す</button>}
         </section>
       )}
     </details>

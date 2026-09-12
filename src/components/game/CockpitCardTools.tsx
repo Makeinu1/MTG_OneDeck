@@ -29,8 +29,8 @@ export function CockpitCardTools({
     return def?.printedName ?? def?.name ?? id;
   };
   return (
-    <details>
-      <summary>状態・修整・関連</summary>
+    <details open={Boolean(card.attachedTo)}>
+      <summary>状態・修整・取り付け</summary>
       {card.isToken && (
         <CockpitTokenEditor table={table} cardId={cardId} disabled={disabled} send={send} />
       )}
@@ -73,9 +73,9 @@ export function CockpitCardTools({
         {Object.entries(card.counters)
           .map(([name, value]) => `${name} ${value}`)
           .join(' / ') || 'なし'}{' '}
-        / 記録ダメージ {card.damageMarked}
+        / 受けているダメージ {card.damageMarked}
       </p>
-      <p>添付先: {card.attachedTo ? `《${name(card.attachedTo)}》` : 'なし'}</p>
+      <p>取り付け先: {card.attachedTo ? `《${name(card.attachedTo)}》` : 'なし'}</p>
       <label>
         表示する面{' '}
         <select
@@ -124,7 +124,7 @@ export function CockpitCardTools({
             </select>
           </label>
           <label>
-            添付する対象{' '}
+            取り付けする対象{' '}
             <select value={target} onChange={(event) => setTarget(event.target.value)}>
               <option value="">対象を選択</option>
               {Object.values(table.cards)
@@ -141,13 +141,13 @@ export function CockpitCardTools({
             disabled={disabled || !target}
             onClick={() => void send({ type: 'attach', cardId, targetId: target })}
           >
-            添付する
+            取り付けする
           </button>
           <button
             disabled={disabled || !card.attachedTo}
             onClick={() => void send({ type: 'attach', cardId, targetId: null })}
           >
-            添付を外す
+            取り付けを外す
           </button>
           <label>
             パワー修整{' '}
@@ -361,7 +361,7 @@ export function CockpitTokenTools({
         この特徴でトークンを生成
       </button>
       <p>
-        コピーは選んだ表向きのパーマネントの現在の面を使用します。カウンター・記録ダメージ・修整・タップ・添付・統率者指定は引き継ぎません。特別なコピーの変更は生成後に明示してください。
+        コピーは選んだ表向きのパーマネントの現在の面を使用します。カウンター・受けているダメージ・修整・タップ・取り付け・統率者指定は引き継ぎません。特別なコピーの変更は生成後に明示してください。
       </p>
       <button
         disabled={disabled || source?.zone !== 'battlefield' || source.faceDown}
@@ -466,7 +466,7 @@ function CockpitTokenEditor({
         {face.colors?.join('・') || (face.colors ? '無色' : '本文を確認')}
       </p>
       <p>
-        コピー元、所有者、カウンター、添付、期間付き修整はこの変更でも保持します。ここではコピー可能な基本の特徴を指定します。
+        コピー元、所有者、カウンター、取り付け、期間付き修整はこの変更でも保持します。ここではコピー可能な基本の特徴を指定します。
       </p>
       {!draft ? (
         <button

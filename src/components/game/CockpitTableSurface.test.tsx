@@ -163,12 +163,40 @@ it('keeps the local hand anchored while inspecting another opponent or delegatin
     expect(hand()).toEqual(table.seats[2].zones.hand);
     expect(screen.chooseSeat).not.toHaveBeenCalled();
     expect(screen.send).not.toHaveBeenCalled();
+    act(() => screen.host.querySelector<HTMLButtonElement>('.table-mana-toggle')!.click());
+    act(() =>
+      screen.host.querySelector<HTMLButtonElement>('[aria-label="Gマナを1増やす"]')!.click(),
+    );
+    expect(screen.send).toHaveBeenLastCalledWith({
+      type: 'mana',
+      seatId: 'P3',
+      color: 'G',
+      delta: 1,
+    });
+    expect(
+      screen.host.querySelector<HTMLButtonElement>('[aria-label="Gマナを1減らす"]')!.disabled,
+    ).toBe(true);
+    act(() =>
+      screen.host
+        .querySelector<HTMLButtonElement>('[aria-label="マナ・プール"] .modal__close')!
+        .click(),
+    );
     const openWork = [...screen.host.querySelectorAll('button')].find(
       (button) => button.textContent === '操作',
     )!;
     act(() => openWork.click());
     const draft = screen.host.querySelector<HTMLInputElement>('[aria-label="未確定の割当"]')!;
     draft.value = '3';
+    const boardHand = screen.host.querySelector('.table-hand');
+    act(() => screen.host.querySelector<HTMLButtonElement>('[title="手札を展開"]')!.click());
+    expect(screen.host.querySelector('.table-hand')).toBe(boardHand);
+    expect(boardHand!.hasAttribute('hidden')).toBe(false);
+    expect(screen.host.querySelector('[aria-label="卓の操作"]')!.hasAttribute('hidden')).toBe(true);
+    act(() => screen.host.querySelector<HTMLElement>('.table-zone-cards .table-hand-index button')!.click());
+    expect(screen.select).toHaveBeenLastCalledWith([table.seats[2].zones.hand[0]]);
+    act(() => openWork.click());
+    expect(draft.value).toBe('3');
+
     act(() =>
       screen.host
         .querySelector<HTMLButtonElement>('[aria-label="卓の操作"] .modal__close')!
@@ -178,6 +206,40 @@ it('keeps the local hand anchored while inspecting another opponent or delegatin
     expect(screen.host.querySelector<HTMLInputElement>('[aria-label="未確定の割当"]')!.value).toBe(
       '3',
     );
+  } finally {
+    screen.close();
+  }
+});
+
+it('shows physical attachments beside their target and restores them as loose cards when detached', () => {
+  let table = createCockpitTable(makeDeck(30), 42);
+  table = applyTableOperation(table, { type: 'keep', seatId: 'P1', bottom: [] });
+  const [target, equipment, other] = table.seats[0].zones.hand;
+  table = applyTableOperation(table, {
+    type: 'move',
+    ids: [target, equipment, other],
+    to: 'battlefield',
+    position: 'top',
+  });
+  table = applyTableOperation(table, { type: 'attach', cardId: equipment, targetId: target });
+  const show = () =>
+    mount({ table, revision: 1, expiresAt: 0, canUndo: false, canRedo: false, receipt: null });
+  let screen = show();
+  try {
+    const group = screen.host.querySelector(
+      `.table-home [data-card-id="${target}"]`,
+    )!.parentElement!;
+    expect(group.querySelector(`.table-attachments [data-card-id="${equipment}"]`)).not.toBeNull();
+    expect(screen.host.querySelectorAll(`.table-home [data-card-id="${equipment}"]`)).toHaveLength(
+      1,
+    );
+    act(() => group.querySelector<HTMLElement>(`.table-attachments [role="button"]`)!.click());
+    expect(screen.inspect).toHaveBeenCalledWith(equipment);
+    screen.close();
+    table = applyTableOperation(table, { type: 'attach', cardId: equipment, targetId: null });
+    screen = show();
+    expect(screen.host.querySelectorAll('.table-home .table-attachments')).toHaveLength(0);
+    expect(screen.host.querySelectorAll('.table-home [data-card-id]')).toHaveLength(3);
   } finally {
     screen.close();
   }

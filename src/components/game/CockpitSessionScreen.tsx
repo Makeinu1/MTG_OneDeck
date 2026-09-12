@@ -40,7 +40,7 @@ const zoneLabels: Record<ZoneId, string> = {
   graveyard: '墓地',
   exile: '追放',
   command: '統率領域',
-  stack: 'Stack',
+  stack: 'スタック',
 };
 const keywordLabels = {
   flying: '飛行',
@@ -64,12 +64,14 @@ export function CockpitSessionScreen({
   seats,
   invitation,
   onBack,
+  onReplay,
 }: {
   deck: InitDeckCard[] | null;
   snapshot?: GameSnapshot;
   seats?: 2 | 4;
   invitation?: string;
   onBack: () => void;
+  onReplay?: (deck: InitDeckCard[], seats?: 2 | 4) => void;
 }) {
   const audio = useAudioVisual();
   const [view, setView] = useState<CockpitSessionView | null>(null);
@@ -82,6 +84,7 @@ export function CockpitSessionScreen({
   const [menu, setMenu] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<string | null>(null);
+  const [ability, setAbility] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [stackDetail, setStackDetail] = useState<string | null>(null);
   const [stackDestination, setStackDestination] = useState<ZoneId>('graveyard');
@@ -133,7 +136,15 @@ export function CockpitSessionScreen({
             setCast(null);
             setSelected([]);
           }
-          setSelected((current) => current.filter((id) => Boolean(next.table.cards[id])));
+          const previous = viewRef.current?.table;
+          const sameObject = (id: string) =>
+            Boolean(next.table.cards[id]) &&
+            (!previous ||
+              previous.cards[id]?.zoneChangeCounter === next.table.cards[id].zoneChangeCounter);
+          setSelected((current) => current.filter(sameObject));
+          setDetail((current) => (current && sameObject(current) ? current : null));
+          setAbility((current) => (current && sameObject(current) ? current : null));
+          setCast((current) => (current && sameObject(current.cardId) ? current : null));
           viewRef.current = next;
           setView(next);
           setRoomInvitation(client.invitation());
@@ -294,8 +305,8 @@ export function CockpitSessionScreen({
       } else await clientRef.current?.saveCheckpoint();
       setMessage(
         restore
-          ? '保存checkpointから新しい非公開セッションを開始しました。履歴はここからです。'
-          : '端末checkpointを保存しました。サーバーの6時間期限とは別に保持します。',
+          ? '保存した盤面から再開しました。元に戻せるのは、再開後の操作です。'
+          : 'この端末に盤面を保存しました。接続の有効期限が過ぎても、この地点から再開できます。',
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '端末保存に失敗しました。');
@@ -329,7 +340,7 @@ export function CockpitSessionScreen({
           再接続
         </button>
         <button onClick={() => void checkpoint(true)} disabled={busy}>
-          端末checkpointから新しいセッション
+          保存した盤面から再開
         </button>
         <button onClick={onBack}>デッキへ戻る</button>
       </main>
@@ -404,12 +415,35 @@ export function CockpitSessionScreen({
       <SemanticPresentationLayer />
       <CommanderRitualLayer resolveCue={commanderCue} />
       {table.ended && (
-        <p role="status">
-          {table.seats.filter((entry) => !entry.eliminated).length === 1
-            ? `勝者: ${table.seats.find((entry) => !entry.eliminated)?.label}。`
-            : ''}
-          終局確定済みです。盤面は閲覧・保存できます。操作・undo・保存読込みでの再開はできません。
-        </p>
+        <section className="cockpit-postgame">
+          <strong>ゲーム終了</strong>
+          <p role="status">
+            {table.seats.filter((entry) => !entry.eliminated).length === 1
+              ? `勝者: ${table.seats.find((entry) => !entry.eliminated)?.label}。`
+              : ''}
+            最後の盤面は引き続き確認できます。
+          </p>
+          {onReplay && (
+            <button
+              disabled={busy || uncertain}
+              onClick={() => {
+                const ownId = multi?.ownSeatId ?? table.seats[0].id;
+                const replayDeck =
+                  deck ??
+                  Object.values(table.cards)
+                    .filter((card) => card.ownerId === ownId && !card.isToken && !card.isCopy)
+                    .map((card) => ({
+                      def: table.defs[card.defId],
+                      isCommander: card.isCommander,
+                    }));
+                onReplay(replayDeck, multi ? (table.seats.length as 2 | 4) : undefined);
+              }}
+            >
+              {multi ? '同じデッキで新しい対戦部屋' : '同じデッキでもう一度'}
+            </button>
+          )}
+          <button onClick={onBack}>デッキ選択へ戻る</button>
+        </section>
       )}
       <CockpitTableSurface
         view={view}
@@ -418,162 +452,181 @@ export function CockpitSessionScreen({
         selected={selected}
         select={setSelected}
         inspect={setDetail}
+        activate={setAbility}
         cast={prepareCast}
         send={send}
         openMenu={() => setMenu(true)}
+        openStackEntry={setStackDetail}
         seatId={seatId}
         chooseSeat={setSeatId}
         peek={(targetSeat, targetZone) =>
           control({ type: 'peek', seatId: targetSeat, zone: targetZone })
         }
       >
-        <div className="cockpit-session__bar">
-          {manaColors.map((color) => (
-            <label key={color}>
-              {color} {seat.mana[color]}
+        {(browse) => (
+          <>
+            <details>
+              <summary>マナの調整</summary>
+              <div className="cockpit-session__bar">
+                {manaColors.map((color) => (
+                  <label key={color}>
+                    {color} {seat.mana[color]}
+                    <button
+                      disabled={disabled}
+                      aria-label={color + 'マナを追加'}
+                      onClick={() => void send({ type: 'mana', seatId, color, delta: 1 })}
+                    >
+                      ＋
+                    </button>
+                    <button
+                      disabled={disabled || !seat.mana[color]}
+                      aria-label={color + 'マナを減らす'}
+                      onClick={() => void send({ type: 'mana', seatId, color, delta: -1 })}
+                    >
+                      −
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </details>
+            <div className="cockpit-session__bar">
+              {selected.length > 0 && (
+                <details className="table-selected-review">
+                  <summary>選択カードを確認</summary>
+                  {selected.map((id) => (
+                    <button key={id} onClick={() => setDetail(id)}>
+                      《{label(id)}》 · {zoneLabels[table.cards[id].zone]}
+                    </button>
+                  ))}
+                </details>
+              )}
+              <span>選択 {selected.length}枚</span>
+              <button onClick={() => setSelected([])}>選択取消</button>
+              <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
+              <select
+                aria-label="移動先"
+                value={to}
+                onChange={(event) => setTo(event.target.value as ZoneId)}
+              >
+                {tableZones
+                  .filter((item) => item !== 'stack')
+                  .map((item) => (
+                    <option key={item} value={item}>
+                      {zoneLabels[item]}
+                    </option>
+                  ))}
+              </select>
+              <select
+                aria-label="移動順"
+                value={position}
+                onChange={(event) => setPosition(event.target.value as 'top' | 'bottom')}
+              >
+                <option value="top">上へ・選択順</option>
+                <option value="bottom">下へ・選択順</option>
+              </select>
+              <button
+                disabled={disabled || !selected.length}
+                onClick={() => void send({ type: 'move', ids: selected, to, position })}
+              >
+                選んだカードを移動
+              </button>
+              <button
+                disabled={disabled || !selected.length}
+                onClick={() => void send({ type: 'tap', ids: selected, tapped: true })}
+              >
+                タップ
+              </button>
+              <button
+                disabled={disabled || !selected.length}
+                onClick={() => void send({ type: 'tap', ids: selected, tapped: false })}
+              >
+                アンタップ
+              </button>
+            </div>
+            <CockpitSelectionTools
+              browseLibrary={() => browse('library', seatId)}
+              table={table}
+              seatId={seatId}
+              selected={selected}
+              disabled={disabled}
+              send={send}
+            />
+            <CockpitTokenTools
+              table={table}
+              seatId={seatId}
+              selected={selected}
+              disabled={disabled}
+              send={send}
+            />
+            <CockpitBattleTools
+              table={table}
+              selected={selected}
+              disabled={disabled}
+              defendingSeatId={multi?.ownSeatId}
+              canBlock={canBlock && !busy && !uncertain}
+              send={send}
+            />
+
+            <details className="cockpit-session__tools">
+              <summary>通常手順のショートカット</summary>
+              <button
+                disabled={
+                  disabled ||
+                  table.hold ||
+                  Boolean(table.resolution) ||
+                  Boolean(table.combat) ||
+                  table.stack.length > 0
+                }
+                onClick={() => void send({ type: 'turn' })}
+              >
+                次のターン
+              </button>
+              <p>
+                アンタップ開始時の任意操作です。途中で誘発や判断が必要なら個別に進めてください。HOLD・Stack・処理中は進みません。
+              </p>
+              <button
+                disabled={
+                  disabled ||
+                  table.hold ||
+                  table.phase !== 'untap' ||
+                  Boolean(table.resolution) ||
+                  table.stack.length > 0
+                }
+                onClick={() => void send({ type: 'shortcut' })}
+              >
+                現在のターンの席をアンタップ→1枚ドロー→メイン
+              </button>
               <button
                 disabled={disabled}
-                aria-label={color + 'マナを追加'}
-                onClick={() => void send({ type: 'mana', seatId, color, delta: 1 })}
+                onClick={() => {
+                  const ids = battlefieldFor(seatId);
+                  if (ids.length) void send({ type: 'tap', ids, tapped: false });
+                }}
               >
-                ＋
+                {seat.label}の一括アンタップ
               </button>
               <button
-                disabled={disabled || !seat.mana[color]}
-                aria-label={color + 'マナを減らす'}
-                onClick={() => void send({ type: 'mana', seatId, color, delta: -1 })}
+                disabled={disabled}
+                onClick={() => void send({ type: 'emptyMana', seatIds: [seatId] })}
               >
-                −
+                {seat.label}のマナを空にする
               </button>
-            </label>
-          ))}
-        </div>
-        <div className="cockpit-session__bar">
-          <span>選択 {selected.length}枚</span>
-          <button onClick={() => setSelected([])}>選択取消</button>
-          <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
-          <select
-            aria-label="移動先"
-            value={to}
-            onChange={(event) => setTo(event.target.value as ZoneId)}
-          >
-            {tableZones
-              .filter((item) => item !== 'stack')
-              .map((item) => (
-                <option key={item} value={item}>
-                  {zoneLabels[item]}
-                </option>
-              ))}
-          </select>
-          <select
-            aria-label="移動順"
-            value={position}
-            onChange={(event) => setPosition(event.target.value as 'top' | 'bottom')}
-          >
-            <option value="top">上へ・選択順</option>
-            <option value="bottom">下へ・選択順</option>
-          </select>
-          <button
-            disabled={disabled || !selected.length}
-            onClick={() => void send({ type: 'move', ids: selected, to, position })}
-          >
-            選択を移動
-          </button>
-          <button
-            disabled={disabled || !selected.length}
-            onClick={() => void send({ type: 'tap', ids: selected, tapped: true })}
-          >
-            タップ
-          </button>
-          <button
-            disabled={disabled || !selected.length}
-            onClick={() => void send({ type: 'tap', ids: selected, tapped: false })}
-          >
-            アンタップ
-          </button>
-        </div>
-        <CockpitSelectionTools
-          table={table}
-          seatId={seatId}
-          selected={selected}
-          disabled={disabled}
-          send={send}
-          select={setSelected}
-        />
-        <CockpitTokenTools
-          table={table}
-          seatId={seatId}
-          selected={selected}
-          disabled={disabled}
-          send={send}
-        />
-        <CockpitBattleTools
-          table={table}
-          selected={selected}
-          disabled={disabled}
-          defendingSeatId={multi?.ownSeatId}
-          canBlock={canBlock && !busy && !uncertain}
-          send={send}
-        />
+              <CockpitCleanupTools
+                table={table}
+                seatId={seatId}
+                selected={selected}
+                disabled={disabled}
+                send={send}
+              />
+            </details>
 
-        <details className="cockpit-session__tools">
-          <summary>通常手順のショートカット</summary>
-          <button
-            disabled={
-              disabled ||
-              table.hold ||
-              Boolean(table.resolution) ||
-              Boolean(table.combat) ||
-              table.stack.length > 0
-            }
-            onClick={() => void send({ type: 'turn' })}
-          >
-            次のターン
-          </button>
-          <p>
-            アンタップ開始時の任意操作です。途中で誘発や判断が必要なら個別に進めてください。HOLD・Stack・処理中は進みません。
-          </p>
-          <button
-            disabled={
-              disabled ||
-              table.hold ||
-              table.phase !== 'untap' ||
-              Boolean(table.resolution) ||
-              table.stack.length > 0
-            }
-            onClick={() => void send({ type: 'shortcut' })}
-          >
-            現在のターンの席をアンタップ→1枚ドロー→メイン
-          </button>
-          <button
-            disabled={disabled}
-            onClick={() => {
-              const ids = battlefieldFor(seatId);
-              if (ids.length) void send({ type: 'tap', ids, tapped: false });
-            }}
-          >
-            {seat.label}の一括アンタップ
-          </button>
-          <button
-            disabled={disabled}
-            onClick={() => void send({ type: 'emptyMana', seatIds: [seatId] })}
-          >
-            {seat.label}のマナを空にする
-          </button>
-          <CockpitCleanupTools
-            table={table}
-            seatId={seatId}
-            selected={selected}
-            disabled={disabled}
-            send={send}
-          />
-        </details>
-
-        {table.stack.map((entry) => (
-          <button key={entry.id} onClick={() => setStackDetail(entry.id)}>
-            《{label(entry.source.id)}》の対象・支払い・コピー
-          </button>
-        ))}
+            {table.stack.map((entry) => (
+              <button key={entry.id} onClick={() => setStackDetail(entry.id)}>
+                《{label(entry.source.id)}》の対象・支払い・コピー
+              </button>
+            ))}
+          </>
+        )}
       </CockpitTableSurface>
       {menu && (
         <Modal title="メニュー・保存" onClose={() => setMenu(false)}>
@@ -609,17 +662,17 @@ export function CockpitSessionScreen({
               disabled={disabled || !view.canUndo}
               onClick={() => void send({ type: 'undo' })}
             >
-              undo
+              元に戻す
             </button>
             <button
               disabled={disabled || !view.canRedo}
               onClick={() => void send({ type: 'redo' })}
             >
-              redo
+              やり直す
             </button>
             {message.includes('失効') && (
               <button disabled={busy} onClick={() => void checkpoint(true)}>
-                端末checkpointから新しいセッション
+                保存した盤面から再開
               </button>
             )}
             <button
@@ -628,7 +681,7 @@ export function CockpitSessionScreen({
             >
               端末へ保存
             </button>
-            <button onClick={onBack}>デッキへ</button>
+            <button onClick={onBack}>デッキ選択へ戻る</button>
             <details>
               <summary>音・表示</summary>
               <ThemeToggle compact />
@@ -672,7 +725,7 @@ export function CockpitSessionScreen({
 
           <p>稼働中の卓は最終利用から6時間で失効します。端末への保存は別に保持します。</p>
           <button disabled={disabled} onClick={() => setConfirmEnd(true)}>
-            終局の確認へ
+            ゲームを終了…
           </button>
         </Modal>
       )}
@@ -690,7 +743,7 @@ export function CockpitSessionScreen({
       )}
       {stackEntry && (
         <Modal
-          title={`Stack:《${label(stackEntry.source.id)}》`}
+          title={`《${label(stackEntry.source.id)}》の対象・支払い`}
           onClose={() => setStackDetail(null)}
           allowBoardPeek
         >
@@ -742,11 +795,11 @@ export function CockpitSessionScreen({
           </ul>
           <p>ここを閉じても処理は終了しません。</p>
           <details>
-            <summary>このStackを移す・取り除く（打ち消し等）</summary>
+            <summary>打ち消す・スタックから取り除く</summary>
             <p>選んだ項目だけを取り除きます。別の効果を処理中なら、その発生源と処理は続きます。</p>
             {stackEntry.kind === 'spell' && (
               <label>
-                Stackからの移動先
+                移動先
                 <select
                   value={stackDestination}
                   onChange={(event) => setStackDestination(event.target.value as ZoneId)}
@@ -773,11 +826,11 @@ export function CockpitSessionScreen({
                 })
               }
             >
-              このStack項目の除去を確定
+              スタックから取り除く
             </button>
           </details>
 
-          <p>コピーの担当: {seat.label}。呪文・能力のコピーをStackへ置き、効果は手動処理します。</p>
+          <p>コピーのコントローラー: {seat.label}</p>
           <button
             disabled={disabled}
             onClick={() =>
@@ -790,7 +843,7 @@ export function CockpitSessionScreen({
               })
             }
           >
-            同じ対象でStackをコピー
+            同じ対象でコピーする
           </button>
           <button
             disabled={disabled || !selected.length}
@@ -804,7 +857,7 @@ export function CockpitSessionScreen({
               })
             }
           >
-            盤面の選択を対象にしてStackをコピー
+            選んだカードを対象にしてコピーする
           </button>
         </Modal>
       )}
@@ -826,6 +879,13 @@ export function CockpitSessionScreen({
             {detailDef?.faces[detailCard.faceIndex]?.printedText ??
               detailDef?.faces[detailCard.faceIndex]?.oracleText}
           </p>
+          {Object.values(table.cards)
+            .filter((card) => card.attachedTo === detailCard.id)
+            .map((card) => (
+              <button key={card.id} onClick={() => setDetail(card.id)}>
+                《{label(card.id)}》の付け替え・解除
+              </button>
+            ))}
           <div className="cockpit-session__bar">
             {(['battlefield', 'graveyard', 'exile', 'hand', 'library', 'command'] as const)
               .filter((target) => target !== detailCard.zone)
@@ -902,7 +962,7 @@ export function CockpitSessionScreen({
             }
             onClick={() => prepareCast(detailCard.id)}
           >
-            支払い案を確認して唱える
+            支払いを確認して唱える
           </button>
           {detailCard.zone === 'battlefield' && (
             <>
@@ -1031,22 +1091,46 @@ export function CockpitSessionScreen({
           )}
         </Modal>
       )}
+      {ability && table.cards[ability] && (
+        <Modal
+          title={`《${label(ability)}》の能力`}
+          onClose={() => setAbility(null)}
+          allowBoardPeek
+        >
+          <CockpitAbilityTools
+            key={ability}
+            table={table}
+            sourceId={ability}
+            selected={selected}
+            disabled={disabled}
+            expanded
+            send={async (operation) => {
+              const saved = await send(operation);
+              if (saved) setAbility(null);
+              return saved;
+            }}
+          />
+        </Modal>
+      )}
       {confirmEnd && (
-        <Modal title="終局を確定しますか" onClose={() => setConfirmEnd(false)}>
+        <Modal title="ゲームを終了しますか" onClose={() => setConfirmEnd(false)}>
           <p>
-            この一人回しの終局を確定します。未完の処理も含めて盤面は保存できますが、操作は再開できません。undoや古いcheckpointでも取り消せません。
+            ゲームを終了すると、この卓では操作できなくなります。盤面は保存できますが、保存した盤面から再開しても終了は取り消せません。
           </p>
           <button
             disabled={busy || uncertain}
             onClick={() =>
               void send({ type: 'end' }).then((saved) => {
-                if (saved) setConfirmEnd(false);
+                if (saved) {
+                  setConfirmEnd(false);
+                  setMenu(false);
+                }
               })
             }
           >
-            取り消せない終局を確定
+            ゲームを終了する
           </button>
-          <button onClick={() => setConfirmEnd(false)}>確定せず戻る</button>
+          <button onClick={() => setConfirmEnd(false)}>続ける</button>
         </Modal>
       )}
       {cast && (
@@ -1055,14 +1139,32 @@ export function CockpitSessionScreen({
           onClose={() => setCast(null)}
           allowBoardPeek
         >
-          <p>以下のマナ生成・非マナ負担とStack登録を一度に確定します。効果は手動処理です。</p>
-          <p>
-            通常案は印刷マナコスト・X・統率者税を計算します。軽減・追加・代替コストや支払い制限は自動判断しません。
-          </p>
+          <p>唱えるためのマナと、タップするカードを確認してください。</p>
+          <div className="cockpit-cast-modes">
+            <button
+              aria-pressed={cast.manualManaCost === null}
+              onClick={() =>
+                prepareCast(cast.cardId, cast.x, cast.excludedSourceIds, cast.targets, null, '')
+              }
+            >
+              通常の支払い
+            </button>
+            <button
+              aria-pressed={cast.costNote === 'マナ支払いを省略'}
+              onClick={() =>
+                prepareCast(cast.cardId, cast.x, [], cast.targets, '', 'マナ支払いを省略')
+              }
+            >
+              マナを支払わずに唱える
+            </button>
+          </div>
+          {cast.costNote === 'マナ支払いを省略' && (
+            <p role="status">マナを消費せずに唱えます。支払いを省略した記録を残します。</p>
+          )}
           <label>
             <input
               type="checkbox"
-              checked={cast.manualManaCost !== null}
+              checked={cast.manualManaCost !== null && cast.costNote !== 'マナ支払いを省略'}
               onChange={(event) =>
                 prepareCast(
                   cast.cardId,
@@ -1074,9 +1176,9 @@ export function CockpitSessionScreen({
                 )
               }
             />
-            最終マナコストを手動で指定する
+            コストを調整する
           </label>
-          {cast.manualManaCost !== null && (
+          {cast.manualManaCost !== null && cast.costNote !== 'マナ支払いを省略' && (
             <fieldset>
               <legend>本文と既に払ったコストを確認</legend>
               <label>
@@ -1227,7 +1329,7 @@ export function CockpitSessionScreen({
               </label>
             ))}
           </details>
-          {cast.error && <p role="alert">{cast.error} マナ生成・手動調整を確認してください。</p>}
+          {cast.error && <p role="alert">{cast.error}</p>}
           <ul>
             {cast.paymentPlan.map((command, index) => (
               <li key={index}>{cockpitCostText(command, label)}</li>
@@ -1250,7 +1352,7 @@ export function CockpitSessionScreen({
               })
             }
           >
-            この支払いでStackへ
+            {cast.costNote === 'マナ支払いを省略' ? '支払いを省略して唱える' : '唱える'}
           </button>
         </Modal>
       )}

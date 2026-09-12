@@ -71,6 +71,7 @@ function loadStoredDeck(): { deckText: string; storedDeck: InitDeckCard[] | null
 
 function App() {
   const state = useGameStore((s) => s.state);
+  const [cockpitRound, setCockpitRound] = useState(0);
   const [cockpit, setCockpit] = useState<{
     deck: InitDeckCard[] | null;
     snapshot?: GameSnapshot;
@@ -241,11 +242,16 @@ function App() {
     return (
       <AudioVisualProvider>
         <CockpitSessionScreen
+          key={cockpitRound}
           deck={cockpit.deck}
           snapshot={cockpit.snapshot}
           seats={cockpit.seats}
           invitation={cockpit.invitation}
           onBack={() => setCockpit(null)}
+          onReplay={(deck, seats) => {
+            setCockpit({ deck, seats });
+            setCockpitRound((round) => round + 1);
+          }}
         />
       </AudioVisualProvider>
     );

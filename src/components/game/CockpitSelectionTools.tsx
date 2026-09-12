@@ -10,14 +10,14 @@ export function CockpitSelectionTools({
   selected,
   disabled,
   send,
-  select,
+  browseLibrary,
 }: {
   table: CockpitTable;
   seatId: string;
   selected: string[];
   disabled: boolean;
   send: (operation: TableOperation) => Promise<boolean>;
-  select: (ids: string[]) => void;
+  browseLibrary: () => void;
 }) {
   const [count, setCount] = useState(2);
   const [delta, setDelta] = useState(1);
@@ -29,7 +29,6 @@ export function CockpitSelectionTools({
     examined: string[];
     rows: { id: string; to: 'top' | 'bottom' | 'graveyard' }[];
   } | null>(null);
-  const [search, setSearch] = useState<string | null>(null);
   const [proliferate, setProliferate] = useState<string[] | null>(null);
   const seat = table.seats.find((entry) => entry.id === seatId)!;
   const label = (id: string) => {
@@ -48,8 +47,11 @@ export function CockpitSelectionTools({
   return (
     <>
       <details className="cockpit-session__tools">
-        <summary>整理・検索・数値変更</summary>
-        <p>対象席: {seat.label}。選択済みカードは席をまたいで反映します。</p>
+        <summary>山札・カウンター・ライフ</summary>
+        <p>
+          {seat.label}
+          の山札・手札・ライフを操作します。カードへの変更は、選択中のカードに適用します。
+        </p>
         <label>
           枚数{' '}
           <input
@@ -90,8 +92,8 @@ export function CockpitSelectionTools({
         >
           切削
         </button>
-        <button disabled={disabled} onClick={() => setSearch('')}>
-          山札をサーチ
+        <button disabled={disabled} onClick={browseLibrary}>
+          山札から探す
         </button>
         <button
           disabled={disabled}
@@ -141,19 +143,19 @@ export function CockpitSelectionTools({
             })
           }
         >
-          選択のカウンターを変更
+          選んだカードのカウンターを増減
         </button>
         <button
           disabled={disabled || !selected.length}
           onClick={() => void send({ type: 'damage', ids: selected, delta })}
         >
-          選択の記録ダメージを変更
+          選んだカードのダメージを増減
         </button>
         <button
           disabled={disabled}
           onClick={() => void send({ type: 'life', seatIds: [seatId], delta })}
         >
-          {seat.label}のライフを変更
+          {seat.label}のライフを増減
         </button>
       </details>
       {arrange && (
@@ -236,71 +238,6 @@ export function CockpitSelectionTools({
           >
             整理を確定
           </button>
-        </Modal>
-      )}
-      {search !== null && (
-        <Modal
-          title={`${seat.label}の山札をサーチ`}
-          width="xl"
-          onClose={() => setSearch(null)}
-          allowBoardPeek
-        >
-          <p>閲覧は公開ではありません。検索条件は手動で判断します。</p>
-          <label>
-            カード名{' '}
-            <input
-              data-autofocus="true"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
-          <ul className="table-search-cards">
-            {seat.zones.library
-              .filter((id) =>
-                `${label(id)} ${table.defs[table.cards[id].defId]?.name ?? ''}`
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((id) => (
-                <li key={id}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(id)}
-                      onChange={() =>
-                        select(
-                          selected.includes(id)
-                            ? selected.filter((item) => item !== id)
-                            : [...selected, id],
-                        )
-                      }
-                    />
-                    <span>《{label(id)}》</span>
-                    <CardView
-                      instance={table.cards[id]}
-                      def={table.defs[table.cards[id].defId]}
-                      size="hand"
-                      draggable={false}
-                    />
-                  </label>
-                  <details>
-                    <summary>本文</summary>
-                    <p>
-                      {table.defs[table.cards[id].defId].faces[table.cards[id].faceIndex]
-                        .printedText ??
-                        table.defs[table.cards[id].defId].faces[table.cards[id].faceIndex]
-                          .oracleText}
-                    </p>
-                  </details>
-                </li>
-              ))}
-          </ul>
-          <div className="table-opening__actions">
-            <span>選択 {selected.length}枚</span>
-            <button disabled={!selected.length} onClick={() => setSearch(null)}>
-              選択したカードを操作
-            </button>
-          </div>
         </Modal>
       )}
       {proliferate && (

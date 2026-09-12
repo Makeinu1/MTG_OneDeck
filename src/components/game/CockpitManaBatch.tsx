@@ -40,12 +40,12 @@ export function CockpitManaBatch({
         disabled={disabled || !selected.length}
         onClick={() => setRows(selected.map((cardId) => ({ cardId, choice: 0 })))}
       >
-        選択のマナ生成案
+        マナの出し方を確認
       </button>
       {rows && (
-        <Modal title="一括マナ生成の確認" onClose={() => setRows(null)} allowBoardPeek>
+        <Modal title="まとめてマナを出す" onClose={() => setRows(null)} allowBoardPeek>
           <p>
-            色と非マナコストを確認し、選んだ発生源を一度に確定します。後の支払い案を取り消しても、この生成は実行済みです。
+            出す色と支払うコストを確認してください。マナを出した後で呪文を唱えるのをやめても、タップや支払いは元に戻りません。
           </p>
           {proposals?.map((row) => (
             <fieldset key={row.cardId}>
@@ -94,7 +94,7 @@ export function CockpitManaBatch({
               })
             }
           >
-            この一括マナ生成を確定
+            この内容でマナを出す
           </button>
         </Modal>
       )}
