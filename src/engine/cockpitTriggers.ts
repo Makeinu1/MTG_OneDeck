@@ -1,4 +1,4 @@
-import type { CockpitTable, TableOperation } from './cockpitTable';
+import type { CockpitTable } from './cockpitTable';
 import { initGame } from './init';
 import { collectPendingTriggerUpdate } from './triggers';
 import { splitAbilityLines } from './grammar';
@@ -382,10 +382,3 @@ export type TriggerOperation =
   | { type: 'trigger.place'; candidateId: string; id: string; targets: string[]; text?: string }
   | { type: 'trigger.link'; candidateId: string; entryId: string }
   | { type: 'trigger.dismiss'; candidateId: string; reason: string };
-export function isTriggerOperation(operation: TableOperation): operation is TriggerOperation {
-  return (
-    operation.type === 'trigger.place' ||
-    operation.type === 'trigger.link' ||
-    operation.type === 'trigger.dismiss'
-  );
-}

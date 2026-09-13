@@ -1,4 +1,3 @@
-import { emptyTableTriggers, isTriggerOperation } from '../../engine/cockpitTriggers';
 import {
   addCockpitDeck,
   authorizeCockpitOperation,
@@ -9,7 +8,7 @@ import {
   type CockpitMultiplayer,
   type CockpitMultiplayerView,
 } from './cockpitMultiplayer';
-import { migrateCockpitSnapshot } from '../../engine/cockpitMigration';
+import { migrateCockpitSnapshot, backfillCockpitTable } from '../../engine/cockpitMigration';
 import type { GameSnapshot } from '../../data/gameSnapshot';
 import {
   applyTableOperation,
@@ -134,21 +133,8 @@ function loadRecord(storage: OnlineCloudflareSqlStorage): SessionRecord | null {
     .toArray()[0];
   if (!row) return null;
   const record = JSON.parse(row.data) as SessionRecord;
-  for (const table of [record.table, ...record.undo, ...record.redo]) backfillTable(table);
+  for (const table of [record.table, ...record.undo, ...record.redo]) backfillCockpitTable(table);
   return record;
-}
-function backfillTable(table: CockpitTable): void {
-  table.triggers ??= emptyTableTriggers(table.turn);
-  table.triggers.feed ??= [];
-  table.modifiers ??= [];
-  table.linkedExiles ??= [];
-  table.visibility ??= {};
-  table.combat ??= null;
-  table.hold ??= false;
-  for (const seat of table.seats) {
-    seat.commanderDamage ??= {};
-    if (seat.maximumHandSize === undefined) seat.maximumHandSize = 7;
-  }
 }
 function receiptKey(record: SessionRecord, requestId: string, actor = 'P1'): string {
   // Pre-generation local sessions used bare receipt IDs. Keep that namespace
@@ -257,7 +243,7 @@ export async function handleCockpitSession(
         if (existing && now < existing.lastUsed + COCKPIT_TTL_MS)
           return response({ error: 'SESSION_STILL_ACTIVE' }, 409);
         const table = structuredClone(checkpoint.table);
-        backfillTable(table);
+        backfillCockpitTable(table);
         table.ended ||= existing?.table.ended ?? false;
         for (const seat of table.seats)
           seat.eliminated ||=
@@ -558,8 +544,13 @@ export async function handleCockpitSession(
               record.table = next;
             } else {
               record.table = applyTableOperation(before, body.operation, body.requestId);
-              if (isTriggerOperation(body.operation)) {
-                const candidateId = body.operation.candidateId;
+              const operation = body.operation;
+              if (
+                operation.type === 'trigger.place' ||
+                operation.type === 'trigger.link' ||
+                operation.type === 'trigger.dismiss'
+              ) {
+                const candidateId = operation.candidateId;
                 const candidate = record.table.triggers?.candidates.find(
                   (c) => c.pendingTriggerId === candidateId,
                 );

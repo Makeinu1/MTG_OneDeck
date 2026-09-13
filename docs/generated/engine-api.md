@@ -51,7 +51,8 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/cockpitMigration.ts`
 
-- line 13: `export function migrateCockpitSnapshot(snapshot: GameSnapshot): CockpitTable {`
+- line 14: `export function migrateCockpitSnapshot(snapshot: GameSnapshot): CockpitTable {`
+- line 201: `export function backfillCockpitTable(table: CockpitTable): void {`
 
 ## `src/engine/cockpitTable.ts`
 
@@ -88,7 +89,6 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 366: `export function readyTableTriggers(table: CockpitTable): TableTrigger[] {`
 - line 373: `export function nextTriggerController(table: CockpitTable): string | undefined {`
 - line 381: `export type TriggerOperation =`
-- line 385: `export function isTriggerOperation(operation: TableOperation): operation is TriggerOperation {`
 
 ## `src/engine/commander.ts`
 

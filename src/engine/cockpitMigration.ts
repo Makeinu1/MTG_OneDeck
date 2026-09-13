@@ -1,3 +1,4 @@
+import { emptyTableTriggers } from './cockpitTriggers';
 import { splitAbilityLines } from './grammar/index';
 import type { GameSnapshot } from '../data/gameSnapshot';
 import {
@@ -194,4 +195,19 @@ export function migrateCockpitSnapshot(snapshot: GameSnapshot): CockpitTable {
     };
   });
   return table;
+}
+
+/** Backfill current and historical session tables without inventing past occurrences. */
+export function backfillCockpitTable(table: CockpitTable): void {
+  table.triggers ??= emptyTableTriggers(table.turn);
+  table.triggers.feed ??= [];
+  table.modifiers ??= [];
+  table.linkedExiles ??= [];
+  table.visibility ??= {};
+  table.combat ??= null;
+  table.hold ??= false;
+  for (const seat of table.seats) {
+    seat.commanderDamage ??= {};
+    if (seat.maximumHandSize === undefined) seat.maximumHandSize = 7;
+  }
 }
