@@ -1,0 +1,45 @@
+name: Cockpit repair verification
+
+on:
+  push:
+    branches: [fix/cockpit-playflow-17-20260914]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cockpit-repair-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Package tracked source and locked development dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=tar HEAD -o "$RUNNER_TEMP/cockpit-workspace.tar"
+          tar --append --file="$RUNNER_TEMP/cockpit-workspace.tar" node_modules
+          gzip -1 "$RUNNER_TEMP/cockpit-workspace.tar"
+          git rev-parse HEAD > "$RUNNER_TEMP/cockpit-source-sha.txt"
+          sha256sum "$RUNNER_TEMP/cockpit-workspace.tar.gz" > "$RUNNER_TEMP/cockpit-workspace.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cockpit-repair-workspace
+          path: |
+            ${{ runner.temp }}/cockpit-workspace.tar.gz
+            ${{ runner.temp }}/cockpit-source-sha.txt
+            ${{ runner.temp }}/cockpit-workspace.sha256
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
