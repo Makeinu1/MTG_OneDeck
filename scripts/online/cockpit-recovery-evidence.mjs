@@ -239,12 +239,23 @@ try {
     assert.equal(sentDraws, count + 1);
     record('real saved draw with lost response: receipt reconciliation, no replay and one-card delta');
 
-    stage = 'ordinary-cast-resolve';
-    await host.getByRole('button', { name: '唱える', exact: true }).first().click();
+    stage = 'ordinary-cast-context-menu';
+    const castingView = await read(host);
+    const castingId = castingView.table.seats.find((s) => s.id === castingView.multiplayer.ownSeatId).zones.hand.at(-1);
+    await host.getByTestId(`card-${castingId}`).click({ button: 'right' });
+    await host.getByRole('menuitem', { name: '唱える', exact: true }).click();
+    stage = 'ordinary-cast-confirm';
+    const castResponse = responseFor(host, 'cast');
     await host.getByRole('button', { name: '支払って唱える', exact: true }).click();
+    assert.equal((await castResponse).status(), 200);
+    stage = 'ordinary-resolve';
     await host.getByRole('button', { name: '解決', exact: true }).click();
-    await waitUntil(async () => (await read(host)).table.stack.length === 0, 'resolution');
-    record('after recovery, ordinary UI casts and resolves a permanent; shared stack completes');
+    await waitUntil(async () => {
+      const v = await read(host);
+      return v.table.stack.length === 0 && v.table.cards[castingId]?.zone === 'battlefield';
+    }, 'resolution');
+    await waitUntil(async () => (await read(guest)).table.cards[castingId]?.zone === 'battlefield', 'shared battlefield');
+    record('after recovery, current hand context menu casts and resolves a permanent; both seats observe the battlefield');
 
     stage = 'rejected-destination-preserves-old-seat';
     const original = await host.evaluate(() => JSON.parse(localStorage.getItem('mtg-onedeck:cockpit-connection-v1')).id);
@@ -260,7 +271,10 @@ try {
     await host.getByTestId('game-screen').waitFor();
     expectedNetworkFailure = false;
     assert.deepEqual((await read(host)).table, originalBoard);
-    record('failed join to a started room, screen disposal and reload restore original seat and exact board');
+    const restoredHand = await hand(host);
+    await draw(host);
+    await waitUntil(async () => (await hand(host)) === restoredHand + 1, 'normal operation after restored destination');
+    record('failed join, disposal and reload restore original seat and exact board, then a normal draw succeeds');
 
     stage = 'viewports-and-console';
     for (const [width, height] of [[375, 812], [812, 375], [1440, 900]]) {
@@ -268,6 +282,8 @@ try {
       await host.getByTestId('game-screen').waitFor();
       await host.screenshot({ path: `${output}/stage1-${width}x${height}.png` });
     }
+    report.pageErrors = pageErrors;
+    report.unexpectedConsoleErrors = unexpectedConsoleErrors;
     assert.equal(pageErrors, 0);
     assert.equal(unexpectedConsoleErrors, 0);
     record('three viewports, zero page exceptions and zero unexpected console errors; injected network errors excluded explicitly');
