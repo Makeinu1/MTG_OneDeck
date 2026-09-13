@@ -1,6 +1,6 @@
 import {
   checkpointTableTriggers,
-  tableObjectSnapshot,
+  tableObjectReference,
   emptyTableTriggers,
   nextTriggerController,
   readyTableTriggers,
@@ -418,12 +418,7 @@ function applyManaCostInternal(
       if (trace && table.cards[command.sourceId]) {
         const source = table.cards[command.sourceId];
         (trace.damage ??= []).push({
-          source: {
-            kind: 'object',
-            physicalCardId: source.id,
-            objectId: `${source.id}:${source.zoneChangeCounter}`,
-            snapshot: tableObjectSnapshot(table, source),
-          },
+          source: tableObjectReference(table, source),
           target: { kind: 'player', playerId: seatId },
           amount: command.amount,
           combatDamage: false,
@@ -1756,18 +1751,8 @@ export function applyTableOperation(
           card.damageMarked += operation.delta;
         if (source)
           (trace.damage ??= []).push({
-            source: {
-              kind: 'object',
-              physicalCardId: source.id,
-              objectId: `${source.id}:${source.zoneChangeCounter}`,
-              snapshot: tableObjectSnapshot(table, source),
-            },
-            target: {
-              kind: 'object',
-              physicalCardId: card.id,
-              objectId: `${card.id}:${card.zoneChangeCounter}`,
-              snapshot: tableObjectSnapshot(table, card),
-            },
+            source: tableObjectReference(table, source),
+            target: tableObjectReference(table, card),
             amount: operation.delta,
             combatDamage: false,
           });
@@ -1775,12 +1760,7 @@ export function applyTableOperation(
       for (const id of operation.seatIds ?? []) {
         tableSeat(table, id).life -= operation.delta;
         (trace.damage ??= []).push({
-          source: {
-            kind: 'object',
-            physicalCardId: source!.id,
-            objectId: `${source!.id}:${source!.zoneChangeCounter}`,
-            snapshot: tableObjectSnapshot(table, source!),
-          },
+          source: tableObjectReference(table, source!),
           target: { kind: 'player', playerId: id },
           amount: operation.delta,
           combatDamage: false,

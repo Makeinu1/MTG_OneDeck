@@ -1,4 +1,6 @@
-# 旧一人回しUIを基準へ戻すローカル候補
+# 旧一人回しUI復元の初期作業記録（履歴）
+
+本書は9/5の参照版を確定する前の作業記録であり、現行UIの設計書ではない。現在の体験基準は [`e0c98b4` に基づく9/5合流設計](solo-ui-sep05-integration-design.md)、誘発と手動操作の仕様・出荷結果は[誘発・Feed統合設計](trigger-feed-manual-integration-design.md)を参照する。以下の未公開・検証範囲の記述は当時の状態を保存している。
 
 2026-09-13。ユーザー承認の「旧UIを体験の基準へ戻し、現行基盤へ接続する」第一段階。
 作業先は `/private/tmp/onedeck-solo-cockpit`、開始HEADは `203e44ee1949b9e8fc54e7fa561905b4ef3007af`。

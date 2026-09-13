@@ -69,13 +69,13 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 130: `export type TableOperation =`
 - line 262: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
 - line 330: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
-- line 468: `export function tableActivationPayment(`
-- line 607: `export function tableAutoPayment(`
-- line 627: `export function tableCastPayment(`
-- line 711: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
-- line 728: `export function applyTableOperation(`
-- line 1993: `export function createCockpitTable(`
-- line 2098: `export function assertCockpitCardDef(def: CardDef): void {`
+- line 463: `export function tableActivationPayment(`
+- line 602: `export function tableAutoPayment(`
+- line 622: `export function tableCastPayment(`
+- line 706: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
+- line 723: `export function applyTableOperation(`
+- line 1973: `export function createCockpitTable(`
+- line 2078: `export function assertCockpitCardDef(def: CardDef): void {`
 
 ## `src/engine/cockpitTriggers.ts`
 
@@ -83,12 +83,13 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 27: `export interface TableTriggerState {`
 - line 36: `export function emptyTableTriggers(turn: number): TableTriggerState {`
 - line 47: `export function tableObjectSnapshot(table: CockpitTable, card: CardInstance): ObjectSnapshot {`
-- line 117: `export interface TableTriggerTrace {`
-- line 123: `export function triggerTrace(before: CockpitTable, id: string): TableTriggerTrace {`
-- line 127: `export function checkpointTableTriggers(`
-- line 366: `export function readyTableTriggers(table: CockpitTable): TableTrigger[] {`
-- line 373: `export function nextTriggerController(table: CockpitTable): string | undefined {`
-- line 381: `export type TriggerOperation =`
+- line 66: `export function tableObjectReference(table: CockpitTable, card: CardInstance) {`
+- line 125: `export interface TableTriggerTrace {`
+- line 131: `export function triggerTrace(before: CockpitTable, id: string): TableTriggerTrace {`
+- line 135: `export function checkpointTableTriggers(`
+- line 359: `export function readyTableTriggers(table: CockpitTable): TableTrigger[] {`
+- line 366: `export function nextTriggerController(table: CockpitTable): string | undefined {`
+- line 374: `export type TriggerOperation =`
 
 ## `src/engine/commander.ts`
 

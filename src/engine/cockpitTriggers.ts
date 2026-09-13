@@ -63,6 +63,14 @@ export function tableObjectSnapshot(table: CockpitTable, card: CardInstance): Ob
     toughness: face?.toughness,
   };
 }
+export function tableObjectReference(table: CockpitTable, card: CardInstance) {
+  return {
+    kind: 'object' as const,
+    physicalCardId: card.id,
+    objectId: objectIdOf(card),
+    snapshot: tableObjectSnapshot(table, card),
+  };
+}
 /** Canonical all-seat input to the existing detector; never a UI projection or command engine. */
 function triggerState(table: CockpitTable, events: GameEvent[]): GameState {
   const base = initGame([], 0);
@@ -202,12 +210,7 @@ export function checkpointTableTriggers(
         events.push({
           ...envelope(),
           type: 'counterChange',
-          target: {
-            kind: 'object',
-            physicalCardId: card.id,
-            objectId: objectIdOf(card),
-            snapshot: tableObjectSnapshot(table, card),
-          },
+          target: tableObjectReference(table, card),
           counterType: name,
           delta,
           before: old.counters[name] ?? 0,
@@ -239,19 +242,9 @@ export function checkpointTableTriggers(
         ...envelope(),
         type: 'damage',
         cause: { type: 'command', commandType: meaning },
-        source: {
-          kind: 'object',
-          physicalCardId: source.id,
-          objectId: objectIdOf(source),
-          snapshot: tableObjectSnapshot(before, source),
-        },
+        source: tableObjectReference(before, source),
         target: target
-          ? {
-              kind: 'object',
-              physicalCardId: target.id,
-              objectId: objectIdOf(target),
-              snapshot: tableObjectSnapshot(before, target),
-            }
+          ? tableObjectReference(before, target)
           : { kind: 'player', playerId: assignment.targetId },
         amount: assignment.amount,
         combatDamage: true,
