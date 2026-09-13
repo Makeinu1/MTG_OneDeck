@@ -1,0 +1,153 @@
+diff --git a/src/components/game/CockpitSessionScreen.tsx b/src/components/game/CockpitSessionScreen.tsx
+index 734df47..849d71a 100644
+--- a/src/components/game/CockpitSessionScreen.tsx
++++ b/src/components/game/CockpitSessionScreen.tsx
+@@ -15,7 +15,11 @@ import {
+ import type { GameCommand } from '../../engine/commands';
+ import type { ZoneId } from '../../engine/types';
+ import type { CockpitSessionView } from '../../online/browser/cockpitClient';
+-import { CockpitClient } from '../../online/browser/cockpitClient';
++import {
++  CockpitClient,
++  isCockpitOperationRejection,
++  isCockpitTerminalFailure,
++} from '../../online/browser/cockpitClient';
+ import { CockpitTableSurface } from './CockpitTableSurface';
+ import { CardView } from '../CardView';
+ import { Modal } from '../Modal';
+@@ -94,6 +98,7 @@ export function CockpitSessionScreen({
+   const [message, setMessage] = useState('接続中…');
+   const [busy, setBusy] = useState(true);
+   const [uncertain, setUncertain] = useState(false);
++  const [terminalConnection, setTerminalConnection] = useState(false);
+   const [operationError, setOperationError] = useState(false);
+   const [seatId, setSeatId] = useState('P1');
+   const [menu, setMenu] = useState(false);
+@@ -224,13 +229,22 @@ export function CockpitSessionScreen({
+           setRoomInvitation(client.invitation());
+         }
+       },
+-      (issue) => {
++      (issue, error) => {
+         if (active) {
+           suppressRemoteMotion.current = true;
+           setMessage(issue);
++          setTerminalConnection(isCockpitTerminalFailure(error));
+           setUncertain(true);
+         }
+       },
++      () => {
++        if (active) {
++          setUncertain(false);
++          setTerminalConnection(false);
++          setOperationError(false);
++          setMessage('接続が回復しました。サーバーの確定盤面から続けられます。');
++        }
++      },
+     );
+     clientRef.current = client;
+     void (
+@@ -260,6 +274,7 @@ export function CockpitSessionScreen({
+               : '接続できませんでした。再接続して確認してください。',
+           );
+           setBusy(false);
++          setTerminalConnection(isCockpitTerminalFailure(error));
+           setUncertain(true);
+         }
+       });
+@@ -366,19 +381,8 @@ export function CockpitSessionScreen({
+       return true;
+     } catch (error) {
+       setOperationError(true);
+-      setUncertain(
+-        !(
+-          error instanceof Error &&
+-          'code' in error &&
+-          [
+-            'REVISION_CONFLICT',
+-            'ELIMINATION_REQUIRES_CONTROL_REVIEW',
+-            'NOT_AUTHORIZED',
+-            'PREGAME_INCOMPLETE',
+-            'OWNER_ABSENT',
+-          ].includes(String(error.code))
+-        ),
+-      );
++      setTerminalConnection(isCockpitTerminalFailure(error));
++      setUncertain(!isCockpitOperationRejection(error));
+       setMessage(error instanceof Error ? error.message : '結果を確認中です。再接続してください。');
+       return false;
+     } finally {
+@@ -394,19 +398,8 @@ export function CockpitSessionScreen({
+       await clientRef.current?.control(operation);
+       setMessage('操作権と共有状態を保存しました。');
+     } catch (error) {
+-      setUncertain(
+-        !(
+-          error instanceof Error &&
+-          'code' in error &&
+-          [
+-            'REVISION_CONFLICT',
+-            'ELIMINATION_REQUIRES_CONTROL_REVIEW',
+-            'NOT_AUTHORIZED',
+-            'PREGAME_INCOMPLETE',
+-            'OWNER_ABSENT',
+-          ].includes(String(error.code))
+-        ),
+-      );
++      setTerminalConnection(isCockpitTerminalFailure(error));
++      setUncertain(!isCockpitOperationRejection(error));
+       setMessage(error instanceof Error ? error.message : '再接続してください。');
+     } finally {
+       setBusy(false);
+@@ -418,6 +411,7 @@ export function CockpitSessionScreen({
+       if (restore) {
+         await clientRef.current?.restoreCheckpoint();
+         setUncertain(false);
++        setTerminalConnection(false);
+       } else await clientRef.current?.saveCheckpoint();
+       setMessage(
+         restore
+@@ -437,12 +431,14 @@ export function CockpitSessionScreen({
+     try {
+       const result = await clientRef.current?.reconnect();
+       setUncertain(false);
++      setTerminalConnection(false);
+       setMessage(
+         result === 'unseen'
+           ? '前の操作は未確定です。盤面を確認し、必要ならもう一度操作してください。'
+           : 'サーバーの確定状態に復帰しました。',
+       );
+     } catch (error) {
++      setTerminalConnection(isCockpitTerminalFailure(error));
+       setUncertain(true);
+       setMessage(error instanceof Error ? error.message : '復帰できませんでした。');
+     } finally {
+@@ -453,7 +449,7 @@ export function CockpitSessionScreen({
+     return (
+       <main className="cockpit-session">
+         <p role="status">{message}</p>
+-        <button onClick={() => void reconnect()} disabled={busy}>
++        <button onClick={() => void reconnect()} disabled={busy || terminalConnection}>
+           再接続
+         </button>
+         <button onClick={() => void checkpoint(true)} disabled={busy}>
+@@ -880,7 +876,7 @@ export function CockpitSessionScreen({
+               / {table.seats.find((entry) => entry.id === table.activeSeatId)?.label}
+             </span>
+             <span role="status">{message}</span>
+-            <button onClick={() => void reconnect()} disabled={busy}>
++            <button onClick={() => void reconnect()} disabled={busy || terminalConnection}>
+               再接続
+             </button>
+             <button
+@@ -981,7 +977,9 @@ export function CockpitSessionScreen({
+       {(uncertain || operationError) && (
+         <div className="table-connection" role="alert">
+           {message}
+-          {uncertain ? (
++          {terminalConnection ? (
++            <button onClick={onBack}>デッキへ戻る</button>
++          ) : uncertain ? (
+             <button disabled={busy} onClick={() => void reconnect()}>
+               再接続
+             </button>
