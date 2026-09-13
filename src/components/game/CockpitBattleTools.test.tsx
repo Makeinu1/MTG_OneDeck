@@ -96,3 +96,21 @@ it('keeps a draft from committing after the attacking object changes', () => {
     s.close();
   }
 });
+
+it('does not suggest unblocked damage after a blocker leaves and tolerates missing old visible cards', () => {
+  const s = setup();
+  try {
+    const next = structuredClone(s.table);
+    next.combat!.attackers[0].blocked = true;
+    s.render(next);
+    expect(s.host.textContent).toContain('ブロック済み（ブロッカーなし）');
+    expect(s.button('ブロックなしの割当を作る').disabled).toBe(true);
+    // Older persisted combat references can outlive cards in another seat's projection.
+    delete next.cards[s.id];
+    expect(() => s.render(next)).not.toThrow();
+    expect(s.button('ブロックなしの割当を作る').disabled).toBe(true);
+    expect(s.send).not.toHaveBeenCalled();
+  } finally {
+    s.close();
+  }
+});

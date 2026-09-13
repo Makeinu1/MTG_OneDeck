@@ -92,7 +92,15 @@ export interface TableModifier {
 }
 export interface TableCombat {
   legacyDeclaration?: CombatState;
-  attackers: { cardId: string; objectId: string; targetId: string; defendingSeatId?: string }[];
+  attackers: {
+    cardId: string;
+    objectId: string;
+    targetId: string;
+    defendingSeatId?: string;
+    // Optional for old saves: absence is unknown, not automatically unblocked.
+    blocked?: boolean;
+    targetRemoved?: boolean;
+  }[];
   blockers: { cardId: string; objectId: string; attackerIds: string[] }[];
   assignments: { sourceId: string; targetId: string; targetObjectId?: string; amount: number }[];
   damageApplied: boolean;
@@ -275,6 +283,42 @@ function distinct(ids: string[]): void {
     '対象の選択を確認してください。',
   );
 }
+/** CR 506.4/509.1h: leaving combat does not undo an attacker's blocked history. */
+function removeTableCombatant(table: CockpitTable, id: string): void {
+  const combat = table.combat;
+  if (!combat) return;
+  const affected = [...combat.attackers, ...combat.blockers].some((entry) => entry.cardId === id) ||
+    combat.attackers.some((entry) => entry.targetId === id) ||
+    combat.assignments.some((entry) => entry.sourceId === id || entry.targetId === id);
+  if (!affected) return;
+  for (const attacker of combat.attackers) {
+    if (combat.blockers.some((blocker) => blocker.attackerIds.includes(attacker.cardId)))
+      attacker.blocked = true;
+    // CR 506.4c: the creature keeps attacking, but not the departed permanent.
+    if (attacker.targetId === id) attacker.targetRemoved = true;
+  }
+  combat.attackers = combat.attackers.filter((entry) => entry.cardId !== id);
+  const attackers = new Set(combat.attackers.map((entry) => entry.cardId));
+  combat.blockers = combat.blockers
+    .filter((entry) => entry.cardId !== id)
+    .map((entry) => ({ ...entry, attackerIds: entry.attackerIds.filter((value) => attackers.has(value)) }));
+  // Reconfirm the remaining assignment as a whole; never reapply damage already dealt.
+  combat.assignments = [];
+}
+
+function currentCombatDamageSource(table: CockpitTable, card: CardInstance): boolean {
+  const combat = table.combat;
+  if (!combat || card.zone !== 'battlefield') return false;
+  const objectId = `${card.id}:${card.zoneChangeCounter}`;
+  if (combat.attackers.some((entry) => entry.objectId === objectId))
+    return card.controllerId === table.activeSeatId;
+  // CR 510.1d: a blocker may remain in combat but have no creatures left to damage.
+  return combat.blockers.some((entry) => entry.objectId === objectId && entry.attackerIds.some((id) =>
+    combat.attackers.some((attacker) => attacker.cardId === id &&
+      (attacker.defendingSeatId ?? table.cards[attacker.targetId]?.controllerId ?? attacker.targetId) === card.controllerId),
+  ));
+}
+
 function move(
   table: CockpitTable,
   ids: string[],
@@ -283,6 +327,7 @@ function move(
   trace?: TableTriggerTrace,
   meaning = 'move',
   reason: import('./types').ZoneChangeReason = 'move',
+  enterAsToken = false,
 ): void {
   checkpointTableTriggers(table, trace, 'change');
   distinct(ids);
@@ -298,6 +343,7 @@ function move(
       for (const zone of tableZones)
         seat.zones[zone] = seat.zones[zone].filter((entry) => entry !== id);
     if (card.zone !== to) {
+      if (card.zone === 'battlefield') removeTableCombatant(table, id);
       card.zoneChangeCounter += 1;
       card.counters = {};
       card.damageMarked = 0;
@@ -314,6 +360,7 @@ function move(
       card.controllerId = card.ownerId;
       card.enteredTurn = to === 'battlefield' ? table.turn : 0;
     }
+    if (enterAsToken && to === 'battlefield') card.isToken = true;
     card.zone = to;
     const group = groups.get(owner.id) ?? [];
     group.push(id);
@@ -671,8 +718,8 @@ function finishTableStack(
   const stackId = entry.stackCardId ?? (entry.kind === 'spell' ? entry.source.id : undefined);
   if (stackId && table.cards[stackId]?.zone === 'stack') {
     if (entry.kind === 'spell' && (!entry.copied || to === 'battlefield')) {
-      move(table, [stackId], to, 'top', trace, 'resolve', 'resolve');
-      if (entry.copied) table.cards[stackId].isToken = true;
+      // CR 608.3f: token characteristics must be present in the ETB snapshot itself.
+      move(table, [stackId], to, 'top', trace, 'resolve', 'resolve', entry.copied === true);
     } else {
       for (const seat of table.seats)
         seat.zones.stack = seat.zones.stack.filter((id) => id !== stackId);
@@ -742,6 +789,10 @@ export function applyTableOperation(
       'resolve.finish',
       'resolve.fetch',
       'battle.attack',
+      'battle.block',
+      'battle.apply',
+      'battle.nextDamage',
+      'battle.end',
     ].includes(operation.type) &&
     !table.resolution
   )
@@ -1108,6 +1159,7 @@ export function applyTableOperation(
           ...entry,
           objectId: `${card.id}:${card.zoneChangeCounter}`,
           defendingSeatId: targetSeat?.id ?? targetCard!.controllerId,
+          blocked: false,
         };
       });
       table.combat = { attackers, blockers: [], assignments: [], damageApplied: false };
@@ -1117,7 +1169,8 @@ export function applyTableOperation(
     case 'battle.block': {
       const combat = table.combat;
       requireTable(
-        combat && !combat.damageApplied && (combat.damageStep ?? 1) === 1,
+        combat && !combat.damageApplied && (combat.damageStep ?? 1) === 1 &&
+          !table.hold && !table.resolution && !table.stack.length,
         'ブロックを登録できる戦闘がありません。',
       );
       if (operation.blockers.length) distinct(operation.blockers.map((entry) => entry.cardId));
@@ -1159,6 +1212,14 @@ export function applyTableOperation(
           };
         }),
       ];
+      for (const attacker of combat.attackers) {
+        if (!defendingSeatId || attacker.defendingSeatId === defendingSeatId) {
+          // An explicit replacement declaration may correct blocks; mere departure never does.
+          attacker.blocked = combat.blockers.some((blocker) =>
+            blocker.attackerIds.includes(attacker.cardId),
+          );
+        }
+      }
       combat.assignments = [];
       break;
     }
@@ -1169,15 +1230,11 @@ export function applyTableOperation(
         Array.isArray(operation.assignments) && operation.assignments.length <= 500,
         '割当数を確認してください。',
       );
-      const participants = [...combat.attackers, ...combat.blockers];
       for (const assignment of operation.assignments) {
         integer(assignment.amount, 0);
         const source = cardOf(table, assignment.sourceId);
         requireTable(
-          source.zone === 'battlefield' &&
-            participants.some(
-              (entry) => entry.objectId === `${source.id}:${source.zoneChangeCounter}`,
-            ),
+          currentCombatDamageSource(table, source),
           '戦闘の発生源が変わりました。',
         );
         const seat = table.seats.find(
@@ -1222,10 +1279,7 @@ export function applyTableOperation(
       for (const assignment of combat.assignments) {
         const source = cardOf(table, assignment.sourceId);
         requireTable(
-          source.zone === 'battlefield' &&
-            [...combat.attackers, ...combat.blockers].some(
-              (entry) => entry.objectId === `${source.id}:${source.zoneChangeCounter}`,
-            ),
+          currentCombatDamageSource(table, source),
           '戦闘の発生源が変わりました。',
         );
         const seat = table.seats.find((seat) => seat.id === assignment.targetId);
@@ -1272,6 +1326,7 @@ export function applyTableOperation(
       break;
     }
     case 'battle.end':
+      requireTable(!table.hold && !table.resolution && !table.stack.length, '未完の処理を終えてから戦闘を終了してください。');
       table.combat = null;
       break;
     case 'cleanup': {
@@ -1395,6 +1450,7 @@ export function applyTableOperation(
         const card = cardOf(table, id);
         requireTable(card.zone === 'battlefield', '戦場のカードを選んでください。');
         if (card.controllerId !== operation.seatId) {
+          removeTableCombatant(table, id);
           card.controllerId = operation.seatId;
           card.enteredTurn = table.turn;
         }

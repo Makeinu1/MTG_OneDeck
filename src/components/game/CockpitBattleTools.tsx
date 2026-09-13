@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CardView } from '../CardView';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
+import { readyTableTriggers } from '../../engine/cockpitTriggers';
 
 export function CockpitBattleTools({
   table,
@@ -49,10 +50,11 @@ export function CockpitBattleTools({
   const blockSelected = selected.filter(
     (id) => !blockSeat || table.cards[id]?.controllerId === blockSeat,
   );
-  const blockDisabled = disabled && !canBlock;
-  const participants = combat ? [...combat.attackers, ...combat.blockers] : [];
+  const pendingTriggers = readyTableTriggers(table).length > 0;
+  const blockDisabled = (disabled && !canBlock) || pendingTriggers;
+  const participants = combat ? [...combat.attackers, ...combat.blockers.filter((entry) => entry.attackerIds.length > 0)] : [];
   const targets = [
-    ...table.seats.map((seat) => seat.id),
+    ...table.seats.filter((seat) => !seat.eliminated).map((seat) => seat.id),
     ...Object.values(table.cards)
       .filter((card) => card.zone === 'battlefield')
       .map((card) => card.id),
@@ -63,6 +65,7 @@ export function CockpitBattleTools({
   const attackTarget = attackTargets.includes(target) ? target : (attackTargets[0] ?? '');
   function power(id: string) {
     const card = table.cards[id];
+    if (!card || !table.defs[card.defId]) return null;
     const printed = Number(table.defs[card.defId].faces[card.faceIndex]?.power);
     return Number.isFinite(printed)
       ? printed +
@@ -98,9 +101,12 @@ export function CockpitBattleTools({
     combat &&
     !combat.damageApplied &&
     !combat.blockers.length &&
-    combat.attackers.every((entry) => power(entry.cardId) !== null);
+    combat.attackers.length > 0 &&
+    combat.attackers.every((entry) =>
+      entry.blocked === false && !entry.targetRemoved && targets.includes(entry.targetId) && power(entry.cardId) !== null,
+    );
   const canCommit =
-    !disabled && !table.hold && !table.stack.length && !table.resolution && !combat?.damageApplied;
+    !disabled && !table.hold && !table.stack.length && !table.resolution && !pendingTriggers && !combat?.damageApplied;
   const hasDefenders =
     combat &&
     Object.values(table.cards).some(
@@ -122,6 +128,7 @@ export function CockpitBattleTools({
         </p>
       )}
       <p>手動戦闘 · 合法性・先制攻撃・軽減・致死を確認</p>
+      {pendingTriggers && <p role="status">先にFeedで誘発を確認・登録し、解決してから戦闘を進めてください。</p>}
       {!combat ? (
         <>
           <label>
@@ -175,6 +182,7 @@ export function CockpitBattleTools({
             disabled={
               disabled ||
               table.hold ||
+              pendingTriggers ||
               !selected.length ||
               table.stack.length > 0 ||
               Boolean(table.resolution)
@@ -232,7 +240,7 @@ export function CockpitBattleTools({
                   </div>
                   <span aria-hidden="true">→</span>
                   <div className="table-battle-defenders">
-                    <strong>{name(entry.targetId)}</strong>
+                    <strong>{entry.targetRemoved ? '攻撃先は戦闘から離れました' : name(entry.targetId)}</strong>
                     {combat.blockers
                       .filter((blocker) => blocker.attackerIds.includes(entry.cardId))
                       .map((blocker) => (
@@ -250,7 +258,7 @@ export function CockpitBattleTools({
                       ))}
                     {!combat.blockers.some((blocker) =>
                       blocker.attackerIds.includes(entry.cardId),
-                    ) && <small>ブロックなし</small>}
+                    ) && <small>{entry.blocked === true ? 'ブロック済み（ブロッカーなし）' : entry.blocked === false ? 'ブロックなし' : 'ブロック状態は要確認'}</small>}
                   </div>
                 </section>
               ))}
@@ -314,9 +322,9 @@ export function CockpitBattleTools({
             {combat.blockers.map((entry) => (
               <li key={entry.cardId}>
                 《{name(entry.cardId)}》が{' '}
-                {entry.attackerIds.map((id) => `《${name(id)}》`).join('、')}をブロック{' '}
+                {entry.attackerIds.length ? `${entry.attackerIds.map((id) => `《${name(id)}》`).join('、')}をブロック` : 'ブロック相手は戦闘から離れました'}{' '}
                 <button
-                  disabled={disabled || combat.damageApplied}
+                  disabled={disabled || pendingTriggers || combat.damageApplied}
                   onClick={() =>
                     void send({
                       type: 'battle.block',
@@ -524,7 +532,7 @@ export function CockpitBattleTools({
           {combat.damageApplied && (combat.damageStep ?? 1) === 1 && (
             <button
               disabled={
-                disabled || table.hold || Boolean(table.resolution) || table.stack.length > 0
+                disabled || table.hold || pendingTriggers || Boolean(table.resolution) || table.stack.length > 0
               }
               onClick={() =>
                 void send({ type: 'battle.nextDamage' }).then((saved) => {
@@ -541,7 +549,7 @@ export function CockpitBattleTools({
             </p>
           )}
           <button
-            disabled={disabled}
+            disabled={disabled || table.hold || pendingTriggers || !!table.resolution || table.stack.length > 0}
             onClick={() =>
               void send({ type: 'battle.end' }).then((saved) => {
                 if (saved) {
