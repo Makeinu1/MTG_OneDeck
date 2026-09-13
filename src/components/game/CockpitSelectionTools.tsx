@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { objectIdOf } from '../../engine/types';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
 import { Modal } from '../Modal';
 import { CardView } from '../CardView';
@@ -37,10 +38,35 @@ export function CockpitSelectionTools({
     seatId: string;
     kind: '占術' | '諜報';
     examined: string[];
+    objectIds: string[];
+    invalidated?: boolean;
     rows: { id: string; to: 'top' | 'bottom' | 'graveyard' }[];
   } | null>(null);
   const [proliferate, setProliferate] = useState<string[] | null>(null);
   const seat = table.seats.find((entry) => entry.id === seatId)!;
+  const arrangeSeat = table.seats.find((entry) => entry.id === arrange?.seatId);
+  const arrangementMatches = Boolean(
+    arrange &&
+    arrange.seatId === seatId &&
+    arrangeSeat &&
+    !arrangeSeat.eliminated &&
+    arrange.examined.every((id, index) => {
+      const card = table.cards[id];
+      return (
+        arrangeSeat.zones.library[index] === id &&
+        card?.zone === 'library' &&
+        card.ownerId === arrange.seatId &&
+        objectIdOf(card) === arrange.objectIds[index] &&
+        Boolean(table.defs[card.defId])
+      );
+    }),
+  );
+  const arrangementValid = arrangementMatches && !arrange?.invalidated;
+  // Invalidate before rendering candidates. Do not retain private card contents,
+  // and never reactivate a discarded choice when the old IDs become visible again.
+  if (arrange && !arrange.invalidated && !arrangementMatches)
+    setArrange({ ...arrange, invalidated: true });
+
   const label = (id: string) => {
     const card = table.cards[id];
     const def = card && table.defs[card.defId];
@@ -82,6 +108,7 @@ export function CockpitSelectionTools({
                 seatId,
                 kind,
                 examined,
+                objectIds: examined.map((id) => objectIdOf(table.cards[id])),
                 rows: examined.map((id) => ({ id, to: 'top' })),
               });
             }}
@@ -217,63 +244,71 @@ export function CockpitSelectionTools({
           width="lg"
           onClose={() => setArrange(null)}
           allowBoardPeek
+          blockGameShortcuts
         >
-          <ol className="table-arrange-cards">
-            {arrange.rows.map((row, index) => (
-              <li key={row.id}>
-                <CardView
-                  instance={table.cards[row.id]}
-                  def={table.defs[table.cards[row.id].defId]}
-                  size="hand"
-                  draggable={false}
-                />
-                <details>
-                  <summary>《{label(row.id)}》の本文</summary>
-                  <p>
-                    {table.defs[table.cards[row.id].defId].faces[table.cards[row.id].faceIndex]
-                      .printedText ??
-                      table.defs[table.cards[row.id].defId].faces[table.cards[row.id].faceIndex]
-                        .oracleText}
-                  </p>
-                </details>
-                <select
-                  aria-label={`${label(row.id)}の行き先`}
-                  value={row.to}
-                  onChange={(event) =>
-                    setArrange({
-                      ...arrange,
-                      rows: arrange.rows.map((item) =>
-                        item.id === row.id
-                          ? { ...item, to: event.target.value as typeof row.to }
-                          : item,
-                      ),
-                    })
-                  }
-                >
-                  <option value="top">山札の上</option>
-                  {arrange.kind === '占術' ? (
-                    <option value="bottom">山札の下</option>
-                  ) : (
-                    <option value="graveyard">墓地</option>
-                  )}
-                </select>
-                <button
-                  aria-label={`《${label(row.id)}》の順序を上へ`}
-                  title="順序を上へ"
-                  disabled={index === 0}
-                  onClick={() => {
-                    const rows = [...arrange.rows];
-                    [rows[index - 1], rows[index]] = [rows[index], rows[index - 1]];
-                    setArrange({ ...arrange, rows });
-                  }}
-                >
-                  ↑
-                </button>
-              </li>
-            ))}
-          </ol>
+          {!arrangementValid && (
+            <p role="status">
+              山札の順序・カード・閲覧権限が変わりました。閉じてから選び直してください。
+            </p>
+          )}
+          {arrangementValid && (
+            <ol className="table-arrange-cards">
+              {arrange.rows.map((row, index) => (
+                <li key={row.id}>
+                  <CardView
+                    instance={table.cards[row.id]}
+                    def={table.defs[table.cards[row.id].defId]}
+                    size="hand"
+                    draggable={false}
+                  />
+                  <details>
+                    <summary>《{label(row.id)}》の本文</summary>
+                    <p>
+                      {table.defs[table.cards[row.id].defId].faces[table.cards[row.id].faceIndex]
+                        .printedText ??
+                        table.defs[table.cards[row.id].defId].faces[table.cards[row.id].faceIndex]
+                          .oracleText}
+                    </p>
+                  </details>
+                  <select
+                    aria-label={`${label(row.id)}の行き先`}
+                    value={row.to}
+                    onChange={(event) =>
+                      setArrange({
+                        ...arrange,
+                        rows: arrange.rows.map((item) =>
+                          item.id === row.id
+                            ? { ...item, to: event.target.value as typeof row.to }
+                            : item,
+                        ),
+                      })
+                    }
+                  >
+                    <option value="top">山札の上</option>
+                    {arrange.kind === '占術' ? (
+                      <option value="bottom">山札の下</option>
+                    ) : (
+                      <option value="graveyard">墓地</option>
+                    )}
+                  </select>
+                  <button
+                    aria-label={`《${label(row.id)}》の順序を上へ`}
+                    title="順序を上へ"
+                    disabled={index === 0}
+                    onClick={() => {
+                      const rows = [...arrange.rows];
+                      [rows[index - 1], rows[index]] = [rows[index], rows[index - 1]];
+                      setArrange({ ...arrange, rows });
+                    }}
+                  >
+                    ↑
+                  </button>
+                </li>
+              ))}
+            </ol>
+          )}
           <button
-            disabled={disabled}
+            disabled={disabled || !arrangementValid}
             onClick={() =>
               void send({
                 type: 'arrange',
@@ -294,7 +329,12 @@ export function CockpitSelectionTools({
         </Modal>
       )}
       {proliferate && (
-        <Modal title="増殖する対象を選択" onClose={() => setProliferate(null)} allowBoardPeek>
+        <Modal
+          title="増殖する対象を選択"
+          onClose={() => setProliferate(null)}
+          allowBoardPeek
+          blockGameShortcuts
+        >
           <p>選んだパーマネント・席の、既にある各種類のカウンターを1個増やします。</p>
           {candidates.map((entry) => (
             <label key={entry.id} style={{ display: 'block' }}>

@@ -138,7 +138,9 @@ export function migrateCockpitSnapshot(snapshot: GameSnapshot): CockpitTable {
   table.commanderCasts = Object.fromEntries(
     old.commanders.map((entry) => [entry.cardId, entry.castCount]),
   );
-  table.stack = old.zones.stack.map((id) => {
+  // Legacy stacks resolve from the tail; Cockpit resolves from the head.
+  // Copy before reversing so the original saved game remains untouched.
+  table.stack = [...old.zones.stack].reverse().map((id) => {
     const card = table.cards[id];
     const snapshot = card.sourceSnapshot ?? card.activationEnvelope?.sourceRef.snapshot;
     const source = structuredClone(
