@@ -8,44 +8,21 @@ const origin = process.env.COCKPIT_URL ?? 'http://127.0.0.1:5173';
 assert.ok(['127.0.0.1', 'localhost'].includes(new URL(origin).hostname));
 const output = process.env.COCKPIT_EVIDENCE_DIR ?? '/tmp/cockpit-stage1-evidence';
 await mkdir(output, { recursive: true });
-const report = {
-  stage: 'stage1-recovery',
-  sourceSha: process.env.COCKPIT_SOURCE_SHA ?? null,
-  checks: [],
-  fullMatch: false,
-};
+const report = { stage: 'stage1-recovery', sourceSha: process.env.COCKPIT_SOURCE_SHA ?? null, checks: [], fullMatch: false };
 const record = (name) => report.checks.push({ name, passed: true });
 let stage = 'initialization';
 let browser;
 const pages = [];
 const transport = [];
-const deck = (privateDeck = false) =>
-  Array.from({ length: 40 }, (_, i) => ({
-    isCommander: false,
-    def: {
-      scryfallId: `${privateDeck ? 'private' : 'repair'}-${i}`,
-      oracleId: `${privateDeck ? 'private' : 'repair'}-${i}`,
-      name: `Repair Creature ${i}`,
-      printedName: `検証クリーチャー${i}`,
-      lang: 'ja',
-      layout: 'normal',
-      cmc: 0,
-      colorIdentity: [],
-      typeLine: 'Creature',
-      faces: [
-        {
-          name: `Repair Creature ${i}`,
-          printedName: `検証クリーチャー${i}`,
-          typeLine: 'Creature',
-          printedTypeLine: 'クリーチャー',
-          manaCost: '{0}',
-          oracleText: '',
-          power: '2',
-          toughness: '2',
-        },
-      ],
-    },
-  }));
+const deck = (privateDeck = false) => Array.from({ length: 40 }, (_, i) => ({
+  isCommander: false,
+  def: {
+    scryfallId: `${privateDeck ? 'private' : 'repair'}-${i}`, oracleId: `${privateDeck ? 'private' : 'repair'}-${i}`,
+    name: `Repair Creature ${i}`, printedName: `検証クリーチャー${i}`, lang: 'ja', layout: 'normal', cmc: 0,
+    colorIdentity: [], typeLine: 'Creature',
+    faces: [{ name: `Repair Creature ${i}`, printedName: `検証クリーチャー${i}`, typeLine: 'Creature', printedTypeLine: 'クリーチャー', manaCost: '{0}', oracleText: '', power: '2', toughness: '2' }],
+  },
+}));
 async function apiProbe() {
   stage = 'real-worker-private-source';
   const address = randomUUID();
@@ -53,9 +30,7 @@ async function apiProbe() {
   const p1 = seat(), p2 = seat();
   const call = async (actor, body) => {
     const response = await fetch(`${origin}/api/cockpit/${address}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin },
-      body: JSON.stringify({ ...body, ...actor }),
+      method: 'POST', headers: { 'content-type': 'application/json', origin }, body: JSON.stringify({ ...body, ...actor }),
     });
     stage = `real-worker-${body.type}-${body.operation?.type ?? body.control?.type ?? 'state'}`;
     assert.equal(response.status, 200, `Local Worker status ${response.status}`);
@@ -65,10 +40,7 @@ async function apiProbe() {
   const second = await call(p2, { type: 'join', deck: deck(true), invitation: first.multiplayer.invitation });
   const change = async (actor, type, operation) => {
     const view = await call(actor, { type: 'read' });
-    return call(actor, {
-      type, [type === 'control' ? 'control' : 'operation']: operation,
-      requestId: randomUUID(), revision: view.revision,
-    });
+    return call(actor, { type, [type === 'control' ? 'control' : 'operation']: operation, requestId: randomUUID(), revision: view.revision });
   };
   await change(p1, 'commit', { type: 'keep', seatId: 'P1', bottom: [] });
   await change(p2, 'commit', { type: 'keep', seatId: 'P2', bottom: [] });
@@ -92,11 +64,9 @@ async function apiProbe() {
     assert.equal(other.table.stack[0].text, 'Draw a card.');
   }
   await change(p2, 'commit', { type: 'resolve.end', to: 'graveyard' });
-  const finished = await call(p1, { type: 'read' });
-  assert.equal(finished.table.stack.length, 0);
+  assert.equal((await call(p1, { type: 'read' })).table.stack.length, 0);
   record('real Worker/SQLite: hidden source protected through activation, resolution, and source movement');
 }
-
 try {
   if (!process.argv.includes('--recovery-only')) await apiProbe();
   else report.privateSourceProbe = 'not-run: separate local-only repair';
@@ -111,14 +81,12 @@ try {
       const page = await context.newPage();
       page.on('pageerror', () => pageErrors++);
       page.on('console', (message) => {
-        if (message.type() === 'error' && !(expectedNetworkFailure && message.text().startsWith('Failed to load resource:')))
-          unexpectedConsoleErrors++;
+        if (message.type() === 'error' && !(expectedNetworkFailure && message.text().startsWith('Failed to load resource:'))) unexpectedConsoleErrors++;
       });
       page.on('response', (response) => {
         if (!new URL(response.url()).pathname.startsWith('/api/cockpit/')) return;
         const type = response.request().postDataJSON()?.type;
-        if (['create', 'join', 'commit', 'control', 'connect', 'read'].includes(type))
-          transport.push({ seat: i + 1, type, status: response.status() });
+        if (['create', 'join', 'commit', 'control', 'connect', 'read'].includes(type)) transport.push({ seat: i + 1, type, status: response.status() });
       });
       page.setDefaultTimeout(15000);
       pages.push(page);
@@ -163,6 +131,11 @@ try {
       }
       throw new Error(label);
     };
+    const responseFor = (page, operation) => page.waitForResponse((response) => {
+      if (!new URL(response.url()).pathname.startsWith('/api/cockpit/')) return false;
+      const body = response.request().postDataJSON();
+      return body?.type === 'commit' && body.operation?.type === operation;
+    });
     stage = 'entry-host-create';
     await host.getByRole('button', { name: '2人対戦を作成', exact: true }).click();
     stage = 'entry-host-table';
@@ -176,9 +149,27 @@ try {
     stage = 'entry-guest-join';
     await guest.getByLabel('参加する招待コード').fill(invitation);
     await guest.getByRole('button', { name: 'このデッキで参加', exact: true }).click();
+    // Joining/another seat's keep can change the revision. Confirm success, or
+    // explicitly read the rejection and retry via the visible button; never replay unknown results.
     for (const [i, page] of pages.entries()) {
       stage = `entry-keep-${i + 1}`;
+      expectedNetworkFailure = true;
+      const result = responseFor(page, 'keep');
       await page.getByTestId('mulligan-keep').click();
+      let response = await result;
+      if (response.status() === 409) {
+        assert.equal((await response.json()).error, 'REVISION_CONFLICT');
+        await page.locator('.table-connection').getByRole('button', { name: '閉じる', exact: true }).click();
+        const retry = responseFor(page, 'keep');
+        await page.getByTestId('mulligan-keep').click();
+        response = await retry;
+        record(`seat ${i + 1}: explicit UI retry after a confirmed revision rejection`);
+      }
+      assert.equal(response.status(), 200, 'Keep must be accepted before attempting start');
+      await page.getByTestId('mulligan-stage').waitFor({ state: 'hidden' });
+      expectedNetworkFailure = false;
+      const v = await read(page);
+      assert.equal(v.table.seats.find((s) => s.id === v.multiplayer.ownSeatId).kept, true);
     }
     stage = 'entry-start-menu';
     await menu(host);
@@ -186,7 +177,8 @@ try {
     await host.getByRole('button', { name: '全員で対戦を開始', exact: true }).click();
     stage = 'entry-close-start-menu';
     await closeMenu(host);
-    record('two independent browsers: saved deck selection, create/join, keep, start');
+    await waitUntil(async () => (await read(host)).multiplayer.started, 'Started state');
+    record('two independent browsers: saved deck selection, create/join, confirmed keeps, start');
 
     stage = 'rejection-then-valid-action';
     let fault = 'reject', sentDraws = 0;
