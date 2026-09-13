@@ -1,0 +1,72 @@
+name: Cockpit combat and event verification
+on:
+  push:
+    branches: [fix/cockpit-combat-events-stage2-20260914]
+permissions:
+  contents: read
+jobs:
+  stage2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Rule regressions and neighboring engine paths
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/cockpitCombatEvents.test.ts
+          src/engine/__tests__/cockpitBattle.test.ts
+          src/engine/__tests__/cockpitTriggers.test.ts
+          src/engine/__tests__/cockpitCast.test.ts
+          src/engine/__tests__/cockpitPlayFlow.test.ts
+      - name: Combat display, client recovery, and SQLite session tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/components/game/CockpitBattleTools.test.tsx
+          src/online/browser/__tests__/cockpitClient.test.ts
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+      - name: Types, build, and changed-file lint
+        run: |
+          npm run build
+          node node_modules/eslint/bin/eslint.js src/engine/cockpitTable.ts src/components/game/CockpitBattleTools.tsx src/engine/__tests__/cockpitCombatEvents.test.ts src/components/game/CockpitBattleTools.test.tsx scripts/online/cockpit-combat-events-evidence.mjs
+      - name: Isolated browser and local Worker tools
+        run: |
+          mkdir -p "$RUNNER_TEMP/cockpit-runtime"
+          cd "$RUNNER_TEMP/cockpit-runtime"
+          npm init -y >/dev/null
+          npm install --save-exact wrangler@4.131.1 playwright@1.63.0
+          node node_modules/playwright/cli.js install --with-deps chromium
+      - name: Real HTTP and SQLite rules, followed by normal-UI recovery
+        env:
+          WRANGLER_SEND_METRICS: false
+        shell: bash
+        run: |
+          set -euo pipefail
+          export COCKPIT_EVIDENCE_DIR="$RUNNER_TEMP/cockpit-stage2-evidence"
+          export COCKPIT_PLAYWRIGHT_MODULE="$RUNNER_TEMP/cockpit-runtime/node_modules/playwright/index.mjs"
+          export COCKPIT_SOURCE_SHA="$(git rev-parse HEAD)"
+          mkdir -p "$COCKPIT_EVIDENCE_DIR"
+          node "$RUNNER_TEMP/cockpit-runtime/node_modules/wrangler/bin/wrangler.js" dev --local --ip 127.0.0.1 --port 8789 --persist-to "$RUNNER_TEMP/cockpit-sqlite" --log-level error > "$RUNNER_TEMP/cockpit-worker.log" 2>&1 &
+          worker=$!
+          node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 > "$RUNNER_TEMP/cockpit-vite.log" 2>&1 &
+          vite=$!
+          trap 'kill "$worker" "$vite" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -s --max-time 1 -o /dev/null http://127.0.0.1:8789/ && curl -fsS --max-time 1 -o /dev/null http://127.0.0.1:5173/; then break; fi
+            sleep 1
+          done
+          node scripts/online/cockpit-combat-events-evidence.mjs
+          node scripts/online/cockpit-recovery-evidence.mjs --recovery-only
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cockpit-stage2-evidence
+          path: ${{ runner.temp }}/cockpit-stage2-evidence
+          retention-days: 7
+          if-no-files-found: warn
