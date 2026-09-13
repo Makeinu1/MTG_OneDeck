@@ -58,6 +58,11 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
     function handleKeyDown(e: KeyboardEvent): void {
       if (isEditableTarget(e.target) || e.repeat || e.isComposing || e.keyCode === 229) return;
 
+      // Child choices may live outside the parent's dialog state. Query at key
+      // time so closing/unmounting a choice cannot leave an invisible input lock.
+      if ([...document.querySelectorAll('[data-block-game-shortcuts="true"]')]
+        .some((dialog) => !dialog.closest('[hidden]'))) return;
+
       const isMod = e.metaKey || e.ctrlKey;
 
       if (isMod && (e.key === 'z' || e.key === 'Z')) {

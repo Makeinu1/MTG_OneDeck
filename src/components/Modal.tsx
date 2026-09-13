@@ -10,10 +10,12 @@ export interface ModalProps {
   /** Keep the pending selection mounted while the player looks at the board. */
   allowBoardPeek?: boolean;
   open?: boolean;
+  /** A pending game choice owns shortcuts, including while peeking at the board. */
+  blockGameShortcuts?: boolean;
 }
 
 /** A centered modal dialog with a dimmed backdrop. */
-export function Modal({ title, onClose, children, width = 'md', testId, allowBoardPeek = false, open = true }: ModalProps) {
+export function Modal({ title, onClose, children, width = 'md', testId, allowBoardPeek = false, open = true, blockGameShortcuts = false }: ModalProps) {
   const [boardPeek, setBoardPeek] = useState(false);
   if (!open && boardPeek) setBoardPeek(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -64,6 +66,7 @@ export function Modal({ title, onClose, children, width = 'md', testId, allowBoa
         className={`modal modal--${width}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        data-block-game-shortcuts={open && blockGameShortcuts ? "true" : undefined}
         aria-modal={!boardPeek}
         aria-label={title}
         data-testid={testId}
