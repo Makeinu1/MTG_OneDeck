@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useEffect, useRef, useState } from 'react';
 import { isCommander } from '../../engine/commander';
 import { GameCard } from './GameCard';
-import type { GameController } from './gameController';
+import type { GameCardController } from './GameCard';
 import { commanderAltarCollapsed, commanderAltarItems } from './commanderAltarModel';
 import type { DropTarget } from './dragIntent';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
@@ -11,7 +11,7 @@ export function CommanderAltar({
   controller,
   activeDragId = null,
 }: {
-  controller: GameController;
+  controller: GameCardController;
   activeDragId?: string | null;
 }) {
   const { state } = controller;

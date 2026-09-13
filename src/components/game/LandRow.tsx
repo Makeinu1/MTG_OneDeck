@@ -15,14 +15,14 @@ import {
   landRowCards,
   type LandBundle,
 } from './landRowModel';
-import type { GameController } from './gameController';
+import type { GameCardController } from './GameCard';
 import { isLandCard, type DropTarget } from './dragIntent';
 import { useElementSize } from './adaptiveLaneLayout';
 import { beatDensity } from './presentation/permanentBeat';
 import { DEFAULT_AUDIO_VISUAL_TUNING } from './presentation/presentationTuning';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 
-function Bundle({ controller, bundle, bundleIndex }: { controller: GameController; bundle: LandBundle; bundleIndex: number }) {
+function Bundle({ controller, bundle, bundleIndex }: { controller: GameCardController; bundle: LandBundle; bundleIndex: number }) {
   const multi = bundle.cardIds.length > 1;
   const [expanded, setExpanded] = useState(false);
   const dragActiveRef = useRef(false);
@@ -105,7 +105,7 @@ function Bundle({ controller, bundle, bundleIndex }: { controller: GameControlle
 }
 
 export interface LandRowProps {
-  controller: GameController;
+  controller: GameCardController;
   activeDragId?: string | null;
   cardIds?: readonly string[];
 }

@@ -166,3 +166,15 @@ describe('useShortcuts', () => {
     button.remove();
   });
 });
+
+
+it('leaves composing and repeated keys to the input system', () => {
+  const handlers = renderHarness();
+  act(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', isComposing: true, bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', repeat: true, bubbles: true }));
+  });
+  expect(handlers.onDraw).not.toHaveBeenCalled();
+  dispatchKeyDown('q');
+  expect(handlers.onDraw).toHaveBeenCalledOnce();
+});

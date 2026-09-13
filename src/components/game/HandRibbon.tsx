@@ -27,7 +27,20 @@ import {
   drawStaggerMs,
   type DrawFlightDestinationKind,
 } from './drawAnimationModel';
-import type { GameController } from './gameController';
+import type { GameScreenInteractionPort } from './gameScreenInteractionPort';
+import type { GameCardController } from './GameCard';
+export type HandRibbonController = GameCardController &
+  Pick<
+    GameScreenInteractionPort,
+    | 'libraryCount'
+    | 'libraryActionsOpen'
+    | 'motionArmed'
+    | 'mulliganDecisionPending'
+    | 'openLibraryActions'
+    | 'openZoneViewer'
+    | 'requestDraw'
+    | 'transitionCue'
+  >;
 import { computeMobileHandLayout, handFanCardLayout } from './handFanLayout';
 import { useElementSize } from './adaptiveLaneLayout';
 import type { GameEvent } from '../../engine/types';
@@ -56,8 +69,9 @@ function prefersReducedMotion(): boolean {
 }
 
 export interface HandRibbonProps {
-  controller: GameController;
+  controller: HandRibbonController;
   workspaceOpen?: boolean;
+  onSearch?: () => void;
   openWorkspaceButtonRef?: RefObject<HTMLButtonElement | null>;
   onOpenWorkspace?: () => void;
   onCloseWorkspace?: () => void;
@@ -66,6 +80,7 @@ export interface HandRibbonProps {
 export function HandRibbon({
   controller,
   workspaceOpen = false,
+  onSearch,
   openWorkspaceButtonRef,
   onOpenWorkspace,
   onCloseWorkspace = () => {},
@@ -298,6 +313,7 @@ export function HandRibbon({
             <strong id="hand-workspace-title">手札一覧</strong>
             <span>全体表示 · {state.zones.hand.length}枚</span>
           </div>
+          {onSearch && <button type="button" onClick={onSearch}>検索・選択</button>}
           <button
             type="button"
             className="hand-ribbon__close-workspace"

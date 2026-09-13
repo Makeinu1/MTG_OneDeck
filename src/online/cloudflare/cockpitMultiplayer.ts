@@ -163,6 +163,30 @@ export function projectCockpit(
     for (const snapshot of Object.values(entry.targetSnapshots ?? {}))
       knownDefs.add(snapshot.defId);
   }
+  if (projected.triggers) {
+    // Detection reads the full table. Clients receive only permitted candidate context.
+    projected.triggers.events = [];
+    projected.triggers.ledger = { turn: table.turn, consumedKeys: [] };
+    projected.triggers.drawn = {};
+    projected.triggers.sequence = 0;
+    projected.triggers.feed = (projected.triggers.feed ?? []).map((item, seq) => ({
+      ...item,
+      seq,
+    }));
+    projected.triggers.candidates = projected.triggers.candidates
+      .filter(
+        (candidate) =>
+          !candidate.source.faceDown &&
+          (!['hand', 'library'].includes(candidate.source.zone) ||
+            candidate.controllerId === actor),
+      )
+      .map((candidate) => {
+        delete candidate.source.sourceSnapshot;
+        delete candidate.source.targetSelections;
+        knownDefs.add(candidate.source.defId);
+        return candidate;
+      });
+  }
   projected.grants = projected.grants
     .filter((grant) => visible.has(grant.cardId))
     .map((grant) => ({ ...grant, sourceSnapshot: undefined }));
@@ -255,18 +279,24 @@ export function authorizeCockpitOperation(
     return (
       (operation.type === 'keep' || operation.type === 'mulligan') && operation.seatId === actor
     );
-  if (operation.type === 'redo' || operation.type === 'hold') return false;
+  if (operation.type === 'redo' || operation.type === 'hold' || operation.type === 'turn.ready')
+    return false;
   if (
     multi.holds.length &&
     [
       'turn',
       'phase',
       'shortcut',
+      'turn.ready',
+      'resolve.finish',
+      'resolve.fetch',
       'resolve.begin',
       'resolve.end',
       'battle.apply',
       'battle.attack',
       'undo',
+      'trigger.place',
+      'trigger.link',
     ].includes(operation.type)
   )
     return false;

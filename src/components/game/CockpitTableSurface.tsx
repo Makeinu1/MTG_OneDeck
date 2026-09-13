@@ -1,7 +1,11 @@
+import { CockpitFeed } from './CockpitFeed';
+import { readyTableTriggers } from '../../engine/cockpitTriggers';
+import { CockpitWorkPanel as TableWorkPanel } from './CockpitWorkPanel';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { DndContext, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import {
   tableManaResources,
+  tableFetchAbility,
   manaColors,
   type CockpitTable,
   type TableOperation,
@@ -11,9 +15,25 @@ import { tableAbilityChoices } from '../../engine/cockpitAbilities';
 import type { ZoneId } from '../../engine/types';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
+import { ContextMenu } from '../ContextMenu';
 import { Icon } from '../../ui/icons';
 import { handFanCardLayout } from './handFanLayout';
-import cardBack from '../../assets/onedeck/card-back.svg';
+import { Board } from './Board';
+import { SupportRow } from './SupportRow';
+import { HandRibbon, type HandRibbonController } from './HandRibbon';
+import { StackBand, type StackBandController } from './StackBand';
+import { MulliganStage } from './MulliganStage';
+import { TabletopSurface, CardDragOverlay } from './GameScreen';
+import { cockpitGameState } from './cockpitGameState';
+import { captureDragVisual, type ActiveDragVisual } from './cardDragVisual';
+import { DRAG_UI_START_EVENT, DRAG_UI_END_EVENT } from './dragUiEvents';
+import type { DropTarget } from './dragIntent';
+import './cockpit.css';
+import { AmbientBackdrop } from './AmbientBackdrop';
+import { DanceFloorLights } from './DanceFloorLights';
+import { useShortcuts } from '../../hooks/useShortcuts';
+import { loadKeybindings } from '../../data/keybindings';
+import { CockpitFetchSearch } from './CockpitFetchSearch';
 
 const zoneNames: Record<ZoneId, string> = {
   hand: '手札',
@@ -35,53 +55,6 @@ const phases = {
   cleanup: 'クリンナップ',
 };
 
-function DropZone({
-  zone,
-  className,
-  children,
-  label,
-}: {
-  zone: ZoneId;
-  className: string;
-  children: ReactNode;
-  label?: string;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: zone });
-  return (
-    <div
-      ref={setNodeRef}
-      className={`${className}${isOver ? ' is-drop-target' : ''}`}
-      aria-label={label}
-    >
-      {children}
-    </div>
-  );
-}
-
-function TableWorkPanel({
-  title,
-  open = true,
-  onClose,
-  children,
-}: {
-  title: string;
-  open?: boolean;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <aside className="table-work-panel modal" aria-label={title} hidden={!open}>
-      <header className="modal__header">
-        <h2>{title}</h2>
-        <button className="modal__close" aria-label="作業面を閉じる" onClick={onClose}>
-          ×
-        </button>
-      </header>
-      <div className="modal__body">{children}</div>
-    </aside>
-  );
-}
-
 export function CockpitTableSurface({
   view,
   disabled,
@@ -98,6 +71,10 @@ export function CockpitTableSurface({
   peek,
   openStackEntry,
   activate,
+  modalOpen = false,
+  boardChoice,
+  boardTarget,
+  decision,
 }: {
   view: {
     table: CockpitTable;
@@ -112,16 +89,22 @@ export function CockpitTableSurface({
       peek: object | null;
     };
   };
+  modalOpen?: boolean;
+  boardChoice?: (id: string) => void;
+  boardTarget?: string | null;
+  decision?: ReactNode;
   disabled: boolean;
   pending: boolean;
   selected: string[];
   select: (ids: string[]) => void;
   inspect: (id: string) => void;
   cast: (id: string) => void;
-  activate?: (id: string) => void;
+  activate?: (id: string, choice?: string) => void;
   send: (op: TableOperation | { type: 'undo' } | { type: 'redo' }) => Promise<boolean>;
   openMenu: () => void;
-  children: ReactNode | ((browse: (zone: ZoneId, seatId: string) => void) => ReactNode);
+  children:
+    | ReactNode
+    | ((browse: (zone: ZoneId, seatId: string) => void, workOpen: boolean) => ReactNode);
   peek: (seatId: string, zone: 'hand' | 'library' | null) => Promise<void>;
   seatId: string;
   chooseSeat: (id: string) => void;
@@ -130,6 +113,16 @@ export function CockpitTableSurface({
   const { table, multiplayer: multi } = view;
   const ownId = multi?.ownSeatId ?? table.seats[0].id;
   const own = table.seats.find((seat) => seat.id === ownId)!;
+  const [feed, setFeed] = useState(false);
+  const triggerCount = (table.triggers?.candidates ?? []).filter(
+    (c) => c.status === 'pending',
+  ).length;
+  const triggersReady = readyTableTriggers(table).length > 0;
+  const [handWorkspace, setHandWorkspace] = useState(false);
+  const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
+  const activeDragId = activeDrag?.cardId ?? null;
+  const [cardMenu, setCardMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const displayState = useMemo(() => cockpitGameState(table, ownId), [table, ownId]);
   const [focus, setFocus] = useState<string | null>(null);
   const [pinned, setPinned] = useState(false);
   const [lastTurn, setLastTurn] = useState(table.activeSeatId);
@@ -146,6 +139,8 @@ export function CockpitTableSurface({
   const [zoneViews, setZoneViews] = useState(
     new Map<string, { query: string; page: number; filter: string }>(),
   );
+  const [fetchEntry, setFetchEntry] = useState<string | null>(null);
+  const [reviewTurn, setReviewTurn] = useState(false);
   const [mana, setMana] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [bottomMode, setBottomMode] = useState(false);
@@ -176,7 +171,9 @@ export function CockpitTableSurface({
       .filter((card) => card.zone === 'battlefield' && card.controllerId === id)
       .map((card) => card.id);
   const toggle = (id: string) =>
-    select(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
+    boardChoice
+      ? boardChoice(id)
+      : select(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
   const opening = !own.kept;
   const requiredBottom = Math.min(7, Math.max(0, own.mulligans - 1));
   const openingIds = own.zones.hand.filter((id) => table.cards[id]);
@@ -188,6 +185,76 @@ export function CockpitTableSurface({
     !!table.resolution ||
     !!table.combat ||
     table.stack.length > 0;
+  function prepareTurn() {
+    if (triggersReady) {
+      setFeed(true);
+      return;
+    }
+    if (progressBlocked) return;
+    if (multi) void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' });
+    else if (
+      !table.startProgress &&
+      table.phase !== 'untap' &&
+      ((own.maximumHandSize !== null && own.zones.hand.length > own.maximumHandSize) ||
+        table.grants.length ||
+        table.modifiers.length)
+    )
+      setReviewTurn(true);
+    else void send({ type: 'turn.ready' });
+  }
+  function advancePhase() {
+    if (triggersReady) {
+      setFeed(true);
+      return;
+    }
+    if (table.startProgress) {
+      prepareTurn();
+      return;
+    }
+    if (!progressBlocked) void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' });
+  }
+  async function keepHand(bottom: string[]) {
+    if (!(await send({ type: 'keep', seatId: ownId, bottom }))) return;
+    select([]);
+    setBottomMode(false);
+    // Start only after the keep receipt. A failed start remains resumable from the primary action.
+    if (!multi) await send({ type: 'turn.ready' });
+  }
+  const [keybindings] = useState(loadKeybindings);
+  const keyHint = (key: string) =>
+    ({ ArrowUp: '↑', ArrowLeft: '←', ArrowRight: '→', Enter: '↵', Space: 'Space' })[key] ??
+    key.toUpperCase();
+  const dialogOpen =
+    modalOpen ||
+    feed ||
+    opening ||
+    mana ||
+    reviewTurn ||
+    !!fetchEntry ||
+    handWorkspace ||
+    !!cardMenu;
+  useShortcuts({
+    keybindings,
+    isDialogOpen: dialogOpen,
+    onNextTurn: () => {
+      if (!dialogOpen) prepareTurn();
+    },
+    onNextPhase: () => {
+      if (!dialogOpen) advancePhase();
+    },
+    onDraw: () => {
+      if (!dialogOpen && !disabled) void send({ type: 'draw', seatId: ownId, count: 1 });
+    },
+    onUndo: () => {
+      if (!dialogOpen && !disabled && view.canUndo) void send({ type: 'undo' });
+    },
+    onRedo: () => {
+      if (!dialogOpen && !disabled && view.canRedo) void send({ type: 'redo' });
+    },
+    onRestart: () => {
+      if (!dialogOpen) openMenu();
+    },
+  });
   const opponents = table.seats.filter((seat) => seat.id !== ownId);
   function openZone(next: ZoneId, owner = ownId) {
     if (zone) setZoneViews(new Map(zoneViews).set(`${zoneSeat}:${zone}`, { query, page, filter }));
@@ -206,6 +273,7 @@ export function CockpitTableSurface({
   function quick(id: string) {
     if (disabled || opening) return;
     const card = table.cards[id];
+    if (!card) return;
     const choices =
       card.zone === 'battlefield' && !card.tapped
         ? manaActivationChoices(resources.get(card.controllerId)!, card.controllerId, id)
@@ -236,11 +304,11 @@ export function CockpitTableSurface({
         ? manaActivationChoices(resources.get(instance.controllerId)!, instance.controllerId, id)
         : [];
     const fan = handCount ? handFanCardLayout(index, handCount) : null;
-    const selectable = selectionMode || (opening && bottomMode) || inZone;
+    const selectable = Boolean(boardChoice) || selectionMode || (opening && bottomMode) || inZone;
     return (
       <article
         key={id}
-        className={`table-card${selected.includes(id) ? ' is-selected' : ''}`}
+        className={`table-card${(boardChoice ? boardTarget === id : selected.includes(id)) ? ' is-selected' : ''}`}
         style={
           fan
             ? ({
@@ -257,15 +325,23 @@ export function CockpitTableSurface({
           role="button"
           tabIndex={0}
           aria-label={`《${name(id)}》${selectable ? 'を選択' : 'の詳細'}`}
+          title={selectable ? 'Enter：読む / Space：選択' : 'Enter：読む'}
           onClick={() => {
             setHover(null);
             if (selectable) toggle(id);
             else inspect(id);
           }}
+          onDoubleClick={() => {
+            if (!selectable && !opening) quick(id);
+          }}
           onKeyDown={(event) => {
+            if (event.repeat || event.nativeEvent.isComposing) return;
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              if (selectable) toggle(id);
+              setHover(null);
+              if (event.key === 'Enter') inspect(id);
+              else if (selectable) toggle(id);
+              else if (!opening) quick(id);
               else inspect(id);
             }
           }}
@@ -285,7 +361,9 @@ export function CockpitTableSurface({
             instance={instance}
             def={table.defs[instance.defId]}
             size="hand"
-            draggable={!disabled && !opening && !inZone && instance.ownerId === ownId}
+            draggable={
+              !disabled && !opening && !inZone && !selectable && instance.ownerId === ownId
+            }
             onContextMenu={(event) => {
               event.preventDefault();
               setHover(null);
@@ -297,13 +375,13 @@ export function CockpitTableSurface({
           <button
             className="table-card__selection"
             aria-label={`《${name(id)}》の選択を変更`}
-            aria-pressed={selected.includes(id)}
+            aria-pressed={boardChoice ? boardTarget === id : selected.includes(id)}
             onClick={() => toggle(id)}
           >
             {selected.includes(id) ? selected.indexOf(id) + 1 : '選択'}
           </button>
         )}
-        {!opening && !inZone && (
+        {!opening && !inZone && !selectable && (
           <button className="table-card__quick" disabled={disabled} onClick={() => quick(id)}>
             {instance.zone === 'battlefield'
               ? instance.tapped
@@ -473,19 +551,175 @@ export function CockpitTableSurface({
   const visiblePage = Math.min(page, lastPage);
   const top = table.stack[0];
   const current = resolution ?? top;
+  const fetchable = top && (!multi || top.controllerId === ownId) && tableFetchAbility(table, top);
+  const permanent =
+    top?.kind === 'spell' &&
+    /Creature|Artifact|Enchantment|Planeswalker|Battle/.test(
+      table.defs[top.source.defId]?.faces[top.source.faceIndex]?.typeLine ?? '',
+    );
+  const resolveLabel = resolution
+    ? '効果の処理に戻る'
+    : fetchable
+      ? '解決して土地を探す'
+      : permanent
+        ? '解決して戦場に出す'
+        : '効果を処理する';
+  function resolveTop(manual = false) {
+    if (triggersReady) {
+      setFeed(true);
+      return;
+    }
+    if (disabled || table.hold || !top) return;
+    if (resolution) {
+      setWork(true);
+      return;
+    }
+    if (!manual && fetchable) {
+      setPanel(null);
+      setFetchEntry(top.id);
+      return;
+    }
+    if (!manual && permanent) {
+      void send({ type: 'resolve.finish', entryId: top.id, to: 'battlefield' }).then((saved) => {
+        if (saved) setStack(false);
+      });
+      return;
+    }
+    setDestination(permanent ? 'battlefield' : 'graveyard');
+    void send({ type: 'resolve.begin' }).then((saved) => {
+      if (saved) setWork(true);
+    });
+  }
+
   const sourceName = current
     ? (table.defs[current.source.defId]?.printedName ?? table.defs[current.source.defId]?.name)
     : '';
+  const sourceId = (id: string) => table.stack.find((entry) => entry.id === id)?.source.id ?? id;
+  const openCardMenuAt = (id: string, x: number, y: number) => {
+    if (table.stack.some((entry) => entry.id === id)) {
+      openStackEntry?.(id);
+      return;
+    }
+    setCardMenu({
+      id,
+      x: Math.max(8, Math.min(x, window.innerWidth - 210)),
+      y: Math.max(8, Math.min(y, window.innerHeight - 230)),
+    });
+  };
+  const controller: HandRibbonController & StackBandController = {
+    state: displayState,
+    libraryCount: multi?.counts[ownId]?.library,
+    libraryActionsOpen: panel === 'zone' && zone === 'library',
+    motionArmed: false, // Confirmed Cockpit commits own the shared motion and sound.
+    mulliganDecisionPending: opening,
+    transitionCue: null,
+    openCardMenu: (id, event) => {
+      event.preventDefault();
+      openCardMenuAt(id, event.clientX, event.clientY);
+    },
+    openCardMenuAt,
+    handleCardDoubleClick: (id) => {
+      if (sourceId(id) !== id) openStackEntry?.(id);
+      else quick(id);
+    },
+    requestTapForMana: (id) => quick(id),
+    requestActivateAbility: (id, line) => {
+      if (disabled || opening) return;
+      const choice = tableAbilityChoices(table, id).find((item) => item.key === String(line));
+      if (choice && activate) activate(id, choice.key);
+      else quick(id);
+    },
+    requestToggleTap: (id) => {
+      if (!disabled && !opening && table.cards[id]?.zone === 'battlefield')
+        void send({ type: 'tap', ids: [id], tapped: !table.cards[id].tapped });
+    },
+    requestToggleTapMany: (ids) => {
+      if (disabled || opening) return false;
+      const untapped = ids.filter((id) => !table.cards[id]?.tapped);
+      const entries = untapped.map((id) => ({
+        cardId: id,
+        commands: (() => {
+          const choices = manaActivationChoices(resources.get(ownId)!, ownId, id);
+          return choices.length === 1 ? choices[0] : [];
+        })(),
+      }));
+      if (
+        entries.length &&
+        entries.every(
+          (entry) =>
+            entry.commands.length &&
+            entry.commands.every((cmd) => cmd.type === 'setTapped' || cmd.type === 'addMana'),
+        )
+      )
+        void send({ type: 'generateBatch', entries });
+      else if (!untapped.length) void send({ type: 'tap', ids: [...ids], tapped: false });
+      else {
+        select([...ids]);
+        setWork(true);
+      }
+      return true;
+    },
+    decisionFocus:
+      boardChoice || selectionMode
+        ? {
+            kind: 'target',
+            title: 'カードを選ぶ',
+            instruction: '',
+            candidateIds: Object.keys(table.cards),
+            selectedIds: boardChoice ? (boardTarget ? [boardTarget] : []) : selected,
+          }
+        : null,
+    chooseDecisionCard: toggle,
+    toggleSelectedDecisions: true,
+    openLibraryActions: () => openZone('library'),
+    openZoneViewer: (next) => openZone(next),
+    requestDraw: (count) => {
+      if (!disabled && !opening) void send({ type: 'draw', seatId: ownId, count });
+    },
+    resolutionSession: null,
+    setManualTargets: (id) => openStackEntry?.(id),
+    removeStackItem: (id, to = 'graveyard') => {
+      if (!disabled) void send({ type: 'stack.remove', entryId: id, to });
+    },
+    completeManualResolution: () => setWork(true),
+  };
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={() => setHover(null)}
+      onDragStart={(event) => {
+        const id = String(event.active.id);
+        const instance = displayState.cards[id];
+        const def = instance && displayState.defs[instance.defId];
+        if (!instance || !def || disabled || opening) return;
+        setHover(null);
+        setCardMenu(null);
+        setActiveDrag(captureDragVisual(event, id, instance, def));
+        document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
+      }}
+      onDragCancel={() => {
+        setActiveDrag(null);
+        document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
+      }}
       onDragEnd={({ active, over }) => {
+        setActiveDrag(null);
+        document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
         if (disabled || opening || !over) return;
         const id = String(active.id);
         const instance = table.cards[id];
-        const to = over.id as ZoneId;
-        if (!instance || instance.zone === to) return;
+        const drop = over.data.current?.dropTarget as DropTarget | undefined;
+        const to =
+          drop?.kind === 'cast'
+            ? 'stack'
+            : drop?.kind === 'play-land'
+              ? 'battlefield'
+              : drop?.kind === 'move-zone'
+                ? drop.zone
+                : (over.id as ZoneId);
+        if (!instance || instance.zone === to || instance.zone === 'stack') return;
+        if (to === 'stack') {
+          if (!isLand(id)) cast(id);
+          return;
+        }
         if (
           to === 'battlefield' &&
           (instance.zone === 'hand' || instance.zone === 'command') &&
@@ -495,16 +729,138 @@ export function CockpitTableSurface({
         else void send({ type: 'move', ids: [id], to, position: 'top' });
       }}
     >
-      <div className="table-mobile-notice">
-        <strong>OneDeck</strong>
-        <p>対戦卓はPCの広い画面でご利用ください。</p>
-        <button onClick={openMenu}>メニュー</button>
-      </div>
-      <div className="table-layout">
+      {multi && (
+        <div className="table-mobile-notice">
+          <strong>OneDeck</strong>
+          <p>対戦卓はPCの広い画面でご利用ください。</p>
+          <button onClick={openMenu}>メニュー</button>
+        </div>
+      )}
+      <div
+        className={`game-screen cockpit-table-restored${multi ? ' game-screen--cockpit cockpit-table-restored--multiplayer' : ''}`}
+        data-mulligan-active={opening || undefined}
+        data-hand-workspace-open={handWorkspace || undefined}
+        data-drag-active={!!activeDragId || undefined}
+        data-stack-active={!!table.stack.length || undefined}
+        data-combat={!!table.combat || table.phase === 'combat' || undefined}
+        data-decision-active={!!decision || selectionMode || undefined}
+        data-commander-on-battlefield={
+          Object.values(table.cards).some(
+            (item) =>
+              item.isCommander && item.controllerId === ownId && item.zone === 'battlefield',
+          ) || undefined
+        }
+      >
+        <TabletopSurface />
+        <AmbientBackdrop />
+        <DanceFloorLights controller={controller} />
+        {!multi && (
+          <div className="game-screen__status">
+            <div className="status-band" data-testid="status-band">
+              <div className="status-band__turn">
+                <span className="status-band__turn-label">T</span>
+                <strong data-testid="turn-indicator">{table.turn}</strong>
+              </div>
+              <div
+                className="status-band__phases"
+                data-testid="phase-indicator"
+                data-phase={table.phase}
+              >
+                <strong className="status-band__phase-current">{phases[table.phase]}</strong>
+                {Object.entries(phases).map(([phase, label], index) => (
+                  <span
+                    key={phase}
+                    className={`status-band__phase${phase === table.phase ? ' is-active' : ''}`}
+                    title={label}
+                  >
+                    {['解', '維', '引', '1', '戦', '2', '終', '整'][index]}
+                  </span>
+                ))}
+              </div>
+              <div className="status-band__mana" aria-label="マナプール色別調整">
+                <button
+                  className="status-band__mana-total table-mana-toggle"
+                  title="マナの詳細"
+                  onClick={() => setMana(true)}
+                >
+                  <strong>{manaColors.reduce((sum, color) => sum + own.mana[color], 0)}</strong>
+                </button>
+                <span className="status-band__mana-colors">
+                  {manaColors.map((color, index) => (
+                    <span
+                      key={color}
+                      className="status-band__mana-stepper"
+                      data-mana={color}
+                      data-empty={own.mana[color] === 0}
+                    >
+                      <button
+                        disabled={disabled || opening || own.mana[color] === 0}
+                        aria-label={`${color}マナを1減らす`}
+                        onClick={() => void send({ type: 'mana', seatId: ownId, color, delta: -1 })}
+                      >
+                        −
+                      </button>
+                      <span>
+                        {['白', '青', '黒', '赤', '緑', '無'][index]}
+                        <strong>{own.mana[color]}</strong>
+                      </span>
+                      <button
+                        disabled={disabled || opening}
+                        aria-label={`${color}マナを1増やす`}
+                        onClick={() => void send({ type: 'mana', seatId: ownId, color, delta: 1 })}
+                      >
+                        ＋
+                      </button>
+                    </span>
+                  ))}
+                </span>
+              </div>
+              <div className="status-band__right-actions" data-player-seat={ownId}>
+                <div className="status-band__life-cluster">
+                  <button
+                    className="status-band__life-adjust"
+                    title="ライフを1減らす"
+                    disabled={disabled || opening}
+                    onClick={() => void send({ type: 'life', seatIds: [ownId], delta: -1 })}
+                  >
+                    −
+                  </button>
+                  <strong
+                    className="status-band__life"
+                    data-testid="life-value"
+                    aria-label={`ライフ${own.life}`}
+                  >
+                    <span className="status-band__life-heart">♥</span>
+                    {own.life}
+                  </strong>
+                  <button
+                    className="status-band__life-adjust"
+                    title="ライフを1増やす"
+                    disabled={disabled || opening}
+                    onClick={() => void send({ type: 'life', seatIds: [ownId], delta: 1 })}
+                  >
+                    ＋
+                  </button>
+                </div>
+                <button
+                  className="status-band__bell"
+                  title="Feed"
+                  aria-label={`Feed（未処理${triggerCount}件）`}
+                  onClick={() => setFeed(true)}
+                >
+                  <Icon name="bell" />
+                  {triggerCount > 0 && <span className="status-band__badge">{triggerCount}</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <section className="table-opponents" aria-label="相手の席">
+          {!multi && <span>一人回し · ターン {table.turn}</span>}
           {opponents.map((opponent) => (
             <div
               key={opponent.id}
+              data-player-seat={opponent.id}
               className={`table-opponent${opponent.id === table.activeSeatId ? ' is-active' : ''}`}
             >
               <button
@@ -515,7 +871,7 @@ export function CockpitTableSurface({
                 }}
               >
                 <strong>
-                  {opponent.label}
+                  {multi ? opponent.label : '仮想の対戦相手'}
                   {opponent.eliminated ? '・脱落' : ''}
                 </strong>
                 <small>
@@ -526,15 +882,36 @@ export function CockpitTableSurface({
                 </small>
               </button>
               <span className="table-opponent__life">{opponent.life}</span>
-              <span title="手札">
-                手札 {multi?.counts[opponent.id]?.hand ?? opponent.zones.hand.length}
-              </span>
-              <button
-                title={`${opponent.label}の墓地`}
-                onClick={() => openZone('graveyard', opponent.id)}
-              >
-                <Icon name="graveyard" /> {opponent.zones.graveyard.length}
-              </button>
+              {multi && (
+                <span
+                  className="table-opponent__resources"
+                  title="アンタップのクリーチャー / 全クリーチャー・アンタップの土地 / 全土地"
+                >
+                  {(() => {
+                    const cards = Object.values(table.cards).filter(
+                      (card) => card.zone === 'battlefield' && card.controllerId === opponent.id,
+                    );
+                    const creatures = cards.filter((card) =>
+                      /Creature/.test(face(card.id)?.typeLine ?? ''),
+                    );
+                    const lands = cards.filter((card) => isLand(card.id));
+                    return `生物 ${creatures.filter((card) => !card.tapped).length}/${creatures.length} · 土地 ${lands.filter((card) => !card.tapped).length}/${lands.length}`;
+                  })()}
+                </span>
+              )}
+              {multi && (
+                <span title="手札">
+                  手札 {multi?.counts[opponent.id]?.hand ?? opponent.zones.hand.length}
+                </span>
+              )}
+              {multi && (
+                <button
+                  title={`${opponent.label}の墓地`}
+                  onClick={() => openZone('graveyard', opponent.id)}
+                >
+                  <Icon name="graveyard" /> {opponent.zones.graveyard.length}
+                </button>
+              )}
             </div>
           ))}
         </section>
@@ -558,251 +935,360 @@ export function CockpitTableSurface({
             ))
           )}
         </section>
-        <DropZone zone="battlefield" className="table-home" label="自分の戦場">
-          {board(ownId)}
-        </DropZone>
-        <section className="table-hand-edge">
-          <div className="table-zones" aria-label="卓上の領域">
-            <div>
-              <button
-                className="table-library"
-                data-testid="library-tile"
-                title="山札を見る"
-                onClick={() => openZone('library')}
-              >
-                <img src={cardBack} alt="山札" />
-                <b>{multi?.counts[ownId]?.library ?? own.zones.library.length}</b>
-              </button>
-              <button
-                disabled={disabled || opening}
-                onClick={() => void send({ type: 'draw', seatId: ownId, count: 1 })}
-              >
-                1枚引く
-              </button>
-            </div>
-            {(['graveyard', 'exile'] as const).map((item) => (
-              <DropZone key={item} zone={item} className="table-zone-drop">
-                <button
-                  className="table-zone"
-                  key={item}
-                  onClick={() => openZone(item)}
-                  title={zoneNames[item]}
-                >
-                  <Icon name={item} />
-                  <span>{zoneNames[item]}</span>
-                  <b>{own.zones[item].length}</b>
-                </button>
-              </DropZone>
-            ))}
-          </div>
-          <div
-            className="table-hand"
-            data-testid="hand-ribbon"
-            aria-label="自分の手札"
-            style={{ '--hand-count': openingIds.length } as CSSProperties}
-            hidden={opening}
+        <div className="game-screen__board table-home">
+          <button
+            className="restored-board-index"
+            title="戦場を検索・選択"
+            onClick={() => openZone('battlefield')}
           >
-            {openingIds.length > 15 ? (
-              <button className="table-large-hand" onClick={() => openZone('hand')}>
-                <Icon name="library" />
-                <strong>手札 {openingIds.length}枚</strong>
-                <span>一覧を開く</span>
-              </button>
-            ) : (
-              openingIds.map((id, index) => card(id, index, openingIds.length))
-            )}
-          </div>
-          <div className="table-self">
-            <div className="table-command" data-testid="commander-altar">
-              {own.zones.command.map((id) => card(id))}
-            </div>
+            <Icon name="search" />
+            戦場一覧
+          </button>
+          <Board controller={controller} activeDragId={activeDragId} />
+        </div>
+        <div className="game-screen__support">
+          <SupportRow controller={controller} activeDragId={activeDragId} />
+        </div>
+        <div className="game-screen__hand" hidden={opening}>
+          <HandRibbon
+            controller={controller}
+            workspaceOpen={handWorkspace}
+            onSearch={() => {
+              setHandWorkspace(false);
+              openZone('hand');
+            }}
+            onOpenWorkspace={() => setHandWorkspace(true)}
+            onCloseWorkspace={() => setHandWorkspace(false)}
+          />
+        </div>
+        {multi && (
+          <div className="restored-life" aria-label="ライフ" data-player-seat={ownId}>
             <button
-              className="table-self__identity"
-              onClick={() => openZone('command')}
-              title="統率者の所在と税"
+              title="ライフを1減らす"
+              disabled={disabled}
+              onClick={() => void send({ type: 'life', seatIds: [ownId], delta: -1 })}
             >
-              {Object.values(table.cards)
-                .filter((item) => item.ownerId === ownId && item.isCommander)
-                .map((item) => `《${name(item.id)}》`)
-                .join(' / ') || own.label}
+              −
             </button>
-            <div className="table-life">
-              <button
-                title="ライフを1減らす"
-                disabled={disabled}
-                onClick={() => void send({ type: 'life', seatIds: [ownId], delta: -1 })}
-              >
-                −
-              </button>
-              <strong>{own.life}</strong>
-              <button
-                title="ライフを1増やす"
-                disabled={disabled}
-                onClick={() => void send({ type: 'life', seatIds: [ownId], delta: 1 })}
-              >
-                ＋
-              </button>
-            </div>
-          </div>
-        </section>
-        <footer className="table-progress" aria-label="進行">
-          <button
-            title="元に戻す"
-            aria-label="元に戻す"
-            disabled={disabled || !view.canUndo}
-            onClick={() => void send({ type: 'undo' })}
-          >
-            <Icon name="undo" />
-          </button>
-          <button
-            title="やり直す"
-            aria-label="やり直す"
-            disabled={disabled || !view.canRedo}
-            onClick={() => void send({ type: 'redo' })}
-          >
-            <Icon name="redo" />
-          </button>
-          <button title="手札を展開" onClick={() => openZone('hand')}>
-            <Icon name="stack" />
-          </button>
-          <button
-            className="table-mana-toggle"
-            title="マナを増減する"
-            onClick={() => setMana(true)}
-          >
-            マナ {manaColors.reduce((sum, color) => sum + own.mana[color], 0)}
-          </button>
-          <button aria-pressed={selectionMode} onClick={() => setSelectionMode(!selectionMode)}>
-            複数選択{selected.length ? ` ${selected.length}` : ''}
-          </button>
-          <div className="table-progress__phase">
-            {opening ? (
-              '初手を検討'
-            ) : (
-              <>
-                <strong>
-                  {table.seats.find((seat) => seat.id === table.activeSeatId)?.label}のターン
-                </strong>
-                <span>
-                  ターン {table.turn} · {phases[table.phase]}
-                </span>
-              </>
-            )}
-          </div>
-          {(current || table.stack.length > 0) && (
+            <strong data-testid="life-value">{own.life}</strong>
             <button
-              className="table-progress__source"
-              data-testid="stack-band"
-              onClick={() => setStack(true)}
+              title="ライフを1増やす"
+              disabled={disabled}
+              onClick={() => void send({ type: 'life', seatIds: [ownId], delta: 1 })}
+            >
+              ＋
+            </button>
+          </div>
+        )}
+        <div className="game-screen__stack">
+          <StackBand controller={controller} cockpit onEditTargets={openStackEntry} />
+        </div>
+        {!multi ? (
+          <div className="game-screen__thumb">
+            <footer className="thumb-zone" aria-label="進行">
+              <button
+                className="thumb-zone__icon-btn"
+                title={`元に戻す (${keyHint(keybindings.undo)})`}
+                aria-label="元に戻す"
+                disabled={disabled || opening || !view.canUndo}
+                onClick={() => void send({ type: 'undo' })}
+              >
+                <Icon name="undo" />
+              </button>
+              <button
+                className="thumb-zone__icon-btn"
+                title={`やり直す (${keyHint(keybindings.redo)})`}
+                aria-label="やり直す"
+                disabled={disabled || opening || !view.canRedo}
+                onClick={() => void send({ type: 'redo' })}
+              >
+                <Icon name="redo" />
+              </button>
+              <button
+                className={`thumb-zone__primary${current ? ' thumb-zone__primary--stack' : ' thumb-zone__primary--advance'}`}
+                data-testid="primary-action"
+                aria-label={
+                  resolution
+                    ? '処理に戻る'
+                    : triggersReady
+                      ? '誘発を確認'
+                      : top
+                        ? '解決'
+                        : table.combat
+                          ? '戦闘に戻る'
+                          : table.phase === 'untap' || table.startProgress
+                            ? 'ターン開始'
+                            : table.phase === 'main1'
+                              ? '戦闘'
+                              : '次へ'
+                }
+                disabled={disabled || opening || table.hold || !!boardChoice}
+                onClick={() => {
+                  if (resolution) setWork(true);
+                  else if (triggersReady) setFeed(true);
+                  else if (top) resolveTop();
+                  else if (table.combat) setWork(true);
+                  else if (table.phase === 'untap' || table.startProgress) prepareTurn();
+                  else advancePhase();
+                }}
+              >
+                <Icon name={current ? 'stack' : 'phase-next'} />
+                <span>
+                  {resolution
+                    ? '処理'
+                    : triggersReady
+                      ? '誘発'
+                      : top
+                        ? '解決'
+                        : table.combat
+                          ? '戦闘'
+                          : table.phase === 'untap' || table.startProgress
+                            ? '開始'
+                            : table.phase === 'main1'
+                              ? '戦闘'
+                              : '次へ'}
+                </span>
+              </button>
+              <button
+                className="thumb-zone__icon-btn"
+                title="次のターン"
+                disabled={progressBlocked}
+                onClick={prepareTurn}
+              >
+                <Icon name="turn-next" />
+              </button>
+              <button
+                className="thumb-zone__icon-btn"
+                title="操作"
+                aria-label="操作"
+                onClick={() => setWork(true)}
+              >
+                <Icon name="search" />
+                <span className="sr-only">操作</span>
+              </button>
+              <button
+                className="thumb-zone__icon-btn"
+                title="メニュー"
+                aria-label="メニュー"
+                onClick={openMenu}
+              >
+                <Icon name="menu" />
+              </button>
+            </footer>
+          </div>
+        ) : (
+          <footer className="table-progress game-screen__thumb" aria-label="進行">
+            <button
+              title={`元に戻す (${keyHint(keybindings.undo)})`}
+              aria-label="元に戻す"
+              disabled={disabled || !view.canUndo}
+              onClick={() => void send({ type: 'undo' })}
+            >
+              <Icon name="undo" />
+            </button>
+            <button
+              title={`やり直す (${keyHint(keybindings.redo)})`}
+              aria-label="やり直す"
+              disabled={disabled || !view.canRedo}
+              onClick={() => void send({ type: 'redo' })}
+            >
+              <Icon name="redo" />
+            </button>
+            <button
+              title="手札を展開"
+              onClick={() => {
+                setPanel(null);
+                setHandWorkspace(true);
+              }}
             >
               <Icon name="stack" />
-              {resolution ? '解決中' : `スタック ${table.stack.length}`} · 《{sourceName}》
             </button>
-          )}
-          <button onClick={() => setWork(true)}>
-            {table.combat ? '戦闘に戻る' : selected.length ? '選択を操作' : '操作'}
-          </button>
-          {multi && (
-            <button onClick={openMenu}>
-              {multi.paused
-                ? '復帰待ち'
-                : !multi.started
-                  ? '全員の準備・開始'
-                  : multi.canOperate
-                    ? '操作の受渡し'
-                    : '応答したい'}
+            <button
+              className="table-mana-toggle"
+              title="色別のマナ・プール"
+              aria-label={`マナ・プール ${manaColors.reduce((sum, color) => sum + own.mana[color], 0)}点`}
+              onClick={() => setMana(true)}
+            >
+              <span aria-hidden="true">
+                ◇ {manaColors.reduce((sum, color) => sum + own.mana[color], 0)}
+              </span>
+              <span className="restored-mana-colors">
+                {manaColors.map((color, index) => (
+                  <span
+                    key={color}
+                    data-mana={color}
+                    data-empty={own.mana[color] === 0}
+                    title={`${['白', '青', '黒', '赤', '緑', '無色'][index]} ${own.mana[color]}点`}
+                  >
+                    <i>{['白', '青', '黒', '赤', '緑', '◇'][index]}</i>
+                    <b>{own.mana[color]}</b>
+                  </span>
+                ))}
+              </span>
             </button>
-          )}
-          <button
-            className="table-progress__next"
-            disabled={progressBlocked}
-            onClick={() => void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' })}
-          >
-            {table.phase === 'cleanup'
-              ? '次のターンへ'
-              : table.phase === 'main1'
-                ? '戦闘へ'
-                : '次へ'}
-            <Icon name="phase-next" />
-          </button>
-          <button title="メニュー・保存" aria-label="メニュー" onClick={openMenu}>
-            <Icon name="menu" />
-          </button>
-        </footer>
-      </div>
-      {opening && (
-        <Modal
-          title={bottomMode ? `山札の下へ戻す${requiredBottom}枚を選択` : '最初の手札'}
-          width="xl"
-        >
-          <div className="table-opening" aria-label="初手7枚">
-            {openingIds.map((id) => card(id))}
-          </div>
-          <div className="table-opening__actions">
-            <span>
-              {own.mulligans
-                ? `引き直し ${own.mulligans}回 · キープ ${7 - requiredBottom}枚`
-                : '初手7枚 · 最初の引き直しは無料'}
-            </span>
-            {bottomMode && (
+            <button aria-pressed={selectionMode} onClick={() => setSelectionMode(!selectionMode)}>
+              複数選択{selected.length ? ` ${selected.length}` : ''}
+            </button>
+            <div className="table-progress__phase">
+              {opening ? (
+                '初手を検討'
+              ) : (
+                <>
+                  <strong>
+                    {table.seats.find((seat) => seat.id === table.activeSeatId)?.label}のターン
+                  </strong>
+                  <span>
+                    ターン {table.turn} · {phases[table.phase]}
+                  </span>
+                </>
+              )}
+            </div>
+            {(current || table.stack.length > 0) && (
+              <button className="table-progress__source" onClick={() => setStack(true)}>
+                <Icon name="stack" />
+                {resolution ? '解決中' : `スタック ${table.stack.length}`} · 《{sourceName}》
+              </button>
+            )}
+            <button aria-label={`Feed（未処理${triggerCount}件）`} onClick={() => setFeed(true)}>
+              <Icon name="bell" />
+              {triggerCount || 'Feed'}
+            </button>
+            {top && (
+              <button
+                className="restored-resolve"
+                disabled={disabled || table.hold}
+                onClick={() => resolveTop()}
+              >
+                {resolution ? '処理に戻る' : triggersReady ? '誘発を確認' : '解決'}
+                <Icon name="stack" />
+              </button>
+            )}
+            <button onClick={() => setWork(true)}>
+              {table.combat ? '戦闘に戻る' : selected.length ? '選択を操作' : '操作'}
+            </button>
+            {multi && (
+              <button onClick={openMenu}>
+                {multi.paused
+                  ? '復帰待ち'
+                  : !multi.started
+                    ? '全員の準備・開始'
+                    : multi.canOperate
+                      ? '操作の受渡し'
+                      : '応答したい'}
+              </button>
+            )}
+            {!multi && (
+              <button disabled={progressBlocked} onClick={advancePhase}>
+                {table.phase === 'main1' ? '戦闘へ' : '次へ'}{' '}
+                <kbd aria-hidden="true">{keyHint(keybindings.nextPhase)}</kbd>
+              </button>
+            )}
+            <button
+              className="table-progress__next"
+              disabled={progressBlocked}
+              onClick={prepareTurn}
+            >
+              {!multi
+                ? table.phase === 'untap'
+                  ? 'ターン開始'
+                  : '次のターン'
+                : table.phase === 'cleanup'
+                  ? '次のターンへ'
+                  : table.phase === 'main1'
+                    ? '戦闘へ'
+                    : '次へ'}
+              <Icon name="phase-next" />
+              <kbd aria-hidden="true">{keyHint(keybindings.nextTurn)}</kbd>
+            </button>
+            <button title="メニュー・保存" aria-label="メニュー" onClick={openMenu}>
+              <Icon name="menu" />
+            </button>
+          </footer>
+        )}
+        {(decision || selectionMode) && (
+          <div className="game-screen__decision restored-decision" aria-label="盤面で選択">
+            {decision || <span>選択 {selected.length}枚</span>}
+            {selectionMode && (
               <button
                 onClick={() => {
-                  setBottomMode(false);
+                  setSelectionMode(false);
                   select([]);
                 }}
               >
-                判断に戻る
+                選択を終える
               </button>
             )}
-            <button
-              disabled={!canKeep || !openingIds.length}
-              onClick={() => {
-                void send({
-                  type: 'mulligan',
-                  seatId: ownId,
-                  seed: crypto.getRandomValues(new Uint32Array(1))[0],
-                }).then((saved) => {
-                  if (saved) {
-                    select([]);
-                    setBottomMode(false);
-                  }
-                });
-              }}
-            >
-              マリガン
-            </button>
-            <button
-              className="table-progress__next"
-              disabled={
-                !canKeep ||
-                !openingIds.length ||
-                (bottomMode &&
-                  selected.filter((id) => openingIds.includes(id)).length !== requiredBottom)
-              }
-              onClick={() => {
-                if (requiredBottom && !bottomMode) {
-                  select([]);
-                  setBottomMode(true);
-                  return;
-                }
-                void send({
-                  type: 'keep',
-                  seatId: ownId,
-                  bottom: selected.filter((id) => openingIds.includes(id)),
-                }).then((saved) => {
-                  if (saved) {
-                    select([]);
-                    setBottomMode(false);
-                  }
-                });
-              }}
-            >
-              {bottomMode ? 'この初手で始める' : '初手をキープ'}
-            </button>
           </div>
-        </Modal>
+        )}
+        {opening && (
+          <MulliganStage
+            key={`${ownId}:${own.mulligans}:${bottomMode}`}
+            state={displayState}
+            suspended={modalOpen}
+            onMenu={multi ? openMenu : undefined}
+            mode={bottomMode ? 'bottom' : 'decision'}
+            bottomCount={requiredBottom}
+            disabled={!canKeep}
+            onMulligan={() =>
+              void send({
+                type: 'mulligan',
+                seatId: ownId,
+                seed: crypto.getRandomValues(new Uint32Array(1))[0],
+              }).then((saved) => {
+                if (saved) {
+                  select([]);
+                  setBottomMode(false);
+                }
+              })
+            }
+            onKeep={() => {
+              if (requiredBottom) setBottomMode(true);
+              else void keepHand([]);
+            }}
+            onBack={() => setBottomMode(false)}
+            onBottomConfirm={(bottom) => void keepHand(bottom)}
+          />
+        )}
+      </div>
+      {cardMenu && (
+        <ContextMenu
+          x={cardMenu.x}
+          y={cardMenu.y}
+          title={`《${name(cardMenu.id)}》`}
+          onClose={() => setCardMenu(null)}
+          items={[
+            {
+              key: 'primary',
+              label:
+                table.cards[cardMenu.id]?.zone === 'battlefield'
+                  ? isLand(cardMenu.id) && !table.cards[cardMenu.id].tapped
+                    ? 'マナを出す'
+                    : table.cards[cardMenu.id].tapped
+                      ? 'アンタップ'
+                      : 'タップ／起動'
+                  : isLand(cardMenu.id)
+                    ? '土地を置く'
+                    : '唱える',
+              disabled: disabled || opening,
+              onSelect: () => quick(cardMenu.id),
+            },
+            { key: 'inspect', label: '詳細・その他の操作', onSelect: () => inspect(cardMenu.id) },
+            {
+              key: 'select',
+              label: '選択する',
+              onSelect: () => {
+                toggle(cardMenu.id);
+                setSelectionMode(true);
+              },
+            },
+          ]}
+        />
       )}
-      <nav className="table-work-nav" aria-label="作業面">
+      <nav
+        className="table-work-nav"
+        aria-label="作業面"
+        hidden={opening || handWorkspace || (!panel && !zone)}
+      >
         <button aria-pressed={work} onClick={() => setWork(true)}>
           操作 · 選択 {selected.length}
         </button>
@@ -814,12 +1300,12 @@ export function CockpitTableSurface({
             {zoneNames[zone]}に戻る
           </button>
         )}
-        {!panel && <p>領域やカードを選んで操作。作業を閉じても未確定の入力は残ります。</p>}
       </nav>
       {zone && (
         <TableWorkPanel
+          wide
           title={zoneNames[zone]}
-          open={panel === 'zone'}
+          open={panel === 'zone' && !feed}
           onClose={() => setPanel(null)}
         >
           {multi && (zone === 'library' || (zone === 'hand' && zoneSeat !== ownId)) && (
@@ -839,7 +1325,9 @@ export function CockpitTableSurface({
           )}
           <nav className="table-zone-tabs">
             {[
-              ...table.seats.map((seat) => ({ id: seat.id, label: seat.label })),
+              ...table.seats
+                .filter((seat) => multi || seat.id === ownId)
+                .map((seat) => ({ id: seat.id, label: seat.label })),
               ...(['graveyard', 'exile', 'battlefield'].includes(zone)
                 ? [{ id: 'all', label: '全員' }]
                 : []),
@@ -910,37 +1398,57 @@ export function CockpitTableSurface({
               検索結果を全選択 ({zoneIds.length})
             </button>
           </nav>
-          <div className="table-zone-cards">
-            <div className="table-zone-cards__row">
-              {zoneIds.slice(visiblePage * 24, (visiblePage + 1) * 24).map((id) => (
-                <div key={id}>
-                  {zone === 'hand' && zoneSeat === ownId && openingIds.length <= 15 ? (
-                    <div className="table-hand-index" data-card-id={id}>
-                      <button aria-pressed={selected.includes(id)} onClick={() => toggle(id)}>
-                        《{name(id)}》
-                      </button>
-                      <button aria-label={`《${name(id)}》を読む`} onClick={() => inspect(id)}>
-                        <Icon name="info" />
+          <div className="table-zone-comparison">
+            <div className="table-zone-cards">
+              <div className="table-zone-cards__row">
+                {zoneIds.slice(visiblePage * 24, (visiblePage + 1) * 24).map((id) => (
+                  <div key={id}>
+                    {zone === 'hand' && zoneSeat === ownId && openingIds.length <= 15 ? (
+                      <div className="table-hand-index" data-card-id={id}>
+                        <button
+                          aria-pressed={boardChoice ? boardTarget === id : selected.includes(id)}
+                          onClick={() => toggle(id)}
+                        >
+                          《{name(id)}》
+                        </button>
+                        <button aria-label={`《${name(id)}》を読む`} onClick={() => inspect(id)}>
+                          <Icon name="info" />
+                        </button>
+                      </div>
+                    ) : (
+                      card(id, 0, 0, true)
+                    )}
+                    <small>
+                      {
+                        table.seats.find(
+                          (seat) =>
+                            seat.id ===
+                            (zone === 'battlefield'
+                              ? table.cards[id].controllerId
+                              : table.cards[id].ownerId),
+                        )?.label
+                      }
+                    </small>
+                  </div>
+                ))}
+              </div>
+              {!zoneIds.length && <p>該当するカードはありません</p>}
+            </div>
+            <aside className="table-zone-selection" aria-label="選択したカード">
+              <h3>選択したカード · {selected.length}枚</h3>
+              {selected.map(
+                (id) =>
+                  table.cards[id] && (
+                    <div key={id}>
+                      <button onClick={() => inspect(id)}>《{name(id)}》を読む</button>
+                      <button aria-label={`《${name(id)}》の選択を外す`} onClick={() => toggle(id)}>
+                        選択を外す
                       </button>
                     </div>
-                  ) : (
-                    card(id, 0, 0, true)
-                  )}
-                  <small>
-                    {
-                      table.seats.find(
-                        (seat) =>
-                          seat.id ===
-                          (zone === 'battlefield'
-                            ? table.cards[id].controllerId
-                            : table.cards[id].ownerId),
-                      )?.label
-                    }
-                  </small>
-                </div>
-              ))}
-            </div>
-            {!zoneIds.length && <p>該当するカードはありません</p>}
+                  ),
+              )}
+              {!selected.length && <p>左の一覧でカードを選んでください。</p>}
+            </aside>
           </div>
           <div className="table-opening__actions">
             <span>選択 {selected.length}枚</span>
@@ -958,23 +1466,104 @@ export function CockpitTableSurface({
         </TableWorkPanel>
       )}
       <TableWorkPanel
-        open={work}
+        open={work && !feed}
         title={resolution ? `《${sourceName}》の処理` : '卓の操作'}
         onClose={() => setWork(false)}
       >
-        <label>
-          操作するプレイヤー{' '}
-          <select value={seatId} onChange={(event) => chooseSeat(event.target.value)}>
-            {table.seats.map((seat) => (
-              <option key={seat.id} value={seat.id}>
-                {seat.label}
-                {seat.id !== ownId ? '（代行）' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-        {typeof children === 'function' ? children(openZone) : children}
+        {multi && (
+          <label>
+            操作するプレイヤー{' '}
+            <select value={seatId} onChange={(event) => chooseSeat(event.target.value)}>
+              {table.seats.map((seat) => (
+                <option key={seat.id} value={seat.id}>
+                  {seat.label}
+                  {seat.id !== ownId ? '（代行）' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <nav className="cockpit-session__bar" aria-label="カードの作業">
+          <button
+            title="手札を展開"
+            onClick={() => {
+              setPanel(null);
+              setHandWorkspace(true);
+            }}
+          >
+            <Icon name="stack" />
+            手札
+          </button>
+          <button
+            aria-pressed={selectionMode}
+            onClick={() => {
+              setSelectionMode(!selectionMode);
+              setPanel(null);
+            }}
+          >
+            複数選択
+          </button>
+          <button onClick={() => openZone('battlefield')}>戦場一覧</button>
+          <button onClick={() => setMana(true)}>マナ</button>
+          {!!table.stack.length && (
+            <button onClick={() => setStack(true)}>スタック {table.stack.length}</button>
+          )}
+        </nav>
+        {typeof children === 'function' ? children(openZone, work) : children}
       </TableWorkPanel>
+      {reviewTurn && (
+        <Modal
+          title={table.phase === 'untap' ? 'ターンの準備' : '次のターン'}
+          onClose={() => setReviewTurn(false)}
+        >
+          {own.maximumHandSize !== null && own.zones.hand.length > own.maximumHandSize ? (
+            <>
+              <p>
+                手札が{own.zones.hand.length}枚あります。{own.maximumHandSize}
+                枚になるように捨ててから進みます。
+              </p>
+              <button
+                onClick={() => {
+                  setReviewTurn(false);
+                  openZone('hand');
+                  setSelectionMode(true);
+                }}
+              >
+                捨てるカードを選ぶ
+              </button>
+            </>
+          ) : (
+            <>
+              <p>自分のカードをアンタップし、1枚引いてメイン・フェイズへ進みます。</p>
+              {!!(table.grants.length || table.modifiers.length) && (
+                <p>
+                  期限のある効果が残っています。終了する効果は先に解除してください。この操作では効果を自動で解除しません。
+                </p>
+              )}
+              <button
+                disabled={progressBlocked}
+                onClick={() =>
+                  void send({ type: 'turn.ready', effectsReviewed: true }).then((saved) => {
+                    if (saved) setReviewTurn(false);
+                  })
+                }
+              >
+                アンタップ・ドローして進む
+              </button>
+            </>
+          )}
+        </Modal>
+      )}
+      {fetchEntry && table.stack.find((entry) => entry.id === fetchEntry) && (
+        <CockpitFetchSearch
+          key={fetchEntry}
+          table={table}
+          entry={table.stack.find((entry) => entry.id === fetchEntry)!}
+          disabled={disabled}
+          send={send}
+          onClose={() => setFetchEntry(null)}
+        />
+      )}
       {mana && (
         <Modal title="マナ・プール" onClose={() => setMana(false)}>
           <div className="table-mana-pool">
@@ -1014,6 +1603,15 @@ export function CockpitTableSurface({
           title={resolution ? `《${sourceName}》を解決` : 'スタック'}
           onClose={() => setStack(false)}
         >
+          {top && (
+            <button
+              className="table-stack-primary"
+              disabled={disabled || table.hold}
+              onClick={() => resolveTop()}
+            >
+              {resolveLabel}
+            </button>
+          )}
           <ol className="table-stack-order">
             {table.stack.map((entry, index) => (
               <li key={entry.id} className={index === 0 ? 'is-next' : ''}>
@@ -1050,12 +1648,6 @@ export function CockpitTableSurface({
           </ol>
           {current && (
             <div className="table-stack-source">
-              <CardView
-                instance={{ ...current.source, tapped: false }}
-                def={table.defs[current.source.defId]}
-                size="hand"
-                draggable={false}
-              />
               <div>
                 <p>
                   {current.kind === 'spell'
@@ -1111,21 +1703,8 @@ export function CockpitTableSurface({
               </button>
             </>
           ) : (
-            <button
-              disabled={disabled || !top}
-              onClick={() => {
-                setDestination(
-                  top &&
-                    /Creature|Artifact|Enchantment|Planeswalker|Battle/.test(
-                      table.defs[top.source.defId]?.faces[0]?.typeLine ?? '',
-                    )
-                    ? 'battlefield'
-                    : 'graveyard',
-                );
-                void send({ type: 'resolve.begin' });
-              }}
-            >
-              一番上を解決する
+            <button disabled={disabled || table.hold || !top} onClick={() => resolveTop(true)}>
+              効果を自分で処理する
             </button>
           )}
         </TableWorkPanel>
@@ -1146,6 +1725,15 @@ export function CockpitTableSurface({
           <p>{face(hover.id)?.printedText ?? face(hover.id)?.oracleText}</p>
         </aside>
       )}
+      <CardDragOverlay activeDrag={activeDrag} />
+      <CockpitFeed
+        table={table}
+        open={feed}
+        onClose={() => setFeed(false)}
+        selected={selected}
+        disabled={disabled}
+        send={send}
+      />
     </DndContext>
   );
 }

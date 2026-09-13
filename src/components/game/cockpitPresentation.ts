@@ -59,12 +59,38 @@ export function publishCockpitOperation(
     case 'keep':
       presentationRuntime.publish({ action: 'keep-hand', status });
       break;
+    case 'mulligan':
     case 'shuffle':
       presentationRuntime.publish({ action: 'shuffle-library', status });
       break;
+    case 'resolve.finish':
+    case 'resolve.fetch':
     case 'resolve.end':
       presentationRuntime.publish({ action: 'resolve-stack', status, resolvedCount: 1 });
       break;
+    case 'turn.ready': {
+      const completedCount = Math.max(
+        0,
+        after.seats[0].zones.hand.length - before.seats[0].zones.hand.length,
+      );
+      if (before.turn === after.turn && completedCount > 0) {
+        presentationRuntime.publish({
+          action: 'draw',
+          status,
+          requestedCount: completedCount,
+          completedCount,
+        });
+        break;
+      }
+      // A new turn keeps one turn cue policy rather than layering draw sounds.
+      presentationRuntime.publish({
+        action: 'advance-turn',
+        status,
+        previousTurn: before.turn,
+        nextTurn: after.turn,
+      });
+      break;
+    }
     case 'turn':
       presentationRuntime.publish({
         action: 'advance-turn',

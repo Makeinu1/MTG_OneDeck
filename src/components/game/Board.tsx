@@ -14,7 +14,7 @@ import {
   responsiveLaneMode,
   useElementSize,
 } from './adaptiveLaneLayout';
-import type { GameController } from './gameController';
+import type { GameCardController } from './GameCard';
 import { isLandCard, type DropTarget } from './dragIntent';
 import {
   bundleVisibleTokens,
@@ -29,7 +29,7 @@ function AttachmentFan({
   controller,
   cluster,
 }: {
-  controller: GameController;
+  controller: GameCardController;
   cluster: AttachmentCluster | undefined;
 }) {
   const [open, setOpen] = useState(false);
@@ -60,7 +60,7 @@ function VisualBundle({
   attachment,
   index,
 }: {
-  controller: GameController;
+  controller: GameCardController;
   bundle: VisualTokenBundle;
   attachment?: AttachmentCluster;
   index: number;
@@ -102,7 +102,7 @@ function VisualBundle({
 }
 
 interface ShelfProps {
-  controller: GameController;
+  controller: GameCardController;
   cardIds?: string[];
   bundles?: VisualTokenBundle[];
   attachmentsByHost?: ReadonlyMap<string, AttachmentCluster>;
@@ -204,7 +204,7 @@ export function BattlefieldShelf({
 }
 
 export interface BoardProps {
-  controller: GameController;
+  controller: GameCardController;
   activeDragId?: string | null;
 }
 

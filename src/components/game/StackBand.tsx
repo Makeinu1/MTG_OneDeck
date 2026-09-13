@@ -3,7 +3,13 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { GameCard } from './GameCard';
 import { stackItemPresentations, type StackItemPresentation } from './stackWorkspaceModel';
-import type { GameController } from './gameController';
+import type { GameScreenInteractionPort } from './gameScreenInteractionPort';
+import type { GameCardController } from './GameCard';
+export type StackBandController = GameCardController &
+  Pick<
+    GameScreenInteractionPort,
+    'resolutionSession' | 'setManualTargets' | 'removeStackItem' | 'completeManualResolution'
+  >;
 import { ManualTargetDialog } from './ManualTargetDialog';
 import { objectIdOf } from '../../engine/types';
 
@@ -33,16 +39,30 @@ function StackTargetLines({ item }: { item: StackItemPresentation | undefined })
             ? document.querySelector<HTMLElement>(`[data-stack-item-id="${target.cardId}"]`)
             : null;
           const targetElements = target.cardId
-            ? Array.from(document.querySelectorAll<HTMLElement>(`[data-testid="card-${target.cardId}"]`))
+            ? Array.from(
+                document.querySelectorAll<HTMLElement>(`[data-testid="card-${target.cardId}"]`),
+              )
             : target.playerId === 'P1'
               ? Array.from(document.querySelectorAll<HTMLElement>('[data-testid="life-value"]'))
               : target.playerId
-                ? Array.from(document.querySelectorAll<HTMLElement>(
-                  `[data-stack-item-id="${item.cardId}"] [data-target-player="${target.playerId}"]`,
-                ))
+                ? Array.from(
+                    document.querySelectorAll<HTMLElement>(
+                      `[data-stack-item-id="${item.cardId}"] [data-target-player="${target.playerId}"]`,
+                    ),
+                  )
                 : [];
-          const destination = stackTarget ?? targetElements.find((element) =>
-            !element.closest('.stack-pile') && !element.closest('.game-card-preview'));
+          const seatTarget = target.playerId
+            ? Array.from(document.querySelectorAll<HTMLElement>('[data-player-seat]')).find(
+                (node) => node.dataset.playerSeat === target.playerId,
+              )
+            : null;
+          const destination =
+            seatTarget ??
+            stackTarget ??
+            targetElements.find(
+              (element) =>
+                !element.closest('.stack-pile') && !element.closest('.game-card-preview'),
+            );
           if (!destination) return;
           const targetRect = destination.getBoundingClientRect();
           next.push({
@@ -69,7 +89,14 @@ function StackTargetLines({ item }: { item: StackItemPresentation | undefined })
   return (
     <svg className="stack-target-lines" data-testid="stack-target-lines" aria-hidden>
       <defs>
-        <marker id="stack-target-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <marker
+          id="stack-target-arrow"
+          markerWidth="8"
+          markerHeight="8"
+          refX="7"
+          refY="4"
+          orient="auto"
+        >
           <path d="M0,0 L8,4 L0,8 Z" />
         </marker>
       </defs>
@@ -81,13 +108,14 @@ function StackTargetLines({ item }: { item: StackItemPresentation | undefined })
 }
 
 export interface StackBandProps {
-  controller: GameController;
+  controller: StackBandController;
   cockpit?: boolean;
+  onEditTargets?: (id: string) => void;
 }
 
 interface StackOverflowMenuProps {
   item: StackItemPresentation;
-  controller: GameController;
+  controller: StackBandController;
   open: boolean;
   onToggle: () => void;
   onManualTarget: (cardId: string) => void;
@@ -98,7 +126,13 @@ interface StackOverflowMenuProps {
  * メニューは position:absolute でカード基準に配置される(カード側が position:relative)。
  * transform を祖先に持つが absolute は transform 基準で正しく機能する。
  */
-function StackOverflowMenu({ item, controller, open, onToggle, onManualTarget }: StackOverflowMenuProps) {
+function StackOverflowMenu({
+  item,
+  controller,
+  open,
+  onToggle,
+  onManualTarget,
+}: StackOverflowMenuProps) {
   const isAbility = controller.state?.cards[item.cardId]?.isAbility;
   return (
     <div className="stack-pile__overflow">
@@ -149,7 +183,7 @@ function StackOverflowMenu({ item, controller, open, onToggle, onManualTarget }:
   );
 }
 
-export function StackBand({ controller, cockpit = false }: StackBandProps) {
+export function StackBand({ controller, cockpit = false, onEditTargets }: StackBandProps) {
   const bottomStackId = controller.state?.zones.stack[0];
   const bottomStackCard = bottomStackId ? controller.state?.cards[bottomStackId] : undefined;
   const sessionId = bottomStackCard
@@ -162,9 +196,10 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
   const [boardPeekSessionId, setBoardPeekSessionId] = useState<string | null>(null);
   const [restoreExpandedAfterPeek, setRestoreExpandedAfterPeek] = useState(false);
 
-  const hasStackCandidate = controller.decisionFocus?.candidateIds.some(
-    (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
-  ) ?? false;
+  const hasStackCandidate =
+    controller.decisionFocus?.candidateIds.some(
+      (cardId) => controller.state?.cards[cardId]?.zone === 'stack',
+    ) ?? false;
   const expanded = expandedSessionId === sessionId || hasStackCandidate;
   const resolutionLocked = !cockpit && controller.resolutionSession !== null;
   const boardPeek = boardPeekSessionId === sessionId && !hasStackCandidate && !resolutionLocked;
@@ -251,10 +286,7 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
             </div>
 
             {!expanded ? (
-              <div
-                className="stack-pile__cards"
-                onClick={toggleExpanded}
-              >
+              <div className="stack-pile__cards" onClick={toggleExpanded}>
                 {items.map((item, index) => (
                   <div
                     key={item.cardId}
@@ -263,23 +295,31 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
                     data-testid={`stack-workspace-item-${item.cardId}`}
                     style={{
                       zIndex: items.length - index,
-                      transform: index === 0
-                        ? undefined
-                        : `translate(${index * 18}px, ${index * 18}px) scale(${Math.pow(0.92, index)})`,
+                      transform:
+                        index === 0
+                          ? undefined
+                          : `translate(${index * 18}px, ${index * 18}px) scale(${Math.pow(0.92, index)})`,
                       opacity: index === 0 ? undefined : Math.max(0.4, 1 - index * 0.2),
                     }}
                   >
                     {/* スタックからの移動は resolveTop/removeStackItem が解決時効果(CR608)を
                         適用する専用経路を通す必要がある。汎用の D&D move-zone はそれを迂回して
                         効果を無言で落とすため、ここではドラッグ自体を無効化する。 */}
-                    <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
+                    <GameCard
+                      controller={controller}
+                      cardId={item.cardId}
+                      size="board"
+                      draggable={false}
+                    />
                     {index === 0 && (
                       <StackOverflowMenu
                         item={item}
                         controller={controller}
                         open={openOverflowId === item.cardId}
-                        onToggle={() => setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)}
-                        onManualTarget={setManualTargetSourceId}
+                        onToggle={() =>
+                          setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)
+                        }
+                        onManualTarget={onEditTargets ?? setManualTargetSourceId}
                       />
                     )}
                   </div>
@@ -299,7 +339,12 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
                     onClick={() => setSelectedCardId(item.cardId)}
                   >
                     <div className="stack-pile__card">
-                      <GameCard controller={controller} cardId={item.cardId} size="board" draggable={false} />
+                      <GameCard
+                        controller={controller}
+                        cardId={item.cardId}
+                        size="board"
+                        draggable={false}
+                      />
                     </div>
                     <div className="stack-pile__item-info">
                       <span>{item.name}</span>
@@ -315,15 +360,16 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
                           対象{' '}
                           {item.targets.length > 0
                             ? item.targets.map((target, targetIndex) => (
-                              <span
-                                key={`${target.label}-${targetIndex}`}
-                                className="stack-pile__target-chip"
-                                data-target-player={target.playerId}
-                                data-legality={target.legalityMode}
-                              >
-                                {target.label}{target.legalityMode === 'checked' ? '' : '（未検証）'}
-                              </span>
-                            ))
+                                <span
+                                  key={`${target.label}-${targetIndex}`}
+                                  className="stack-pile__target-chip"
+                                  data-target-player={target.playerId}
+                                  data-legality={target.legalityMode}
+                                >
+                                  {target.label}
+                                  {target.legalityMode === 'checked' ? '' : '（未検証）'}
+                                </span>
+                              ))
                             : 'なし／未記録'}
                         </span>
                       )}
@@ -332,8 +378,10 @@ export function StackBand({ controller, cockpit = false }: StackBandProps) {
                       item={item}
                       controller={controller}
                       open={openOverflowId === item.cardId}
-                      onToggle={() => setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)}
-                      onManualTarget={setManualTargetSourceId}
+                      onToggle={() =>
+                        setOpenOverflowId(openOverflowId === item.cardId ? null : item.cardId)
+                      }
+                      onManualTarget={onEditTargets ?? setManualTargetSourceId}
                     />
                   </li>
                 ))}

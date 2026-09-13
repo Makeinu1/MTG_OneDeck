@@ -56,7 +56,7 @@ export function useShortcuts(handlers: ShortcutHandlers): void {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent): void {
-      if (isEditableTarget(e.target) || e.repeat) return;
+      if (isEditableTarget(e.target) || e.repeat || e.isComposing || e.keyCode === 229) return;
 
       const isMod = e.metaKey || e.ctrlKey;
 

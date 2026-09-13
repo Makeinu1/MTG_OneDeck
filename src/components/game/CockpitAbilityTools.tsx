@@ -1,3 +1,4 @@
+import type { TableTrigger } from '../../engine/cockpitTriggers';
 import { useState } from 'react';
 import {
   tableAbilityChoices,
@@ -18,6 +19,8 @@ export function CockpitAbilityTools({
   disabled,
   send,
   expanded = false,
+  initialChoice,
+  candidate,
 }: {
   table: CockpitTable;
   sourceId: string;
@@ -25,12 +28,24 @@ export function CockpitAbilityTools({
   disabled: boolean;
   send: (operation: TableOperation) => Promise<boolean>;
   expanded?: boolean;
+  initialChoice?: string;
+  candidate?: TableTrigger;
 }) {
-  const choices = tableAbilityChoices(table, sourceId);
-  const [key, setKey] = useState(choices[0]?.key ?? 'manual');
+  const choices = candidate ? [] : tableAbilityChoices(table, sourceId);
+  const [candidateId, setCandidateId] = useState(candidate?.pendingTriggerId ?? '');
+  const linkedCandidate = table.triggers?.candidates.find(
+    (c) => c.pendingTriggerId === candidateId && c.status === 'pending',
+  );
+  const [key, setKey] = useState(
+    candidate
+      ? 'triggered'
+      : (choices.find((choice) => choice.key === initialChoice)?.key ??
+          choices[0]?.key ??
+          'manual'),
+  );
   const [manual, setManual] = useState(false);
   const [costs, setCosts] = useState<TableManualCosts>(emptyManualCosts);
-  const [text, setText] = useState('');
+  const [text, setText] = useState(candidate?.text ?? '');
   const [targetSeats, setTargetSeats] = useState<string[]>([]);
   const [targets, setTargets] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
@@ -39,7 +54,7 @@ export function CockpitAbilityTools({
   );
   const [error, setError] = useState('');
   const choice = choices.find((item) => item.key === key);
-  const useManual = manual || choice?.manual || key === 'manual';
+  const useManual = key !== 'triggered' && (manual || choice?.manual || key === 'manual');
   let automaticProposal: typeof proposal = null;
   let paymentError = '';
   if (choice && !useManual) {
@@ -67,13 +82,11 @@ export function CockpitAbilityTools({
   return (
     <details open={expanded || undefined}>
       <summary>能力を起動・誘発させる</summary>
-      <p>
-        発生源:《{name(sourceId)}
-        》。コストを支払ってスタックに置きます。解決時の効果は手動です。
-      </p>
+      <p>発生源:《{name(sourceId)}》</p>
       <label>
         能力{' '}
         <select
+          disabled={!!candidate}
           value={key}
           onChange={(event) => {
             setKey(event.target.value);
@@ -93,7 +106,28 @@ export function CockpitAbilityTools({
         </select>
       </label>
       <p style={{ whiteSpace: 'pre-wrap' }}>{choice?.text}</p>
-      <p>必要なコスト: {choice?.costText ?? '本文で確認してください。'}</p>
+      {key !== 'triggered' && <p>必要なコスト: {choice?.costText ?? '本文で確認してください。'}</p>}
+      {key === 'triggered' && !candidate && (
+        <label>
+          誘発の対応
+          <select
+            value={candidateId}
+            onChange={(event) => {
+              setCandidateId(event.target.value);
+              setProposal(null);
+            }}
+          >
+            <option value="">別の誘発として登録</option>
+            {(table.triggers?.candidates ?? [])
+              .filter((c) => c.sourceId === sourceId && c.status === 'pending')
+              .map((c) => (
+                <option key={c.pendingTriggerId} value={c.pendingTriggerId}>
+                  この候補として登録：{c.label}
+                </option>
+              ))}
+          </select>
+        </label>
+      )}
       {!choice && (
         <label>
           登録する能力本文{' '}
@@ -268,7 +302,7 @@ export function CockpitAbilityTools({
           checked={confirmed}
           onChange={(event) => setConfirmed(event.target.checked)}
         />
-        対象と起動条件を確認した
+        {key === 'triggered' ? '誘発・対象・順番を確認した' : '対象と起動条件を確認した'}
       </label>
       <button
         hidden={!useManual && !!choice}
@@ -276,7 +310,9 @@ export function CockpitAbilityTools({
         onClick={() => {
           try {
             const manualCosts = useManual ? costs : null;
-            const payment = tableActivationPayment(table, sourceId, key, manualCosts);
+            const payment = linkedCandidate
+              ? { paid: [] }
+              : tableActivationPayment(table, sourceId, key, manualCosts);
             setProposal({
               type: 'activate',
               id: crypto.randomUUID(),
@@ -293,7 +329,7 @@ export function CockpitAbilityTools({
           }
         }}
       >
-        支払うコストを確認
+        {key === 'triggered' ? '登録内容を確認' : '支払うコストを確認'}
       </button>
       {error && <p role="alert">{error}</p>}
       {paymentError && <p role="alert">{paymentError}</p>}
@@ -308,7 +344,17 @@ export function CockpitAbilityTools({
           <button
             disabled={disabled || (!automaticProposal && !confirmed)}
             onClick={() =>
-              void send({ ...shownProposal, id: crypto.randomUUID() }).then((saved) => {
+              void send(
+                linkedCandidate && key === 'triggered'
+                  ? {
+                      type: 'trigger.place',
+                      candidateId: linkedCandidate.pendingTriggerId,
+                      id: crypto.randomUUID(),
+                      targets: shownProposal.targets,
+                      text: shownProposal.text,
+                    }
+                  : { ...shownProposal, id: crypto.randomUUID() },
+              ).then((saved) => {
                 if (saved) {
                   setProposal(null);
                   setConfirmed(false);
@@ -316,7 +362,7 @@ export function CockpitAbilityTools({
               })
             }
           >
-            コストを支払って起動する
+            {key === 'triggered' ? 'スタックに登録' : 'コストを支払って起動する'}
           </button>
           {!automaticProposal && <button onClick={() => setProposal(null)}>選び直す</button>}
         </section>

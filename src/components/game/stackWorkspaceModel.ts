@@ -55,7 +55,11 @@ export function stackItemPresentations(state: GameState): StackItemPresentation[
       cardId,
       name: `《${cardName(state, cardId)}》`,
       source: sourceId ? `《${cardName(state, sourceId)}》` : null,
-      ...(def && abilityLine ? { abilityText: activatedAbilityDisplayText(def, abilityLine) } : {}),
+      ...(def && abilityLine
+        ? { abilityText: activatedAbilityDisplayText(def, abilityLine) }
+        : card?.isAbility && card.abilityResolutionText
+          ? { abilityText: card.abilityResolutionText }
+          : {}),
       announcedX: card?.announcedX,
       targets: (card?.targetSelections ?? []).map((target) => targetPresentation(state, target)),
     };

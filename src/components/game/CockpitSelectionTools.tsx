@@ -21,6 +21,16 @@ export function CockpitSelectionTools({
 }) {
   const [count, setCount] = useState(2);
   const [delta, setDelta] = useState(1);
+  const [damageSource, setDamageSource] = useState('');
+  const [damageSeat, setDamageSeat] = useState('');
+  const damageSources = [
+    ...new Map(
+      [
+        ...(table.resolution ? [table.resolution.source] : []),
+        ...Object.values(table.cards).filter((c) => c.zone === 'battlefield'),
+      ].map((c) => [`${c.id}:${c.zoneChangeCounter}`, c]),
+    ).entries(),
+  ];
   const [counter, setCounter] = useState('+1/+1');
   const [includeSeat, setIncludeSeat] = useState(false);
   const [arrange, setArrange] = useState<{
@@ -149,8 +159,51 @@ export function CockpitSelectionTools({
           disabled={disabled || !selected.length}
           onClick={() => void send({ type: 'damage', ids: selected, delta })}
         >
-          選んだカードのダメージを増減
+          記録ダメージを訂正
         </button>
+        <details>
+          <summary>発生源を指定してダメージ</summary>
+          <label>
+            発生源
+            <select value={damageSource} onChange={(e) => setDamageSource(e.target.value)}>
+              <option value="">選択</option>
+              {damageSources.map(([id, card]) => (
+                <option key={id} value={id}>
+                  《{label(card.id)}》
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            プレイヤー対象
+            <select value={damageSeat} onChange={(e) => setDamageSeat(e.target.value)}>
+              <option value="">なし</option>
+              {table.seats.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>選択中のカードとプレイヤーへ、軽減・置換を確認した後の点数を反映</p>
+          <button
+            disabled={disabled || delta <= 0 || !damageSource || (!selected.length && !damageSeat)}
+            onClick={() => {
+              const source = damageSources.find(([id]) => id === damageSource)?.[1];
+              if (source)
+                void send({
+                  type: 'damage',
+                  ids: selected,
+                  seatIds: damageSeat ? [damageSeat] : [],
+                  sourceId: source.id,
+                  sourceObjectId: damageSource,
+                  delta,
+                });
+            }}
+          >
+            ダメージを与える
+          </button>
+        </details>
         <button
           disabled={disabled}
           onClick={() => void send({ type: 'life', seatIds: [seatId], delta })}

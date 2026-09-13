@@ -1,3 +1,14 @@
+import {
+  checkpointTableTriggers,
+  tableObjectSnapshot,
+  emptyTableTriggers,
+  nextTriggerController,
+  readyTableTriggers,
+  triggerTrace,
+  type TableTriggerState,
+  type TableTriggerTrace,
+  type TriggerOperation,
+} from './cockpitTriggers';
 import type { CardDef, ManaColor } from '../types/card';
 import type {
   CardInstance,
@@ -8,6 +19,7 @@ import type {
   ZoneId,
 } from './types';
 import { PHASE_ORDER } from './types';
+import { fetchAbility } from './status';
 import type { InitDeckCard } from './init';
 import { createRng, shuffledOrder } from './random';
 import {
@@ -88,6 +100,8 @@ export interface TableCombat {
 }
 export interface CockpitTable {
   version: 1;
+  triggers?: TableTriggerState;
+  startProgress?: boolean;
   defs: Record<string, CardDef>;
   cards: Record<string, CardInstance>;
   seats: TableSeat[];
@@ -114,12 +128,16 @@ export interface TableTokenCharacteristics {
   colors?: ManaColor[];
 }
 export type TableOperation =
+  | TriggerOperation
   | { type: 'token.edit'; cardId: string; definitionId: string; value: TableTokenCharacteristics }
   | { type: 'copyStack'; entryId: string; id: string; controllerId: string; targets: string[] }
   | { type: 'hold'; held: boolean }
   | { type: 'end' }
   | { type: 'eliminate'; seatId: string }
   | { type: 'shortcut' }
+  | { type: 'turn.ready'; effectsReviewed?: boolean }
+  | { type: 'resolve.finish'; entryId: string; to: ZoneId }
+  | { type: 'resolve.fetch'; entryId: string; cardId: string | null; tapped: boolean; seed: number }
   | { type: 'emptyMana'; seatIds: string[] }
   | { type: 'commanderCount'; cardId: string; count: number }
   | { type: 'battle.attack'; attackers: { cardId: string; targetId: string }[]; tapIds: string[] }
@@ -129,7 +147,7 @@ export type TableOperation =
       blockers: { cardId: string; attackerIds: string[] }[];
     }
   | { type: 'battle.assign'; assignments: { sourceId: string; targetId: string; amount: number }[] }
-  | { type: 'battle.apply' }
+  | { type: 'battle.apply'; assignments?: { sourceId: string; targetId: string; amount: number }[] }
   | { type: 'battle.nextDamage' }
   | { type: 'battle.end' }
   | {
@@ -163,7 +181,14 @@ export type TableOperation =
       graveyard: string[];
     }
   | { type: 'counter'; ids: string[]; seatIds: string[]; name: string; delta: number }
-  | { type: 'damage'; ids: string[]; delta: number }
+  | {
+      type: 'damage';
+      ids: string[];
+      delta: number;
+      sourceId?: string;
+      sourceObjectId?: string;
+      seatIds?: string[];
+    }
   | { type: 'proliferate'; ids: string[]; seatIds: string[] }
   | { type: 'modifier'; modifier: TableModifier; remove: boolean }
   | { type: 'control'; ids: string[]; seatId: string }
@@ -250,7 +275,16 @@ function distinct(ids: string[]): void {
     '対象の選択を確認してください。',
   );
 }
-function move(table: CockpitTable, ids: string[], to: ZoneId, position: 'top' | 'bottom'): void {
+function move(
+  table: CockpitTable,
+  ids: string[],
+  to: ZoneId,
+  position: 'top' | 'bottom',
+  trace?: TableTriggerTrace,
+  meaning = 'move',
+  reason: import('./types').ZoneChangeReason = 'move',
+): void {
+  checkpointTableTriggers(table, trace, 'change');
   distinct(ids);
   requireTable(
     tableZones.includes(to) && ['top', 'bottom'].includes(position),
@@ -290,14 +324,18 @@ function move(table: CockpitTable, ids: string[], to: ZoneId, position: 'top' | 
     if (position === 'top') zone.unshift(...group);
     else zone.push(...group);
   }
+  checkpointTableTriggers(table, trace, meaning, reason);
 }
 
 export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {
   const battlefield = table.seats.flatMap((seat) => seat.zones.battlefield);
-  const turnSeats = table.seats.filter((seat) => !seat.eliminated);
+  const turnSeats = table.seats.filter((seat) => !seat.eliminated && seat.controller !== 'passive');
   // The current manual turn operation rotates these seats once per turn (CR 302.6).
   const turnsSinceSeatStart =
-    (turnSeats.findIndex((seat) => seat.id === table.activeSeatId) -
+    (Math.max(
+      0,
+      turnSeats.findIndex((seat) => seat.id === table.activeSeatId),
+    ) -
       turnSeats.findIndex((seat) => seat.id === seatId) +
       turnSeats.length) %
     turnSeats.length;
@@ -325,7 +363,27 @@ export function tableManaResources(table: CockpitTable, seatId: string): ManaRes
 }
 
 /** Only server-generated, recognized cost commands enter here. Never public arbitrary commands. */
-function applyManaCost(table: CockpitTable, command: GameCommand, seatId: string): void {
+function applyManaCost(
+  table: CockpitTable,
+  command: GameCommand,
+  seatId: string,
+  trace?: TableTriggerTrace,
+): void {
+  checkpointTableTriggers(table, trace, 'change');
+  applyManaCostInternal(table, command, seatId, trace);
+  checkpointTableTriggers(
+    table,
+    trace,
+    command.type,
+    command.type === 'moveCard' ? (command.reason ?? 'cost') : 'cost',
+  );
+}
+function applyManaCostInternal(
+  table: CockpitTable,
+  command: GameCommand,
+  seatId: string,
+  trace?: TableTriggerTrace,
+): void {
   const seat = tableSeat(table, seatId);
   switch (command.type) {
     case 'setTapped': {
@@ -357,6 +415,20 @@ function applyManaCost(table: CockpitTable, command: GameCommand, seatId: string
       requireTable(command.targetPlayerId === seatId, '未対応のマナ付随処理です。');
       integer(command.amount, 0);
       seat.life -= command.amount;
+      if (trace && table.cards[command.sourceId]) {
+        const source = table.cards[command.sourceId];
+        (trace.damage ??= []).push({
+          source: {
+            kind: 'object',
+            physicalCardId: source.id,
+            objectId: `${source.id}:${source.zoneChangeCounter}`,
+            snapshot: tableObjectSnapshot(table, source),
+          },
+          target: { kind: 'player', playerId: seatId },
+          amount: command.amount,
+          combatDamage: false,
+        });
+      }
       return;
     case 'moveCard':
       requireTable(
@@ -369,7 +441,15 @@ function applyManaCost(table: CockpitTable, command: GameCommand, seatId: string
           command.position === 'bottom',
         'コストの移動順を確認してください。',
       );
-      move(table, [command.cardId], command.to, command.position ?? 'top');
+      move(
+        table,
+        [command.cardId],
+        command.to,
+        command.position ?? 'top',
+        trace,
+        command.type,
+        command.reason ?? 'cost',
+      );
       return;
     case 'addCounters': {
       const card = cardOf(table, command.cardId);
@@ -423,16 +503,22 @@ export function tableActivationPayment(
       commands.push({ type: 'setTapped', cardId: id, tapped: true });
     }
     const moves = [
-      { ids: manual.sacrificeIds, from: 'battlefield', to: 'graveyard' },
-      { ids: manual.discardIds, from: 'hand', to: 'graveyard' },
-      { ids: manual.returnIds, from: 'battlefield', to: 'hand' },
-      { ids: manual.exileIds, from: null, to: 'exile' },
+      { ids: manual.sacrificeIds, from: 'battlefield', to: 'graveyard', reason: 'sacrifice' },
+      { ids: manual.discardIds, from: 'hand', to: 'graveyard', reason: 'discard' },
+      { ids: manual.returnIds, from: 'battlefield', to: 'hand', reason: 'cost' },
+      { ids: manual.exileIds, from: null, to: 'exile', reason: 'cost' },
     ] as const;
     for (const group of moves)
       for (const id of group.ids) {
         const card = cardOf(table, id);
         requireTable(!group.from || card.zone === group.from, 'コストの領域が変わりました。');
-        commands.push({ type: 'moveCard', cardId: id, to: group.to, position: 'top' });
+        commands.push({
+          type: 'moveCard',
+          cardId: id,
+          to: group.to,
+          position: 'top',
+          reason: group.reason,
+        });
       }
     integer(manual.life, 0);
     if (manual.life)
@@ -493,6 +579,7 @@ function generateTableMana(
   table: CockpitTable,
   cardId: string,
   commands: GameCommand[],
+  trace?: TableTriggerTrace,
 ): GameCommand[] {
   const card = cardOf(table, cardId);
   const choices = manaActivationChoices(
@@ -505,14 +592,14 @@ function generateTableMana(
     'マナ生成案を確認し直してください。',
   );
   const before = structuredClone(table);
-  for (const command of commands) applyManaCost(table, command, card.controllerId);
+  for (const command of commands) applyManaCost(table, command, card.controllerId, trace);
   const triggered = planTableManaTriggers(
     manaTriggerResources(before),
     manaTriggerResources(table),
     cardId,
     commands,
   );
-  for (const command of triggered) applyManaCost(table, command, card.controllerId);
+  for (const command of triggered) applyManaCost(table, command, card.controllerId, trace);
   return [...commands, ...triggered];
 }
 
@@ -578,12 +665,18 @@ export function tableCastPayment(
   return tableAutoPayment(table, plan, card.controllerId);
 }
 
-function finishTableStack(table: CockpitTable, entry: TableStackEntry, to: ZoneId): void {
+function finishTableStack(
+  table: CockpitTable,
+  entry: TableStackEntry,
+  to: ZoneId,
+  trace?: TableTriggerTrace,
+  outcome: 'resolved' | 'removed' = 'resolved',
+): void {
   requireTable(tableZones.includes(to) && to !== 'stack', '処理後の領域を確認してください。');
   const stackId = entry.stackCardId ?? (entry.kind === 'spell' ? entry.source.id : undefined);
   if (stackId && table.cards[stackId]?.zone === 'stack') {
     if (entry.kind === 'spell' && (!entry.copied || to === 'battlefield')) {
-      move(table, [stackId], to, 'top');
+      move(table, [stackId], to, 'top', trace, 'resolve', 'resolve');
       if (entry.copied) table.cards[stackId].isToken = true;
     } else {
       for (const seat of table.seats)
@@ -591,6 +684,8 @@ function finishTableStack(table: CockpitTable, entry: TableStackEntry, to: ZoneI
       delete table.cards[stackId];
     }
   }
+  const candidate = table.triggers?.candidates.find((c) => c.entryId === entry.id);
+  if (candidate) candidate.status = outcome;
   table.stack = table.stack.filter((item) => item.id !== entry.id);
   if (table.resolution?.id === entry.id) table.resolution = null;
 }
@@ -612,10 +707,123 @@ function validTableTarget(table: CockpitTable, id: string): boolean {
   );
 }
 
-export function applyTableOperation(before: CockpitTable, operation: TableOperation): CockpitTable {
+/** Existing fetch recognition, scoped to the selected ability's text (CR 701.23–24). */
+export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {
+  const def = table.defs[entry.source.defId];
+  const face = def?.faces[entry.source.faceIndex];
+  if (
+    !face ||
+    entry.kind !== 'activated' ||
+    !/^search your library for (?:a|an|one) [^,.]+, put (?:it|that card) onto the battlefield(?: tapped)?, then shuffle(?: your library)?\.(?: Then if you control (?:\w+) or more lands, untap (?:that land|it)\.)?$/i.test(
+      entry.text.trim(),
+    )
+  )
+    return null;
+  return fetchAbility({
+    ...def,
+    faces: [{ ...face, oracleText: entry.text, printedText: undefined }],
+  });
+}
+
+export function applyTableOperation(
+  before: CockpitTable,
+  operation: TableOperation,
+  operationId?: string,
+  inheritedTrace?: TableTriggerTrace,
+): CockpitTable {
+  const trace =
+    inheritedTrace ??
+    triggerTrace(before, operationId ?? `local-${(before.triggers?.sequence ?? 0) + 1}`);
   requireTable(!before.ended, '終了したセッションです。');
   const table = structuredClone(before);
+  table.triggers ??= emptyTableTriggers(table.turn);
+  if (
+    [
+      'phase',
+      'turn',
+      'turn.ready',
+      'shortcut',
+      'resolve.begin',
+      'resolve.finish',
+      'resolve.fetch',
+      'battle.attack',
+    ].includes(operation.type) &&
+    !table.resolution
+  )
+    requireTable(!readyTableTriggers(table).length, '未処理の誘発を確認してください。');
   switch (operation.type) {
+    case 'trigger.place':
+    case 'trigger.link':
+    case 'trigger.dismiss': {
+      const candidate = table.triggers.candidates.find(
+        (c) => c.pendingTriggerId === operation.candidateId,
+      );
+      requireTable(candidate?.status === 'pending', 'この誘発は処理済み、または存在しません。');
+      if (operation.type === 'trigger.dismiss') {
+        requireTable(
+          typeof operation.reason === 'string' &&
+            !!operation.reason.trim() &&
+            operation.reason.length <= 300,
+          '候補を外す理由を記録してください。',
+        );
+        candidate.status = 'dismissed';
+        candidate.reason = operation.reason;
+        break;
+      }
+      requireTable(!table.hold && !table.resolution, '処理を終えてから誘発を登録してください。');
+      requireTable(
+        !nextTriggerController(table) || nextTriggerController(table) === candidate.controllerId,
+        'アクティブプレイヤーから順に誘発を登録してください。',
+      );
+      if (operation.type === 'trigger.link') {
+        const entry = table.stack.find((e) => e.id === operation.entryId);
+        requireTable(
+          entry &&
+            entry.kind === 'triggered' &&
+            entry.source.id === candidate.sourceId &&
+            `${entry.source.id}:${entry.source.zoneChangeCounter}` === candidate.sourceObjectId &&
+            entry.controllerId === candidate.controllerId,
+          '対応する手動誘発を選んでください。',
+        );
+        requireTable(
+          !table.triggers.candidates.some((c) => c.entryId === entry.id),
+          'このスタックは別の誘発に対応しています。',
+        );
+        candidate.status = 'linked';
+        candidate.entryId = entry.id;
+      } else {
+        requireTable(
+          typeof operation.id === 'string' &&
+            operation.id.length > 0 &&
+            operation.id.length <= 200 &&
+            !table.stack.some((e) => e.id === operation.id),
+          '登録先を確認してください。',
+        );
+        requireTable(
+          operation.targets.length <= 100 &&
+            operation.targets.every((id) => validTableTarget(table, id)),
+          '対象を確認してください。',
+        );
+        requireTable(
+          operation.text === undefined ||
+            (typeof operation.text === 'string' && operation.text.length <= 5000),
+          '能力本文を確認してください。',
+        );
+        table.stack.unshift({
+          id: operation.id,
+          kind: 'triggered',
+          source: structuredClone(candidate.source),
+          controllerId: candidate.controllerId,
+          targets: [...operation.targets],
+          targetSnapshots: snapshotTableTargets(table, operation.targets),
+          paid: [],
+          text: operation.text ?? candidate.text,
+        });
+        candidate.status = 'placed';
+        candidate.entryId = operation.id;
+      }
+      break;
+    }
     case 'eliminate': {
       const departing = tableSeat(table, operation.seatId);
       requireTable(
@@ -765,17 +973,110 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
       integer(operation.count, 0, 1000);
       table.commanderCasts[operation.cardId] = operation.count;
       break;
+    case 'turn.ready': {
+      requireTable(
+        !table.hold && !table.resolution && !table.stack.length && !table.combat,
+        '未完の処理を終えてから進めてください。',
+      );
+      const continuing =
+        tableSeat(table, table.activeSeatId).controller === 'passive'
+          ? applyTableOperation(table, { type: 'turn' }, undefined, trace)
+          : table;
+      const current = tableSeat(continuing, continuing.activeSeatId);
+      requireTable(current.kept, '初手をキープしてください。');
+      requireTable(
+        continuing.phase === 'untap' ||
+          continuing.startProgress ||
+          current.maximumHandSize === null ||
+          current.zones.hand.length <= current.maximumHandSize,
+        '手札上限を超えています。捨てるカードを選んでから進めてください。',
+      );
+      requireTable(
+        continuing.phase === 'untap' ||
+          continuing.startProgress ||
+          (!table.grants.length && !table.modifiers.length) ||
+          operation.effectsReviewed === true,
+        '期限のある効果を確認してください。',
+      );
+      let prepared = continuing;
+      if (continuing.startProgress)
+        return applyTableOperation(continuing, { type: 'shortcut' }, undefined, trace);
+      if (continuing.phase !== 'untap') {
+        prepared = applyTableOperation(continuing, { type: 'turn' }, undefined, trace);
+        for (const card of Object.values(prepared.cards)) {
+          card.damageMarked = 0;
+          card.hasDeathtouchDamage = false;
+        }
+        for (const seat of prepared.seats) seat.mana = emptyTableMana();
+      }
+      // Declared normal-turn shortcut, not automatic trigger/skip-step adjudication (CR 502, 504).
+      return applyTableOperation(prepared, { type: 'shortcut' }, undefined, trace);
+    }
+    case 'resolve.finish':
+    case 'resolve.fetch': {
+      const entry = table.stack[0];
+      requireTable(
+        !table.hold &&
+          entry &&
+          entry.id === operation.entryId &&
+          (!table.resolution || table.resolution.id === entry.id),
+        '解決する呪文・能力が変わりました。',
+      );
+      if (operation.type === 'resolve.finish') {
+        finishTableStack(table, entry, operation.to, trace);
+      } else {
+        requireTable(
+          tableFetchAbility(table, entry),
+          'この能力は土地サーチの支援対象ではありません。',
+        );
+        integer(operation.seed, 0, 0xffffffff);
+        requireTable(typeof operation.tapped === 'boolean', '出す状態を確認してください。');
+        const seat = tableSeat(table, entry.controllerId);
+        if (operation.cardId !== null) {
+          const target = cardOf(table, operation.cardId);
+          requireTable(
+            seat.zones.library.includes(target.id) &&
+              /\bLand\b/.test(table.defs[target.defId]?.faces[target.faceIndex]?.typeLine ?? ''),
+            '自分の山札から土地を選んでください。',
+          );
+          move(table, [target.id], 'battlefield', 'top', trace);
+          table.cards[target.id].tapped = operation.tapped;
+        }
+        seat.zones.library = shuffledOrder(seat.zones.library, createRng(operation.seed));
+        finishTableStack(table, entry, 'graveyard', trace);
+      }
+      break;
+    }
     case 'shortcut': {
       requireTable(
-        !table.hold && !table.resolution && !table.stack.length && table.phase === 'untap',
+        !table.hold &&
+          !table.combat &&
+          !table.resolution &&
+          !table.stack.length &&
+          (table.phase === 'untap' || table.startProgress === true),
         'アンタップ開始時だけ使用できます。停止や未完処理を確認してください。',
       );
       const seat = tableSeat(table, table.activeSeatId);
-      requireTable(seat.kept && seat.zones.library.length > 0, 'キープと山札を確認してください。');
-      for (const card of Object.values(table.cards))
-        if (card.zone === 'battlefield' && card.controllerId === seat.id) card.tapped = false;
-      move(table, seat.zones.library.slice(0, 1), 'hand', 'bottom');
+      requireTable(
+        seat.kept && (table.phase === 'draw' || seat.zones.library.length > 0),
+        'キープと山札を確認してください。',
+      );
+      table.startProgress = true;
+      if (table.phase === 'untap') {
+        for (const card of Object.values(table.cards))
+          if (card.zone === 'battlefield' && card.controllerId === seat.id) card.tapped = false;
+        table.phase = 'upkeep';
+        checkpointTableTriggers(table, trace, 'upkeep');
+        if (readyTableTriggers(table).length) return table;
+      }
+      if (table.phase === 'upkeep') {
+        table.phase = 'draw';
+        move(table, seat.zones.library.slice(0, 1), 'hand', 'bottom', trace, 'draw');
+        checkpointTableTriggers(table, trace, 'draw-step');
+        if (readyTableTriggers(table).length) return table;
+      }
       table.phase = 'main1';
+      table.startProgress = false;
       break;
     }
     case 'battle.attack': {
@@ -901,6 +1202,18 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
       break;
     }
     case 'battle.apply': {
+      if (operation.assignments !== undefined) {
+        const assigned = applyTableOperation(
+          table,
+          {
+            type: 'battle.assign',
+            assignments: operation.assignments,
+          },
+          undefined,
+          trace,
+        );
+        return applyTableOperation(assigned, { type: 'battle.apply' }, undefined, trace);
+      }
       const combat = table.combat;
       requireTable(
         combat &&
@@ -1005,7 +1318,7 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
           operation.discardIds.every((id) => seat.zones.hand.includes(id)),
           '手札調整の対象を確認してください。',
         );
-        move(table, operation.discardIds, 'graveyard', 'top');
+        move(table, operation.discardIds, 'graveyard', 'top', trace, 'discard', 'discard');
       }
       break;
     }
@@ -1038,7 +1351,8 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
         JSON.stringify(operation.paymentPlan) === JSON.stringify(proposal.paid),
         '支払い案を確認し直してください。',
       );
-      for (const command of proposal.paid) applyManaCost(table, command, source.controllerId);
+      for (const command of proposal.paid)
+        applyManaCost(table, command, source.controllerId, trace);
       table.stack.unshift({
         id: operation.id,
         kind: operation.choice === 'triggered' ? 'triggered' : 'activated',
@@ -1328,6 +1642,9 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
         shuffledOrder(seat.zones.hand, createRng(operation.seed)).slice(0, operation.count),
         'graveyard',
         'top',
+        trace,
+        'discard',
+        'discard',
       );
       break;
     }
@@ -1407,26 +1724,80 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
       }
       break;
     }
-    case 'damage':
-      distinct(operation.ids);
+    case 'damage': {
+      distinct([...operation.ids, ...(operation.seatIds ?? [])]);
       integer(operation.delta);
+      const source = operation.sourceId
+        ? [table.resolution?.source, ...Object.values(table.cards)].find(
+            (c) =>
+              c !== undefined &&
+              c.id === operation.sourceId &&
+              `${c.id}:${c.zoneChangeCounter}` === operation.sourceObjectId,
+          )
+        : undefined;
+      requireTable(!operation.sourceId || source, 'ダメージの発生源を確認してください。');
+      requireTable(
+        !operation.seatIds?.length || source,
+        'プレイヤーへのダメージは発生源を指定してください。',
+      );
+      if (source) integer(operation.delta, 0);
       for (const id of operation.ids) {
         const card = cardOf(table, id);
         requireTable(card.zone === 'battlefield', '戦場の対象を選んでください。');
         integer(card.damageMarked + operation.delta, 0);
-        card.damageMarked += operation.delta;
+        const typeLine = card.faceDown
+          ? 'Creature'
+          : (table.defs[card.defId]?.faces[card.faceIndex]?.typeLine ?? '');
+        if (source && /Planeswalker/.test(typeLine))
+          card.counters.loyalty = Math.max(0, (card.counters.loyalty ?? 0) - operation.delta);
+        if (source && /Battle/.test(typeLine))
+          card.counters.defense = Math.max(0, (card.counters.defense ?? 0) - operation.delta);
+        if (!source || /Creature/.test(typeLine) || !/Planeswalker|Battle/.test(typeLine))
+          card.damageMarked += operation.delta;
+        if (source)
+          (trace.damage ??= []).push({
+            source: {
+              kind: 'object',
+              physicalCardId: source.id,
+              objectId: `${source.id}:${source.zoneChangeCounter}`,
+              snapshot: tableObjectSnapshot(table, source),
+            },
+            target: {
+              kind: 'object',
+              physicalCardId: card.id,
+              objectId: `${card.id}:${card.zoneChangeCounter}`,
+              snapshot: tableObjectSnapshot(table, card),
+            },
+            amount: operation.delta,
+            combatDamage: false,
+          });
+      }
+      for (const id of operation.seatIds ?? []) {
+        tableSeat(table, id).life -= operation.delta;
+        (trace.damage ??= []).push({
+          source: {
+            kind: 'object',
+            physicalCardId: source!.id,
+            objectId: `${source!.id}:${source!.zoneChangeCounter}`,
+            snapshot: tableObjectSnapshot(table, source!),
+          },
+          target: { kind: 'player', playerId: id },
+          amount: operation.delta,
+          combatDamage: false,
+        });
       }
       break;
+    }
     case 'draw': {
       integer(operation.count, 1, 500);
       const ids = tableSeat(table, operation.seatId).zones.library.slice(0, operation.count);
       requireTable(ids.length === operation.count, 'ライブラリーの枚数が不足しています。');
-      move(table, ids, 'hand', 'bottom');
+      move(table, ids, 'hand', 'bottom', trace, 'draw');
       break;
     }
     case 'move':
       requireTable(operation.to !== 'stack', 'Stackへは唱える・能力登録から進んでください。');
-      move(table, operation.ids, operation.to, operation.position);
+      move(table, operation.ids, operation.to, operation.position, trace);
       table.stack = table.stack.filter(
         (entry) =>
           !operation.ids.includes(
@@ -1457,12 +1828,13 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
       break;
     }
     case 'generate': {
-      generateTableMana(table, operation.cardId, operation.commands);
+      generateTableMana(table, operation.cardId, operation.commands, trace);
       break;
     }
     case 'generateBatch':
       distinct(operation.entries.map((entry) => entry.cardId));
-      for (const entry of operation.entries) generateTableMana(table, entry.cardId, entry.commands);
+      for (const entry of operation.entries)
+        generateTableMana(table, entry.cardId, entry.commands, trace);
       break;
     case 'cast': {
       const card = cardOf(table, operation.cardId);
@@ -1490,10 +1862,10 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
         '支払い案が変わりました。確認し直してください。',
       );
       const source = { ...structuredClone(card), announcedX: operation.x };
-      for (const command of paid) applyManaCost(table, command, source.controllerId);
+      for (const command of paid) applyManaCost(table, command, source.controllerId, trace);
       if (card.isCommander && card.zone === 'command')
         table.commanderCasts[card.id] = (table.commanderCasts[card.id] ?? 0) + 1;
-      move(table, [card.id], 'stack', 'top');
+      move(table, [card.id], 'stack', 'top', trace, 'cast', 'cast');
       card.announcedX = operation.x;
       table.stack.unshift({
         id: `${card.id}:${card.zoneChangeCounter}`,
@@ -1563,13 +1935,13 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
       break;
     case 'resolve.end': {
       requireTable(table.resolution, '処理中ではありません。');
-      finishTableStack(table, table.resolution, operation.to);
+      finishTableStack(table, table.resolution, operation.to, trace);
       break;
     }
     case 'stack.remove': {
       const entry = table.stack.find((entry) => entry.id === operation.entryId);
       requireTable(entry, '取り除くStackが見つかりません。');
-      finishTableStack(table, entry, operation.to);
+      finishTableStack(table, entry, operation.to, trace, 'removed');
       break;
     }
     case 'keep': {
@@ -1603,16 +1975,18 @@ export function applyTableOperation(before: CockpitTable, operation: TableOperat
       const next = Array.from(
         { length: table.seats.length },
         (_, offset) => table.seats[(currentIndex + offset + 1) % table.seats.length],
-      ).find((seat) => !seat.eliminated);
+      ).find((seat) => !seat.eliminated && seat.controller !== 'passive');
       requireTable(next, '参加中の席がありません。');
       table.activeSeatId = next.id;
       table.turn += 1;
+      table.startProgress = false;
       table.phase = 'untap';
       break;
     }
     default:
       throw new Error('未対応の操作です。');
   }
+  checkpointTableTriggers(table, trace, operation.type);
   return table;
 }
 
@@ -1625,28 +1999,9 @@ export function createCockpitTable(
     Array.isArray(deck) && deck.length > 0 && deck.length <= 500,
     'デッキの枚数を確認してください。',
   );
-  const island: CardDef = {
-    scryfallId: 'practice-island',
-    oracleId: 'practice-island',
-    name: 'Island',
-    printedName: '島',
-    lang: 'ja',
-    layout: 'normal',
-    cmc: 0,
-    colorIdentity: ['U'],
-    typeLine: 'Basic Land — Island',
-    producedMana: ['U'],
-    faces: [
-      {
-        name: 'Island',
-        printedName: '島',
-        typeLine: 'Basic Land — Island',
-        oracleText: '({T}: Add {U}.)',
-      },
-    ],
-  };
   const table: CockpitTable = {
     version: 1,
+    triggers: emptyTableTriggers(1),
     defs: {},
     cards: {},
     seats: [],
@@ -1665,16 +2020,15 @@ export function createCockpitTable(
     ended: false,
   };
   const rng = createRng(seed);
-  for (const [index, entries] of (
-    multiplayerDecks ?? [
-      deck,
-      Array.from({ length: 100 }, () => ({ def: island, isCommander: false })),
-    ]
-  ).entries()) {
+  for (const [index, entries] of (multiplayerDecks ?? [deck, []]).entries()) {
     const id = `P${index + 1}`;
     const seat: TableSeat = {
       id,
-      label: multiplayerDecks ? `プレイヤー${index + 1}` : index === 0 ? 'あなた' : '受け身Bot',
+      label: multiplayerDecks
+        ? `プレイヤー${index + 1}`
+        : index === 0
+          ? 'あなた'
+          : '仮想の対戦相手',
       controller: multiplayerDecks || index === 0 ? 'human' : 'passive',
       life: 40,
       mana: emptyTableMana(),

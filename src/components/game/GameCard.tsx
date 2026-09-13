@@ -8,7 +8,21 @@ import { useEffect, useRef, useState } from 'react';
 import { CardView } from '../CardView';
 import { isCommander } from '../../engine/commander';
 import { isSummoningSick } from '../../engine/status';
-import type { GameController } from './gameController';
+import type { GameScreenInteractionPort } from './gameScreenInteractionPort';
+export type GameCardController = Pick<
+  GameScreenInteractionPort,
+  | 'state'
+  | 'decisionFocus'
+  | 'chooseDecisionCard'
+  | 'confirmManualDiscard'
+  | 'openCardMenu'
+  | 'openCardMenuAt'
+  | 'handleCardDoubleClick'
+  | 'requestTapForMana'
+  | 'requestActivateAbility'
+  | 'requestToggleTap'
+  | 'requestToggleTapMany'
+> & { toggleSelectedDecisions?: boolean };
 import { CardPreview } from './CardPreview';
 import type { CardPreviewAnchor } from './cardPreviewPosition';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
@@ -22,7 +36,7 @@ const DOUBLE_TAP_WINDOW_MS = 280;
 const DOUBLE_TAP_RADIUS_PX = 24;
 
 export interface GameCardProps {
-  controller: GameController;
+  controller: GameCardController;
   cardId: string;
   /** 手札=大きめ / 盤面=棚幅。CSS class 側で幅を割り当てる。 */
   size?: 'board' | 'hand';
@@ -134,7 +148,7 @@ export function GameCard({
   const def = state.defs[instance.defId];
   const commander = isCommander(state, cardId);
   const decisionRole = decisionCardRole(controller.decisionFocus, cardId);
-  const decisionSelectable = decisionRole === 'candidate' || Boolean(
+  const decisionSelectable = decisionRole === 'candidate' || (decisionRole === 'selected' && controller.toggleSelectedDecisions) || Boolean(
     controller.confirmManualDiscard && controller.decisionFocus?.candidateIds.includes(cardId),
   );
   const combatAttacker = state.combat?.attackers.find((entry) => entry.cardId === cardId);
@@ -262,17 +276,20 @@ export function GameCard({
         if (event.repeat) return;
         if (decisionSelectable && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
+          event.stopPropagation();
           controller.chooseDecisionCard?.(cardId);
           return;
         }
         if (controller.decisionFocus) return;
         if (event.key === ' ' && instance.zone === 'battlefield') {
           event.preventDefault();
+          event.stopPropagation();
           runQuickAction();
           return;
         }
         if (event.key === 'Enter') {
           event.preventDefault();
+          event.stopPropagation();
           const rect = rootRef.current?.getBoundingClientRect();
           if (rect) controller.openCardMenuAt?.(cardId, rect.right, rect.top + rect.height / 2);
         }

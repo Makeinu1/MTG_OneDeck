@@ -1,3 +1,4 @@
+import { CockpitWorkPanel } from './CockpitWorkPanel';
 import { CockpitRoomControls } from './CockpitRoomControls';
 import type { CockpitControl } from '../../online/browser/cockpitClient';
 import type { GameSnapshot } from '../../data/gameSnapshot';
@@ -26,10 +27,14 @@ import { CockpitBattleTools } from './CockpitBattleTools';
 import { CockpitCleanupTools } from './CockpitCleanupTools';
 import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { SemanticPresentationLayer } from './presentation/SemanticPresentationLayer';
+import { TransitionCue } from './TransitionCue';
+import { transitionCueFor, type TransitionCueData } from './transitionCueModel';
+import './game.css';
 import { publishCockpitOperation } from './cockpitPresentation';
 import { useAudioVisual } from './presentation/audioVisualContext';
 import { saveAudioPreferences } from './presentation/audioVisualPreferences';
 import { ThemeToggle } from '../ThemeToggle';
+import { isAmbientEnabled, setAmbientEnabled, AMBIENT_CHANGE_EVENT } from './ambientMotion';
 import { CockpitManaBatch } from './CockpitManaBatch';
 import './cockpitSession.css';
 
@@ -74,6 +79,16 @@ export function CockpitSessionScreen({
   onReplay?: (deck: InitDeckCard[], seats?: 2 | 4) => void;
 }) {
   const audio = useAudioVisual();
+  const [ambient, setAmbient] = useState(isAmbientEnabled);
+  const suppressRemoteMotion = useRef(true);
+  const [castPeek, setCastPeek] = useState(false);
+  const [abilityPeek, setAbilityPeek] = useState(false);
+  const [transitionCue, setTransitionCue] = useState<TransitionCueData | null>(null);
+  const transitionId = useRef(0);
+  const sendingRef = useRef(false);
+  const dismissTransition = useCallback((id: number) => {
+    setTransitionCue((current) => (current?.id === id ? null : current));
+  }, []);
   const [view, setView] = useState<CockpitSessionView | null>(null);
   const [roomInvitation, setRoomInvitation] = useState<string | null>(null);
   const [message, setMessage] = useState('接続中…');
@@ -85,7 +100,16 @@ export function CockpitSessionScreen({
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<string | null>(null);
   const [ability, setAbility] = useState<string | null>(null);
+  const [abilityChoice, setAbilityChoice] = useState<string | undefined>();
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [attachment, setAttachment] = useState<{
+    source: string;
+    version: number;
+    target: string | null;
+    targetVersion?: number;
+    paused?: boolean;
+    targetLost?: boolean;
+  } | null>(null);
   const [stackDetail, setStackDetail] = useState<string | null>(null);
   const [stackDestination, setStackDestination] = useState<ZoneId>('graveyard');
   const [to, setTo] = useState<ZoneId>('battlefield');
@@ -126,22 +150,72 @@ export function CockpitSessionScreen({
   useEffect(() => {
     let active = true;
     let initial = true;
+    suppressRemoteMotion.current = true;
+    const seenStackEntries = new Set<string>();
     const client = new CockpitClient(
       (next) => {
         if (active) {
           if (initial && next.multiplayer) setSeatId(next.multiplayer.ownSeatId);
-          initial = false;
           if (viewRef.current?.multiplayer?.masterId !== next.multiplayer?.masterId) {
             setDetail(null);
             setCast(null);
             setSelected([]);
+            setAttachment(null);
           }
           const previous = viewRef.current?.table;
+          const arrivals = next.table.stack.filter((entry) => !seenStackEntries.has(entry.id));
+          next.table.stack.forEach((entry) => seenStackEntries.add(entry.id));
+          if (
+            !initial &&
+            !suppressRemoteMotion.current &&
+            !sendingRef.current &&
+            previous &&
+            !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ) {
+            const flights = arrivals.map((entry) => ({
+              id: entry.id,
+              origin: document
+                .querySelector<HTMLElement>(`[data-player-seat="${entry.controllerId}"]`)
+                ?.getBoundingClientRect(),
+            }));
+            if (flights.length)
+              motionFrameRef.current = requestAnimationFrame(() => {
+                motionRef.current = motionRef.current.filter(
+                  (animation) => animation.playState === 'running',
+                );
+                for (const { id, origin } of flights) {
+                  const node = document.querySelector<HTMLElement>(
+                    `[data-stack-item-id="${CSS.escape(id)}"]`,
+                  );
+                  if (!node || !origin || !node.getClientRects().length) continue;
+                  const end = node.getBoundingClientRect();
+                  motionRef.current.push(
+                    node.animate(
+                      [
+                        { translate: `${origin.x - end.x}px ${origin.y - end.y}px`, opacity: 0.3 },
+                        { translate: '0 0', opacity: 1 },
+                      ],
+                      { duration: 420, easing: 'ease-out' },
+                    ),
+                  );
+                }
+              });
+          }
+          initial = false;
+          suppressRemoteMotion.current = false;
           const sameObject = (id: string) =>
             Boolean(next.table.cards[id]) &&
             (!previous ||
               previous.cards[id]?.zoneChangeCounter === next.table.cards[id].zoneChangeCounter);
           setSelected((current) => current.filter(sameObject));
+          setAttachment((current) => {
+            if (!current) return null;
+            return current.target &&
+              (!sameObject(current.target) ||
+                next.table.cards[current.target]?.zone !== 'battlefield')
+              ? { ...current, target: null, targetVersion: undefined, targetLost: true }
+              : current;
+          });
           setDetail((current) => (current && sameObject(current) ? current : null));
           setAbility((current) => (current && sameObject(current) ? current : null));
           setCast((current) => (current && sameObject(current.cardId) ? current : null));
@@ -152,6 +226,7 @@ export function CockpitSessionScreen({
       },
       (issue) => {
         if (active) {
+          suppressRemoteMotion.current = true;
           setMessage(issue);
           setUncertain(true);
         }
@@ -196,47 +271,87 @@ export function CockpitSessionScreen({
     };
   }, [deck, snapshot, seats, invitation]);
   async function send(operation: TableOperation | { type: 'undo' } | { type: 'redo' }) {
-    if (busy || uncertain) return false;
+    if (busy || uncertain || sendingRef.current) return false;
+    sendingRef.current = true;
     setOperationError(false);
     setBusy(true);
     setMessage('送信中…');
     try {
       const before = viewRef.current?.table;
-      const drawOrigin =
-        operation.type === 'draw'
-          ? document.querySelector('[data-testid="library-tile"]')?.getBoundingClientRect()
-          : null;
+      const presentsDraw = ['draw', 'phase', 'turn', 'turn.ready', 'mulligan'].includes(
+        operation.type,
+      );
+      const drawOrigin = presentsDraw
+        ? document.querySelector('[data-testid="library-tile"]')?.getBoundingClientRect()
+        : null;
+      const moving =
+        presentsDraw ||
+        ['keep', 'move', 'activate', 'resolve.finish', 'resolve.fetch'].includes(operation.type);
+      const origins = new Map<string, DOMRect>();
+      if (moving)
+        document.querySelectorAll<HTMLElement>('[data-layout-card-id]').forEach((node) => {
+          if (node.getClientRects().length)
+            origins.set(node.dataset.layoutCardId!, node.getBoundingClientRect());
+        });
       await clientRef.current?.commit(operation);
       const after = viewRef.current?.table;
-      if (before && after) publishCockpitOperation(operation, before, after);
+      if (before && after) {
+        publishCockpitOperation(operation, before, after);
+        if (['phase', 'turn', 'turn.ready'].includes(operation.type)) {
+          const cue = transitionCueFor(before, after, {
+            forceTurnStart: operation.type === 'turn.ready',
+          });
+          setTransitionCue(cue ? { ...cue, id: ++transitionId.current } : null);
+        } else if (operation.type === 'undo' || operation.type === 'redo') {
+          setTransitionCue(null);
+          motionRef.current.forEach((animation) => animation.cancel());
+          if (motionFrameRef.current !== null) cancelAnimationFrame(motionFrameRef.current);
+        }
+      }
       if (
-        operation.type === 'draw' &&
+        moving &&
         before &&
         after &&
-        drawOrigin &&
         !window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ) {
-        const previousHand =
-          before.seats.find((seat) => seat.id === operation.seatId)?.zones.hand ?? [];
-        const arrived =
-          after.seats
-            .find((seat) => seat.id === operation.seatId)
-            ?.zones.hand.filter((id) => !previousHand.includes(id)) ?? [];
+        const ownId = viewRef.current?.multiplayer?.ownSeatId ?? before.seats[0].id;
+        const previousHand = before.seats.find((seat) => seat.id === ownId)?.zones.hand ?? [];
+        const arrived = presentsDraw
+          ? (after.seats
+              .find((seat) => seat.id === ownId)
+              ?.zones.hand.filter(
+                (id) => operation.type === 'mulligan' || !previousHand.includes(id),
+              ) ?? [])
+          : operation.type === 'activate'
+            ? after.stack
+                .filter((entry) => !before.stack.some((old) => old.id === entry.id))
+                .map((entry) => entry.id)
+            : operation.type === 'keep'
+              ? (after.seats.find((seat) => seat.id === ownId)?.zones.hand ?? [])
+              : Object.values(after.cards)
+                  .filter(
+                    (card) => before.cards[card.id] && before.cards[card.id].zone !== card.zone,
+                  )
+                  .map((card) => card.id);
         motionFrameRef.current = requestAnimationFrame(() => {
           motionRef.current = motionRef.current.filter(
             (animation) => animation.playState === 'running',
           );
           arrived.forEach((id, index) => {
             const node = document.querySelector<HTMLElement>(
-              `.table-hand [data-card-id="${CSS.escape(id)}"]`,
+              `[data-layout-card-id="${CSS.escape(id)}"], .table-hand [data-card-id="${CSS.escape(id)}"]`,
             );
             if (!node) return;
+            const sourceId = after.stack.find((entry) => entry.id === id)?.source.id;
+            const resolvedId = before.stack.find((entry) => entry.source.id === id)?.id;
+            const origin = presentsDraw ? drawOrigin : origins.get(sourceId ?? resolvedId ?? id);
+            if (!origin) return;
             const end = node.getBoundingClientRect();
             motionRef.current.push(
               node.animate(
                 [
                   {
-                    translate: `${drawOrigin.x - end.x}px ${drawOrigin.y - end.y}px`,
+                    translate: `${origin.x - end.x}px ${origin.y - end.y}px`,
                     opacity: 0.3,
                   },
                   { translate: '0 0', opacity: 1 },
@@ -267,6 +382,7 @@ export function CockpitSessionScreen({
       setMessage(error instanceof Error ? error.message : '結果を確認中です。再接続してください。');
       return false;
     } finally {
+      sendingRef.current = false;
       setBusy(false);
     }
   }
@@ -315,6 +431,7 @@ export function CockpitSessionScreen({
     }
   }
   async function reconnect() {
+    suppressRemoteMotion.current = true;
     setBusy(true);
     setOperationError(false);
     try {
@@ -374,6 +491,13 @@ export function CockpitSessionScreen({
       (entryDef ? `Stack: ${entryDef.printedName ?? entryDef.name}` : id)
     );
   };
+  function chooseAttachment(source: string) {
+    const card = table.cards[source];
+    if (!card || card.zone !== 'battlefield') return;
+    if (attachment && attachment.source !== source) return;
+    setAttachment({ source, version: card.zoneChangeCounter, target: null });
+    setDetail(null);
+  }
   function prepareCast(
     cardId: string,
     x = 0,
@@ -390,6 +514,7 @@ export function CockpitSessionScreen({
       error = cause instanceof Error ? cause.message : 'マナ支援の条件を確認してください。';
     }
     setDetail(null);
+    setCastPeek(false);
     setCast({
       cardId,
       x,
@@ -407,12 +532,76 @@ export function CockpitSessionScreen({
     table.ended ||
     Boolean(multi && !multi.canOperate) ||
     !table.seats.find((entry) => entry.id === (multi?.ownSeatId ?? table.seats[0].id))?.kept;
+  const selectionActions = (
+    <div className="cockpit-session__bar" hidden={!selected.length}>
+      {selected.length > 0 && (
+        <details className="table-selected-review">
+          <summary>選択カードを確認</summary>
+          {selected.map((id) => (
+            <button key={id} onClick={() => setDetail(id)}>
+              《{label(id)}》 · {zoneLabels[table.cards[id].zone]}
+            </button>
+          ))}
+        </details>
+      )}
+      <span>選択 {selected.length}枚</span>
+      <button onClick={() => setSelected([])}>選択を取り消す</button>
+      <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
+      <select
+        aria-label="移動先"
+        value={to}
+        onChange={(event) => setTo(event.target.value as ZoneId)}
+      >
+        {tableZones
+          .filter((item) => item !== 'stack')
+          .map((item) => (
+            <option key={item} value={item}>
+              {zoneLabels[item]}
+            </option>
+          ))}
+      </select>
+      <select
+        aria-label="移動順"
+        value={position}
+        onChange={(event) => setPosition(event.target.value as 'top' | 'bottom')}
+      >
+        <option value="top">上へ・選択順</option>
+        <option value="bottom">下へ・選択順</option>
+      </select>
+      <button
+        disabled={disabled || !selected.length}
+        onClick={() => void send({ type: 'move', ids: selected, to, position })}
+      >
+        {zoneLabels[to]}へ移す
+      </button>
+      <button
+        disabled={disabled || !selected.length}
+        onClick={() => void send({ type: 'tap', ids: selected, tapped: true })}
+      >
+        タップ
+      </button>
+      <button
+        disabled={disabled || !selected.length}
+        onClick={() => void send({ type: 'tap', ids: selected, tapped: false })}
+      >
+        アンタップ
+      </button>
+    </div>
+  );
   return (
     <main
       className={`cockpit-session${multi ? ' cockpit-session--multiplayer' : ''}`}
       data-testid="game-screen"
     >
-      <SemanticPresentationLayer />
+      <SemanticPresentationLayer
+        openingDealCount={
+          !table.seats.find((seat) => seat.id === (multi?.ownSeatId ?? table.seats[0].id))?.kept
+            ? table.seats.find((seat) => seat.id === (multi?.ownSeatId ?? table.seats[0].id))?.zones
+                .hand.length
+            : undefined
+        }
+      />
+      <TransitionCue cue={transitionCue} onDone={dismissTransition} />
       <CommanderRitualLayer resolveCue={commanderCue} />
       {table.ended && (
         <section className="cockpit-postgame">
@@ -446,13 +635,102 @@ export function CockpitSessionScreen({
         </section>
       )}
       <CockpitTableSurface
+        modalOpen={
+          menu ||
+          (!!attachment && !attachment.paused) ||
+          (!!ability && !abilityPeek) ||
+          (!!cast && !castPeek) ||
+          !!stackDetail ||
+          confirmEnd
+        }
         view={view}
+        boardTarget={attachment?.paused ? null : attachment?.target}
+        boardChoice={
+          attachment && !attachment.paused
+            ? (id) => {
+                const card = table.cards[id];
+                if (card?.zone === 'battlefield' && id !== attachment.source)
+                  setAttachment({
+                    ...attachment,
+                    target: id,
+                    targetLost: false,
+                    targetVersion: card.zoneChangeCounter,
+                  });
+              }
+            : undefined
+        }
+        decision={
+          attachment ? (
+            <div className="table-attachment-draft">
+              <strong>
+                《{table.cards[attachment.source] ? label(attachment.source) : '発生源'}
+                》の取り付け先
+              </strong>
+              <button
+                onClick={() => setDetail(attachment.source)}
+                disabled={!table.cards[attachment.source]}
+              >
+                発生源を見る
+              </button>
+              {(table.cards[attachment.source]?.zone !== 'battlefield' ||
+                table.cards[attachment.source]?.zoneChangeCounter !== attachment.version) && (
+                <span role="status">発生源が変わりました。選択をやめて確認してください。</span>
+              )}
+              {attachment.targetLost && (
+                <span role="status">選んだカードが戦場を離れました。選び直してください。</span>
+              )}
+              <span>
+                {attachment.target
+                  ? `《${label(attachment.target)}》`
+                  : attachment.paused
+                    ? '卓の操作中です'
+                    : '盤面のカードを選んでください'}
+              </span>
+              {attachment.target && (
+                <button onClick={() => setDetail(attachment.target)}>選んだカードを見る</button>
+              )}
+              <button
+                disabled={
+                  disabled ||
+                  attachment.paused ||
+                  !attachment.target ||
+                  table.cards[attachment.source]?.zone !== 'battlefield' ||
+                  table.cards[attachment.source]?.zoneChangeCounter !== attachment.version ||
+                  table.cards[attachment.target]?.zone !== 'battlefield' ||
+                  table.cards[attachment.target]?.zoneChangeCounter !== attachment.targetVersion
+                }
+                onClick={() =>
+                  void send({
+                    type: 'attach',
+                    cardId: attachment.source,
+                    targetId: attachment.target,
+                  }).then((saved) => {
+                    if (saved) setAttachment(null);
+                  })
+                }
+              >
+                {table.cards[attachment.source]?.attachedTo ? '付け替える' : '取り付ける'}
+              </button>
+              <button onClick={() => setAttachment({ ...attachment, paused: !attachment.paused })}>
+                {attachment.paused ? '選択を続ける' : '選択を保持して卓へ'}
+              </button>
+              <button onClick={() => setAttachment(null)}>選択をやめる</button>
+              <small>取り付け状態の手動変更です。能力の起動・支払いは別に行います。</small>
+            </div>
+          ) : selected.length ? (
+            selectionActions
+          ) : null
+        }
         disabled={disabled}
         pending={busy || uncertain}
         selected={selected}
         select={setSelected}
         inspect={setDetail}
-        activate={setAbility}
+        activate={(id, choice) => {
+          setAbilityChoice(choice);
+          setAbilityPeek(false);
+          setAbility(id);
+        }}
         cast={prepareCast}
         send={send}
         openMenu={() => setMenu(true)}
@@ -463,7 +741,7 @@ export function CockpitSessionScreen({
           control({ type: 'peek', seatId: targetSeat, zone: targetZone })
         }
       >
-        {(browse) => (
+        {(browse, workOpen) => (
           <>
             <details>
               <summary>マナの調整</summary>
@@ -489,60 +767,6 @@ export function CockpitSessionScreen({
                 ))}
               </div>
             </details>
-            <div className="cockpit-session__bar">
-              {selected.length > 0 && (
-                <details className="table-selected-review">
-                  <summary>選択カードを確認</summary>
-                  {selected.map((id) => (
-                    <button key={id} onClick={() => setDetail(id)}>
-                      《{label(id)}》 · {zoneLabels[table.cards[id].zone]}
-                    </button>
-                  ))}
-                </details>
-              )}
-              <span>選択 {selected.length}枚</span>
-              <button onClick={() => setSelected([])}>選択取消</button>
-              <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
-              <select
-                aria-label="移動先"
-                value={to}
-                onChange={(event) => setTo(event.target.value as ZoneId)}
-              >
-                {tableZones
-                  .filter((item) => item !== 'stack')
-                  .map((item) => (
-                    <option key={item} value={item}>
-                      {zoneLabels[item]}
-                    </option>
-                  ))}
-              </select>
-              <select
-                aria-label="移動順"
-                value={position}
-                onChange={(event) => setPosition(event.target.value as 'top' | 'bottom')}
-              >
-                <option value="top">上へ・選択順</option>
-                <option value="bottom">下へ・選択順</option>
-              </select>
-              <button
-                disabled={disabled || !selected.length}
-                onClick={() => void send({ type: 'move', ids: selected, to, position })}
-              >
-                選んだカードを移動
-              </button>
-              <button
-                disabled={disabled || !selected.length}
-                onClick={() => void send({ type: 'tap', ids: selected, tapped: true })}
-              >
-                タップ
-              </button>
-              <button
-                disabled={disabled || !selected.length}
-                onClick={() => void send({ type: 'tap', ids: selected, tapped: false })}
-              >
-                アンタップ
-              </button>
-            </div>
             <CockpitSelectionTools
               browseLibrary={() => browse('library', seatId)}
               table={table}
@@ -559,6 +783,7 @@ export function CockpitSessionScreen({
               send={send}
             />
             <CockpitBattleTools
+              visible={workOpen}
               table={table}
               selected={selected}
               disabled={disabled}
@@ -687,6 +912,16 @@ export function CockpitSessionScreen({
               <ThemeToggle compact />
               <button
                 onClick={() => {
+                  const next = !ambient;
+                  setAmbientEnabled(next);
+                  setAmbient(next);
+                  document.dispatchEvent(new Event(AMBIENT_CHANGE_EVENT));
+                }}
+              >
+                背景モーション {ambient ? 'ON' : 'OFF'}
+              </button>
+              <button
+                onClick={() => {
                   const next = { ...audio.preferences, bgmEnabled: !audio.preferences.bgmEnabled };
                   audio.setPreferences(next);
                   saveAudioPreferences(next);
@@ -706,6 +941,20 @@ export function CockpitSessionScreen({
               >
                 操作音 {audio.preferences.eventSoundsEnabled ? 'ON' : 'OFF'}
               </button>
+              <label>
+                BGM音量{' '}
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={audio.preferences.bgmVolume ?? 70}
+                  onChange={(event) => {
+                    const next = { ...audio.preferences, bgmVolume: Number(event.target.value) };
+                    audio.setPreferences(next);
+                    saveAudioPreferences(next);
+                  }}
+                />
+              </label>
               <label>
                 操作音量{' '}
                 <input
@@ -862,65 +1111,190 @@ export function CockpitSessionScreen({
         </Modal>
       )}
       {detailCard && (
-        <Modal title={`《${label(detailCard.id)}》`} onClose={() => setDetail(null)} allowBoardPeek>
-          <div className="table-detail-image">
-            <CardView
-              instance={{ ...detailCard, tapped: false }}
-              def={detailDef}
-              size="hand"
-              draggable={false}
-            />
-          </div>
-          <p>
-            {detailDef?.faces[detailCard.faceIndex]?.manaCost} ·{' '}
-            {detailDef?.faces[detailCard.faceIndex]?.typeLine}
-          </p>
-          <p style={{ whiteSpace: 'pre-wrap' }}>
-            {detailDef?.faces[detailCard.faceIndex]?.printedText ??
-              detailDef?.faces[detailCard.faceIndex]?.oracleText}
-          </p>
-          {Object.values(table.cards)
-            .filter((card) => card.attachedTo === detailCard.id)
-            .map((card) => (
-              <button key={card.id} onClick={() => setDetail(card.id)}>
-                《{label(card.id)}》の付け替え・解除
-              </button>
-            ))}
-          <div className="cockpit-session__bar">
-            {(['battlefield', 'graveyard', 'exile', 'hand', 'library', 'command'] as const)
-              .filter((target) => target !== detailCard.zone)
-              .map((target) => (
+        <CockpitWorkPanel title={`《${label(detailCard.id)}》`} onClose={() => setDetail(null)}>
+          <div className="table-detail-primary">
+            {detailCard.zone === 'hand' &&
+              /\bLand\b/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '') && (
                 <button
-                  key={target}
                   disabled={disabled}
                   onClick={() =>
                     void send({
                       type: 'move',
                       ids: [detailCard.id],
-                      to: target,
+                      to: 'battlefield',
                       position: 'top',
                     }).then((saved) => {
-                      if (saved) setDetail(null);
+                      if (saved)
+                        setDetail((current) => (current === detailCard.id ? null : current));
                     })
                   }
                 >
-                  {target === 'battlefield'
-                    ? /Land/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '')
-                      ? '土地を置く'
-                      : '戦場へ出す'
-                    : target === 'graveyard'
-                      ? detailCard.zone === 'hand'
-                        ? '捨てる'
-                        : '墓地へ置く'
-                      : target === 'exile'
-                        ? '追放する'
-                        : target === 'hand'
-                          ? '手札へ戻す'
-                          : target === 'library'
-                            ? '山札の上へ'
-                            : '統率領域へ'}
+                  土地を置く
                 </button>
-              ))}
+              )}
+
+            {['hand', 'command'].includes(detailCard.zone) &&
+              !/\bLand\b/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '') && (
+                <button disabled={disabled} onClick={() => prepareCast(detailCard.id)}>
+                  支払いを確認して唱える
+                </button>
+              )}
+            {detailCard.zone === 'battlefield' && (
+              <>
+                {manaActivationChoices(
+                  tableManaResources(table, detailCard.controllerId),
+                  detailCard.controllerId,
+                  detailCard.id,
+                ).map((commands, index) => (
+                  <button
+                    key={index}
+                    disabled={disabled}
+                    onClick={() => void send({ type: 'generate', cardId: detailCard.id, commands })}
+                  >
+                    マナを出す：{' '}
+                    {commands
+                      .map((command) =>
+                        command.type === 'addMana'
+                          ? `${command.color} ${command.amount}`
+                          : command.type === 'moveCard'
+                            ? `《${label(command.cardId)}》を${zoneLabels[command.to]}へ`
+                            : command.type === 'adjustLife'
+                              ? `ライフ ${command.delta}`
+                              : command.type === 'dealDamage'
+                                ? `${command.amount}ダメージ`
+                                : command.type === 'payMana'
+                                  ? 'マナ支払いあり'
+                                  : 'タップ',
+                      )
+                      .join(' / ')}
+                  </button>
+                ))}
+                <button
+                  disabled={disabled}
+                  onClick={() =>
+                    void send({ type: 'tap', ids: [detailCard.id], tapped: !detailCard.tapped })
+                  }
+                >
+                  {detailCard.tapped ? 'アンタップ' : 'タップ'}
+                </button>
+              </>
+            )}
+          </div>
+          {Object.values(table.cards)
+            .filter((card) => card.attachedTo === detailCard.id)
+            .map((card) => (
+              <div key={card.id} className="table-related-card">
+                <button onClick={() => setDetail(card.id)}>《{label(card.id)}》を見る</button>
+                <button
+                  disabled={disabled || (!!attachment && attachment.source !== card.id)}
+                  onClick={() => chooseAttachment(card.id)}
+                >
+                  《{label(card.id)}》を付け替える
+                </button>
+                <button
+                  disabled={disabled}
+                  onClick={() => void send({ type: 'attach', cardId: card.id, targetId: null })}
+                >
+                  《{label(card.id)}》を外す
+                </button>
+              </div>
+            ))}
+          {table.linkedExiles
+            .filter(
+              (link) =>
+                link.sourcePhysicalId === detailCard.id ||
+                link.exiledPhysicalIds.includes(detailCard.id),
+            )
+            .map((link) => (
+              <div className="table-related-card" key={link.linkId}>
+                <span>追放との関連：{link.duration ?? '期間の指定なし'}</span>
+                {[link.sourcePhysicalId, ...link.exiledPhysicalIds]
+                  .filter((id) => id !== detailCard.id && table.cards[id])
+                  .map((id) => (
+                    <button key={id} onClick={() => setDetail(id)}>
+                      《{label(id)}》を見る（{zoneLabels[table.cards[id].zone]}）
+                    </button>
+                  ))}
+              </div>
+            ))}
+          <div className="table-detail-reading">
+            <div className="table-detail-image">
+              <CardView
+                instance={{ ...detailCard, tapped: false }}
+                def={detailDef}
+                size="hand"
+                draggable={false}
+              />
+            </div>
+            <div>
+              <p>
+                {detailDef?.faces[detailCard.faceIndex]?.manaCost} ·{' '}
+                {detailDef?.faces[detailCard.faceIndex]?.printedTypeLine ??
+                  detailDef?.faces[detailCard.faceIndex]?.typeLine}
+              </p>
+              <p style={{ whiteSpace: 'pre-wrap' }}>
+                {detailDef?.faces[detailCard.faceIndex]?.printedText ??
+                  detailDef?.faces[detailCard.faceIndex]?.oracleText}
+              </p>
+            </div>
+          </div>
+          <CockpitAbilityTools
+            key={`ability-${detailCard.id}`}
+            table={table}
+            sourceId={detailCard.id}
+            selected={selected}
+            disabled={disabled}
+            send={send}
+          />
+          <details>
+            <summary>カードを移動</summary>
+            <div className="cockpit-session__bar">
+              {(['battlefield', 'graveyard', 'exile', 'hand', 'library', 'command'] as const)
+                .filter(
+                  (target) =>
+                    target !== detailCard.zone &&
+                    !(
+                      target === 'battlefield' &&
+                      detailCard.zone === 'hand' &&
+                      /\bLand\b/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '')
+                    ),
+                )
+                .map((target) => (
+                  <button
+                    key={target}
+                    disabled={disabled}
+                    onClick={() =>
+                      void send({
+                        type: 'move',
+                        ids: [detailCard.id],
+                        to: target,
+                        position: 'top',
+                      }).then((saved) => {
+                        if (saved)
+                          setDetail((current) => (current === detailCard.id ? null : current));
+                      })
+                    }
+                  >
+                    {target === 'battlefield'
+                      ? /Land/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '')
+                        ? '土地を置く'
+                        : '戦場へ出す'
+                      : target === 'graveyard'
+                        ? detailCard.zone === 'hand'
+                          ? '捨てる'
+                          : '墓地へ置く'
+                        : target === 'exile'
+                          ? '追放する'
+                          : target === 'hand'
+                            ? '手札へ戻す'
+                            : target === 'library'
+                              ? '山札の上へ'
+                              : '統率領域へ'}
+                  </button>
+                ))}
+            </div>
+          </details>
+          <div className="cockpit-session__bar">
             <button
               onClick={() => {
                 setSelected((ids) =>
@@ -939,6 +1313,19 @@ export function CockpitSessionScreen({
             コントローラー {table.seats.find((seat) => seat.id === detailCard.controllerId)?.label}{' '}
             / {zoneLabels[detailCard.zone]}
           </p>
+          {detailCard.zone === 'battlefield' && (
+            <button
+              disabled={disabled || (!!attachment && attachment.source !== detailCard.id)}
+              onClick={() => chooseAttachment(detailCard.id)}
+            >
+              {detailCard.attachedTo ? '盤面で付け替え先を選ぶ' : '盤面で取り付け先を選ぶ'}
+            </button>
+          )}
+          {detailCard.attachedTo && (
+            <button onClick={() => setDetail(detailCard.attachedTo ?? null)}>
+              取り付け先を見る
+            </button>
+          )}
           <CockpitCardTools
             key={detailCard.id}
             table={table}
@@ -946,62 +1333,9 @@ export function CockpitSessionScreen({
             disabled={disabled}
             send={send}
           />
-          <CockpitAbilityTools
-            key={`ability-${detailCard.id}`}
-            table={table}
-            sourceId={detailCard.id}
-            selected={selected}
-            disabled={disabled}
-            send={send}
-          />
-          <button
-            disabled={
-              disabled ||
-              !['hand', 'command'].includes(detailCard.zone) ||
-              /\bLand\b/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '')
-            }
-            onClick={() => prepareCast(detailCard.id)}
-          >
-            支払いを確認して唱える
-          </button>
+
           {detailCard.zone === 'battlefield' && (
             <>
-              {manaActivationChoices(
-                tableManaResources(table, detailCard.controllerId),
-                detailCard.controllerId,
-                detailCard.id,
-              ).map((commands, index) => (
-                <button
-                  key={index}
-                  disabled={disabled}
-                  onClick={() => void send({ type: 'generate', cardId: detailCard.id, commands })}
-                >
-                  マナ生成:{' '}
-                  {commands
-                    .map((command) =>
-                      command.type === 'addMana'
-                        ? `${command.color} ${command.amount}`
-                        : command.type === 'moveCard'
-                          ? `《${label(command.cardId)}》を${zoneLabels[command.to]}へ`
-                          : command.type === 'adjustLife'
-                            ? `ライフ ${command.delta}`
-                            : command.type === 'dealDamage'
-                              ? `${command.amount}ダメージ`
-                              : command.type === 'payMana'
-                                ? 'マナ支払いあり'
-                                : 'タップ',
-                    )
-                    .join(' / ')}
-                </button>
-              ))}
-              <button
-                disabled={disabled}
-                onClick={() =>
-                  void send({ type: 'tap', ids: [detailCard.id], tapped: !detailCard.tapped })
-                }
-              >
-                {detailCard.tapped ? 'アンタップ' : 'タップ'}
-              </button>
               <details>
                 <summary>キーワードを付与・解除</summary>
                 <label>
@@ -1089,16 +1423,20 @@ export function CockpitSessionScreen({
               </details>
             </>
           )}
-        </Modal>
+        </CockpitWorkPanel>
       )}
       {ability && table.cards[ability] && (
-        <Modal
+        <CockpitWorkPanel
+          key={`${ability}:${abilityChoice ?? 'default'}`}
+          preserveDraft
+          folded={abilityPeek}
+          onPeekChange={setAbilityPeek}
           title={`《${label(ability)}》の能力`}
           onClose={() => setAbility(null)}
-          allowBoardPeek
         >
           <CockpitAbilityTools
-            key={ability}
+            key={`${ability}:${abilityChoice ?? 'default'}`}
+            initialChoice={abilityChoice}
             table={table}
             sourceId={ability}
             selected={selected}
@@ -1110,7 +1448,8 @@ export function CockpitSessionScreen({
               return saved;
             }}
           />
-        </Modal>
+          <button onClick={() => setAbility(null)}>能力の使用をやめる</button>
+        </CockpitWorkPanel>
       )}
       {confirmEnd && (
         <Modal title="ゲームを終了しますか" onClose={() => setConfirmEnd(false)}>
@@ -1134,227 +1473,314 @@ export function CockpitSessionScreen({
         </Modal>
       )}
       {cast && (
-        <Modal
+        <CockpitWorkPanel
+          key={cast.cardId}
+          preserveDraft
+          folded={castPeek}
+          onPeekChange={setCastPeek}
+          wide
           title={`《${label(cast.cardId)}》の支払い確認`}
           onClose={() => setCast(null)}
-          allowBoardPeek
         >
-          <p>唱えるためのマナと、タップするカードを確認してください。</p>
-          <div className="cockpit-cast-modes">
-            <button
-              aria-pressed={cast.manualManaCost === null}
-              onClick={() =>
-                prepareCast(cast.cardId, cast.x, cast.excludedSourceIds, cast.targets, null, '')
-              }
-            >
-              通常の支払い
-            </button>
-            <button
-              aria-pressed={cast.costNote === 'マナ支払いを省略'}
-              onClick={() =>
-                prepareCast(cast.cardId, cast.x, [], cast.targets, '', 'マナ支払いを省略')
-              }
-            >
-              マナを支払わずに唱える
-            </button>
-          </div>
-          {cast.costNote === 'マナ支払いを省略' && (
-            <p role="status">マナを消費せずに唱えます。支払いを省略した記録を残します。</p>
-          )}
-          <label>
-            <input
-              type="checkbox"
-              checked={cast.manualManaCost !== null && cast.costNote !== 'マナ支払いを省略'}
-              onChange={(event) =>
-                prepareCast(
-                  cast.cardId,
-                  cast.x,
-                  cast.excludedSourceIds,
-                  cast.targets,
-                  event.target.checked ? '' : null,
-                  '',
-                )
-              }
-            />
-            コストを調整する
-          </label>
-          {cast.manualManaCost !== null && cast.costNote !== 'マナ支払いを省略' && (
-            <fieldset>
-              <legend>本文と既に払ったコストを確認</legend>
-              <label>
-                最終マナコスト（統率者税込・空欄は0）
-                <input
-                  value={cast.manualManaCost}
-                  onChange={(event) =>
-                    prepareCast(
-                      cast.cardId,
-                      cast.x,
-                      cast.excludedSourceIds,
-                      cast.targets,
-                      event.target.value,
-                      cast.costNote,
-                    )
-                  }
+          <div className="table-cast-layout">
+            <div className="table-cast-editor">
+              <div className="table-cast-card">
+                <CardView
+                  instance={{ ...table.cards[cast.cardId], tapped: false }}
+                  def={table.defs[table.cards[cast.cardId].defId]}
+                  size="small"
+                  draggable={false}
                 />
-              </label>
-              <label>
-                軽減・追加コスト・支払済み操作の確認記録
-                <input
-                  value={cast.costNote}
-                  onChange={(event) =>
-                    prepareCast(
-                      cast.cardId,
-                      cast.x,
-                      cast.excludedSourceIds,
-                      cast.targets,
-                      cast.manualManaCost,
-                      event.target.value,
-                    )
-                  }
-                />
-              </label>
-              <p>
-                非マナコストは必要な基本操作で先に確定して記録し、ここで二重に払いません。手動指定は合法性の自動確認ではありません。
-              </p>
-            </fieldset>
-          )}
-
-          {table.defs[table.cards[cast.cardId].defId].faces[
-            table.cards[cast.cardId].faceIndex
-          ]?.manaCost?.includes('{X}') && (
-            <label>
-              Xの値
-              <input
-                type="number"
-                min="0"
-                max="1000"
-                value={cast.x}
-                onChange={(event) =>
-                  prepareCast(
-                    cast.cardId,
-                    Number(event.target.value),
-                    cast.excludedSourceIds,
-                    cast.targets,
-                  )
-                }
-              />
-            </label>
-          )}
-          <details>
-            <summary>自動支払いに使う発生源</summary>
-            <p>
-              使わない発生源のチェックを外すと、未確定の支払い案を作り直します。生成色を指定する場合は先にマナ生成を確定してください。
-            </p>
-            {battlefieldFor(table.cards[cast.cardId].controllerId).map((id, index) => (
-              <label key={id}>
-                <input
-                  type="checkbox"
-                  checked={!cast.excludedSourceIds.includes(id)}
-                  onChange={(event) =>
-                    prepareCast(
-                      cast.cardId,
-                      cast.x,
-                      event.target.checked
-                        ? cast.excludedSourceIds.filter((source) => source !== id)
-                        : [...cast.excludedSourceIds, id],
-                      cast.targets,
-                    )
-                  }
-                />
-                《{label(id)}》 #{index + 1}
-              </label>
-            ))}
-          </details>
-          <details>
-            <summary>対象の記録（本文の条件は手動確認）</summary>
-            <p>盤面で選択していたカードを引き継ぎます。</p>
-            <button
-              onClick={() =>
-                setCast({
-                  ...cast,
-                  targets: [
-                    ...new Set([...cast.targets, ...selected.filter((id) => id !== cast.cardId)]),
-                  ],
-                })
-              }
-            >
-              盤面の選択を対象へ追加
-            </button>
-            {cast.targets
-              .filter((id) => table.cards[id])
-              .map((id) => (
-                <label key={id}>
+                <div>
+                  <strong>《{label(cast.cardId)}》</strong>
+                  <p>
+                    {table.defs[table.cards[cast.cardId].defId].faces[
+                      table.cards[cast.cardId].faceIndex
+                    ]?.manaCost || 'マナコストなし'}
+                  </p>
+                  <p>
+                    {table.defs[table.cards[cast.cardId].defId].faces[
+                      table.cards[cast.cardId].faceIndex
+                    ]?.printedTypeLine ??
+                      table.defs[table.cards[cast.cardId].defId].faces[
+                        table.cards[cast.cardId].faceIndex
+                      ]?.typeLine}
+                  </p>
+                </div>
+              </div>
+              <details className="table-cast-adjust">
+                <summary>コストを変更・支払いを省略</summary>
+                <div className="cockpit-cast-modes">
+                  <button
+                    aria-pressed={cast.manualManaCost === null}
+                    onClick={() =>
+                      prepareCast(
+                        cast.cardId,
+                        cast.x,
+                        cast.excludedSourceIds,
+                        cast.targets,
+                        null,
+                        '',
+                      )
+                    }
+                  >
+                    通常の支払い
+                  </button>
+                  <button
+                    aria-pressed={cast.costNote === 'マナ支払いを省略'}
+                    onClick={() =>
+                      prepareCast(cast.cardId, cast.x, [], cast.targets, '', 'マナ支払いを省略')
+                    }
+                  >
+                    マナを支払わずに唱える
+                  </button>
+                </div>
+                {cast.costNote === 'マナ支払いを省略' && (
+                  <p role="status">マナを消費せずに唱えます。支払いを省略した記録を残します。</p>
+                )}
+                <label>
                   <input
                     type="checkbox"
-                    checked
-                    onChange={() =>
-                      setCast({ ...cast, targets: cast.targets.filter((target) => target !== id) })
+                    checked={cast.manualManaCost !== null && cast.costNote !== 'マナ支払いを省略'}
+                    onChange={(event) =>
+                      prepareCast(
+                        cast.cardId,
+                        cast.x,
+                        cast.excludedSourceIds,
+                        cast.targets,
+                        event.target.checked ? '' : null,
+                        '',
+                      )
                     }
                   />
-                  《{label(id)}》
+                  コストを調整する
                 </label>
-              ))}
-            {table.stack.map((entry, index) => (
-              <label key={entry.id}>
-                <input
-                  type="checkbox"
-                  checked={cast.targets.includes(entry.id)}
-                  onChange={(event) =>
+                {cast.manualManaCost !== null && cast.costNote !== 'マナ支払いを省略' && (
+                  <fieldset>
+                    <legend>本文と既に払ったコストを確認</legend>
+                    <label>
+                      最終マナコスト（統率者税込・空欄は0）
+                      <input
+                        value={cast.manualManaCost}
+                        onChange={(event) =>
+                          prepareCast(
+                            cast.cardId,
+                            cast.x,
+                            cast.excludedSourceIds,
+                            cast.targets,
+                            event.target.value,
+                            cast.costNote,
+                          )
+                        }
+                      />
+                    </label>
+                    <label>
+                      軽減・追加コスト・支払済み操作の確認記録
+                      <input
+                        value={cast.costNote}
+                        onChange={(event) =>
+                          prepareCast(
+                            cast.cardId,
+                            cast.x,
+                            cast.excludedSourceIds,
+                            cast.targets,
+                            cast.manualManaCost,
+                            event.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                    <p>
+                      非マナコストは必要な基本操作で先に確定して記録し、ここで二重に払いません。手動指定は合法性の自動確認ではありません。
+                    </p>
+                  </fieldset>
+                )}
+              </details>
+              {table.defs[table.cards[cast.cardId].defId].faces[
+                table.cards[cast.cardId].faceIndex
+              ]?.manaCost?.includes('{X}') && (
+                <label>
+                  Xの値
+                  <input
+                    type="number"
+                    min="0"
+                    max="1000"
+                    value={cast.x}
+                    onChange={(event) =>
+                      prepareCast(
+                        cast.cardId,
+                        Number(event.target.value),
+                        cast.excludedSourceIds,
+                        cast.targets,
+                      )
+                    }
+                  />
+                </label>
+              )}
+              <details>
+                <summary>使うマナ源を変更</summary>
+                <p>
+                  使わない発生源のチェックを外すと、未確定の支払い案を作り直します。生成色を指定する場合は先にマナ生成を確定してください。
+                </p>
+                {battlefieldFor(table.cards[cast.cardId].controllerId).map((id, index) => (
+                  <label key={id}>
+                    <input
+                      type="checkbox"
+                      checked={!cast.excludedSourceIds.includes(id)}
+                      onChange={(event) =>
+                        prepareCast(
+                          cast.cardId,
+                          cast.x,
+                          event.target.checked
+                            ? cast.excludedSourceIds.filter((source) => source !== id)
+                            : [...cast.excludedSourceIds, id],
+                          cast.targets,
+                        )
+                      }
+                    />
+                    《{label(id)}》 #{index + 1}
+                  </label>
+                ))}
+              </details>
+              <details>
+                <summary>対象を変更</summary>
+                <p>盤面で選択していたカードを引き継ぎます。</p>
+                <button
+                  onClick={() =>
                     setCast({
                       ...cast,
-                      targets: event.target.checked
-                        ? [...cast.targets, entry.id]
-                        : cast.targets.filter((id) => id !== entry.id),
+                      targets: [
+                        ...new Set([
+                          ...cast.targets,
+                          ...selected.filter((id) => id !== cast.cardId),
+                        ]),
+                      ],
                     })
                   }
-                />
-                Stack {index + 1}: {label(entry.id)}
-              </label>
-            ))}
-            {table.seats.map((entry) => (
-              <label key={entry.id}>
-                <input
-                  type="checkbox"
-                  checked={cast.targets.includes(entry.id)}
-                  onChange={(event) =>
-                    setCast({
-                      ...cast,
-                      targets: event.target.checked
-                        ? [...cast.targets, entry.id]
-                        : cast.targets.filter((id) => id !== entry.id),
-                    })
-                  }
-                />
-                {entry.label}
-              </label>
-            ))}
-          </details>
-          {cast.error && <p role="alert">{cast.error}</p>}
-          <ul>
-            {cast.paymentPlan.map((command, index) => (
-              <li key={index}>{cockpitCostText(command, label)}</li>
-            ))}
-          </ul>
-          <button
-            disabled={disabled || Boolean(cast.error)}
-            onClick={() =>
-              void send({
-                type: 'cast',
-                cardId: cast.cardId,
-                targets: cast.targets,
-                x: cast.x,
-                excludedSourceIds: cast.excludedSourceIds,
-                manualManaCost: cast.manualManaCost,
-                costNote: cast.costNote,
-                paymentPlan: cast.paymentPlan,
-              }).then((saved) => {
-                if (saved) setCast(null);
-              })
-            }
-          >
-            {cast.costNote === 'マナ支払いを省略' ? '支払いを省略して唱える' : '唱える'}
-          </button>
-        </Modal>
+                >
+                  盤面の選択を対象へ追加
+                </button>
+                {cast.targets
+                  .filter((id) => table.cards[id])
+                  .map((id) => (
+                    <label key={id}>
+                      <input
+                        type="checkbox"
+                        checked
+                        onChange={() =>
+                          setCast({
+                            ...cast,
+                            targets: cast.targets.filter((target) => target !== id),
+                          })
+                        }
+                      />
+                      《{label(id)}》
+                    </label>
+                  ))}
+                {table.stack.map((entry, index) => (
+                  <label key={entry.id}>
+                    <input
+                      type="checkbox"
+                      checked={cast.targets.includes(entry.id)}
+                      onChange={(event) =>
+                        setCast({
+                          ...cast,
+                          targets: event.target.checked
+                            ? [...cast.targets, entry.id]
+                            : cast.targets.filter((id) => id !== entry.id),
+                        })
+                      }
+                    />
+                    Stack {index + 1}: {label(entry.id)}
+                  </label>
+                ))}
+                {table.seats.map((entry) => (
+                  <label key={entry.id}>
+                    <input
+                      type="checkbox"
+                      checked={cast.targets.includes(entry.id)}
+                      onChange={(event) =>
+                        setCast({
+                          ...cast,
+                          targets: event.target.checked
+                            ? [...cast.targets, entry.id]
+                            : cast.targets.filter((id) => id !== entry.id),
+                        })
+                      }
+                    />
+                    {entry.label}
+                  </label>
+                ))}
+              </details>
+            </div>
+            <aside className="table-cast-payment" aria-label="支払案">
+              <div className="table-cast-payment__review">
+                <h3>今回の支払い</h3>
+                <div className="table-cast-resources">
+                  {[
+                    ...new Set(
+                      cast.paymentPlan.flatMap((command) =>
+                        'cardId' in command && typeof command.cardId === 'string'
+                          ? [command.cardId]
+                          : [],
+                      ),
+                    ),
+                  ]
+                    .filter((id) => table.cards[id])
+                    .map((id) => (
+                      <figure key={id}>
+                        <CardView
+                          instance={table.cards[id]}
+                          def={table.defs[table.cards[id].defId]}
+                          size="small"
+                          draggable={false}
+                        />
+                        <figcaption>《{label(id)}》</figcaption>
+                      </figure>
+                    ))}
+                </div>
+                {cast.costNote && <p role="status">{cast.costNote}</p>}
+                <p>
+                  対象：
+                  {cast.targets
+                    .map(
+                      (id) =>
+                        table.seats.find((seat) => seat.id === id)?.label ?? `《${label(id)}》`,
+                    )
+                    .join('、') || '指定なし'}
+                </p>
+                {cast.error && <p role="alert">{cast.error}</p>}
+                {!cast.error && !cast.paymentPlan.length && <p>マナの消費はありません。</p>}
+                <ul>
+                  {cast.paymentPlan.map((command, index) => (
+                    <li key={index}>{cockpitCostText(command, label)}</li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                className="table-cast-confirm"
+                disabled={disabled || Boolean(cast.error)}
+                onClick={() =>
+                  void send({
+                    type: 'cast',
+                    cardId: cast.cardId,
+                    targets: cast.targets,
+                    x: cast.x,
+                    excludedSourceIds: cast.excludedSourceIds,
+                    manualManaCost: cast.manualManaCost,
+                    costNote: cast.costNote,
+                    paymentPlan: cast.paymentPlan,
+                  }).then((saved) => {
+                    if (saved) setCast(null);
+                  })
+                }
+              >
+                {cast.costNote === 'マナ支払いを省略' ? '支払いを省略して唱える' : '支払って唱える'}
+              </button>
+              <button onClick={() => setCast(null)}>唱えるのをやめる</button>
+            </aside>
+          </div>
+        </CockpitWorkPanel>
       )}
     </main>
   );

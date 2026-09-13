@@ -46,12 +46,10 @@ import { DanceFloorLights } from './DanceFloorLights';
 import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { Toast } from './Toast';
 import { normalizePressedKey, type KeybindingsMap } from '../../data/keybindings';
-import type { CardInstance } from '../../engine/types';
-import type { CardDef } from '../../types/card';
 import { CardView } from '../CardView';
 import { TOUCH_DRAG_ACTIVATION } from '../touchDrag';
 import { resolveDropIntent, type DropTarget } from './dragIntent';
-import { createDragOverlayGeometry, type DragOverlayGeometry } from './dragOverlayModel';
+import { captureDragVisual, type ActiveDragVisual } from './cardDragVisual';
 import { DRAG_UI_END_EVENT, DRAG_UI_START_EVENT } from './dragUiEvents';
 import './game.css';
 import './cockpit.css';
@@ -94,21 +92,48 @@ export function TabletopSurface() {
   );
 }
 
-interface ActiveDragVisual {
-  cardId: string;
-  instance: CardInstance;
-  def: CardDef;
-  geometry: DragOverlayGeometry;
-}
-
-function activatorClientPoint(event: Event): { x: number; y: number } | null {
-  const mouseEvent = event as Partial<MouseEvent>;
-  if (typeof mouseEvent.clientX === 'number' && typeof mouseEvent.clientY === 'number') {
-    return { x: mouseEvent.clientX, y: mouseEvent.clientY };
-  }
-  const touchEvent = event as TouchEvent;
-  const touch = touchEvent.touches?.item(0) ?? touchEvent.changedTouches?.item(0);
-  return touch ? { x: touch.clientX, y: touch.clientY } : null;
+export function CardDragOverlay({ activeDrag }: { activeDrag: ActiveDragVisual | null }) {
+  return (
+    <DragOverlay adjustScale={false} dropAnimation={null}>
+      {activeDrag ? (
+        <div
+          className="game-drag-overlay"
+          data-testid="game-drag-overlay"
+          style={{
+            width: activeDrag.geometry.frameWidth,
+            height: activeDrag.geometry.frameHeight,
+          }}
+        >
+          <div
+            className="game-drag-overlay__card"
+            style={{
+              width: activeDrag.geometry.cardWidth,
+              height: activeDrag.geometry.cardHeight,
+              left: activeDrag.geometry.gripOffsetX,
+              top: activeDrag.geometry.gripOffsetY,
+              transform: `translate(${-activeDrag.geometry.cardGripX}px, ${-activeDrag.geometry.cardGripY}px)`,
+            }}
+          >
+            <div
+              className="game-drag-overlay__visual"
+              style={
+                {
+                  '--drag-face-transform': activeDrag.geometry.faceTransform,
+                } as React.CSSProperties
+              }
+            >
+              <CardView
+                instance={activeDrag.instance}
+                def={activeDrag.def}
+                size="battlefield"
+                draggable={false}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </DragOverlay>
+  );
 }
 
 interface GameScreenSurfaceProps {
@@ -265,34 +290,10 @@ function GameScreenSurface({
     const instance = controller.state?.cards[cardId];
     const def = instance ? controller.state?.defs[instance.defId] : undefined;
     if (!instance || !def) return;
-    const eventTarget = event.activatorEvent.target;
-    const sourceCard = eventTarget instanceof Element
-      ? eventTarget.closest<HTMLElement>('.card-view')
-      : null;
-    const fallbackCard = document.querySelector<HTMLElement>(`[data-testid="card-${cardId}"]`);
-    const cardElement = sourceCard ?? fallbackCard;
-    const transformedElement = cardElement?.closest<HTMLElement>('.hand-ribbon__slot') ?? cardElement;
-    const sourceBounds = cardElement?.getBoundingClientRect();
-    // The activator's actual DOM card is authoritative. A stale/duplicate
-    // dnd-kit registration must never move the grip to another rendered copy.
-    const initialBounds = sourceBounds ?? event.active.rect.current.initial ?? null;
-    const transform = transformedElement ? getComputedStyle(transformedElement).transform : 'none';
-    const faceElement = cardElement?.querySelector<HTMLElement>('.card-view__face');
-    const boardPerspective = cardElement?.closest('.game-screen__board, .game-screen__support');
-    const faceTransform = boardPerspective
-      ? 'none'
-      : faceElement ? getComputedStyle(faceElement).transform : 'none';
-
-    const geometry = createDragOverlayGeometry(
-      initialBounds,
-      cardElement ? { width: cardElement.offsetWidth, height: cardElement.offsetHeight } : null,
-      transform,
-      faceTransform,
-      activatorClientPoint(event.activatorEvent),
-    );
+    const visual = captureDragVisual(event, cardId, instance, def);
     // Capture the whole visual before CommanderAltar conceals its modal. The
     // overlay must never consult a source node whose layout can change mid-drag.
-    setActiveDrag({ cardId, instance, def, geometry });
+    setActiveDrag(visual);
     document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
   }
 
@@ -409,36 +410,7 @@ function GameScreenSurface({
           remounted card away from the released pointer, which feels like a
           one-card grip offset. The semantic transition owns the feedback, so
           the transient drag copy must disappear immediately on release. */}
-      <DragOverlay adjustScale={false} dropAnimation={null}>
-        {activeDrag ? (
-          <div
-            className="game-drag-overlay"
-            data-testid="game-drag-overlay"
-            style={{
-              width: activeDrag.geometry.frameWidth,
-              height: activeDrag.geometry.frameHeight,
-            }}
-          >
-            <div
-              className="game-drag-overlay__card"
-              style={{
-                width: activeDrag.geometry.cardWidth,
-                height: activeDrag.geometry.cardHeight,
-                left: activeDrag.geometry.gripOffsetX,
-                top: activeDrag.geometry.gripOffsetY,
-                transform: `translate(${-activeDrag.geometry.cardGripX}px, ${-activeDrag.geometry.cardGripY}px)`,
-              }}
-            >
-              <div
-                className="game-drag-overlay__visual"
-                style={{ '--drag-face-transform': activeDrag.geometry.faceTransform } as React.CSSProperties}
-              >
-                <CardView instance={activeDrag.instance} def={activeDrag.def} size="battlefield" draggable={false} />
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </DragOverlay>
+      <CardDragOverlay activeDrag={activeDrag} />
     </DndContext>
     </AudioVisualProvider>
   );

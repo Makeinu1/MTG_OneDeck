@@ -10,14 +10,14 @@ import {
   useElementSize,
 } from './adaptiveLaneLayout';
 import { projectBattlefield } from './battlefieldProjection';
-import type { GameController } from './gameController';
+import type { GameCardController } from './GameCard';
 import { isLandCard, type DropTarget } from './dragIntent';
 
 export function SupportRow({
   controller,
   activeDragId,
 }: {
-  controller: GameController;
+  controller: GameCardController;
   activeDragId?: string | null;
 }) {
   const state = controller.state;

@@ -22,8 +22,8 @@
 .cockpit-session select {
   font: inherit;
 }
-.cockpit-session button,
-.cockpit-session select {
+.cockpit-session button:not(:where(.cockpit-table-restored button)),
+.cockpit-session select:not(:where(.cockpit-table-restored select)) {
   padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: 5px;
@@ -159,7 +159,7 @@
 }
 .table-opponent__life {
   font-size: 26px;
-  color: #e4a9a4;
+  color: var(--text);
 }
 .table-far-side {
   display: grid;
@@ -486,7 +486,8 @@
   max-width: 280px;
   border-color: #e1c078 !important;
 }
-.cockpit-session .table-progress__next {
+.cockpit-session .table-progress__next,
+.cockpit-session .table-cast-confirm {
   background: #466952;
   color: #fff;
   border-color: #739879;
@@ -763,7 +764,7 @@
     display: block;
     padding: 32px 20px;
   }
-  .cockpit-session > .modal-backdrop:not(:has(.modal[aria-label='メニュー・保存'])) {
+  .cockpit-session--multiplayer > .modal-backdrop:not(:has(.modal[aria-label='メニュー・保存'])) {
     display: none;
   }
 }
@@ -919,10 +920,10 @@
   }
 }
 
-/* Reserve the work surface even when closed: browsing never moves the table. */
+/* Work panels overlay the battlefield; opening them never moves the hand. */
 @media (min-width: 1000px) {
   .table-layout {
-    width: calc(100% - 360px);
+    width: 100%;
   }
   .table-home {
     padding-inline: 12px;
@@ -939,7 +940,7 @@
     right: 0;
     top: 0;
     width: 360px;
-    height: 100%;
+    height: auto;
     padding: 10px;
     border-left: 1px solid var(--border);
     background: var(--surface-1);
@@ -951,7 +952,7 @@
     position: absolute;
     top: 92px;
     right: 8px;
-    bottom: 8px;
+    bottom: 290px;
     width: 344px;
     max-height: none;
     border-radius: 8px;
@@ -1004,8 +1005,8 @@
   margin: 0 !important;
 }
 @media (max-width: 999px) {
-  .table-work-nav,
-  .table-work-panel {
+  .cockpit-session--multiplayer .table-work-nav,
+  .cockpit-session--multiplayer .table-work-panel {
     display: none !important;
   }
 }
@@ -1034,3 +1035,683 @@
     ) !important;
   }
 }
+
+@media (min-width: 1000px) {
+  .table-layout--practice {
+    grid-template-rows: 66px minmax(250px, 1fr) 220px 58px;
+  }
+  .table-layout--practice .table-far-side {
+    display: none;
+  }
+  .table-layout--practice .table-opponents {
+    padding-right: 360px;
+    align-items: center;
+  }
+  .table-layout--practice .table-opponent__identity {
+    pointer-events: none;
+  }
+}
+.table-fetch-list {
+  display: grid;
+  gap: 8px;
+  max-height: 42vh;
+  overflow: auto;
+}
+.table-fetch-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.table-fetch-list button[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+}
+
+.table-stack-primary {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.table-stack-source {
+  display: block;
+}
+.table-damage-draft h3 {
+  margin: 12px 0 6px;
+}
+.table-damage-rows {
+  list-style: none;
+  padding: 0;
+}
+.table-damage-rows li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.table-damage-rows strong {
+  width: 100%;
+}
+.table-damage-rows input {
+  width: 5em;
+}
+.table-damage-rows select {
+  max-width: 220px;
+}
+.cockpit-session__bar[hidden] {
+  display: none;
+}
+
+/* D: compare across the upper table; reference and decisions keep the hand anchored. */
+@media (min-width: 1000px) {
+  .cockpit-session .table-work-panel--wide {
+    left: 18px;
+    right: 18px;
+    width: auto;
+    z-index: 31;
+  }
+  .cockpit-session > .table-work-panel:not(.table-work-panel--wide) {
+    z-index: 33;
+  }
+  .cockpit-session .table-work-panel--peek {
+    bottom: auto;
+    height: auto;
+  }
+  .table-work-panel .modal__body[hidden] {
+    display: none;
+  }
+  .table-zone-comparison {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .cockpit-session .table-zone-comparison .table-zone-cards {
+    overflow: auto;
+    min-height: 0;
+  }
+  .cockpit-session .table-zone-cards__row {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  .table-zone-selection {
+    overflow: auto;
+    padding: 12px;
+    border-left: 1px solid var(--line-strong);
+  }
+  .table-zone-selection > div {
+    margin-bottom: 12px;
+  }
+  .table-zone-selection button {
+    margin: 4px;
+  }
+  .table-zone-comparison .table-fetch-list {
+    max-height: none;
+    overflow: auto;
+  }
+  .table-decision-strip {
+    position: absolute;
+    bottom: 290px;
+    left: 18px;
+    right: 18px;
+    z-index: 34;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 999px) {
+  .table-decision-strip {
+    display: none;
+  }
+}
+@media (min-width: 1000px) {
+  .cockpit-session:has(.table-decision-strip) .table-work-panel--wide:not(.table-work-panel--peek) {
+    bottom: 375px;
+  }
+  .cockpit-session:has(.table-work-panel--peek:not([hidden])) .table-decision-strip {
+    visibility: hidden;
+  }
+  .table-work-panel--wide .table-zone-tabs input {
+    flex: 1 1 240px;
+    width: auto;
+  }
+  .table-decision-strip {
+    color: var(--text);
+  }
+  .table-decision-strip > .cockpit-session__bar {
+    flex-wrap: wrap;
+    margin: 0;
+  }
+}
+
+@media (min-width: 1000px) {
+  .table-work-panel--wide > .modal__body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
+  }
+  .table-work-panel--wide > .modal__body[hidden] {
+    display: none;
+  }
+  .table-zone-comparison .table-fetch-list {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    align-content: start;
+  }
+  .cockpit-session .table-zone-selection .card-view,
+  .cockpit-session .table-zone-selection .card-view__face {
+    width: 90px;
+    height: 126px;
+  }
+  .table-zone-selection p {
+    margin: 6px 0;
+  }
+  .table-zone-selection > div {
+    margin-bottom: 6px;
+  }
+}
+
+/* Key hints share the action label; they never replace its accessible name. */
+.cockpit-session kbd {
+  font: inherit;
+  font-size: 0.75em;
+  opacity: 0.65;
+  margin-inline-start: 0.35em;
+}
+
+@media (min-width: 1000px) {
+  .cockpit-session .table-work-panel--wide:has(.table-cast-layout) {
+    left: auto;
+    width: min(920px, calc(100% - 36px));
+  }
+  .table-cast-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 38%);
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+  }
+  .table-cast-editor {
+    overflow: auto;
+    min-height: 0;
+  }
+  .table-cast-card {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .cockpit-session .table-cast-card .card-view,
+  .cockpit-session .table-cast-card .card-view__face {
+    width: 90px;
+    height: 126px;
+  }
+  .table-cast-editor details {
+    margin: 12px 0;
+  }
+  .table-cast-editor summary {
+    cursor: pointer;
+  }
+  .table-cast-payment {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 8px;
+    border-left: 1px solid var(--line-strong);
+    padding-left: 16px;
+  }
+  .table-cast-payment__review {
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .table-cast-payment h3 {
+    margin: 0 0 8px;
+  }
+  .table-cast-payment p {
+    margin: 8px 0;
+  }
+  .table-cast-resources {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .table-cast-resources figure {
+    margin: 0;
+    width: 72px;
+    font-size: 11px;
+  }
+  .cockpit-session .table-cast-resources .card-view,
+  .cockpit-session .table-cast-resources .card-view__face {
+    width: 64px;
+    height: 90px;
+  }
+  .cockpit-session .table-cast-confirm {
+    font-weight: 700;
+    min-height: 42px;
+  }
+  .table-fetch-source {
+    margin: 0;
+  }
+}
+
+.table-attachment-draft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.table-attachment-draft small {
+  flex-basis: 100%;
+  color: var(--text-dim);
+}
+.table-related-card {
+  clear: both;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.cockpit-session:has(.table-work-panel--peek:not([hidden]))
+  .table-decision-strip:has(.table-attachment-draft) {
+  visibility: visible;
+}
+
+.table-detail-primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.table-detail-primary:empty {
+  display: none;
+}
+.table-detail-reading {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 12px;
+  margin: 12px 0;
+  align-items: start;
+}
+.table-detail-reading .table-detail-image {
+  float: none;
+  margin: 0;
+}
+.cockpit-session .table-detail-reading .card-view,
+.cockpit-session .table-detail-reading .card-view__face {
+  width: 90px;
+  height: 126px;
+}
+.table-detail-reading p {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.table-work-panel > .modal__body:has(> .table-detail-reading) {
+  gap: 10px;
+}
+.table-work-panel > .modal__body:has(> .table-detail-reading) > p {
+  margin: 0;
+  font-size: 12px;
+}
+.table-detail-primary,
+.table-detail-reading {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* The existing solo table owns the board, land groups, hand and opening stage. */
+.cockpit-table-restored .table-home {
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.cockpit-table-restored:not(.cockpit-table-restored--multiplayer) > .table-opponents,
+.cockpit-table-restored:not(.cockpit-table-restored--multiplayer) > .table-far-side {
+  display: none;
+}
+.cockpit-table-restored .table-progress {
+  grid-area: thumb;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px 12px 0 0;
+  background: var(--surface-1);
+}
+.cockpit-table-restored .table-progress button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.cockpit-table-restored .table-progress__phase {
+  flex: 1;
+  min-width: 110px;
+}
+.cockpit-table-restored .table-progress__phase strong {
+  display: none;
+}
+.cockpit-table-restored .table-progress__next {
+  white-space: nowrap;
+}
+.cockpit-table-restored .table-progress__source {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.restored-life {
+  position: absolute;
+  right: 38px;
+  bottom: 110px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+}
+.restored-life strong {
+  font-size: 42px;
+  font-variant-numeric: tabular-nums;
+}
+.restored-life button {
+  opacity: 0;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+}
+.restored-life:hover button,
+.restored-life:focus-within button {
+  opacity: 1;
+}
+.cockpit-session .table-work-nav {
+  width: auto;
+  border: 0;
+  padding: 4px;
+  background: transparent;
+}
+.cockpit-session .table-work-nav button {
+  font-size: 12px;
+}
+.cockpit-table-restored .mulligan-stage__card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+@media (min-width: 1000px) {
+  .cockpit-table-restored--multiplayer {
+    grid-template-rows: 56px 180px minmax(0, 1fr) 155px var(--decision-h) 190px 64px;
+    grid-template-areas: 'opponents' 'far' 'board' 'lands' 'decision' 'hand' 'thumb';
+  }
+  .cockpit-table-restored--multiplayer .table-opponents {
+    grid-area: opponents;
+  }
+  .cockpit-table-restored--multiplayer .table-far-side {
+    grid-area: far;
+  }
+  .cockpit-table-restored--multiplayer .game-screen__tabletop-surface {
+    grid-row: 2 / 5;
+  }
+}
+
+.cockpit-table-restored .table-home {
+  position: relative;
+}
+.cockpit-table-restored .restored-board-index {
+  position: absolute;
+  top: 10px;
+  right: 22px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  opacity: 0.55;
+}
+.cockpit-table-restored .restored-board-index:hover,
+.cockpit-table-restored .restored-board-index:focus-visible {
+  opacity: 1;
+  background: var(--bg-elevated);
+}
+.cockpit-session .table-work-nav[hidden] {
+  display: none;
+}
+
+.cockpit-table-restored .table-mana-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.restored-mana-colors {
+  display: flex;
+  gap: 7px;
+}
+.restored-mana-colors > span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.restored-mana-colors i {
+  font-style: normal;
+  font-size: 9px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+}
+.restored-mana-colors [data-empty='true'] {
+  opacity: 0.38;
+}
+.restored-mana-colors [data-mana='W'] {
+  color: var(--mana-w);
+}
+.restored-mana-colors [data-mana='U'] {
+  color: var(--mana-u);
+}
+.restored-mana-colors [data-mana='B'] {
+  color: var(--mana-b);
+}
+.restored-mana-colors [data-mana='R'] {
+  color: var(--mana-r);
+}
+.restored-mana-colors [data-mana='G'] {
+  color: var(--mana-g);
+}
+.restored-mana-colors [data-mana='C'] {
+  color: var(--mana-c);
+}
+
+@media (max-width: 999px) {
+  .cockpit-session--multiplayer .cockpit-table-restored {
+    display: none;
+  }
+}
+
+.table-battle-fronts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.table-battle-fronts [aria-pressed='true'] {
+  border-color: var(--accent);
+}
+.table-battle-lanes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.table-battle-lane {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.table-battle-lane small {
+  display: block;
+  max-width: 130px;
+}
+.table-battle-defenders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.table-battle-defenders > strong {
+  flex-basis: 100%;
+}
+.table-work-panel .modal__header {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.table-work-panel .modal__header h2 {
+  flex: 1 1 160px;
+}
+.table-work-panel .modal__header button {
+  white-space: nowrap;
+}
+.table-work-panel:not(.table-work-panel--wide) .table-cast-layout {
+  display: flex;
+  flex-direction: column;
+}
+.table-work-panel:not(.table-work-panel--wide) .table-cast-editor,
+.table-work-panel:not(.table-work-panel--wide) .table-cast-payment__review {
+  overflow: visible;
+}
+.table-work-panel:not(.table-work-panel--wide) .table-cast-payment {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.mulligan-stage[hidden] {
+  display: none;
+}
+
+.table-opponent__life {
+  font-weight: 700;
+}
+.table-opponent__resources {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.table-work-panel--wide > .modal__body:not(:has(.table-cast-layout)):not(:has(.table-zone-cards)) {
+  display: block;
+  overflow: auto;
+}
+
+/* September 5 solo composition uses game.css; only session work surfaces need sizing. */
+.restored-decision {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--surface-1);
+  z-index: 12;
+  overflow: auto;
+}
+.restored-decision > .cockpit-session__bar {
+  flex-wrap: nowrap;
+  margin: 0;
+}
+.restored-decision button {
+  white-space: nowrap;
+}
+.cockpit-table-restored:not(.cockpit-table-restored--multiplayer) .status-band__right-actions {
+  margin-left: auto;
+}
+.cockpit-table-restored:not(.cockpit-table-restored--multiplayer) .status-band__life {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.cockpit-table-restored:not(.cockpit-table-restored--multiplayer) .thumb-zone__primary {
+  min-width: 0;
+}
+@media (max-width: 999px) {
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-work-panel {
+    position: fixed;
+    inset: 84px 8px calc(var(--thumb-zone) + 12px);
+    width: auto;
+    max-width: none;
+    max-height: none;
+    z-index: 110;
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-work-panel--peek {
+    top: auto;
+    max-height: 64px;
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-work-panel .modal__header {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px;
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-work-panel .modal__header h2 {
+    font-size: 14px;
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-work-nav {
+    position: fixed;
+    top: 36px;
+    right: 8px;
+    z-index: 111;
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-zone-comparison {
+    display: block;
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-zone-cards__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cockpit-session:not(.cockpit-session--multiplayer) .table-work-panel .table-card {
+    width: min(120px, 100%);
+  }
+}
+
+.cockpit-session:not(.cockpit-session--multiplayer) .table-work-panel:not(.table-work-panel--peek) {
+  background: var(--surface-1);
+}
+.restored-decision button,
+.restored-decision select {
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  background: var(--surface-2);
+}
+@media (max-width: 360px) {
+  .cockpit-table-restored .thumb-zone__primary > .icon { display: none; }
+  .cockpit-table-restored .thumb-zone__primary > span { white-space: nowrap; }
+}
+
+/* Feed is a compact timeline inside the same resumable work surface. */
+.cockpit-feed .modal__body { display: block; overflow-y: auto; }
+.cockpit-feed .modal__body > h3 { margin: 12px 0 8px; }
+.cockpit-feed .modal__body p { margin: 8px 0; }
+.cockpit-feed .feed__item { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.cockpit-feed .feed__item > button { margin: 8px 0; }
+.cockpit-feed .modal__body details { margin: 6px 0; }
+.cockpit-feed .modal__body input, .cockpit-feed .modal__body textarea { max-width: 100%; }
+
+.cockpit-session .table-work-panel[hidden] { display: none; }

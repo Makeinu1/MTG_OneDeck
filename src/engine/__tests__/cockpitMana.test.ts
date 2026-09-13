@@ -16,7 +16,16 @@ function initial() {
       },
     ],
   });
-  let table = createCockpitTable([...makeDeck(12), { def: watcher, isCommander: false }], 12);
+  const deck = [...makeDeck(12), { def: watcher, isCommander: false }];
+  const lands = makeDeck(12).map((item) => ({
+    ...item,
+    def: makeDef({
+      scryfallId: 'island',
+      typeLine: 'Basic Land — Island',
+      faces: [{ name: 'Island', typeLine: 'Basic Land — Island', oracleText: '{T}: Add {U}.' }],
+    }),
+  }));
+  let table = createCockpitTable(deck, 12, [deck, lands]);
   const watcherId = Object.values(table.cards).find((card) => card.defId === 'watcher')!.id;
   const islands = table.seats[1].zones.hand.slice(0, 2);
   table = applyTableOperation(table, {

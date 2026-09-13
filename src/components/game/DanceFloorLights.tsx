@@ -16,7 +16,7 @@ const MANA_TOKEN: Record<string, string> = {
   gold: 'var(--gold-bright)',
 };
 
-export function DanceFloorLights({ controller }: { controller: GameController }) {
+export function DanceFloorLights({ controller }: { controller: Pick<GameController, 'state'> }) {
   const { state } = controller;
   if (!state) return null;
   const colors = lightPoolColors(state);
@@ -29,11 +29,13 @@ export function DanceFloorLights({ controller }: { controller: GameController })
           key={`${color}-${i}`}
           className="dance-floor__pool"
           data-testid={`dance-floor-pool-${i}`}
-          style={{
-            '--pool-color': MANA_TOKEN[color] ?? MANA_TOKEN.gold,
-            left: `${((i + 0.5) / count) * 100}%`,
-            top: i % 2 === 0 ? '40%' : '60%',
-          } as CSSProperties}
+          style={
+            {
+              '--pool-color': MANA_TOKEN[color] ?? MANA_TOKEN.gold,
+              left: `${((i + 0.5) / count) * 100}%`,
+              top: i % 2 === 0 ? '40%' : '60%',
+            } as CSSProperties
+          }
         />
       ))}
     </div>

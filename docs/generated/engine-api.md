@@ -55,25 +55,40 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 
 ## `src/engine/cockpitTable.ts`
 
-- line 25: `export const tableZones: readonly ZoneId[] = [`
-- line 34: `export const manaColors: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];`
-- line 35: `export const emptyTableMana = (): ManaPool => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });`
-- line 36: `export interface TableSeat {`
-- line 50: `export interface TableStackEntry {`
-- line 63: `export interface TableGrant {`
-- line 72: `export interface TableModifier {`
-- line 81: `export interface TableCombat {`
-- line 89: `export interface CockpitTable {`
-- line 108: `export interface TableTokenCharacteristics {`
-- line 116: `export type TableOperation =`
-- line 237: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
-- line 295: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
-- line 388: `export function tableActivationPayment(`
-- line 520: `export function tableAutoPayment(`
-- line 540: `export function tableCastPayment(`
-- line 615: `export function applyTableOperation(before: CockpitTable, operation: TableOperation): CockpitTable {`
-- line 1619: `export function createCockpitTable(`
-- line 1744: `export function assertCockpitCardDef(def: CardDef): void {`
+- line 37: `export const tableZones: readonly ZoneId[] = [`
+- line 46: `export const manaColors: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];`
+- line 47: `export const emptyTableMana = (): ManaPool => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });`
+- line 48: `export interface TableSeat {`
+- line 62: `export interface TableStackEntry {`
+- line 75: `export interface TableGrant {`
+- line 84: `export interface TableModifier {`
+- line 93: `export interface TableCombat {`
+- line 101: `export interface CockpitTable {`
+- line 122: `export interface TableTokenCharacteristics {`
+- line 130: `export type TableOperation =`
+- line 262: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
+- line 330: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
+- line 468: `export function tableActivationPayment(`
+- line 607: `export function tableAutoPayment(`
+- line 627: `export function tableCastPayment(`
+- line 711: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
+- line 728: `export function applyTableOperation(`
+- line 1993: `export function createCockpitTable(`
+- line 2098: `export function assertCockpitCardDef(def: CardDef): void {`
+
+## `src/engine/cockpitTriggers.ts`
+
+- line 18: `export interface TableTrigger extends PendingTrigger {`
+- line 27: `export interface TableTriggerState {`
+- line 36: `export function emptyTableTriggers(turn: number): TableTriggerState {`
+- line 47: `export function tableObjectSnapshot(table: CockpitTable, card: CardInstance): ObjectSnapshot {`
+- line 117: `export interface TableTriggerTrace {`
+- line 123: `export function triggerTrace(before: CockpitTable, id: string): TableTriggerTrace {`
+- line 127: `export function checkpointTableTriggers(`
+- line 366: `export function readyTableTriggers(table: CockpitTable): TableTrigger[] {`
+- line 373: `export function nextTriggerController(table: CockpitTable): string | undefined {`
+- line 381: `export type TriggerOperation =`
+- line 385: `export function isTriggerOperation(operation: TableOperation): operation is TriggerOperation {`
 
 ## `src/engine/commander.ts`
 

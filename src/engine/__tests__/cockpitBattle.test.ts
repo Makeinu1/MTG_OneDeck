@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { applyTableOperation, createCockpitTable } from '../cockpitTable';
 import { makeDeck } from './helpers';
 function battle() {
-  let table = createCockpitTable(makeDeck(20), 1);
+  let table = createCockpitTable(makeDeck(20), 1, [makeDeck(20), makeDeck(20)]);
   const attacker = table.seats[0].zones.hand[0];
   const blocker = table.seats[1].zones.hand[0];
   table = applyTableOperation(table, {
@@ -40,10 +40,9 @@ it('applies declared damage once and only clears explicitly reviewed cleanup tar
   table = applyTableOperation(table, { type: 'battle.nextDamage' });
   expect(table.combat?.assignments).toEqual([]);
   table = applyTableOperation(table, {
-    type: 'battle.assign',
+    type: 'battle.apply',
     assignments: [{ sourceId: prepared.attacker, targetId: 'P2', amount: 1 }],
   });
-  table = applyTableOperation(table, { type: 'battle.apply' });
   expect(table.seats[1].life).toBe(39);
   expect(() => applyTableOperation(table, { type: 'battle.nextDamage' })).toThrow();
 
@@ -75,6 +74,15 @@ it('does not apply an old assignment to a card that left and returned, or advanc
     position: 'top',
   });
   const before = structuredClone(table);
+  expect(() =>
+    applyTableOperation(table, {
+      type: 'battle.apply',
+      assignments: [
+        { sourceId: prepared.attacker, targetId: 'P2', amount: 2 },
+        { sourceId: prepared.blocker, targetId: 'P1', amount: 3 },
+      ],
+    }),
+  ).toThrow();
   expect(() => applyTableOperation(table, { type: 'battle.apply' })).toThrow();
   expect(table).toEqual(before);
   table = applyTableOperation(table, { type: 'battle.end' });

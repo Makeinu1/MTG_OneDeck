@@ -1,3 +1,4 @@
+import { emptyTableTriggers, isTriggerOperation } from '../../engine/cockpitTriggers';
 import {
   addCockpitDeck,
   authorizeCockpitOperation,
@@ -74,11 +75,15 @@ export type CockpitSessionRequest = (
 
 const response = (body: unknown, status = 200): Response =>
   Response.json(body, { status, headers: { 'cache-control': 'no-store' } });
-function sameHistoryBoundary(current: CockpitTable, candidate: CockpitTable | undefined): boolean {
+function sameHistoryBoundary(
+  current: CockpitTable,
+  candidate: CockpitTable | undefined,
+  multiplayer = true,
+): boolean {
   return Boolean(
     candidate &&
     !current.ended &&
-    candidate.turn === current.turn &&
+    (!multiplayer || candidate.turn === current.turn) &&
     candidate.ended === current.ended &&
     current.seats.every(
       (seat) =>
@@ -104,8 +109,10 @@ function view(
         (record.multiplayer.masterId === actor &&
           cockpitOwnerPresent(record.multiplayer, now) &&
           !record.multiplayer.holds.length)) &&
-      sameHistoryBoundary(record.table, record.undo.at(-1)),
-    canRedo: !record.multiplayer && sameHistoryBoundary(record.table, record.redo.at(-1)),
+      sameHistoryBoundary(record.table, record.undo.at(-1), Boolean(record.multiplayer)),
+    canRedo:
+      !record.multiplayer &&
+      sameHistoryBoundary(record.table, record.redo.at(-1), Boolean(record.multiplayer)),
     receipt,
   };
 }
@@ -131,6 +138,8 @@ function loadRecord(storage: OnlineCloudflareSqlStorage): SessionRecord | null {
   return record;
 }
 function backfillTable(table: CockpitTable): void {
+  table.triggers ??= emptyTableTriggers(table.turn);
+  table.triggers.feed ??= [];
   table.modifiers ??= [];
   table.linkedExiles ??= [];
   table.visibility ??= {};
@@ -537,22 +546,31 @@ export async function handleCockpitSession(
               return response({ error: 'NOT_AUTHORIZED' }, 403);
             if (body.operation.type === 'undo') {
               const previous = record.undo.pop();
-              if (!previous || !sameHistoryBoundary(before, previous))
+              if (!previous || !sameHistoryBoundary(before, previous, Boolean(record.multiplayer)))
                 return response({ error: 'NO_UNDO' }, 409);
               record.redo.push(before);
               record.table = previous;
             } else if (body.operation.type === 'redo') {
               const next = record.redo.pop();
-              if (!next || !sameHistoryBoundary(before, next))
+              if (!next || !sameHistoryBoundary(before, next, Boolean(record.multiplayer)))
                 return response({ error: 'NO_REDO' }, 409);
               record.undo.push(before);
               record.table = next;
             } else {
-              record.table = applyTableOperation(before, body.operation);
-              if (body.operation.type === 'turn') record.undo = [];
+              record.table = applyTableOperation(before, body.operation, body.requestId);
+              if (isTriggerOperation(body.operation)) {
+                const candidateId = body.operation.candidateId;
+                const candidate = record.table.triggers?.candidates.find(
+                  (c) => c.pendingTriggerId === candidateId,
+                );
+                if (candidate) candidate.operatorId = actor;
+              }
+              if (record.multiplayer && record.table.turn !== before.turn) record.undo = [];
               else {
-                if (record.undo.length >= 200)
-                  return response({ error: 'TURN_HISTORY_LIMIT' }, 409);
+                if (record.undo.length >= 200) {
+                  if (record.multiplayer) return response({ error: 'TURN_HISTORY_LIMIT' }, 409);
+                  record.undo.shift();
+                }
                 record.undo.push(before);
               }
               record.redo = [];

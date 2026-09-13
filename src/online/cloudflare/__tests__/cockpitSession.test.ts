@@ -45,6 +45,137 @@ function request(body: unknown): Request {
 }
 
 describe('private cockpit SQLite commit boundary', () => {
+  it('commits turn preparation and damage once each and undoes a whole player action', async () => {
+    const storage = database();
+    let view = (await (
+      await handleCockpitSession(
+        request({ type: 'create', token, deck: makeDeck(30), seed: 1 }),
+        storage,
+        1000,
+      )
+    ).json()) as CockpitSessionView;
+    let sequence = 0;
+    const change = async (operation: unknown) => {
+      const body = {
+        type: 'commit',
+        token,
+        requestId: `flow-operation-${++sequence}`,
+        revision: view.revision,
+        operation,
+      };
+      const result = await handleCockpitSession(request(body), storage, 2000 + sequence);
+      expect(result.status).toBe(200);
+      view = (await result.json()) as CockpitSessionView;
+      return body;
+    };
+    await change({ type: 'keep', seatId: 'P1', bottom: [] });
+    await change({ type: 'turn.ready' });
+    await change({
+      type: 'move',
+      ids: [view.table.seats[0].zones.hand[0]],
+      to: 'battlefield',
+      position: 'top',
+    });
+    const before = structuredClone(view.table);
+    const body = await change({ type: 'turn.ready' });
+    const after = structuredClone(view.table);
+    expect(after.activeSeatId).toBe('P1');
+    expect(after.turn).toBe(2);
+    const duplicate = (await (
+      await handleCockpitSession(request(body), storage, 3000)
+    ).json()) as CockpitSessionView;
+    expect(duplicate.table).toEqual(after);
+    expect(duplicate.revision).toBe(view.revision);
+    await change({ type: 'undo' });
+    expect(view.table).toEqual(before);
+    await change({ type: 'redo' });
+    expect(view.table).toEqual(after);
+    const attacker = view.table.seats[0].zones.battlefield[0];
+    await change({
+      type: 'battle.attack',
+      attackers: [{ cardId: attacker, targetId: 'P2' }],
+      tapIds: [attacker],
+    });
+    const declared = structuredClone(view.table);
+    const damage = await change({
+      type: 'battle.apply',
+      assignments: [{ sourceId: attacker, targetId: 'P2', amount: 3 }],
+    });
+    expect(view.table.seats[1].life).toBe(37);
+    const repeated = (await (
+      await handleCockpitSession(request(damage), storage, 4000)
+    ).json()) as CockpitSessionView;
+    expect(repeated.table).toEqual(view.table);
+    await change({ type: 'undo' });
+    expect(view.table).toEqual(declared);
+  });
+
+  it('saves an occurrence and registration atomically across retries, undo and rejected targets', async () => {
+    const storage = database();
+    const deck = makeDeck(30).map((entry) => ({
+      ...entry,
+      def: {
+        ...entry.def,
+        faces: [
+          {
+            ...entry.def.faces[0],
+            oracleText: `When ${entry.def.name} enters the battlefield, draw a card.`,
+          },
+        ],
+      },
+    }));
+    let view = (await (
+      await handleCockpitSession(request({ type: 'create', token, deck, seed: 1 }), storage, 1000)
+    ).json()) as CockpitSessionView;
+    let seq = 0;
+    const commit = async (operation: unknown, requestId = `trigger-operation-${++seq}`) => {
+      const body = { type: 'commit', token, requestId, revision: view.revision, operation };
+      const result = await handleCockpitSession(request(body), storage, 2000);
+      if (result.ok) view = (await result.json()) as CockpitSessionView;
+      return { result, body };
+    };
+    const entered = await commit({
+      type: 'move',
+      ids: [view.table.seats[0].zones.hand[0]],
+      to: 'battlefield',
+      position: 'top',
+    });
+    expect(entered.result.status).toBe(200);
+    const candidate = view.table.triggers!.candidates[0];
+    expect(view.table.triggers!.candidates).toHaveLength(1);
+    const duplicate = (await (
+      await handleCockpitSession(request(entered.body), storage, 2001)
+    ).json()) as CockpitSessionView;
+    expect(duplicate.table).toEqual(view.table);
+    const pending = structuredClone(view.table);
+    expect(
+      (
+        await commit({
+          type: 'trigger.place',
+          candidateId: candidate.pendingTriggerId,
+          id: 'entry',
+          targets: ['missing'],
+        })
+      ).result.ok,
+    ).toBe(false);
+    const read = (await (
+      await handleCockpitSession(request({ type: 'read', token }), storage, 2002)
+    ).json()) as CockpitSessionView;
+    expect(read.table).toEqual(pending);
+    await commit({
+      type: 'trigger.place',
+      candidateId: candidate.pendingTriggerId,
+      id: 'entry',
+      targets: [],
+    });
+    expect(view.table.stack).toHaveLength(1);
+    expect(view.table.triggers!.candidates[0].operatorId).toBe('P1');
+    await commit({ type: 'undo' });
+    expect(view.table).toEqual(pending);
+    await commit({ type: 'redo' });
+    expect(view.table.triggers!.candidates[0].status).toBe('placed');
+  });
+
   it('keeps confirmed game end irreversible across undo and an older checkpoint restore', async () => {
     const storage = database();
     await handleCockpitSession(
@@ -438,6 +569,7 @@ describe('shared Cockpit multiplayer', () => {
     const eliminated = await room.change(0, { type: 'eliminate', seatId: 'P2' }, true);
     expect(eliminated.value.table.combat!.attackers.map((entry) => entry.cardId)).toEqual(['a2']);
     await room.change(0, { type: 'battle.end' });
+    expect((await room.change(0, { type: 'turn.ready' })).status).toBe(403);
     const advanced = await room.change(0, { type: 'turn' });
     expect(advanced.value.table.activeSeatId).toBe('P3');
     expect(advanced.value.table.seats.map((s) => s.id)).toEqual(['P1', 'P2', 'P3', 'P4']);
