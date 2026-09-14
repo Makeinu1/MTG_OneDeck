@@ -12,6 +12,7 @@ import {
   tableManaResources,
   tableCastPayment,
   tableZones,
+  type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
 import type { GameCommand } from '../../engine/commands';
@@ -395,20 +396,35 @@ export function CockpitSessionScreen({
       setBusy(false);
     }
   }
-  async function control(operation: CockpitControl): Promise<void> {
-    if (busy || uncertain) return;
+  async function control(operation: CockpitControl): Promise<CockpitSessionView | null> {
+    if (busy || uncertain) return null;
     setOperationError(false);
     setBusy(true);
     try {
       await clientRef.current?.control(operation);
       setMessage('操作権と共有状態を保存しました。');
+      return viewRef.current;
     } catch (error) {
       setTerminalConnection(isCockpitTerminalFailure(error));
       setUncertain(!isCockpitOperationRejection(error));
       setMessage(error instanceof Error ? error.message : '再接続してください。');
+      return null;
     } finally {
       setBusy(false);
     }
+  }
+  async function changePeek(
+    targetSeat: string,
+    targetZone: 'hand' | 'library' | null,
+    count?: number,
+  ): Promise<CockpitTable | null> {
+    const next = await control({
+      type: 'peek',
+      seatId: targetSeat,
+      zone: targetZone,
+      ...(targetZone === 'library' && count !== undefined ? { count } : {}),
+    });
+    return next?.table ?? null;
   }
   async function checkpoint(restore: boolean) {
     setBusy(true);
@@ -725,9 +741,7 @@ export function CockpitSessionScreen({
         openStackEntry={setStackDetail}
         seatId={seatId}
         chooseSeat={setSeatId}
-        peek={(targetSeat, targetZone) =>
-          control({ type: 'peek', seatId: targetSeat, zone: targetZone })
-        }
+        peek={changePeek}
       >
         {(browse, workOpen) => (
           <>
@@ -762,6 +776,17 @@ export function CockpitSessionScreen({
               selected={selected}
               disabled={disabled}
               send={send}
+              libraryAccess={
+                multi
+                  ? {
+                      seatId,
+                      totalCount: multi.counts[seatId]?.library ?? 0,
+                      peek: multi.peek,
+                      request: (count) => changePeek(seatId, 'library', count),
+                      release: () => changePeek(seatId, null),
+                    }
+                  : undefined
+              }
             />
             <CockpitTokenTools
               table={table}

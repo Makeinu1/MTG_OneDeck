@@ -3,6 +3,7 @@ import { objectIdOf } from '../../engine/types';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
 import { Modal } from '../Modal';
 import { CardView } from '../CardView';
+import { hasCockpitLibraryAccess, type CockpitLibraryAccess } from './cockpitLibraryAccess';
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 export function CockpitSelectionTools({
@@ -12,6 +13,7 @@ export function CockpitSelectionTools({
   disabled,
   send,
   browseLibrary,
+  libraryAccess,
 }: {
   table: CockpitTable;
   seatId: string;
@@ -19,6 +21,7 @@ export function CockpitSelectionTools({
   disabled: boolean;
   send: (operation: TableOperation) => Promise<boolean>;
   browseLibrary: () => void;
+  libraryAccess?: CockpitLibraryAccess;
 }) {
   const [count, setCount] = useState(2);
   const [delta, setDelta] = useState(1);
@@ -40,9 +43,13 @@ export function CockpitSelectionTools({
     examined: string[];
     objectIds: string[];
     invalidated?: boolean;
+    peekOwned?: boolean;
     rows: { id: string; to: 'top' | 'bottom' | 'graveyard' }[];
   } | null>(null);
   const [proliferate, setProliferate] = useState<string[] | null>(null);
+  const [libraryStatus, setLibraryStatus] = useState<'idle' | 'loading' | 'rejected' | 'empty'>(
+    'idle',
+  );
   const seat = table.seats.find((entry) => entry.id === seatId)!;
   const arrangeSeat = table.seats.find((entry) => entry.id === arrange?.seatId);
   const arrangementMatches = Boolean(
@@ -50,6 +57,9 @@ export function CockpitSelectionTools({
     arrange.seatId === seatId &&
     arrangeSeat &&
     !arrangeSeat.eliminated &&
+    (!libraryAccess ||
+      (libraryAccess.seatId === arrange.seatId &&
+        hasCockpitLibraryAccess(libraryAccess, arrange.examined.length))) &&
     arrange.examined.every((id, index) => {
       const card = table.cards[id];
       return (
@@ -66,6 +76,70 @@ export function CockpitSelectionTools({
   // and never reactivate a discarded choice when the old IDs become visible again.
   if (arrange && !arrange.invalidated && !arrangementMatches)
     setArrange({ ...arrange, invalidated: true });
+
+  function openArrange(source: CockpitTable, kind: '占術' | '諜報', peekOwned = false): boolean {
+    const sourceSeat = source.seats.find((entry) => entry.id === seatId);
+    const examined = sourceSeat?.zones.library.slice(0, count) ?? [];
+    if (!examined.length) {
+      setLibraryStatus('empty');
+      return false;
+    }
+    setArrange({
+      seatId,
+      kind,
+      examined,
+      objectIds: examined.map((id) => objectIdOf(source.cards[id])),
+      rows: examined.map((id) => ({ id, to: 'top' })),
+      peekOwned,
+    });
+    setLibraryStatus('idle');
+    return true;
+  }
+
+  async function startArrange(kind: '占術' | '諜報'): Promise<void> {
+    if (!libraryAccess || hasCockpitLibraryAccess(libraryAccess, count)) {
+      openArrange(table, kind);
+      return;
+    }
+    setLibraryStatus('loading');
+    const next = await libraryAccess.request(count);
+    if (!next) {
+      setLibraryStatus('rejected');
+      return;
+    }
+    const nextSeat = next.seats.find((entry) => entry.id === seatId);
+    if (!nextSeat?.zones.library.length) {
+      setLibraryStatus('empty');
+      await libraryAccess.release();
+      return;
+    }
+    if (!openArrange(next, kind, true)) await libraryAccess.release();
+  }
+
+  async function mill(): Promise<void> {
+    let source = table;
+    let peekOwned = false;
+    if (libraryAccess && !hasCockpitLibraryAccess(libraryAccess, count)) {
+      setLibraryStatus('loading');
+      const next = await libraryAccess.request(count);
+      if (!next) {
+        setLibraryStatus('rejected');
+        return;
+      }
+      source = next;
+      peekOwned = true;
+    }
+    const sourceSeat = source.seats.find((entry) => entry.id === seatId);
+    const ids = sourceSeat?.zones.library.slice(0, count) ?? [];
+    if (!ids.length) {
+      setLibraryStatus('empty');
+      if (peekOwned) await libraryAccess?.release();
+      return;
+    }
+    setLibraryStatus('idle');
+    await send({ type: 'move', ids, to: 'graveyard', position: 'top' });
+    if (peekOwned) await libraryAccess?.release();
+  }
 
   const label = (id: string) => {
     const card = table.cards[id];
@@ -101,34 +175,27 @@ export function CockpitSelectionTools({
         {(['占術', '諜報'] as const).map((kind) => (
           <button
             key={kind}
-            disabled={disabled || count < 1 || !seat.zones.library.length}
-            onClick={() => {
-              const examined = seat.zones.library.slice(0, count);
-              setArrange({
-                seatId,
-                kind,
-                examined,
-                objectIds: examined.map((id) => objectIdOf(table.cards[id])),
-                rows: examined.map((id) => ({ id, to: 'top' })),
-              });
-            }}
+            disabled={disabled || count < 1 || libraryStatus === 'loading'}
+            onClick={() => void startArrange(kind)}
           >
             {kind}
           </button>
         ))}
         <button
-          disabled={disabled || count < 1 || !seat.zones.library.length}
-          onClick={() =>
-            void send({
-              type: 'move',
-              ids: seat.zones.library.slice(0, count),
-              to: 'graveyard',
-              position: 'top',
-            })
-          }
+          disabled={disabled || count < 1 || libraryStatus === 'loading'}
+          onClick={() => void mill()}
         >
           切削
         </button>
+        {libraryStatus !== 'idle' && (
+          <p role="status">
+            {libraryStatus === 'loading'
+              ? '必要な範囲の山札を取得中です。'
+              : libraryStatus === 'rejected'
+                ? '山札を取得できませんでした。操作権と接続状態を確認して再試行してください。'
+                : '山札を取得しましたが0枚です。'}
+          </p>
+        )}
         <button disabled={disabled} onClick={browseLibrary}>
           山札から探す
         </button>
@@ -242,7 +309,15 @@ export function CockpitSelectionTools({
         <Modal
           title={`${arrange.kind}・上から${arrange.examined.length}枚`}
           width="lg"
-          onClose={() => setArrange(null)}
+          onClose={() => {
+            const release = Boolean(
+              arrange.peekOwned &&
+              libraryAccess &&
+              hasCockpitLibraryAccess(libraryAccess, arrange.examined.length),
+            );
+            setArrange(null);
+            if (release) void libraryAccess?.release();
+          }}
           allowBoardPeek
           blockGameShortcuts
         >
@@ -320,7 +395,14 @@ export function CockpitSelectionTools({
                   .filter((row) => row.to === 'graveyard')
                   .map((row) => row.id),
               }).then((saved) => {
-                if (saved) setArrange(null);
+                if (!saved) return;
+                const release = Boolean(
+                  arrange.peekOwned &&
+                  libraryAccess &&
+                  hasCockpitLibraryAccess(libraryAccess, arrange.examined.length),
+                );
+                setArrange(null);
+                if (release) void libraryAccess?.release();
               })
             }
           >

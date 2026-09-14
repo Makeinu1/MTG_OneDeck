@@ -3,7 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
 import { createCockpitTable, type CockpitTable } from '../../engine/cockpitTable';
 import { makeDeck } from '../../engine/__tests__/helpers';
-import { projectCockpit, type CockpitMultiplayer } from '../../online/cloudflare/cockpitMultiplayer';
+import {
+  projectCockpit,
+  type CockpitMultiplayer,
+} from '../../online/cloudflare/cockpitMultiplayer';
 import { CockpitFetchSearch } from './CockpitFetchSearch';
 import type { CockpitLibraryAccess } from './cockpitLibraryAccess';
 

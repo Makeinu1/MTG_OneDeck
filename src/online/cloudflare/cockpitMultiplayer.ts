@@ -88,8 +88,9 @@ export function projectCockpit(
 ): { table: CockpitTable; multiplayer: CockpitMultiplayerView } {
   const projected = structuredClone(table);
   projected.hold ||= multi.holds.length > 0;
+  const ownerPresent = cockpitOwnerPresent(multi, now);
   const peek =
-    multi.masterId === actor && !table.seats.find((s) => s.id === actor)?.eliminated
+    ownerPresent && multi.masterId === actor && !table.seats.find((s) => s.id === actor)?.eliminated
       ? multi.members[actor].peek
       : null;
   const visible = new Set<string>();
@@ -248,7 +249,7 @@ export function projectCockpit(
       typeLine: '',
       faces: [{ name: '非公開カード', typeLine: '', oracleText: '' }],
     };
-  const paused = !cockpitOwnerPresent(multi, now);
+  const paused = !ownerPresent;
   return {
     table: projected,
     multiplayer: {
