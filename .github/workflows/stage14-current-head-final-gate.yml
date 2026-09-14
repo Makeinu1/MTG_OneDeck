@@ -21,6 +21,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Source diagnostics before tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git status --short
+          grep -RFn "commits the primary stack action identically" src || true
+          grep -RFn "処理開始" src/components/game || true
+          sha256sum src/components/game/CockpitTableSurface.test.tsx
+      - name: CockpitTableSurface isolated DOM regression
+        run: node node_modules/vitest/vitest.mjs run --project dom src/components/game/CockpitTableSurface.test.tsx
       - name: Stage14 current-head journey matrix
         shell: bash
         run: |
@@ -46,6 +57,14 @@ jobs:
             echo "== $file =="
             node node_modules/vitest/vitest.mjs run "$file"
           done
+      - name: Source diagnostics after journey matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          grep -RFn "commits the primary stack action identically" src || true
+          grep -RFn "処理開始" src/components/game || true
+          sha256sum src/components/game/CockpitTableSurface.test.tsx
       - name: Full test suite
         run: npm test
       - name: Release gate used by Pages publish
