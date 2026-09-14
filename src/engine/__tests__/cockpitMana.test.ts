@@ -59,10 +59,20 @@ it('generates selected sources atomically and credits each land controller for t
     toughness: '1',
     text: '{T}: Add {G}.',
   });
+  creatureTable.seats.forEach((seat) => {
+    seat.kept = true;
+  });
+  while (creatureTable.phase !== 'cleanup')
+    creatureTable = applyTableOperation(creatureTable, { type: 'phase' });
   creatureTable = applyTableOperation(creatureTable, { type: 'turn' });
   expect(manaActivationChoices(tableManaResources(creatureTable, 'P1'), 'P1', 'mana-elf')).toEqual(
     [],
   );
+  creatureTable.seats.forEach((seat) => {
+    seat.kept = true;
+  });
+  while (creatureTable.phase !== 'cleanup')
+    creatureTable = applyTableOperation(creatureTable, { type: 'phase' });
   creatureTable = applyTableOperation(creatureTable, { type: 'turn' });
   expect(
     manaActivationChoices(tableManaResources(creatureTable, 'P1'), 'P1', 'mana-elf').length,

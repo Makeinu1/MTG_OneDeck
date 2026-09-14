@@ -58,6 +58,8 @@ export interface TableSeat {
   kept: boolean;
   mulligans: number;
   eliminated: boolean;
+  /** Last actual start of this seat's turn. Missing in old saves means unknown. */
+  turnStartedAt?: number;
 }
 export interface TableStackEntry {
   id: string;
@@ -110,6 +112,8 @@ export interface CockpitTable {
   version: 1;
   triggers?: TableTriggerState;
   startProgress?: boolean;
+  untapDone?: boolean;
+  cleanupReady?: boolean;
   defs: Record<string, CardDef>;
   cards: Record<string, CardInstance>;
   seats: TableSeat[];
@@ -160,6 +164,8 @@ export type TableOperation =
   | { type: 'battle.end' }
   | {
       type: 'cleanup';
+      complete?: boolean;
+      effectsReviewed?: boolean;
       damageIds: string[];
       grantIds: string[];
       modifierIds: string[];
@@ -237,8 +243,8 @@ export type TableOperation =
   | { type: 'resolve.begin' }
   | { type: 'resolve.end'; to: ZoneId }
   | { type: 'keep'; seatId: string; bottom?: string[] }
-  | { type: 'phase' }
-  | { type: 'turn' };
+  | { type: 'phase'; manual?: boolean }
+  | { type: 'turn'; manual?: boolean };
 
 function validateTokenCharacteristics(value: TableTokenCharacteristics) {
   for (const text of [value.name, value.typeLine, value.power, value.toughness, value.text])
@@ -287,7 +293,8 @@ function distinct(ids: string[]): void {
 function removeTableCombatant(table: CockpitTable, id: string): void {
   const combat = table.combat;
   if (!combat) return;
-  const affected = [...combat.attackers, ...combat.blockers].some((entry) => entry.cardId === id) ||
+  const affected =
+    [...combat.attackers, ...combat.blockers].some((entry) => entry.cardId === id) ||
     combat.attackers.some((entry) => entry.targetId === id) ||
     combat.assignments.some((entry) => entry.sourceId === id || entry.targetId === id);
   if (!affected) return;
@@ -301,7 +308,10 @@ function removeTableCombatant(table: CockpitTable, id: string): void {
   const attackers = new Set(combat.attackers.map((entry) => entry.cardId));
   combat.blockers = combat.blockers
     .filter((entry) => entry.cardId !== id)
-    .map((entry) => ({ ...entry, attackerIds: entry.attackerIds.filter((value) => attackers.has(value)) }));
+    .map((entry) => ({
+      ...entry,
+      attackerIds: entry.attackerIds.filter((value) => attackers.has(value)),
+    }));
   // Reconfirm the remaining assignment as a whole; never reapply damage already dealt.
   combat.assignments = [];
 }
@@ -313,10 +323,19 @@ function currentCombatDamageSource(table: CockpitTable, card: CardInstance): boo
   if (combat.attackers.some((entry) => entry.objectId === objectId))
     return card.controllerId === table.activeSeatId;
   // CR 510.1d: a blocker may remain in combat but have no creatures left to damage.
-  return combat.blockers.some((entry) => entry.objectId === objectId && entry.attackerIds.some((id) =>
-    combat.attackers.some((attacker) => attacker.cardId === id &&
-      (attacker.defendingSeatId ?? table.cards[attacker.targetId]?.controllerId ?? attacker.targetId) === card.controllerId),
-  ));
+  return combat.blockers.some(
+    (entry) =>
+      entry.objectId === objectId &&
+      entry.attackerIds.some((id) =>
+        combat.attackers.some(
+          (attacker) =>
+            attacker.cardId === id &&
+            (attacker.defendingSeatId ??
+              table.cards[attacker.targetId]?.controllerId ??
+              attacker.targetId) === card.controllerId,
+        ),
+      ),
+  );
 }
 
 function move(
@@ -376,17 +395,7 @@ function move(
 
 export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {
   const battlefield = table.seats.flatMap((seat) => seat.zones.battlefield);
-  const turnSeats = table.seats.filter((seat) => !seat.eliminated && seat.controller !== 'passive');
-  // The current manual turn operation rotates these seats once per turn (CR 302.6).
-  const turnsSinceSeatStart =
-    (Math.max(
-      0,
-      turnSeats.findIndex((seat) => seat.id === table.activeSeatId),
-    ) -
-      turnSeats.findIndex((seat) => seat.id === seatId) +
-      turnSeats.length) %
-    turnSeats.length;
-  const seatTurnStarted = table.turn - turnsSinceSeatStart;
+  const seatTurnStarted = table.seats.find((seat) => seat.id === seatId)?.turnStartedAt;
   return {
     cards: table.cards,
     defs: table.defs,
@@ -401,7 +410,7 @@ export function tableManaResources(table: CockpitTable, seatId: string): ManaRes
       const face = def.faces[card.faceIndex] ?? def.faces[0];
       return (
         /Creature/.test(face.typeLine) &&
-        card.enteredTurn >= seatTurnStarted &&
+        (seatTurnStarted === undefined || card.enteredTurn >= seatTurnStarted) &&
         !card.manualKeywords?.includes('haste') &&
         !def.keywords?.some((word) => word.toLowerCase() === 'haste')
       );
@@ -767,6 +776,55 @@ export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {
   });
 }
 
+/** Only explicit duration labels are automatic; arbitrary prose remains a human decision. */
+export function endsWithTableTurn(duration: string): boolean {
+  return ['ターン終了まで', 'until end of turn', 'this turn'].includes(
+    duration.trim().toLowerCase(),
+  );
+}
+export function tableCleanupNeedsReview(table: CockpitTable, handCount?: number): boolean {
+  const active = table.seats.find((seat) => seat.id === table.activeSeatId);
+  return Boolean(
+    (active &&
+      !active.eliminated &&
+      active.maximumHandSize !== null &&
+      (handCount ?? active.zones.hand.length) > active.maximumHandSize) ||
+    table.grants.some((grant) => !endsWithTableTurn(grant.duration)) ||
+    table.modifiers.some((modifier) => !endsWithTableTurn(modifier.duration)),
+  );
+}
+function clearTurnDamageAndEffects(table: CockpitTable): void {
+  for (const card of Object.values(table.cards)) {
+    card.damageMarked = 0;
+    card.hasDeathtouchDamage = false;
+  }
+  const expired = table.grants.filter((grant) => endsWithTableTurn(grant.duration));
+  table.grants = table.grants.filter((grant) => !endsWithTableTurn(grant.duration));
+  for (const grant of expired) {
+    const card = table.cards[grant.cardId];
+    if (
+      card &&
+      !table.grants.some((other) => other.cardId === card.id && other.keyword === grant.keyword)
+    )
+      card.manualKeywords = card.manualKeywords?.filter((keyword) => keyword !== grant.keyword);
+  }
+  table.modifiers = table.modifiers.filter((modifier) => !endsWithTableTurn(modifier.duration));
+}
+function untapTableTurn(table: CockpitTable, manual = false): void {
+  if (table.untapDone) return;
+  const active = table.seats.find((seat) => seat.id === table.activeSeatId);
+  if (active && !active.eliminated) {
+    active.turnStartedAt = table.turn;
+    if (!manual)
+      for (const card of Object.values(table.cards))
+        if (card.zone === 'battlefield' && card.controllerId === active.id) card.tapped = false;
+  }
+  table.untapDone = true;
+}
+function emptyBoundaryMana(table: CockpitTable): void {
+  for (const seat of table.seats) seat.mana = emptyTableMana();
+}
+
 export function applyTableOperation(
   before: CockpitTable,
   operation: TableOperation,
@@ -779,6 +837,9 @@ export function applyTableOperation(
   requireTable(!before.ended, '終了したセッションです。');
   const table = structuredClone(before);
   table.triggers ??= emptyTableTriggers(table.turn);
+  // Any intervening operation in cleanup requires another cleanup pass (CR 514.3a).
+  if (before.phase === 'cleanup' && !['phase', 'turn'].includes(operation.type))
+    table.cleanupReady = false;
   if (
     [
       'phase',
@@ -879,6 +940,11 @@ export function applyTableOperation(
         '退出前に他のプレイヤーのカードの制御を手動で戻してください。',
       );
       departing.eliminated = true;
+      for (const candidate of table.triggers.candidates)
+        if (candidate.controllerId === departing.id && candidate.status === 'pending') {
+          candidate.status = 'dismissed';
+          candidate.reason = 'コントローラーがゲームを離れました。';
+        }
       const removed = new Set(
         Object.values(table.cards)
           .filter((card) => card.ownerId === departing.id)
@@ -1020,43 +1086,26 @@ export function applyTableOperation(
       table.commanderCasts[operation.cardId] = operation.count;
       break;
     case 'turn.ready': {
+      // Legacy solo shortcut: visit every boundary instead of jumping over end/cleanup.
       requireTable(
-        !table.hold && !table.resolution && !table.stack.length && !table.combat,
+        !table.hold && !table.combat && !table.resolution && !table.stack.length,
         '未完の処理を終えてから進めてください。',
       );
-      const continuing =
-        tableSeat(table, table.activeSeatId).controller === 'passive'
-          ? applyTableOperation(table, { type: 'turn' }, undefined, trace)
-          : table;
-      const current = tableSeat(continuing, continuing.activeSeatId);
-      requireTable(current.kept, '初手をキープしてください。');
-      requireTable(
-        continuing.phase === 'untap' ||
-          continuing.startProgress ||
-          current.maximumHandSize === null ||
-          current.zones.hand.length <= current.maximumHandSize,
-        '手札上限を超えています。捨てるカードを選んでから進めてください。',
-      );
-      requireTable(
-        continuing.phase === 'untap' ||
-          continuing.startProgress ||
-          (!table.grants.length && !table.modifiers.length) ||
-          operation.effectsReviewed === true,
-        '期限のある効果を確認してください。',
-      );
-      let prepared = continuing;
-      if (continuing.startProgress)
-        return applyTableOperation(continuing, { type: 'shortcut' }, undefined, trace);
-      if (continuing.phase !== 'untap') {
-        prepared = applyTableOperation(continuing, { type: 'turn' }, undefined, trace);
-        for (const card of Object.values(prepared.cards)) {
-          card.damageMarked = 0;
-          card.hasDeathtouchDamage = false;
-        }
-        for (const seat of prepared.seats) seat.mana = emptyTableMana();
+      let next = table;
+      if (next.seats.find((seat) => seat.id === next.activeSeatId)?.controller === 'passive') {
+        next.phase = 'cleanup';
+        next.cleanupReady = false;
       }
-      // Declared normal-turn shortcut, not automatic trigger/skip-step adjudication (CR 502, 504).
-      return applyTableOperation(prepared, { type: 'shortcut' }, undefined, trace);
+      const beginning = ['untap', 'upkeep', 'draw'].includes(next.phase);
+      const startTurn = next.turn;
+      for (let step = 0; step < PHASE_ORDER.length + 4; step++) {
+        if (readyTableTriggers(next).length) return next;
+        if (next.phase === 'cleanup' && !next.cleanupReady && tableCleanupNeedsReview(next))
+          return next;
+        if (next.phase === 'main1' && (beginning || next.turn > startTurn)) return next;
+        next = applyTableOperation(next, { type: 'phase' }, undefined, trace);
+      }
+      return next;
     }
     case 'resolve.finish':
     case 'resolve.fetch': {
@@ -1100,30 +1149,15 @@ export function applyTableOperation(
           !table.resolution &&
           !table.stack.length &&
           (table.phase === 'untap' || table.startProgress === true),
-        'アンタップ開始時だけ使用できます。停止や未完処理を確認してください。',
+        'アンタップ開始時または中断した開始処理だけを進められます。',
       );
-      const seat = tableSeat(table, table.activeSeatId);
-      requireTable(
-        seat.kept && (table.phase === 'draw' || seat.zones.library.length > 0),
-        'キープと山札を確認してください。',
-      );
-      table.startProgress = true;
-      if (table.phase === 'untap') {
-        for (const card of Object.values(table.cards))
-          if (card.zone === 'battlefield' && card.controllerId === seat.id) card.tapped = false;
-        table.phase = 'upkeep';
-        checkpointTableTriggers(table, trace, 'upkeep');
-        if (readyTableTriggers(table).length) return table;
+      let next = table;
+      next.startProgress = true;
+      for (let step = 0; step < 3 && next.phase !== 'main1'; step++) {
+        next = applyTableOperation(next, { type: 'phase' }, undefined, trace);
+        if (readyTableTriggers(next).length) return next;
       }
-      if (table.phase === 'upkeep') {
-        table.phase = 'draw';
-        move(table, seat.zones.library.slice(0, 1), 'hand', 'bottom', trace, 'draw');
-        checkpointTableTriggers(table, trace, 'draw-step');
-        if (readyTableTriggers(table).length) return table;
-      }
-      table.phase = 'main1';
-      table.startProgress = false;
-      break;
+      return next;
     }
     case 'battle.attack': {
       requireTable(
@@ -1169,8 +1203,12 @@ export function applyTableOperation(
     case 'battle.block': {
       const combat = table.combat;
       requireTable(
-        combat && !combat.damageApplied && (combat.damageStep ?? 1) === 1 &&
-          !table.hold && !table.resolution && !table.stack.length,
+        combat &&
+          !combat.damageApplied &&
+          (combat.damageStep ?? 1) === 1 &&
+          !table.hold &&
+          !table.resolution &&
+          !table.stack.length,
         'ブロックを登録できる戦闘がありません。',
       );
       if (operation.blockers.length) distinct(operation.blockers.map((entry) => entry.cardId));
@@ -1233,10 +1271,7 @@ export function applyTableOperation(
       for (const assignment of operation.assignments) {
         integer(assignment.amount, 0);
         const source = cardOf(table, assignment.sourceId);
-        requireTable(
-          currentCombatDamageSource(table, source),
-          '戦闘の発生源が変わりました。',
-        );
+        requireTable(currentCombatDamageSource(table, source), '戦闘の発生源が変わりました。');
         const seat = table.seats.find(
           (seat) => seat.id === assignment.targetId && !seat.eliminated,
         );
@@ -1278,10 +1313,7 @@ export function applyTableOperation(
       );
       for (const assignment of combat.assignments) {
         const source = cardOf(table, assignment.sourceId);
-        requireTable(
-          currentCombatDamageSource(table, source),
-          '戦闘の発生源が変わりました。',
-        );
+        requireTable(currentCombatDamageSource(table, source), '戦闘の発生源が変わりました。');
         const seat = table.seats.find((seat) => seat.id === assignment.targetId);
         if (seat) {
           tableSeat(table, seat.id).life -= assignment.amount;
@@ -1326,7 +1358,10 @@ export function applyTableOperation(
       break;
     }
     case 'battle.end':
-      requireTable(!table.hold && !table.resolution && !table.stack.length, '未完の処理を終えてから戦闘を終了してください。');
+      requireTable(
+        !table.hold && !table.resolution && !table.stack.length,
+        '未完の処理を終えてから戦闘を終了してください。',
+      );
       table.combat = null;
       break;
     case 'cleanup': {
@@ -1338,7 +1373,34 @@ export function applyTableOperation(
           table.stack.length === 0,
         'クリンナップに進み、停止・未完処理を確認してください。',
       );
-      const seat = tableSeat(table, operation.seatId);
+      const seat = table.seats.find((entry) => entry.id === operation.seatId);
+      requireTable(
+        seat && (!seat.eliminated || operation.complete),
+        '手札調整の席を確認してください。',
+      );
+      if (operation.complete) {
+        requireTable(seat.id === table.activeSeatId, '現在のターンの手札を確認してください。');
+        const required =
+          seat.eliminated || seat.maximumHandSize === null
+            ? 0
+            : Math.max(0, seat.zones.hand.length - seat.maximumHandSize);
+        requireTable(
+          operation.discardIds.length === required,
+          '手札上限まで捨てるカードを選んでください。',
+        );
+        requireTable(
+          !tableCleanupNeedsReview(table, 0) || operation.effectsReviewed === true,
+          '期限が不明な効果を確認してください。',
+        );
+      }
+      if (operation.discardIds.length) {
+        distinct(operation.discardIds);
+        requireTable(
+          operation.discardIds.every((id) => seat.zones.hand.includes(id)),
+          '手札調整の対象を確認してください。',
+        );
+        move(table, operation.discardIds, 'graveyard', 'top', trace, 'discard', 'discard');
+      }
       if (operation.damageIds.length) distinct(operation.damageIds);
       for (const id of operation.damageIds) {
         const card = cardOf(table, id);
@@ -1362,13 +1424,9 @@ export function applyTableOperation(
       table.modifiers = table.modifiers.filter(
         (entry) => !operation.modifierIds.includes(entry.id),
       );
-      if (operation.discardIds.length) {
-        distinct(operation.discardIds);
-        requireTable(
-          operation.discardIds.every((id) => seat.zones.hand.includes(id)),
-          '手札調整の対象を確認してください。',
-        );
-        move(table, operation.discardIds, 'graveyard', 'top', trace, 'discard', 'discard');
+      if (operation.complete) {
+        clearTurnDamageAndEffects(table);
+        table.cleanupReady = true;
       }
       break;
     }
@@ -1994,35 +2052,92 @@ export function applyTableOperation(
       seat.kept = true;
       break;
     }
-    case 'phase':
+    case 'phase': {
       requireTable(
-        !table.hold && !table.combat && !table.resolution && table.stack.length === 0,
+        !table.hold && !table.combat && !table.resolution && !table.stack.length,
         '停止または未完の処理があります。',
       );
-      table.phase =
-        PHASE_ORDER[Math.min(PHASE_ORDER.length - 1, PHASE_ORDER.indexOf(table.phase) + 1)];
+      requireTable(
+        operation.manual === undefined || typeof operation.manual === 'boolean',
+        '手動補正の指定を確認してください。',
+      );
+      if (table.phase === 'cleanup') {
+        if (!table.cleanupReady) {
+          requireTable(!tableCleanupNeedsReview(table), '手札と期限の確認を完了してください。');
+          clearTurnDamageAndEffects(table);
+          table.cleanupReady = true;
+          break;
+        }
+        return applyTableOperation(
+          table,
+          { type: 'turn', manual: operation.manual },
+          undefined,
+          trace,
+        );
+      }
+      const active = table.seats.find((seat) => seat.id === table.activeSeatId);
+      requireTable(active && (active.kept || active.eliminated), '初手をキープしてください。');
+      if (table.phase === 'untap') untapTableTurn(table, operation.manual);
+      if (!operation.manual) emptyBoundaryMana(table);
+      table.phase = PHASE_ORDER[PHASE_ORDER.indexOf(table.phase) + 1];
+      if (table.phase === 'draw' && !active.eliminated && !operation.manual) {
+        // CR 103.8a: only a game that began as two-player skips the first player's first draw.
+        const skip =
+          table.turn === 1 &&
+          table.seats.filter((seat) => seat.controller === 'human').length === 2;
+        if (skip) table.phase = 'main1';
+        else {
+          requireTable(
+            active.zones.library.length > 0,
+            '山札が空です。ドローの置換・敗北を手動確認してから補正してください。',
+          );
+          move(table, active.zones.library.slice(0, 1), 'hand', 'bottom', trace, 'draw');
+        }
+      }
+      if (table.phase === 'main1') table.startProgress = false;
+      if (table.phase === 'cleanup') {
+        table.cleanupReady = false;
+        if (!tableCleanupNeedsReview(table)) {
+          clearTurnDamageAndEffects(table);
+          table.cleanupReady = true;
+        }
+      }
       break;
+    }
     case 'turn': {
       requireTable(
-        !table.hold && !table.combat && !table.resolution && table.stack.length === 0,
+        !table.hold && !table.combat && !table.resolution && !table.stack.length,
         '停止または未完の処理があります。',
+      );
+      requireTable(
+        table.phase === 'cleanup' && table.cleanupReady === true,
+        'クリンナップの手札・ダメージ・期限の確認を完了してください。',
+      );
+      requireTable(
+        operation.manual === undefined || typeof operation.manual === 'boolean',
+        '手動補正の指定を確認してください。',
       );
       const currentIndex = table.seats.findIndex((seat) => seat.id === table.activeSeatId);
       const next = Array.from(
         { length: table.seats.length },
         (_, offset) => table.seats[(currentIndex + offset + 1) % table.seats.length],
       ).find((seat) => !seat.eliminated && seat.controller !== 'passive');
-      requireTable(next, '参加中の席がありません。');
+      requireTable(next && next.kept, '参加中の席と初手キープを確認してください。');
+      if (!operation.manual) emptyBoundaryMana(table);
       table.activeSeatId = next.id;
       table.turn += 1;
       table.startProgress = false;
+      table.cleanupReady = false;
+      table.untapDone = false;
       table.phase = 'untap';
+      untapTableTurn(table, operation.manual);
       break;
     }
     default:
       throw new Error('未対応の操作です。');
   }
   checkpointTableTriggers(table, trace, operation.type);
+  if (table.phase === 'cleanup' && readyTableTriggers(table).length) table.cleanupReady = false;
   return table;
 }
 
@@ -2083,6 +2198,7 @@ export function createCockpitTable(
       kept: !multiplayerDecks && index !== 0,
       mulligans: 0,
       eliminated: false,
+      turnStartedAt: index === 0 ? 1 : 0,
     };
     table.seats.push(seat);
     entries.forEach((entry, cardIndex) => {
