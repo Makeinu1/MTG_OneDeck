@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CardView } from '../CardView';
+import { cockpitPowerToughness } from '../../engine/cockpitPowerToughness';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
 import { readyTableTriggers } from '../../engine/cockpitTriggers';
 
@@ -63,19 +64,7 @@ export function CockpitBattleTools({
     (id) => id !== table.activeSeatId && table.cards[id]?.controllerId !== table.activeSeatId,
   );
   const attackTarget = attackTargets.includes(target) ? target : (attackTargets[0] ?? '');
-  function power(id: string) {
-    const card = table.cards[id];
-    if (!card || !table.defs[card.defId]) return null;
-    const printed = Number(table.defs[card.defId].faces[card.faceIndex]?.power);
-    return Number.isFinite(printed)
-      ? printed +
-          (card.counters['+1/+1'] ?? 0) -
-          (card.counters['-1/-1'] ?? 0) +
-          table.modifiers
-            .filter((modifier) => modifier.cardId === id)
-            .reduce((sum, modifier) => sum + modifier.power, 0)
-      : null;
-  }
+  const power = (id: string) => cockpitPowerToughness(table, id)?.power ?? null;
   const focusBattle = visible && (table.phase === 'combat' || !!combat);
   useEffect(() => {
     if (focusBattle) section.current?.scrollIntoView({ block: 'nearest' });

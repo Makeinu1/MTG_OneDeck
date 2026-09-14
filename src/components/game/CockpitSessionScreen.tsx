@@ -1,3 +1,5 @@
+import { CockpitCardPresentation } from './CockpitCardPresentation';
+import { CockpitReplayButton } from './CockpitReplayButton';
 import { CockpitWorkPanel } from './CockpitWorkPanel';
 import { CockpitRoomControls } from './CockpitRoomControls';
 import type { CockpitControl } from '../../online/browser/cockpitClient';
@@ -585,9 +587,9 @@ export function CockpitSessionScreen({
     </div>
   );
   return (
-    <main
+    <CockpitCardPresentation
+      table={table}
       className={`cockpit-session${multi ? ' cockpit-session--multiplayer' : ''}`}
-      data-testid="game-screen"
     >
       <SemanticPresentationLayer
         openingDealCount={
@@ -609,23 +611,12 @@ export function CockpitSessionScreen({
             最後の盤面は引き続き確認できます。
           </p>
           {onReplay && (
-            <button
+            <CockpitReplayButton
               disabled={busy || uncertain}
-              onClick={() => {
-                const ownId = multi?.ownSeatId ?? table.seats[0].id;
-                const replayDeck =
-                  deck ??
-                  Object.values(table.cards)
-                    .filter((card) => card.ownerId === ownId && !card.isToken && !card.isCopy)
-                    .map((card) => ({
-                      def: table.defs[card.defId],
-                      isCommander: card.isCommander,
-                    }));
-                onReplay(replayDeck, multi ? (table.seats.length as 2 | 4) : undefined);
-              }}
-            >
-              {multi ? '同じデッキで新しい対戦部屋' : '同じデッキでもう一度'}
-            </button>
+              seats={multi ? (table.seats.length as 2 | 4) : undefined}
+              loadDeck={() => clientRef.current?.loadReplayDeck() ?? Promise.resolve(null)}
+              onReplay={onReplay}
+            />
           )}
           <button onClick={onBack}>デッキ選択へ戻る</button>
         </section>
@@ -1780,6 +1771,6 @@ export function CockpitSessionScreen({
           </div>
         </CockpitWorkPanel>
       )}
-    </main>
+    </CockpitCardPresentation>
   );
 }
