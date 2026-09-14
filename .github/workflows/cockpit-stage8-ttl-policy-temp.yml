@@ -28,6 +28,7 @@ jobs:
           test "$(git hash-object src/components/game/CockpitSessionScreen.tsx)" = 9b7bd291c6255abbca768afce130526f6ec8afc5
           test "$(git hash-object src/online/browser/cockpitClient.ts)" = cd44d92fffe445700b82eee13d862da622d24976
           python .github/stage8-ttl-policy.py
+          python .github/stage8-ttl-testfix.py
           git diff --check
       - name: Install dependencies
         run: npm ci
@@ -69,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git rm -f .github/stage8-ttl-policy.py .github/workflows/cockpit-stage8-ttl-policy-temp.yml
+          git rm -f .github/stage8-ttl-policy.py .github/stage8-ttl-testfix.py .github/workflows/cockpit-stage8-ttl-policy-temp.yml
           git add \
             src/online/cloudflare/cockpitSession.ts \
             src/components/game/CockpitRoomControls.tsx \
