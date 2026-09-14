@@ -23,6 +23,7 @@ import {
   isCockpitTerminalFailure,
 } from '../../online/browser/cockpitClient';
 import { CockpitTableSurface } from './CockpitTableSurface';
+import { cockpitStackDetailEntry } from './cockpitStackDetail';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { CockpitSelectionTools } from './CockpitSelectionTools';
@@ -225,6 +226,9 @@ export function CockpitSessionScreen({
           setDetail((current) => (current && sameObject(current) ? current : null));
           setAbility((current) => (current && sameObject(current) ? current : null));
           setCast((current) => (current && sameObject(current.cardId) ? current : null));
+          setStackDetail((current) =>
+            cockpitStackDetailEntry(next.table, current) ? current : null,
+          );
           viewRef.current = next;
           setView(next);
           setRoomInvitation(client.invitation());
@@ -474,9 +478,7 @@ export function CockpitSessionScreen({
   );
   const detailCard = detail ? table.cards[detail] : undefined;
   const detailDef = detailCard ? table.defs[detailCard.defId] : undefined;
-  const stackEntry =
-    table.stack.find((entry) => entry.id === stackDetail) ??
-    (table.resolution?.id === stackDetail ? table.resolution : null);
+  const stackEntry = cockpitStackDetailEntry(table, stackDetail);
   const label = (id: string) => {
     const card = table.cards[id];
     const def = card && table.defs[card.defId];
@@ -626,7 +628,7 @@ export function CockpitSessionScreen({
           (!!attachment && !attachment.paused) ||
           (!!ability && !abilityPeek) ||
           (!!cast && !castPeek) ||
-          !!stackDetail ||
+          !!stackEntry ||
           confirmEnd
         }
         view={view}

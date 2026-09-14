@@ -142,6 +142,9 @@ export function CockpitTableSurface({
     new Map<string, { query: string; page: number; filter: string }>(),
   );
   const [fetchEntry, setFetchEntry] = useState<string | null>(null);
+  const activeFetchEntry = fetchEntry
+    ? table.stack.find((entry) => entry.id === fetchEntry) ?? null
+    : null;
   const [reviewTurn, setReviewTurn] = useState(false);
   const [mana, setMana] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -220,15 +223,22 @@ export function CockpitTableSurface({
     opening ||
     mana ||
     (reviewTurn && table.phase === 'cleanup') ||
-    !!fetchEntry ||
+    !!activeFetchEntry ||
     handWorkspace ||
     !!cardMenu;
+  function runPrimaryAction() {
+    if (disabled || opening || table.hold || boardChoice || dialogOpen) return;
+    if (resolution) setWork(true);
+    else if (triggersReady) setFeed(true);
+    else if (top) resolveTop();
+    else if (table.combat) setWork(true);
+    else if (table.phase === 'untap' || table.startProgress) prepareTurn();
+    else advancePhase();
+  }
   useShortcuts({
     keybindings,
     isDialogOpen: dialogOpen,
-    onNextTurn: () => {
-      if (!dialogOpen) prepareTurn();
-    },
+    onNextTurn: runPrimaryAction,
     onNextPhase: () => {
       if (!dialogOpen) advancePhase();
     },
@@ -554,6 +564,19 @@ export function CockpitTableSurface({
       : permanent
         ? '解決して戦場に出す'
         : '効果を処理する';
+  const primaryActionLabel = resolution
+    ? '処理に戻る'
+    : triggersReady
+      ? '誘発を確認'
+      : top
+        ? '解決'
+        : table.combat
+          ? '戦闘に戻る'
+          : table.phase === 'untap' || table.startProgress
+            ? 'ターン開始'
+            : table.phase === 'main1'
+              ? '戦闘'
+              : '次へ';
   function resolveTop(manual = false) {
     if (triggersReady) {
       setFeed(true);
@@ -997,30 +1020,10 @@ export function CockpitTableSurface({
               <button
                 className={`thumb-zone__primary${current ? ' thumb-zone__primary--stack' : ' thumb-zone__primary--advance'}`}
                 data-testid="primary-action"
-                aria-label={
-                  resolution
-                    ? '処理に戻る'
-                    : triggersReady
-                      ? '誘発を確認'
-                      : top
-                        ? '解決'
-                        : table.combat
-                          ? '戦闘に戻る'
-                          : table.phase === 'untap' || table.startProgress
-                            ? 'ターン開始'
-                            : table.phase === 'main1'
-                              ? '戦闘'
-                              : '次へ'
-                }
+                aria-label={primaryActionLabel}
+                title={`${primaryActionLabel} (${keyHint(keybindings.nextTurn)})`}
                 disabled={disabled || opening || table.hold || !!boardChoice || dialogOpen}
-                onClick={() => {
-                  if (resolution) setWork(true);
-                  else if (triggersReady) setFeed(true);
-                  else if (top) resolveTop();
-                  else if (table.combat) setWork(true);
-                  else if (table.phase === 'untap' || table.startProgress) prepareTurn();
-                  else advancePhase();
-                }}
+                onClick={runPrimaryAction}
               >
                 <Icon name={current ? 'stack' : 'phase-next'} />
                 <span>
@@ -1146,6 +1149,7 @@ export function CockpitTableSurface({
             {top && (
               <button
                 className="restored-resolve"
+                title={`${resolveLabel} (${keyHint(keybindings.nextTurn)})`}
                 disabled={disabled || table.hold}
                 onClick={() => resolveTop()}
               >
@@ -1513,11 +1517,11 @@ export function CockpitTableSurface({
           handCount={multi?.counts[table.activeSeatId]?.hand}
         />
       )}
-      {fetchEntry && table.stack.find((entry) => entry.id === fetchEntry) && (
+      {activeFetchEntry && (
         <CockpitFetchSearch
-          key={fetchEntry}
+          key={activeFetchEntry.id}
           table={table}
-          entry={table.stack.find((entry) => entry.id === fetchEntry)!}
+          entry={activeFetchEntry}
           disabled={disabled}
           send={send}
           onClose={() => setFetchEntry(null)}

@@ -36,8 +36,19 @@ function targetPresentation(state: GameState, target: TargetSelection) {
   const cardId = target.selection.physicalCardId;
   const current = state.cards[cardId];
   const isSameObject = current && objectIdOf(current) === target.selection.objectId;
+  const snapshot = target.selection.snapshot;
+  const snapshotDef = state.defs[snapshot.defId];
+  const snapshotFace = snapshotDef?.faces[snapshot.faceIndex] ?? snapshotDef?.faces[0];
+  const historicalName =
+    snapshot.defId === 'cockpit-hidden'
+      ? '非公開カード'
+      : snapshotFace?.printedName ??
+        snapshotFace?.name ??
+        snapshotDef?.printedName ??
+        snapshotDef?.name ??
+        cardId;
   return {
-    label: `《${cardName(state, cardId)}》${isSameObject ? '' : '（以前のオブジェクト）'}`,
+    label: `《${isSameObject ? cardName(state, cardId) : historicalName}》${isSameObject ? '' : '（以前のオブジェクト）'}`,
     ...(isSameObject ? { cardId } : {}),
     legalityMode: target.legalityMode,
   };
