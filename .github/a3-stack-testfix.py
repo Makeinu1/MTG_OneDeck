@@ -41,13 +41,11 @@ for path in [
 ]:
     p = Path(path)
     text = p.read_text()
-    source_var = 'sourceId'
     proposal = """    manualCosts,
     paymentPlan: proposal.paid,"""
     count = text.count(manual)
     if count != 1:
         raise SystemExit(f"{path}: expected one manual fixture, found {count}")
-    # Insert the proposal immediately before the activate operation in each dedicated fixture.
     marker = "  table = applyTableOperation(table, {\n    type: 'activate'," if 'CockpitStackLki' in path or 'cockpitStackDetail' in path else "  return applyTableOperation(table, {\n    type: 'activate',"
     prefix = """  const manualCosts = {
     manaCost: '',
@@ -67,5 +65,11 @@ for path in [
     text = text.replace(marker, prefix + marker, 1)
     text = text.replace(manual, proposal, 1)
     p.write_text(text)
+
+replace_one(
+    'src/components/game/cockpitStackDetail.test.ts',
+    "  table = { ...table, resolution: null };",
+    "  table = { ...table, resolution: null, stack: [] };",
+)
 
 print('A3 fixture payment alignment complete')
