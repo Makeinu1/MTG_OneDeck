@@ -27,6 +27,14 @@ jobs:
           test "$(git hash-object src/components/game/CockpitCardTools.tsx)" = ed55de6164f1ed954b571cc60845166c2d987561
           test "$(git hash-object src/online/cloudflare/cockpitMultiplayer.ts)" = cd711c0afe7e00dfbe26182a528727044f3c2663
           test "$(git hash-object src/components/game/stackWorkspaceModel.ts)" = 1d9a45fe738398d1f9af366187e42c2edb215405
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/a3-stack-transform.py')
+          text = p.read_text()
+          needle = "`,\n\",\n"
+          assert text.count(needle) == 2, text.count(needle)
+          p.write_text(text.replace(needle, "`,\\n\",\n"))
+          PY
           python .github/a3-stack-transform.py
           git diff --check
       - name: Install dependencies
