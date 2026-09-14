@@ -9,6 +9,21 @@ def replace_one(path: str, old: str, new: str) -> None:
         raise SystemExit(f"{path}: expected one fixture match, found {count}")
     p.write_text(text.replace(old, new))
 
+# The stale fetch id does not need an effect-driven state reset.  Rendering and
+# shortcut ownership are derived from whether the referenced stack entry still
+# exists, so a vanished entry immediately stops owning input without a cascading
+# render solely to clean the inert local id.
+replace_one(
+    'src/components/game/CockpitTableSurface.tsx',
+    "import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';",
+    "import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';",
+)
+replace_one(
+    'src/components/game/CockpitTableSurface.tsx',
+    "  useEffect(() => {\n    if (fetchEntry && !activeFetchEntry) setFetchEntry(null);\n  }, [fetchEntry, activeFetchEntry]);\n",
+    "",
+)
+
 for path in [
     'src/components/game/CockpitStackControls.test.tsx',
     'src/components/game/cockpitStackDetail.test.ts',
@@ -33,7 +48,8 @@ manual = """    manualCosts: {
     },
     paymentPlan: [],"""
 
-# The engine now requires the exact server-side payment proposal, even for manual fixtures.
+# The engine requires the exact server-side activation payment proposal, even in
+# these deliberately small manual-stack fixtures.
 for path in [
     'src/components/game/CockpitStackControls.test.tsx',
     'src/components/game/cockpitStackDetail.test.ts',
@@ -72,4 +88,4 @@ replace_one(
     "  table = { ...table, resolution: null, stack: [] };",
 )
 
-print('A3 fixture payment alignment complete')
+print('A3 post-transform validation adjustments complete')
