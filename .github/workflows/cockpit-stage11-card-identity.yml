@@ -30,23 +30,13 @@ jobs:
           assert text.count(old_import) == 1
           text = text.replace(old_import, new_import, 1)
 
-          old_compare = """      const known = table.defs[entry.def.scryfallId];
-          requireTable(
-            !known || JSON.stringify(known) === JSON.stringify(entry.def),
-            '同じカードIDの定義が一致しません。',
-          );
-          """
-          new_compare = """      const known = table.defs[entry.def.scryfallId];
-          requireTable(
-            !known || sameCockpitCardDefinition(known, entry.def),
-            '同じカードIDの定義が一致しません。',
-          );
-          """
+          old_compare = "!known || JSON.stringify(known) === JSON.stringify(entry.def)"
+          new_compare = "!known || sameCockpitCardDefinition(known, entry.def)"
           assert text.count(old_compare) == 1
           text = text.replace(old_compare, new_compare, 1)
 
-          old_assign = "      table.defs[entry.def.scryfallId] = structuredClone(entry.def);"
-          new_assign = "      table.defs[entry.def.scryfallId] ??= structuredClone(entry.def);"
+          old_assign = "table.defs[entry.def.scryfallId] = structuredClone(entry.def);"
+          new_assign = "table.defs[entry.def.scryfallId] ??= structuredClone(entry.def);"
           assert text.count(old_assign) == 1
           text = text.replace(old_assign, new_assign, 1)
           path.write_text(text)
