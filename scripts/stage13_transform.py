@@ -115,7 +115,7 @@ text = text.replace(join_old, join_new, 1)
 append = r'''
 
 it('dismisses a departing seat pending trigger and preserves saved summoning-sickness mana boundary', async () => {
-  const triggerRoom = multiplayerHarness(2);
+  const triggerRoom = multiplayerHarness(4);
   await triggerRoom.start();
   const triggered = await triggerRoom.change(0, {
     type: 'token',
@@ -134,6 +134,7 @@ it('dismisses a departing seat pending trigger and preserves saved summoning-sic
   expect(pending).toBeDefined();
   const eliminated = await triggerRoom.change(0, { type: 'eliminate', seatId: 'P2' }, true);
   expect(eliminated.status).toBe(200);
+  expect(eliminated.value.table.ended).toBe(false);
   expect(
     eliminated.value.table.triggers?.candidates.find(
       (candidate) => candidate.pendingTriggerId === pending!.pendingTriggerId,
