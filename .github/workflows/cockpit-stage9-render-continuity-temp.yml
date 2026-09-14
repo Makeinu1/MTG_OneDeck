@@ -28,6 +28,25 @@ jobs:
           test "$(git hash-object src/components/game/CockpitBattleTools.tsx)" = 2616c3aa8153e4339c2fef7fda5dd6679dd59d36
           test "$(git hash-object src/engine/__tests__/cockpitBattle.test.ts)" = 3309a2c95ac024355106fad9cae8af1f1bf60209
           python .github/stage9-render-continuity.py
+          python - <<'PY'
+          from pathlib import Path
+
+          elimination = Path('src/components/game/CockpitEliminationContinuity.test.tsx')
+          text = elimination.read_text()
+          old = "    expect(host.textContent).toContain('P4・脱落');\n"
+          new = """    expect(\n      [...host.querySelectorAll('.table-opponent')].some((node) =>\n        node.textContent?.includes('プレイヤー4・脱落'),\n      ),\n    ).toBe(true);\n"""
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one elimination assertion, found {text.count(old)}')
+          elimination.write_text(text.replace(old, new))
+
+          battle = Path('src/components/game/CockpitBattleContinuity.test.tsx')
+          text = battle.read_text()
+          marker = "import { CockpitBattleTools } from './CockpitBattleTools';\n"
+          replacement = marker + "\nObject.defineProperty(HTMLElement.prototype, 'scrollIntoView', {\n  configurable: true,\n  value: vi.fn(),\n});\n"
+          if text.count(marker) != 1:
+              raise SystemExit(f'expected one battle import marker, found {text.count(marker)}')
+          battle.write_text(text.replace(marker, replacement))
+          PY
           git diff --check
       - name: Install dependencies
         run: npm ci
