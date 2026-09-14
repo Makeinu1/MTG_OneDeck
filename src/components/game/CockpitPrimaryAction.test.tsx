@@ -32,11 +32,8 @@ function mount(modalOpen = false) {
       <CockpitTableSurface
         view={{
           table,
-          revision: 1,
-          expiresAt: 0,
           canUndo: false,
           canRedo: false,
-          receipt: null,
         }}
         modalOpen={modalOpen}
         disabled={false}
