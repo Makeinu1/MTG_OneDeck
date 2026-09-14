@@ -1,0 +1,110 @@
+name: Validate stage 7 private library access
+on:
+  push:
+    branches: [fix/cockpit-library-access-stage7-20260914]
+permissions:
+  contents: read
+jobs:
+  validate-and-assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify PR base and apply isolated stage 7 transform
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git merge-base HEAD b4b299725db893c46299a848d9a76f62224159a1)" = b4b299725db893c46299a848d9a76f62224159a1
+          test "$(git hash-object src/components/game/CockpitFetchSearch.tsx)" = d15a5f4b53bd5292ae274df49ea4eaa32ce7901d
+          test "$(git hash-object src/components/game/CockpitSelectionTools.tsx)" = 8140df5b32e75955ae80106996fa9d97853935d3
+          test "$(git hash-object src/components/game/CockpitTableSurface.tsx)" = 6e7c7114d6875ee7dbc6925dd9f3b15aa2ec3768
+          test "$(git hash-object src/components/game/CockpitSessionScreen.tsx)" = df77197c9e8156080d314ac8cf8d3d99f1f1ed93
+          test "$(git hash-object src/components/game/CockpitRoomControls.tsx)" = a274bb5b7a8f67c2c53325db3ceb3bd3e3e6bcd0
+          test "$(git hash-object src/online/cloudflare/cockpitSession.ts)" = 295b7807d9d1992ac863d7bae1c10b9ac496d27e
+          test "$(git hash-object src/online/cloudflare/cockpitMultiplayer.ts)" = 99cb34ba73f58dcff143f4e35d4e0543f5f03170
+          python .github/stage7-library-access.py
+          git diff --check
+      - name: Install dependencies
+        run: npm ci
+      - name: Format stage 7 product and regression files
+        shell: bash
+        run: |
+          node node_modules/prettier/bin/prettier.cjs --write \
+            src/components/game/cockpitLibraryAccess.ts \
+            src/components/game/CockpitFetchSearch.tsx \
+            src/components/game/CockpitSelectionTools.tsx \
+            src/components/game/CockpitTableSurface.tsx \
+            src/components/game/CockpitSessionScreen.tsx \
+            src/components/game/CockpitRoomControls.tsx \
+            src/online/cloudflare/cockpitMultiplayer.ts \
+            src/online/cloudflare/cockpitSession.ts \
+            src/components/game/cockpitLibraryAccess.test.ts \
+            src/components/game/CockpitFetchSearch.test.tsx \
+            src/components/game/CockpitSelectionToolsLibrary.test.tsx \
+            src/components/game/CockpitLibraryBrowser.test.tsx \
+            src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts
+      - name: Dedicated issue 10 regressions
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/components/game/cockpitLibraryAccess.test.ts
+          src/components/game/CockpitFetchSearch.test.tsx
+          src/components/game/CockpitSelectionToolsLibrary.test.tsx
+          src/components/game/CockpitLibraryBrowser.test.tsx
+          src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts
+      - name: Neighboring projection, table and session regressions
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/components/game/CockpitTableSurface.test.tsx
+          src/components/game/CockpitPrimaryAction.test.tsx
+          src/online/cloudflare/__tests__/cockpitProjection.test.ts
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+      - name: Build and changed-file lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          node node_modules/eslint/bin/eslint.js \
+            src/components/game/cockpitLibraryAccess.ts \
+            src/components/game/CockpitFetchSearch.tsx \
+            src/components/game/CockpitSelectionTools.tsx \
+            src/components/game/CockpitTableSurface.tsx \
+            src/components/game/CockpitSessionScreen.tsx \
+            src/components/game/CockpitRoomControls.tsx \
+            src/online/cloudflare/cockpitMultiplayer.ts \
+            src/online/cloudflare/cockpitSession.ts \
+            src/components/game/cockpitLibraryAccess.test.ts \
+            src/components/game/CockpitFetchSearch.test.tsx \
+            src/components/game/CockpitSelectionToolsLibrary.test.tsx \
+            src/components/game/CockpitLibraryBrowser.test.tsx \
+            src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts
+          git diff --check
+      - name: Commit only the validated product and regression tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -f .github/stage7-library-access.py .github/workflows/cockpit-stage7-library-access-temp.yml
+          git add \
+            src/components/game/cockpitLibraryAccess.ts \
+            src/components/game/CockpitFetchSearch.tsx \
+            src/components/game/CockpitSelectionTools.tsx \
+            src/components/game/CockpitTableSurface.tsx \
+            src/components/game/CockpitSessionScreen.tsx \
+            src/components/game/CockpitRoomControls.tsx \
+            src/online/cloudflare/cockpitMultiplayer.ts \
+            src/online/cloudflare/cockpitSession.ts \
+            src/components/game/cockpitLibraryAccess.test.ts \
+            src/components/game/CockpitFetchSearch.test.tsx \
+            src/components/game/CockpitSelectionToolsLibrary.test.tsx \
+            src/components/game/CockpitLibraryBrowser.test.tsx \
+            src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts
+          test -z "$(git status --porcelain | grep '^??' || true)"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'staging: validate issue 10 private library access'
+          git push origin HEAD:refs/heads/fix/cockpit-library-access-stage7-20260914
