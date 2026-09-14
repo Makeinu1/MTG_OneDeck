@@ -15,18 +15,13 @@ session = "src/components/game/CockpitSessionScreen.tsx"
 card_tools = "src/components/game/CockpitCardTools.tsx"
 multiplayer = "src/online/cloudflare/cockpitMultiplayer.ts"
 
-# 1. One contextual primary action owns both the visible button and Enter.
-replace_once(
-    surface,
-    "import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';",
-    "import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';",
-)
-
-# 2. A disappeared fetch stack entry must not leave an invisible input lock.
+# 1/2. One contextual primary action owns both the visible button and Enter, and a
+# disappeared fetch entry cannot continue owning input. The stale local id is cleared
+# during render under the same guarded pattern already used for turn-local UI state.
 replace_once(
     surface,
     "  const [fetchEntry, setFetchEntry] = useState<string | null>(null);\n  const [reviewTurn, setReviewTurn] = useState(false);",
-    "  const [fetchEntry, setFetchEntry] = useState<string | null>(null);\n  const fetchTarget = fetchEntry\n    ? table.stack.find((entry) => entry.id === fetchEntry)\n    : undefined;\n  useEffect(() => {\n    if (fetchEntry && !fetchTarget) setFetchEntry(null);\n  }, [fetchEntry, fetchTarget]);\n  const [reviewTurn, setReviewTurn] = useState(false);",
+    "  const [fetchEntry, setFetchEntry] = useState<string | null>(null);\n  const fetchTarget = fetchEntry\n    ? table.stack.find((entry) => entry.id === fetchEntry)\n    : undefined;\n  if (fetchEntry && !fetchTarget) setFetchEntry(null);\n  const [reviewTurn, setReviewTurn] = useState(false);",
 )
 replace_once(surface, "    !!fetchEntry ||\n", "    !!fetchTarget ||\n")
 replace_once(
