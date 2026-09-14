@@ -18,6 +18,7 @@ export function CockpitRoomControls({
   const multi = view.multiplayer;
   if (!multi) return null;
   const label = (id: string) => view.table.seats.find((seat) => seat.id === id)?.label ?? id;
+  const expiry = new Date(view.expiresAt);
   return (
     <section className="cockpit-session__bar" aria-label="対戦の操作権と参加">
       <strong>
@@ -31,6 +32,10 @@ export function CockpitRoomControls({
             : multi.canOperate
               ? 'あなたが卓を操作できます'
               : '盤面を閲覧中・操作にはHOLDを要求'}
+      </span>
+      <span data-testid="session-expiry">
+        有効期限: <time dateTime={expiry.toISOString()}>{expiry.toLocaleString('ja-JP')}</time>{' '}
+        （確定した操作で更新。閲覧・自動再接続では延長しません）
       </span>
       {invitation && (
         <label>
