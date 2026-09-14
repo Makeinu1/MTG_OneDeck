@@ -22,6 +22,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           client = Path('src/online/browser/cockpitClient.ts')
           text = client.read_text()
@@ -84,27 +85,30 @@ jobs:
 
           session = Path('src/online/cloudflare/__tests__/cockpitSession.test.ts')
           text = session.read_text()
-          old_expired = """    expect(
-            (await handleCockpitSession(request({ type: 'read', token }), storage, 4000 + COCKPIT_TTL_MS))
-              .status,
-          ).toBe(410);
-          """
-          new_expired = """    const expired = await handleCockpitSession(
-            request({ type: 'read', token }),
-            storage,
-            4000 + COCKPIT_TTL_MS,
-          );
-          expect(expired.status).toBe(410);
-          expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });
-          """
-          assert text.count(old_expired) == 1
-          text = text.replace(old_expired, new_expired, 1)
-          old_kicked = "    expect((await room.call(1, { type: 'read' })).status).toBe(403);"
-          new_kicked = """    const kickedRead = await room.call(1, { type: 'read' });
-          expect(kickedRead.status).toBe(403);
-          expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');"""
-          assert text.count(old_kicked) == 1
-          session.write_text(text.replace(old_kicked, new_kicked, 1))
+          expired_pattern = re.compile(
+              r"\s*expect\(\s*\(await handleCockpitSession\(request\(\{ type: 'read', token \}\), storage, 4000 \+ COCKPIT_TTL_MS\)\)\s*\.status,\s*\)\.toBe\(410\);"
+          )
+          expired_replacement = """
+              const expired = await handleCockpitSession(
+                request({ type: 'read', token }),
+                storage,
+                4000 + COCKPIT_TTL_MS,
+              );
+              expect(expired.status).toBe(410);
+              expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });"""
+          text, count = expired_pattern.subn(expired_replacement, text, count=1)
+          assert count == 1
+
+          kicked_pattern = re.compile(
+              r"\s*expect\(\(await room\.call\(1, \{ type: 'read' \}\)\)\.status\)\.toBe\(403\);"
+          )
+          kicked_replacement = """
+              const kickedRead = await room.call(1, { type: 'read' });
+              expect(kickedRead.status).toBe(403);
+              expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');"""
+          text, count = kicked_pattern.subn(kicked_replacement, text, count=1)
+          assert count == 1
+          session.write_text(text)
           PY
       - run: npm ci
       - name: Client retained-connection regressions
