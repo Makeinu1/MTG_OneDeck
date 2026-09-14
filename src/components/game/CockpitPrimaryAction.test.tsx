@@ -24,8 +24,10 @@ function stackTable() {
 function fetchStackTable() {
   const table = stackTable();
   const source = table.stack[0].source;
-  table.defs[source.defId].faces[source.faceIndex].oracleText =
+  const text =
     'Search your library for a basic land card, put it onto the battlefield, then shuffle.';
+  table.stack[0].text = text;
+  table.defs[source.defId].faces[source.faceIndex].oracleText = text;
   return table;
 }
 
