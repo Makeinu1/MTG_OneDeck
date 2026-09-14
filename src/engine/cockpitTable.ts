@@ -1,3 +1,4 @@
+import { sameCockpitCardDefinition } from './cockpitCardIdentity';
 import {
   checkpointTableTriggers,
   tableObjectReference,
@@ -2215,12 +2216,12 @@ export function createCockpitTable(
       assertCockpitCardDef(entry.def);
       const known = table.defs[entry.def.scryfallId];
       requireTable(
-        !known || JSON.stringify(known) === JSON.stringify(entry.def),
+        !known || sameCockpitCardDefinition(known, entry.def),
         '同じカードIDの定義が一致しません。',
       );
       const cardId = `${id}c${cardIndex + 1}`;
       const zone = entry.isCommander ? 'command' : 'library';
-      table.defs[entry.def.scryfallId] = structuredClone(entry.def);
+      table.defs[entry.def.scryfallId] ??= structuredClone(entry.def);
       table.cards[cardId] = {
         id: cardId,
         defId: entry.def.scryfallId,
