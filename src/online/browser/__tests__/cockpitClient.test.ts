@@ -327,3 +327,48 @@ it('keeps an uncertain destination until checked, then offers the retained old c
   await expect(reloaded.reconnect()).resolves.toBe('recovered');
   expect(joins).toBe(1);
 });
+
+
+it.each([
+  ['expired', 'SESSION_EXPIRED', 410],
+  ['kicked', 'AUTHENTICATION_REQUIRED', 403],
+] as const)(
+  'retained previous connection is revalidated before it is described as usable: %s',
+  async (_label, previousFailure, status) => {
+    vi.useFakeTimers();
+    const previous = existingConnection();
+    const destination = crypto.randomUUID();
+    const invite = destination + '.' + crypto.randomUUID() + crypto.randomUUID();
+    let previousUnavailable = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string) as { type: string };
+        if (url.endsWith(destination) && body.type === 'join')
+          return Promise.resolve(Response.json({ error: 'ADMISSION_CLOSED' }, { status: 403 }));
+        if (url.endsWith(previous.id) && previousUnavailable)
+          return Promise.resolve(Response.json({ error: previousFailure }, { status }));
+        return Promise.resolve(emptyView());
+      }),
+    );
+    const client = testClient();
+    const rejected = await client.join(makeDeck(8), invite).catch((error: unknown) => error);
+    expect(rejected).toMatchObject({ code: 'ADMISSION_CLOSED', previousRestored: true });
+    expect(rejected).toBeInstanceOf(Error);
+    expect((rejected as Error).message).toContain(
+      '元の卓の接続情報を保持しています。再接続して有効性を確認してください。',
+    );
+    expect((rejected as Error).message).not.toContain('元の卓へ戻れます');
+    expect(storedConnection()).toMatchObject({
+      id: previous.id,
+      token: previous.token,
+      pending: null,
+    });
+
+    previousUnavailable = true;
+    const unavailable = await client.reconnect().catch((error: unknown) => error);
+    expect(unavailable).toMatchObject({ code: previousFailure });
+    expect(isCockpitTerminalFailure(unavailable)).toBe(true);
+    expect(storedConnection()).toMatchObject({ id: previous.id, token: previous.token });
+  },
+);

@@ -358,10 +358,13 @@ describe('private cockpit SQLite commit boundary', () => {
     expect(checkpoint.signature).toMatch(/^[a-f0-9]{64}$/);
     const restore = { type: 'restore', token: 'c'.repeat(64), checkpoint };
     expect((await handleCockpitSession(request(restore), storage, 5000)).status).toBe(409);
-    expect(
-      (await handleCockpitSession(request({ type: 'read', token }), storage, 4000 + COCKPIT_TTL_MS))
-        .status,
-    ).toBe(410);
+    const expired = await handleCockpitSession(
+      request({ type: 'read', token }),
+      storage,
+      4000 + COCKPIT_TTL_MS,
+    );
+    expect(expired.status).toBe(410);
+    expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });
     const forged = structuredClone(checkpoint);
     forged.table.seats[0].life = 99;
     expect(
@@ -476,7 +479,9 @@ describe('shared Cockpit multiplayer', () => {
     expect(kicked.status).toBe(200);
     expect(kicked.value.table.ended).toBe(false);
     expect(kicked.value.multiplayer!.invitation).not.toBe(invitation);
-    expect((await room.call(1, { type: 'read' })).status).toBe(403);
+    const kickedRead = await room.call(1, { type: 'read' });
+    expect(kickedRead.status).toBe(403);
+    expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');
     expect((await room.call(1, { type: 'join', invitation, deck: makeDeck(20) })).status).toBe(403);
     for (let i = 1; i < 4; i++)
       expect(

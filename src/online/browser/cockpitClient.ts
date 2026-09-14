@@ -321,7 +321,7 @@ export class CockpitClient {
       error.previousRestored = !!this.connection?.previous;
     this.connection = this.connection?.previous ?? null;
     if (error instanceof CockpitConnectionError && error.previousRestored)
-      error.message += ' 元の卓の接続情報を保持しています。再接続で元の卓へ戻れます。';
+      error.message += ' 元の卓の接続情報を保持しています。再接続して有効性を確認してください。';
     this.view = null;
     if (this.disposed) return;
     if (this.connection) this.persist();
