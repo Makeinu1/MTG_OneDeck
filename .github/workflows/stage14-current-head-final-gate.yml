@@ -22,23 +22,30 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Stage14 current-head journey matrix
+        shell: bash
         run: |
-          node node_modules/vitest/vitest.mjs run \
-            src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts \
-            src/online/browser/__tests__/remoteCastJourneyV1.test.ts \
-            src/online/browser/__tests__/remotePriorityJourneyV1.test.ts \
-            src/online/browser/__tests__/cockpitClient.test.ts \
-            src/online/browser/__tests__/cockpitReplay.test.tsx \
-            src/online/cloudflare/__tests__/cockpitSession.test.ts \
-            src/online/cloudflare/__tests__/cockpitProjection.test.ts \
-            src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts \
-            src/online/cloudflare/__tests__/cockpitTargetLkiRegression.test.ts \
-            src/online/cloudflare/__tests__/cockpitTtlPolicy.test.ts \
-            src/engine/__tests__/cockpitMigration.test.ts \
-            src/engine/__tests__/cockpitTurnProgress.test.ts \
-            src/engine/__tests__/cockpitTriggerFacts.test.ts \
-            src/engine/__tests__/cockpitBattle.test.ts \
+          set -euo pipefail
+          files=(
+            src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts
+            src/online/browser/__tests__/remoteCastJourneyV1.test.ts
+            src/online/browser/__tests__/remotePriorityJourneyV1.test.ts
+            src/online/browser/__tests__/cockpitClient.test.ts
+            src/online/browser/__tests__/cockpitReplay.test.tsx
+            src/online/cloudflare/__tests__/cockpitSession.test.ts
+            src/online/cloudflare/__tests__/cockpitProjection.test.ts
+            src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts
+            src/online/cloudflare/__tests__/cockpitTargetLkiRegression.test.ts
+            src/online/cloudflare/__tests__/cockpitTtlPolicy.test.ts
+            src/engine/__tests__/cockpitMigration.test.ts
+            src/engine/__tests__/cockpitTurnProgress.test.ts
+            src/engine/__tests__/cockpitTriggerFacts.test.ts
+            src/engine/__tests__/cockpitBattle.test.ts
             src/engine/__tests__/cockpitMana.test.ts
+          )
+          for file in "${files[@]}"; do
+            echo "== $file =="
+            node node_modules/vitest/vitest.mjs run "$file"
+          done
       - name: Full test suite
         run: npm test
       - name: Release gate used by Pages publish
