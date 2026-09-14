@@ -1,46 +1,10 @@
 name: Assemble stage 6A contextual primary input
 on:
-  push:
-    branches: [fix/cockpit-stage6a-primary-input-20260914-2]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
   assemble:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - name: Apply stage 6A transform and remove staging-only inputs
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git merge-base HEAD bf166bda2c933c42e854355b6ab49793a7749d92)" = bf166bda2c933c42e854355b6ab49793a7749d92
-          python3 .github/stage6a-apply.py
-          git rm .github/stage6a-apply.py .github/stage6a-primary-input.patch .github/workflows/cockpit-stage6a-primary-input-temp.yml
-      - name: Install dependencies
-        run: npm ci
-      - name: Contextual primary-action and neighboring DOM regressions
-        run: >-
-          node node_modules/vitest/vitest.mjs run --project dom
-          src/components/game/CockpitPrimaryAction.test.tsx
-          src/components/game/CockpitTableSurface.test.tsx
-      - name: Types build and changed-file lint
-        run: |
-          npm run build
-          node node_modules/eslint/bin/eslint.js \
-            src/components/game/CockpitTableSurface.tsx \
-            src/components/game/CockpitSessionScreen.tsx \
-            src/components/game/CockpitPrimaryAction.test.tsx
-      - name: Commit validated product tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add src/components/game/CockpitTableSurface.tsx src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitPrimaryAction.test.tsx
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'staging: validate contextual primary action and stale dialog release'
-          git push origin HEAD:refs/heads/fix/cockpit-stage6a-primary-input-20260914-2
+      - run: echo "staging workflow paused while the regression slice is assembled"
