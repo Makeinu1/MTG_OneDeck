@@ -41,6 +41,7 @@ import { saveAudioPreferences } from './presentation/audioVisualPreferences';
 import { ThemeToggle } from '../ThemeToggle';
 import { isAmbientEnabled, setAmbientEnabled, AMBIENT_CHANGE_EVENT } from './ambientMotion';
 import { CockpitManaBatch } from './CockpitManaBatch';
+import { liveStackDetail } from './cockpitTransientSelections';
 import './cockpitSession.css';
 
 const zoneLabels: Record<ZoneId, string> = {
@@ -225,6 +226,9 @@ export function CockpitSessionScreen({
           setDetail((current) => (current && sameObject(current) ? current : null));
           setAbility((current) => (current && sameObject(current) ? current : null));
           setCast((current) => (current && sameObject(current.cardId) ? current : null));
+          setStackDetail((current) =>
+            current && liveStackDetail(next.table, current) ? current : null,
+          );
           viewRef.current = next;
           setView(next);
           setRoomInvitation(client.invitation());
@@ -474,9 +478,7 @@ export function CockpitSessionScreen({
   );
   const detailCard = detail ? table.cards[detail] : undefined;
   const detailDef = detailCard ? table.defs[detailCard.defId] : undefined;
-  const stackEntry =
-    table.stack.find((entry) => entry.id === stackDetail) ??
-    (table.resolution?.id === stackDetail ? table.resolution : null);
+  const stackEntry = liveStackDetail(table, stackDetail);
   const label = (id: string) => {
     const card = table.cards[id];
     const def = card && table.defs[card.defId];
@@ -626,7 +628,7 @@ export function CockpitSessionScreen({
           (!!attachment && !attachment.paused) ||
           (!!ability && !abilityPeek) ||
           (!!cast && !castPeek) ||
-          !!stackDetail ||
+          Boolean(stackEntry) ||
           confirmEnd
         }
         view={view}
