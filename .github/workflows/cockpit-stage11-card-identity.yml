@@ -89,7 +89,10 @@ jobs:
           PY
       - run: npm ci
       - name: Targeted identity regression
-        run: node node_modules/vitest/vitest.mjs run src/engine/__tests__/cockpitCardIdentity.test.ts src/online/cloudflare/__tests__/cockpitProjection.test.ts
+        shell: bash
+        run: |
+          node node_modules/vitest/vitest.mjs run src/engine/__tests__/cockpitCardIdentity.test.ts
+          node node_modules/vitest/vitest.mjs run src/online/cloudflare/__tests__/cockpitProjection.test.ts
       - name: Build, lint, and diff check
         shell: bash
         run: |
