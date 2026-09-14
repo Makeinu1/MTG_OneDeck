@@ -441,6 +441,8 @@ export async function handleCockpitSession(
                   multi.borrowedFrom
                 )
                   return response({ error: 'NOT_AUTHORIZED' }, 403);
+                multi.members[actor].peek = null;
+                multi.members[control.seatId].peek = null;
                 multi.borrowedFrom = actor;
                 multi.masterId = control.seatId;
                 multi.holds = multi.holds.filter((id) => id !== control.seatId);
@@ -448,11 +450,14 @@ export async function handleCockpitSession(
               case 'return':
                 if (actor !== multi.masterId || !multi.borrowedFrom)
                   return response({ error: 'NOT_AUTHORIZED' }, 403);
+                multi.members[actor].peek = null;
+                multi.members[multi.borrowedFrom].peek = null;
                 multi.masterId = multi.borrowedFrom;
                 multi.borrowedFrom = null;
                 break;
               case 'reclaim':
                 if (actor !== 'P1') return response({ error: 'NOT_AUTHORIZED' }, 403);
+                for (const member of Object.values(multi.members)) member.peek = null;
                 multi.masterId =
                   record.table.seats.find(
                     (seat) =>
@@ -467,8 +472,22 @@ export async function handleCockpitSession(
                   !['hand', 'library', null].includes(control.zone)
                 )
                   return response({ error: 'NOT_AUTHORIZED' }, 403);
+                if (
+                  control.count !== undefined &&
+                  (control.zone !== 'library' ||
+                    !Number.isSafeInteger(control.count) ||
+                    control.count < 1 ||
+                    control.count > 500)
+                )
+                  return response({ error: 'INVALID_REQUEST' }, 400);
                 multi.members[actor].peek = control.zone
-                  ? { seatId: control.seatId, zone: control.zone }
+                  ? {
+                      seatId: control.seatId,
+                      zone: control.zone,
+                      ...(control.zone === 'library' && control.count !== undefined
+                        ? { count: control.count }
+                        : {}),
+                    }
                   : null;
                 break;
               case 'kick':
@@ -515,6 +534,7 @@ export async function handleCockpitSession(
                   multi.borrowedFrom = null;
                 }
                 if (multi.borrowedFrom === control.seatId) multi.borrowedFrom = null;
+                for (const member of Object.values(multi.members)) member.peek = null;
                 record.undo = [];
                 record.redo = [];
                 break;

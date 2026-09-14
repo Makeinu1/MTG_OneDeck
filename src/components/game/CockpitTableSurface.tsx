@@ -36,6 +36,7 @@ import { DanceFloorLights } from './DanceFloorLights';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { loadKeybindings } from '../../data/keybindings';
 import { CockpitFetchSearch } from './CockpitFetchSearch';
+import { hasCockpitLibraryAccess, type CockpitLibraryAccess } from './cockpitLibraryAccess';
 
 const zoneNames: Record<ZoneId, string> = {
   hand: '手札',
@@ -88,7 +89,7 @@ export function CockpitTableSurface({
       paused: boolean;
       canOperate: boolean;
       counts: Record<string, { hand: number; library: number }>;
-      peek: object | null;
+      peek: { seatId: string; zone: 'hand' | 'library'; count?: number } | null;
     };
   };
   modalOpen?: boolean;
@@ -107,7 +108,11 @@ export function CockpitTableSurface({
   children:
     | ReactNode
     | ((browse: (zone: ZoneId, seatId: string) => void, workOpen: boolean) => ReactNode);
-  peek: (seatId: string, zone: 'hand' | 'library' | null) => Promise<void>;
+  peek: (
+    seatId: string,
+    zone: 'hand' | 'library' | null,
+    count?: number,
+  ) => Promise<CockpitTable | null | void>;
   seatId: string;
   chooseSeat: (id: string) => void;
   openStackEntry?: (id: string) => void;
@@ -151,11 +156,24 @@ export function CockpitTableSurface({
   const [expandedBundles, setExpandedBundles] = useState<string[]>([]);
   const [hover, setHover] = useState<{ id: string; left: number; top: number } | null>(null);
   const [destination, setDestination] = useState<ZoneId>('graveyard');
+  const [zoneLibraryStatus, setZoneLibraryStatus] = useState<'idle' | 'loading' | 'rejected'>(
+    'idle',
+  );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const resources = useMemo(
     () => new Map(table.seats.map((seat) => [seat.id, tableManaResources(table, seat.id)])),
     [table],
   );
+  const libraryAccessFor = (targetSeat: string): CockpitLibraryAccess | undefined =>
+    multi
+      ? {
+          seatId: targetSeat,
+          totalCount: multi.counts[targetSeat]?.library ?? 0,
+          peek: multi.peek,
+          request: async (count) => (await peek(targetSeat, 'library', count)) ?? null,
+          release: async () => (await peek(targetSeat, null)) ?? null,
+        }
+      : undefined;
   if (lastTurn !== table.activeSeatId) {
     setLastTurn(table.activeSeatId);
     if (focus && !pinned && !work && !stack && table.activeSeatId !== ownId)
@@ -256,6 +274,17 @@ export function CockpitTableSurface({
   });
   const opponents = table.seats.filter((seat) => seat.id !== ownId);
   function openZone(next: ZoneId, owner = ownId) {
+    if (
+      multi &&
+      zone === 'library' &&
+      zoneSeat !== 'all' &&
+      multi.peek?.zone === 'library' &&
+      multi.peek.seatId === zoneSeat &&
+      (next !== 'library' || owner !== zoneSeat)
+    ) {
+      void peek(zoneSeat, null);
+      setZoneLibraryStatus('idle');
+    }
     if (zone) setZoneViews(new Map(zoneViews).set(`${zoneSeat}:${zone}`, { query, page, filter }));
     const saved =
       zone === next && zoneSeat === owner
@@ -526,26 +555,30 @@ export function CockpitTableSurface({
     );
   }
   const resolution = table.resolution;
-  const zoneIds = zone
-    ? table.seats
-        .filter((seat) => zoneSeat === 'all' || zoneSeat === seat.id)
-        .flatMap((seat) => (zone === 'battlefield' ? battlefield(seat.id) : seat.zones[zone]))
-        .filter(
-          (id) =>
-            table.cards[id] &&
-            `${name(id)} ${table.defs[table.cards[id].defId]?.name ?? ''}`
-              .toLowerCase()
-              .includes(query.toLowerCase()) &&
-            (filter === 'all' ||
-              (filter === 'selected'
-                ? selected.includes(id)
-                : filter === 'tapped'
-                  ? table.cards[id].tapped
-                  : filter === 'untapped'
-                    ? !table.cards[id].tapped
-                    : /Creature/.test(face(id)?.typeLine ?? ''))),
-        )
-    : [];
+  const zoneLibraryAccess =
+    zone === 'library' && zoneSeat !== 'all' ? libraryAccessFor(zoneSeat) : undefined;
+  const zoneLibraryReady = hasCockpitLibraryAccess(zoneLibraryAccess);
+  const zoneIds =
+    zone && (zone !== 'library' || zoneLibraryReady)
+      ? table.seats
+          .filter((seat) => zoneSeat === 'all' || zoneSeat === seat.id)
+          .flatMap((seat) => (zone === 'battlefield' ? battlefield(seat.id) : seat.zones[zone]))
+          .filter(
+            (id) =>
+              table.cards[id] &&
+              `${name(id)} ${table.defs[table.cards[id].defId]?.name ?? ''}`
+                .toLowerCase()
+                .includes(query.toLowerCase()) &&
+              (filter === 'all' ||
+                (filter === 'selected'
+                  ? selected.includes(id)
+                  : filter === 'tapped'
+                    ? table.cards[id].tapped
+                    : filter === 'untapped'
+                      ? !table.cards[id].tapped
+                      : /Creature/.test(face(id)?.typeLine ?? ''))),
+          )
+      : [];
   const lastPage = Math.max(0, Math.ceil(zoneIds.length / 24) - 1);
   const visiblePage = Math.min(page, lastPage);
   const top = table.stack[0];
@@ -1300,9 +1333,60 @@ export function CockpitTableSurface({
           wide
           title={zoneNames[zone]}
           open={panel === 'zone' && !feed}
-          onClose={() => setPanel(null)}
+          onClose={() => {
+            if (
+              multi &&
+              zone === 'library' &&
+              zoneSeat !== 'all' &&
+              multi.peek?.zone === 'library' &&
+              multi.peek.seatId === zoneSeat
+            )
+              void peek(zoneSeat, null);
+            setZoneLibraryStatus('idle');
+            setPanel(null);
+          }}
         >
-          {multi && (zone === 'library' || (zone === 'hand' && zoneSeat !== ownId)) && (
+          {multi && zone === 'library' && zoneSeat !== 'all' && (
+            <div className="cockpit-session__bar">
+              <span>山札は必要なときだけ自分へ投影します。閲覧内容は他席へ公開されません。</span>
+              {!zoneLibraryReady && multi.canOperate && (
+                <button
+                  disabled={pending || zoneLibraryStatus === 'loading'}
+                  onClick={() => {
+                    setZoneLibraryStatus('loading');
+                    void libraryAccessFor(zoneSeat)!
+                      .request()
+                      .then((next) => setZoneLibraryStatus(next ? 'idle' : 'rejected'));
+                  }}
+                >
+                  {zoneLibraryStatus === 'loading' ? '取得中…' : 'この山札を自分だけ閲覧'}
+                </button>
+              )}
+              {multi.peek?.zone === 'library' && multi.peek.seatId === zoneSeat && (
+                <button
+                  disabled={pending}
+                  onClick={() => {
+                    setZoneLibraryStatus('idle');
+                    void libraryAccessFor(zoneSeat)!.release();
+                  }}
+                >
+                  閲覧を終了
+                </button>
+              )}
+              {!zoneLibraryReady && (
+                <span role="status">
+                  {zoneLibraryStatus === 'loading'
+                    ? '山札を取得中です。'
+                    : zoneLibraryStatus === 'rejected'
+                      ? '閲覧を開始できませんでした。操作権と接続状態を確認してください。'
+                      : multi.canOperate
+                        ? `未取得です。山札は${multi.counts[zoneSeat]?.library ?? 0}枚あります。`
+                        : '未取得です。現在の操作権では閲覧できません。'}
+                </span>
+              )}
+            </div>
+          )}
+          {multi && zone === 'hand' && zoneSeat !== ownId && (
             <div className="cockpit-session__bar">
               <span>本人の選択は本人が決めます。閲覧した内容は他席へ公開されません。</span>
               {multi.canOperate && (
@@ -1310,7 +1394,7 @@ export function CockpitTableSurface({
                   この領域を自分だけ閲覧
                 </button>
               )}
-              {multi.peek && (
+              {multi.peek?.zone === 'hand' && multi.peek.seatId === zoneSeat && (
                 <button disabled={pending} onClick={() => void peek(zoneSeat, null)}>
                   閲覧を終了
                 </button>
@@ -1426,7 +1510,14 @@ export function CockpitTableSurface({
                   </div>
                 ))}
               </div>
-              {!zoneIds.length && <p>該当するカードはありません</p>}
+              {!zoneIds.length &&
+                (zone === 'library' && !zoneLibraryReady ? (
+                  <p role="status">山札は未取得です。取得前の0件表示は候補0件を意味しません。</p>
+                ) : zone === 'library' && zoneLibraryAccess?.totalCount === 0 ? (
+                  <p role="status">山札は0枚です。</p>
+                ) : (
+                  <p>該当するカードはありません</p>
+                ))}
             </div>
             <aside className="table-zone-selection" aria-label="選択したカード">
               <h3>選択したカード · {selected.length}枚</h3>
@@ -1525,6 +1616,7 @@ export function CockpitTableSurface({
           disabled={disabled}
           send={send}
           onClose={() => setFetchEntry(null)}
+          libraryAccess={libraryAccessFor(fetchTarget.controllerId)}
         />
       )}
       {mana && (

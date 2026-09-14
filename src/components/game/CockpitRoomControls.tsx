@@ -10,7 +10,7 @@ export function CockpitRoomControls({
   view: CockpitSessionView;
   invitation: string | null;
   busy: boolean;
-  send: (control: CockpitControl) => Promise<void>;
+  send: (control: CockpitControl) => Promise<unknown>;
 }) {
   const [confirm, setConfirm] = useState<{ type: 'kick' | 'eliminate'; seatId: string } | null>(
     null,
