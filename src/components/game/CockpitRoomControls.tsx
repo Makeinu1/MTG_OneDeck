@@ -17,6 +17,8 @@ export function CockpitRoomControls({
   );
   const multi = view.multiplayer;
   if (!multi) return null;
+  const ownSeat = view.table.seats.find((seat) => seat.id === multi.ownSeatId);
+  const eliminated = Boolean(ownSeat?.eliminated);
   const label = (id: string) => view.table.seats.find((seat) => seat.id === id)?.label ?? id;
   const expiry = new Date(view.expiresAt);
   return (
@@ -25,13 +27,17 @@ export function CockpitRoomControls({
         あなた: {label(multi.ownSeatId)} / 操作マスター: {label(multi.masterId)}
       </strong>
       <span>
-        {!multi.started
-          ? '全員の初手キープを待っています'
-          : multi.paused
-            ? '部屋主の接続待ち・操作停止中'
-            : multi.canOperate
-              ? 'あなたが卓を操作できます'
-              : '盤面を閲覧中・操作にはHOLDを要求'}
+        {eliminated
+          ? multi.ownSeatId === 'P1'
+            ? '脱落・観戦中。ゲーム操作とHOLDはできません。部屋主の管理操作は利用できます'
+            : '脱落・観戦中。ゲーム操作とHOLDはできません'
+          : !multi.started
+            ? '全員の初手キープを待っています'
+            : multi.paused
+              ? '部屋主の接続待ち・操作停止中'
+              : multi.canOperate
+                ? 'あなたが卓を操作できます'
+                : '盤面を閲覧中・操作にはHOLDを要求'}
       </span>
       <span data-testid="session-expiry">
         有効期限: <time dateTime={expiry.toISOString()}>{expiry.toLocaleString('ja-JP')}</time>{' '}
@@ -63,14 +69,18 @@ export function CockpitRoomControls({
       )}
       {multi.started && !view.table.ended && (
         <>
-          <button
-            disabled={busy || multi.paused}
-            onClick={() =>
-              void send({ type: 'hold', held: !multi.holds.includes(multi.ownSeatId) })
-            }
-          >
-            {multi.holds.includes(multi.ownSeatId) ? '自分のHOLDを取り下げる' : 'HOLD・応答を要求'}
-          </button>
+          {!eliminated && (
+            <button
+              disabled={busy || multi.paused}
+              onClick={() =>
+                void send({ type: 'hold', held: !multi.holds.includes(multi.ownSeatId) })
+              }
+            >
+              {multi.holds.includes(multi.ownSeatId)
+                ? '自分のHOLDを取り下げる'
+                : 'HOLD・応答を要求'}
+            </button>
+          )}
           {multi.holds.map((id) => (
             <span key={id}>
               {label(id)} がHOLD中{' '}

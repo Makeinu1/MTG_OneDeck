@@ -160,8 +160,15 @@ export function CockpitTableSurface({
     'idle',
   );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // Mana resources are an operation helper and reject eliminated seats. Rendering must
+  // keep those seats visible for spectators without reopening their operation authority.
   const resources = useMemo(
-    () => new Map(table.seats.map((seat) => [seat.id, tableManaResources(table, seat.id)])),
+    () =>
+      new Map(
+        table.seats
+          .filter((seat) => !seat.eliminated)
+          .map((seat) => [seat.id, tableManaResources(table, seat.id)]),
+      ),
     [table],
   );
   const libraryAccessFor = (targetSeat: string): CockpitLibraryAccess | undefined =>
@@ -302,9 +309,10 @@ export function CockpitTableSurface({
     if (disabled || opening) return;
     const card = table.cards[id];
     if (!card) return;
+    const resource = resources.get(card.controllerId);
     const choices =
-      card.zone === 'battlefield' && !card.tapped
-        ? manaActivationChoices(resources.get(card.controllerId)!, card.controllerId, id)
+      card.zone === 'battlefield' && !card.tapped && resource
+        ? manaActivationChoices(resource, card.controllerId, id)
         : [];
     if (
       choices.length === 1 &&
@@ -327,9 +335,10 @@ export function CockpitTableSurface({
   function card(id: string, index = 0, handCount = 0, inZone = false) {
     const instance = table.cards[id];
     if (!instance) return null;
+    const resource = resources.get(instance.controllerId);
     const manaChoices =
-      instance.zone === 'battlefield' && !instance.tapped
-        ? manaActivationChoices(resources.get(instance.controllerId)!, instance.controllerId, id)
+      instance.zone === 'battlefield' && !instance.tapped && resource
+        ? manaActivationChoices(resource, instance.controllerId, id)
         : [];
     const fan = handCount ? handFanCardLayout(index, handCount) : null;
     const selectable = Boolean(boardChoice) || selectionMode || (opening && bottomMode) || inZone;
@@ -671,7 +680,8 @@ export function CockpitTableSurface({
       const entries = untapped.map((id) => ({
         cardId: id,
         commands: (() => {
-          const choices = manaActivationChoices(resources.get(ownId)!, ownId, id);
+          const resource = resources.get(ownId);
+          const choices = resource ? manaActivationChoices(resource, ownId, id) : [];
           return choices.length === 1 ? choices[0] : [];
         })(),
       }));
