@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import { createCockpitTable } from '../../engine/cockpitTable';
+import { createCockpitTable, type CockpitTable } from '../../engine/cockpitTable';
 import { makeDeck } from '../../engine/__tests__/helpers';
 import { CockpitTableSurface } from './CockpitTableSurface';
 
@@ -21,40 +21,48 @@ function stackTable() {
   return table;
 }
 
-function mount(modalOpen = false) {
+function fetchStackTable() {
+  const table = stackTable();
+  const source = table.stack[0].source;
+  table.defs[source.defId].faces[source.faceIndex].oracleText =
+    'Search your library for a basic land card, put it onto the battlefield, then shuffle.';
+  return table;
+}
+
+function mount(initialTable: CockpitTable = stackTable(), initialModalOpen = false) {
   const host = document.createElement('div');
   document.body.append(host);
   const root = createRoot(host);
-  const table = stackTable();
-  const send = vi.fn(async () => true);
-  act(() =>
-    root.render(
-      <CockpitTableSurface
-        view={{
-          table,
-          canUndo: false,
-          canRedo: false,
-        }}
-        modalOpen={modalOpen}
-        disabled={false}
-        pending={false}
-        selected={[]}
-        select={vi.fn()}
-        inspect={vi.fn()}
-        cast={vi.fn()}
-        send={send}
-        openMenu={vi.fn()}
-        seatId="P1"
-        chooseSeat={vi.fn()}
-        peek={vi.fn(async () => undefined)}
-      >
-        {null}
-      </CockpitTableSurface>,
-    ),
+  const send = vi.fn<React.ComponentProps<typeof CockpitTableSurface>['send']>(() =>
+    Promise.resolve(true),
   );
+  const render = (table: CockpitTable, modalOpen = initialModalOpen) =>
+    act(() =>
+      root.render(
+        <CockpitTableSurface
+          view={{ table, canUndo: false, canRedo: false }}
+          modalOpen={modalOpen}
+          disabled={false}
+          pending={false}
+          selected={[]}
+          select={vi.fn()}
+          inspect={vi.fn()}
+          cast={vi.fn()}
+          send={send}
+          openMenu={vi.fn()}
+          seatId="P1"
+          chooseSeat={vi.fn()}
+          peek={vi.fn(() => Promise.resolve())}
+        >
+          {null}
+        </CockpitTableSurface>,
+      ),
+    );
+  render(initialTable);
   return {
     host,
     send,
+    render,
     close() {
       act(() => root.unmount());
       host.remove();
@@ -85,7 +93,7 @@ it('routes Enter through the same contextual primary action as the visible butto
 });
 
 it('does not fire the primary Enter shortcut while a child/modal decision owns input', () => {
-  const screen = mount(true);
+  const screen = mount(stackTable(), true);
   try {
     act(() =>
       document.dispatchEvent(
@@ -93,6 +101,37 @@ it('does not fire the primary Enter shortcut while a child/modal decision owns i
       ),
     );
     expect(screen.send).not.toHaveBeenCalled();
+  } finally {
+    screen.close();
+  }
+});
+
+it('releases a vanished fetch entry and does not revive its stale selection', () => {
+  const table = fetchStackTable();
+  const screen = mount(table);
+  try {
+    act(() =>
+      screen.host.querySelector<HTMLButtonElement>('[data-testid="primary-action"]')!.click(),
+    );
+    expect(screen.host.querySelector('[aria-label="土地の名前で検索"]')).not.toBeNull();
+    expect(screen.send).not.toHaveBeenCalled();
+
+    const withoutEntry = structuredClone(table);
+    withoutEntry.stack = [];
+    screen.render(withoutEntry);
+    expect(screen.host.querySelector('[aria-label="土地の名前で検索"]')).toBeNull();
+
+    screen.send.mockClear();
+    act(() =>
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }),
+      ),
+    );
+    expect(screen.send).toHaveBeenLastCalledWith({ type: 'phase' });
+
+    screen.send.mockClear();
+    screen.render(table);
+    expect(screen.host.querySelector('[aria-label="土地の名前で検索"]')).toBeNull();
   } finally {
     screen.close();
   }
