@@ -1,0 +1,74 @@
+name: Cockpit stage 12 retained connection validity
+on:
+  push:
+    branches: [fix/cockpit-stage12-connection-validity-20260915]
+permissions:
+  contents: write
+jobs:
+  stage12:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply focused stage 12 patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          client = Path('src/online/browser/cockpitClient.ts')
+          text = client.read_text()
+          old = "error.message += ' 元の卓の接続情報を保持しています。再接続で元の卓へ戻れます。';"
+          new = "error.message += ' 元の卓の接続情報を保持しています。再接続して有効性を確認してください。';"
+          assert text.count(old) == 1
+          client.write_text(text.replace(old, new, 1))
+
+          test = Path('src/online/browser/__tests__/cockpitClient.test.ts')
+          text = test.read_text()
+          marker = "retained previous connection is revalidated before it is described as usable"
+          assert marker not in text
+          text += r'''\n\nit.each([\n  ['SESSION_EXPIRED', 410, 'expired'],\n  ['AUTHENTICATION_REQUIRED', 403, 'kicked'],\n] as const)(\n  'retained previous connection is revalidated before it is described as usable: %s (%s)',\n  async (previousFailure, status) => {\n    vi.useFakeTimers();\n    const previous = existingConnection();\n    const destination = crypto.randomUUID();\n    const invite = destination + '.' + crypto.randomUUID() + crypto.randomUUID();\n    let previousUnavailable = false;\n    vi.stubGlobal(\n      'fetch',\n      vi.fn((url: string, init: RequestInit) => {\n        const body = JSON.parse(init.body as string) as { type: string };\n        if (url.endsWith(destination) && body.type === 'join')\n          return Promise.resolve(Response.json({ error: 'ADMISSION_CLOSED' }, { status: 403 }));\n        if (url.endsWith(previous.id) && previousUnavailable)\n          return Promise.resolve(Response.json({ error: previousFailure }, { status }));\n        return Promise.resolve(emptyView());\n      }),\n    );\n    const client = testClient();\n    const rejected = await client.join(makeDeck(8), invite).catch((error: unknown) => error);\n    expect(rejected).toMatchObject({ code: 'ADMISSION_CLOSED', previousRestored: true });\n    expect(rejected).toBeInstanceOf(Error);\n    expect((rejected as Error).message).toContain(\n      '元の卓の接続情報を保持しています。再接続して有効性を確認してください。',\n    );\n    expect((rejected as Error).message).not.toContain('元の卓へ戻れます');\n    expect(storedConnection()).toMatchObject({\n      id: previous.id,\n      token: previous.token,\n      pending: null,\n    });\n\n    previousUnavailable = true;\n    const unavailable = await client.reconnect().catch((error: unknown) => error);\n    expect(unavailable).toMatchObject({ code: previousFailure });\n    expect(isCockpitTerminalFailure(unavailable)).toBe(true);\n    expect(storedConnection()).toMatchObject({ id: previous.id, token: previous.token });\n  },\n);\n'''
+          test.write_text(text)
+
+          session = Path('src/online/cloudflare/__tests__/cockpitSession.test.ts')
+          text = session.read_text()
+          old_expired = """    expect(\n      (await handleCockpitSession(request({ type: 'read', token }), storage, 4000 + COCKPIT_TTL_MS))\n        .status,\n    ).toBe(410);\n"""
+          new_expired = """    const expired = await handleCockpitSession(\n      request({ type: 'read', token }),\n      storage,\n      4000 + COCKPIT_TTL_MS,\n    );\n    expect(expired.status).toBe(410);\n    expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });\n"""
+          assert text.count(old_expired) == 1
+          text = text.replace(old_expired, new_expired, 1)
+          old_kicked = "    expect((await room.call(1, { type: 'read' })).status).toBe(403);"
+          new_kicked = """    const kickedRead = await room.call(1, { type: 'read' });\n    expect(kickedRead.status).toBe(403);\n    expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');"""
+          assert text.count(old_kicked) == 1
+          session.write_text(text.replace(old_kicked, new_kicked, 1))
+          PY
+      - run: npm ci
+      - name: Client retained-connection regressions
+        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitClient.test.ts
+      - name: Replay connection-neighbor regression
+        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitReplay.test.tsx
+      - name: SQLite expiry and kick regressions
+        run: node node_modules/vitest/vitest.mjs run src/online/cloudflare/__tests__/cockpitSession.test.ts
+      - name: Build, lint, and diff check
+        shell: bash
+        run: |
+          npm run build
+          node node_modules/eslint/bin/eslint.js src/online/browser/cockpitClient.ts src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
+          git diff --check
+      - name: Commit validated tree without temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/cockpit-stage12-connection-validity.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: verify retained connection before claiming recovery"
+          git push origin HEAD:${GITHUB_REF_NAME}
