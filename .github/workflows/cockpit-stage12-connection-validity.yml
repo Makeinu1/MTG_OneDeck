@@ -34,17 +34,75 @@ jobs:
           text = test.read_text()
           marker = "retained previous connection is revalidated before it is described as usable"
           assert marker not in text
-          text += r'''\n\nit.each([\n  ['SESSION_EXPIRED', 410, 'expired'],\n  ['AUTHENTICATION_REQUIRED', 403, 'kicked'],\n] as const)(\n  'retained previous connection is revalidated before it is described as usable: %s (%s)',\n  async (previousFailure, status) => {\n    vi.useFakeTimers();\n    const previous = existingConnection();\n    const destination = crypto.randomUUID();\n    const invite = destination + '.' + crypto.randomUUID() + crypto.randomUUID();\n    let previousUnavailable = false;\n    vi.stubGlobal(\n      'fetch',\n      vi.fn((url: string, init: RequestInit) => {\n        const body = JSON.parse(init.body as string) as { type: string };\n        if (url.endsWith(destination) && body.type === 'join')\n          return Promise.resolve(Response.json({ error: 'ADMISSION_CLOSED' }, { status: 403 }));\n        if (url.endsWith(previous.id) && previousUnavailable)\n          return Promise.resolve(Response.json({ error: previousFailure }, { status }));\n        return Promise.resolve(emptyView());\n      }),\n    );\n    const client = testClient();\n    const rejected = await client.join(makeDeck(8), invite).catch((error: unknown) => error);\n    expect(rejected).toMatchObject({ code: 'ADMISSION_CLOSED', previousRestored: true });\n    expect(rejected).toBeInstanceOf(Error);\n    expect((rejected as Error).message).toContain(\n      '元の卓の接続情報を保持しています。再接続して有効性を確認してください。',\n    );\n    expect((rejected as Error).message).not.toContain('元の卓へ戻れます');\n    expect(storedConnection()).toMatchObject({\n      id: previous.id,\n      token: previous.token,\n      pending: null,\n    });\n\n    previousUnavailable = true;\n    const unavailable = await client.reconnect().catch((error: unknown) => error);\n    expect(unavailable).toMatchObject({ code: previousFailure });\n    expect(isCockpitTerminalFailure(unavailable)).toBe(true);\n    expect(storedConnection()).toMatchObject({ id: previous.id, token: previous.token });\n  },\n);\n'''
+          text += """
+
+          it.each([
+            ['expired', 'SESSION_EXPIRED', 410],
+            ['kicked', 'AUTHENTICATION_REQUIRED', 403],
+          ] as const)(
+            'retained previous connection is revalidated before it is described as usable: %s',
+            async (_label, previousFailure, status) => {
+              vi.useFakeTimers();
+              const previous = existingConnection();
+              const destination = crypto.randomUUID();
+              const invite = destination + '.' + crypto.randomUUID() + crypto.randomUUID();
+              let previousUnavailable = false;
+              vi.stubGlobal(
+                'fetch',
+                vi.fn((url: string, init: RequestInit) => {
+                  const body = JSON.parse(init.body as string) as { type: string };
+                  if (url.endsWith(destination) && body.type === 'join')
+                    return Promise.resolve(Response.json({ error: 'ADMISSION_CLOSED' }, { status: 403 }));
+                  if (url.endsWith(previous.id) && previousUnavailable)
+                    return Promise.resolve(Response.json({ error: previousFailure }, { status }));
+                  return Promise.resolve(emptyView());
+                }),
+              );
+              const client = testClient();
+              const rejected = await client.join(makeDeck(8), invite).catch((error: unknown) => error);
+              expect(rejected).toMatchObject({ code: 'ADMISSION_CLOSED', previousRestored: true });
+              expect(rejected).toBeInstanceOf(Error);
+              expect((rejected as Error).message).toContain(
+                '元の卓の接続情報を保持しています。再接続して有効性を確認してください。',
+              );
+              expect((rejected as Error).message).not.toContain('元の卓へ戻れます');
+              expect(storedConnection()).toMatchObject({
+                id: previous.id,
+                token: previous.token,
+                pending: null,
+              });
+
+              previousUnavailable = true;
+              const unavailable = await client.reconnect().catch((error: unknown) => error);
+              expect(unavailable).toMatchObject({ code: previousFailure });
+              expect(isCockpitTerminalFailure(unavailable)).toBe(true);
+              expect(storedConnection()).toMatchObject({ id: previous.id, token: previous.token });
+            },
+          );
+          """
           test.write_text(text)
 
           session = Path('src/online/cloudflare/__tests__/cockpitSession.test.ts')
           text = session.read_text()
-          old_expired = """    expect(\n      (await handleCockpitSession(request({ type: 'read', token }), storage, 4000 + COCKPIT_TTL_MS))\n        .status,\n    ).toBe(410);\n"""
-          new_expired = """    const expired = await handleCockpitSession(\n      request({ type: 'read', token }),\n      storage,\n      4000 + COCKPIT_TTL_MS,\n    );\n    expect(expired.status).toBe(410);\n    expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });\n"""
+          old_expired = """    expect(
+            (await handleCockpitSession(request({ type: 'read', token }), storage, 4000 + COCKPIT_TTL_MS))
+              .status,
+          ).toBe(410);
+          """
+          new_expired = """    const expired = await handleCockpitSession(
+            request({ type: 'read', token }),
+            storage,
+            4000 + COCKPIT_TTL_MS,
+          );
+          expect(expired.status).toBe(410);
+          expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });
+          """
           assert text.count(old_expired) == 1
           text = text.replace(old_expired, new_expired, 1)
           old_kicked = "    expect((await room.call(1, { type: 'read' })).status).toBe(403);"
-          new_kicked = """    const kickedRead = await room.call(1, { type: 'read' });\n    expect(kickedRead.status).toBe(403);\n    expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');"""
+          new_kicked = """    const kickedRead = await room.call(1, { type: 'read' });
+          expect(kickedRead.status).toBe(403);
+          expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');"""
           assert text.count(old_kicked) == 1
           session.write_text(text.replace(old_kicked, new_kicked, 1))
           PY
