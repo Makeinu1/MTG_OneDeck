@@ -131,6 +131,92 @@ describe('legacy snapshot one-way migration', () => {
     expect(snapshot).toEqual(original);
   });
 
+
+  it('covers explicit zero, triggered and copied legacy stack cases through JSON reload and top resolution', () => {
+    const deck = makeDeck(16);
+
+    {
+      const state = initGame(deck, 31);
+      const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+      const original = structuredClone(snapshot);
+      let table = migrateCockpitSnapshot(snapshot);
+      expect(table.stack).toEqual([]);
+      table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+      expect(table.stack).toEqual([]);
+      expect(snapshot).toEqual(original);
+    }
+
+    {
+      let state = initGame(deck, 32);
+      state = applyCommand(state, { type: 'draw', count: 7 }).state;
+      const source = state.zones.hand[0];
+      state = applyCommand(state, {
+        type: 'moveCard',
+        cardId: source,
+        to: 'battlefield',
+        position: 'top',
+      }).state;
+      state = applyCommand(state, {
+        type: 'addAbilityToStack',
+        sourceId: source,
+        kind: 'triggered',
+        resolutionText: 'Triggered legacy effect',
+        sourceSnapshot: objectSnapshotForCard(state, source)!,
+        targetSelections: [
+          {
+            slotId: 'player',
+            raw: 'target player',
+            kind: 'player',
+            legalityMode: 'unchecked-warning',
+            selection: { kind: 'player', playerId: 'OPPONENT_A' },
+          },
+        ],
+      }).state;
+      const legacyTop = state.zones.stack.at(-1)!;
+      const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+      const original = structuredClone(snapshot);
+      let table = migrateCockpitSnapshot(snapshot);
+      expect(table.stack[0]).toMatchObject({
+        stackCardId: legacyTop,
+        kind: 'triggered',
+        text: 'Triggered legacy effect',
+        targets: ['OPPONENT_A'],
+      });
+      table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+      expect(table.stack[0].stackCardId).toBe(legacyTop);
+      table = applyTableOperation(table, { type: 'resolve.begin' });
+      expect(table.resolution).toMatchObject({ stackCardId: legacyTop, kind: 'triggered' });
+      table = applyTableOperation(table, { type: 'resolve.end', to: 'graveyard' });
+      expect(table.stack).toHaveLength(0);
+      expect(snapshot).toEqual(original);
+    }
+
+    {
+      let state = initGame(deck, 33);
+      state = applyCommand(state, { type: 'draw', count: 7 }).state;
+      const spell = state.zones.hand[0];
+      state = applyCommand(state, {
+        type: 'moveCard',
+        cardId: spell,
+        to: 'stack',
+        position: 'top',
+      }).state;
+      state.cards[spell].isCopy = true;
+      const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+      const original = structuredClone(snapshot);
+      let table = migrateCockpitSnapshot(snapshot);
+      expect(table.stack[0]).toMatchObject({ stackCardId: spell, kind: 'spell', copied: true });
+      table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+      expect(table.stack[0]).toMatchObject({ stackCardId: spell, copied: true });
+      table = applyTableOperation(table, { type: 'resolve.begin' });
+      expect(table.resolution?.copied).toBe(true);
+      table = applyTableOperation(table, { type: 'resolve.end', to: 'graveyard' });
+      expect(table.stack).toHaveLength(0);
+      expect(table.cards[spell]).toBeUndefined();
+      expect(snapshot).toEqual(original);
+    }
+  });
+
   it('keeps an unsupported pending choice intact instead of silently dropping it', () => {
     const deck = makeDeck(10);
     const state = initGame(deck, 1);
