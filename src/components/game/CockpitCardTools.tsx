@@ -18,7 +18,7 @@ export function CockpitCardTools({
   send: (operation: TableOperation) => Promise<boolean>;
 }) {
   const card = table.cards[cardId];
-  const [target, setTarget] = useState('');
+  const [target, setTarget] = useState<{ id: string; version: number } | null>(null);
   const [source, setSource] = useState(table.resolution?.source.id ?? '');
   const [duration, setDuration] = useState('ターン終了まで');
   const [power, setPower] = useState(0);
@@ -28,6 +28,13 @@ export function CockpitCardTools({
     const def = table.defs[table.cards[id]?.defId];
     return def?.printedName ?? def?.name ?? id;
   };
+  const liveAttachmentTargetId =
+    target &&
+    target.id !== cardId &&
+    table.cards[target.id]?.zone === 'battlefield' &&
+    table.cards[target.id]?.zoneChangeCounter === target.version
+      ? target.id
+      : '';
   return (
     <details open={Boolean(card.attachedTo)}>
       <summary>状態・修整・取り付け</summary>
@@ -125,7 +132,19 @@ export function CockpitCardTools({
           </label>
           <label>
             取り付けする対象{' '}
-            <select value={target} onChange={(event) => setTarget(event.target.value)}>
+            <select
+              aria-label="取り付けする対象"
+              value={liveAttachmentTargetId}
+              disabled={disabled}
+              onChange={(event) => {
+                const candidate = table.cards[event.target.value];
+                setTarget(
+                  candidate && candidate.zone === 'battlefield' && candidate.id !== cardId
+                    ? { id: candidate.id, version: candidate.zoneChangeCounter }
+                    : null,
+                );
+              }}
+            >
               <option value="">対象を選択</option>
               {Object.values(table.cards)
                 .filter((item) => item.zone === 'battlefield' && item.id !== cardId)
@@ -138,8 +157,11 @@ export function CockpitCardTools({
             </select>
           </label>
           <button
-            disabled={disabled || !target}
-            onClick={() => void send({ type: 'attach', cardId, targetId: target })}
+            disabled={disabled || !liveAttachmentTargetId}
+            onClick={() => {
+              if (liveAttachmentTargetId)
+                void send({ type: 'attach', cardId, targetId: liveAttachmentTargetId });
+            }}
           >
             取り付けする
           </button>

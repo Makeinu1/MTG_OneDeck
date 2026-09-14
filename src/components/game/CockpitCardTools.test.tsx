@@ -1,7 +1,11 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import { applyTableOperation, createCockpitTable, type CockpitTable } from '../../engine/cockpitTable';
+import {
+  applyTableOperation,
+  createCockpitTable,
+  type CockpitTable,
+} from '../../engine/cockpitTable';
 import { makeDeck } from '../../engine/__tests__/helpers';
 import { CockpitCardTools } from './CockpitCardTools';
 
@@ -68,9 +72,8 @@ it('invalidates a detail attachment target when the physical card becomes a new 
     expect(blinked.cards[targetId].zoneChangeCounter).toBeGreaterThan(oldVersion);
 
     screen.render(blinked);
-    const currentTarget = screen.host.querySelector<HTMLSelectElement>(
-      '[aria-label="取り付けする対象"]',
-    )!;
+    const currentTarget =
+      screen.host.querySelector<HTMLSelectElement>('[aria-label="取り付けする対象"]')!;
     const attach = [...screen.host.querySelectorAll<HTMLButtonElement>('button')].find(
       (button) => button.textContent === '取り付けする',
     )!;

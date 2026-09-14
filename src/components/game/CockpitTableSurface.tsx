@@ -142,6 +142,8 @@ export function CockpitTableSurface({
     new Map<string, { query: string; page: number; filter: string }>(),
   );
   const [fetchEntry, setFetchEntry] = useState<string | null>(null);
+  const fetchTarget = fetchEntry ? table.stack.find((entry) => entry.id === fetchEntry) : undefined;
+  if (fetchEntry && !fetchTarget) setFetchEntry(null);
   const [reviewTurn, setReviewTurn] = useState(false);
   const [mana, setMana] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -220,15 +222,22 @@ export function CockpitTableSurface({
     opening ||
     mana ||
     (reviewTurn && table.phase === 'cleanup') ||
-    !!fetchEntry ||
+    !!fetchTarget ||
     handWorkspace ||
     !!cardMenu;
+  function runPrimaryAction() {
+    if (dialogOpen || disabled || opening || table.hold || boardChoice) return;
+    if (table.resolution) setWork(true);
+    else if (triggersReady) setFeed(true);
+    else if (table.stack[0]) resolveTop();
+    else if (table.combat) setWork(true);
+    else if (table.phase === 'untap' || table.startProgress) prepareTurn();
+    else advancePhase();
+  }
   useShortcuts({
     keybindings,
     isDialogOpen: dialogOpen,
-    onNextTurn: () => {
-      if (!dialogOpen) prepareTurn();
-    },
+    onNextTurn: runPrimaryAction,
     onNextPhase: () => {
       if (!dialogOpen) advancePhase();
     },
@@ -997,6 +1006,7 @@ export function CockpitTableSurface({
               <button
                 className={`thumb-zone__primary${current ? ' thumb-zone__primary--stack' : ' thumb-zone__primary--advance'}`}
                 data-testid="primary-action"
+                title={`主操作 (${keyHint(keybindings.nextTurn)})`}
                 aria-label={
                   resolution
                     ? '処理に戻る'
@@ -1013,14 +1023,7 @@ export function CockpitTableSurface({
                               : '次へ'
                 }
                 disabled={disabled || opening || table.hold || !!boardChoice || dialogOpen}
-                onClick={() => {
-                  if (resolution) setWork(true);
-                  else if (triggersReady) setFeed(true);
-                  else if (top) resolveTop();
-                  else if (table.combat) setWork(true);
-                  else if (table.phase === 'untap' || table.startProgress) prepareTurn();
-                  else advancePhase();
-                }}
+                onClick={runPrimaryAction}
               >
                 <Icon name={current ? 'stack' : 'phase-next'} />
                 <span>
@@ -1038,6 +1041,7 @@ export function CockpitTableSurface({
                               ? '戦闘'
                               : '次へ'}
                 </span>
+                <kbd aria-hidden="true">{keyHint(keybindings.nextTurn)}</kbd>
               </button>
               <button
                 className="thumb-zone__icon-btn"
@@ -1513,11 +1517,11 @@ export function CockpitTableSurface({
           handCount={multi?.counts[table.activeSeatId]?.hand}
         />
       )}
-      {fetchEntry && table.stack.find((entry) => entry.id === fetchEntry) && (
+      {fetchTarget && (
         <CockpitFetchSearch
-          key={fetchEntry}
+          key={fetchTarget.id}
           table={table}
-          entry={table.stack.find((entry) => entry.id === fetchEntry)!}
+          entry={fetchTarget}
           disabled={disabled}
           send={send}
           onClose={() => setFetchEntry(null)}
