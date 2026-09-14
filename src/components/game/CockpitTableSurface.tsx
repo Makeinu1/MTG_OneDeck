@@ -1,3 +1,5 @@
+import { CockpitCleanupTools } from './CockpitCleanupTools';
+import { tableCleanupNeedsReview } from '../../engine/cockpitTable';
 import { CockpitFeed } from './CockpitFeed';
 import { readyTableTriggers } from '../../engine/cockpitTriggers';
 import { CockpitWorkPanel as TableWorkPanel } from './CockpitWorkPanel';
@@ -185,34 +187,22 @@ export function CockpitTableSurface({
     !!table.resolution ||
     !!table.combat ||
     table.stack.length > 0;
-  function prepareTurn() {
-    if (triggersReady) {
-      setFeed(true);
-      return;
-    }
-    if (progressBlocked) return;
-    if (multi) void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' });
-    else if (
-      !table.startProgress &&
-      table.phase !== 'untap' &&
-      ((own.maximumHandSize !== null && own.zones.hand.length > own.maximumHandSize) ||
-        table.grants.length ||
-        table.modifiers.length)
-    )
-      setReviewTurn(true);
-    else void send({ type: 'turn.ready' });
-  }
   function advancePhase() {
     if (triggersReady) {
       setFeed(true);
       return;
     }
-    if (table.startProgress) {
-      prepareTurn();
+    if (progressBlocked || (reviewTurn && table.phase === 'cleanup')) return;
+    if (reviewTurn) setReviewTurn(false);
+    const count = multi?.counts[table.activeSeatId]?.hand;
+    if (table.phase === 'cleanup' && !table.cleanupReady && tableCleanupNeedsReview(table, count)) {
+      setReviewTurn(true);
       return;
     }
-    if (!progressBlocked) void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' });
+    void send({ type: 'phase' });
   }
+  // Every normal next button/key means one boundary, in both solo and shared tables.
+  const prepareTurn = advancePhase;
   async function keepHand(bottom: string[]) {
     if (!(await send({ type: 'keep', seatId: ownId, bottom }))) return;
     select([]);
@@ -229,7 +219,7 @@ export function CockpitTableSurface({
     feed ||
     opening ||
     mana ||
-    reviewTurn ||
+    (reviewTurn && table.phase === 'cleanup') ||
     !!fetchEntry ||
     handWorkspace ||
     !!cardMenu;
@@ -1022,7 +1012,7 @@ export function CockpitTableSurface({
                               ? '戦闘'
                               : '次へ'
                 }
-                disabled={disabled || opening || table.hold || !!boardChoice}
+                disabled={disabled || opening || table.hold || !!boardChoice || dialogOpen}
                 onClick={() => {
                   if (resolution) setWork(true);
                   else if (triggersReady) setFeed(true);
@@ -1051,7 +1041,7 @@ export function CockpitTableSurface({
               </button>
               <button
                 className="thumb-zone__icon-btn"
-                title="次のターン"
+                title="次のステップ"
                 disabled={progressBlocked}
                 onClick={prepareTurn}
               >
@@ -1191,9 +1181,9 @@ export function CockpitTableSurface({
               {!multi
                 ? table.phase === 'untap'
                   ? 'ターン開始'
-                  : '次のターン'
+                  : '次へ'
                 : table.phase === 'cleanup'
-                  ? '次のターンへ'
+                  ? 'クリーンナップ・次のターンへ'
                   : table.phase === 'main1'
                     ? '戦闘へ'
                     : '次へ'}
@@ -1511,48 +1501,17 @@ export function CockpitTableSurface({
         </nav>
         {typeof children === 'function' ? children(openZone, work) : children}
       </TableWorkPanel>
-      {reviewTurn && (
-        <Modal
-          title={table.phase === 'untap' ? 'ターンの準備' : '次のターン'}
+      {reviewTurn && table.phase === 'cleanup' && (
+        <CockpitCleanupTools
+          table={table}
+          seatId={table.activeSeatId}
+          selected={selected}
+          disabled={disabled}
+          send={send}
+          autoOpen
           onClose={() => setReviewTurn(false)}
-        >
-          {own.maximumHandSize !== null && own.zones.hand.length > own.maximumHandSize ? (
-            <>
-              <p>
-                手札が{own.zones.hand.length}枚あります。{own.maximumHandSize}
-                枚になるように捨ててから進みます。
-              </p>
-              <button
-                onClick={() => {
-                  setReviewTurn(false);
-                  openZone('hand');
-                  setSelectionMode(true);
-                }}
-              >
-                捨てるカードを選ぶ
-              </button>
-            </>
-          ) : (
-            <>
-              <p>自分のカードをアンタップし、1枚引いてメイン・フェイズへ進みます。</p>
-              {!!(table.grants.length || table.modifiers.length) && (
-                <p>
-                  期限のある効果が残っています。終了する効果は先に解除してください。この操作では効果を自動で解除しません。
-                </p>
-              )}
-              <button
-                disabled={progressBlocked}
-                onClick={() =>
-                  void send({ type: 'turn.ready', effectsReviewed: true }).then((saved) => {
-                    if (saved) setReviewTurn(false);
-                  })
-                }
-              >
-                アンタップ・ドローして進む
-              </button>
-            </>
-          )}
-        </Modal>
+          handCount={multi?.counts[table.activeSeatId]?.hand}
+        />
       )}
       {fetchEntry && table.stack.find((entry) => entry.id === fetchEntry) && (
         <CockpitFetchSearch

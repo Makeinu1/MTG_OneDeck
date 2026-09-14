@@ -30,7 +30,6 @@ import { CockpitCardTools, CockpitTokenTools } from './CockpitCardTools';
 import { CockpitAbilityTools } from './CockpitAbilityTools';
 import { cockpitCostText } from './cockpitCostText';
 import { CockpitBattleTools } from './CockpitBattleTools';
-import { CockpitCleanupTools } from './CockpitCleanupTools';
 import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { SemanticPresentationLayer } from './presentation/SemanticPresentationLayer';
 import { TransitionCue } from './TransitionCue';
@@ -789,9 +788,9 @@ export function CockpitSessionScreen({
                   Boolean(table.combat) ||
                   table.stack.length > 0
                 }
-                onClick={() => void send({ type: 'turn' })}
+                onClick={() => void send({ type: 'phase' })}
               >
-                次のターン
+                次のステップ
               </button>
               <p>
                 アンタップ開始時の任意操作です。途中で誘発や判断が必要なら個別に進めてください。HOLD・Stack・処理中は進みません。
@@ -800,13 +799,13 @@ export function CockpitSessionScreen({
                 disabled={
                   disabled ||
                   table.hold ||
-                  table.phase !== 'untap' ||
+                  (table.phase !== 'untap' && !table.startProgress) ||
                   Boolean(table.resolution) ||
                   table.stack.length > 0
                 }
                 onClick={() => void send({ type: 'shortcut' })}
               >
-                現在のターンの席をアンタップ→1枚ドロー→メイン
+                現在のターンをメインまで進める（誘発で中断）
               </button>
               <button
                 disabled={disabled}
@@ -823,13 +822,25 @@ export function CockpitSessionScreen({
               >
                 {seat.label}のマナを空にする
               </button>
-              <CockpitCleanupTools
-                table={table}
-                seatId={seatId}
-                selected={selected}
-                disabled={disabled}
-                send={send}
-              />
+              <p>クリーンナップの手札選択と期限確認は、主操作「次へ」から行います。</p>
+              <details>
+                <summary>例外時の手動補正</summary>
+                <p>
+                  次のステップのアンタップ・ドロー・マナ処理を手動で反映した場合だけ使用してください。誘発・未完のクリーンナップは飛ばしません。
+                </p>
+                <button
+                  disabled={
+                    disabled ||
+                    table.hold ||
+                    !!table.stack.length ||
+                    !!table.resolution ||
+                    !!table.combat
+                  }
+                  onClick={() => void send({ type: 'phase', manual: true })}
+                >
+                  次のステップの定型処理を手動反映済みとして進む
+                </button>
+              </details>
             </details>
 
             {table.stack.map((entry) => (

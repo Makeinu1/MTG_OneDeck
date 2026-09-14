@@ -398,3 +398,54 @@ it('does not start a turn when keeping the hand fails', async () => {
     screen.close();
   }
 });
+
+it('opens active-seat cleanup from normal progress, blocks progress keys, and submits an exact discard choice', async () => {
+  let table = createCockpitTable(makeDeck(30), 42);
+  table = applyTableOperation(table, { type: 'keep', seatId: 'P1', bottom: [] });
+  table = applyTableOperation(table, { type: 'draw', seatId: 'P1', count: 1 });
+  table.phase = 'cleanup';
+  table.cleanupReady = false;
+  const screen = mount({
+    table,
+    revision: 1,
+    expiresAt: 0,
+    canUndo: false,
+    canRedo: false,
+    receipt: null,
+  });
+  try {
+    act(() =>
+      screen.host.querySelector<HTMLButtonElement>('[data-testid=primary-action]')!.click(),
+    );
+    const dialog = screen.host.querySelector<HTMLElement>(
+      '[role="dialog"][aria-label="手札調整・ダメージ・期限の確認"]',
+    )!;
+    expect(dialog).not.toBeNull();
+    act(() => {
+      (document.activeElement as HTMLElement)?.blur();
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    });
+    expect(screen.send).not.toHaveBeenCalled();
+    const finish = [...dialog.querySelectorAll('button')].find(
+      (b) => b.textContent === 'クリーンナップを完了',
+    )!;
+    expect(finish.disabled).toBe(true);
+    act(() => dialog.querySelector<HTMLInputElement>('input[aria-label^="捨てる："]')!.click());
+    expect(finish.disabled).toBe(false);
+    await act(async () => {
+      finish.click();
+      await Promise.resolve();
+    });
+    const operation = screen.send.mock.calls[0][0];
+    expect(operation.type).toBe('cleanup');
+    if (operation.type !== 'cleanup') throw new Error('Wrong operation');
+    expect(operation.discardIds).toHaveLength(1);
+    expect(operation.complete).toBe(true);
+    // Server operation, not the mock, establishes the final hand and completion receipt.
+    const after = applyTableOperation(table, operation);
+    expect(after.seats[0].zones.hand).toHaveLength(7);
+    expect(after.cleanupReady).toBe(true);
+  } finally {
+    screen.close();
+  }
+});

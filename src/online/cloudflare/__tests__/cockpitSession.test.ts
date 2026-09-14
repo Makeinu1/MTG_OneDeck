@@ -425,10 +425,40 @@ function multiplayerHarness(seats: 2 | 4) {
       expect((await change(i, { type: 'keep', seatId: `P${i + 1}` })).status).toBe(200);
     expect((await change(0, { type: 'start' }, true)).status).toBe(200);
   }
+  async function nextTurn(operator: number) {
+    let state = await call(operator, { type: 'read' });
+    const turn = state.value.table.turn;
+    for (let step = 0; step < 12 && state.value.table.turn === turn; step++) {
+      const table = state.value.table;
+      if (table.phase === 'cleanup' && !table.cleanupReady) {
+        const activeIndex = table.seats.findIndex((seat) => seat.id === table.activeSeatId);
+        const active = table.seats[activeIndex];
+        const hand = active.eliminated
+          ? []
+          : (await call(activeIndex, { type: 'read' })).value.table.seats[activeIndex].zones.hand;
+        const required =
+          active.maximumHandSize === null ? 0 : Math.max(0, hand.length - active.maximumHandSize);
+        state = await change(operator, {
+          type: 'cleanup',
+          seatId: active.id,
+          discardIds: hand.slice(0, required),
+          damageIds: [],
+          grantIds: [],
+          modifierIds: [],
+          complete: true,
+          effectsReviewed: true,
+        });
+      } else state = await change(operator, { type: 'phase' });
+      expect(state.status, `${table.phase}:${state.value.error ?? "ok"}`).toBe(200);
+    }
+    expect(state.value.table.turn).toBe(turn + 1);
+    return state;
+  }
   return {
     call,
     change,
     start,
+    nextTurn,
     credentials,
     advance: (ms: number) => {
       now += ms;
@@ -466,7 +496,7 @@ describe('shared Cockpit multiplayer', () => {
     expect(departed.value.multiplayer!.masterId).toBe('P2');
     expect(departed.value.multiplayer!.borrowedFrom).toBeNull();
     expect((await room.change(1, { type: 'return' }, true)).status).toBe(403);
-    expect((await room.change(1, { type: 'turn' })).status).toBe(200);
+    expect((await room.nextTurn(1)).status).toBe(200);
   });
 
   it('two seats keep private projections, delegate HOLD, reconcile commits, undo and resume with one active connection', async () => {
@@ -570,12 +600,12 @@ describe('shared Cockpit multiplayer', () => {
     expect(eliminated.value.table.combat!.attackers.map((entry) => entry.cardId)).toEqual(['a2']);
     await room.change(0, { type: 'battle.end' });
     expect((await room.change(0, { type: 'turn.ready' })).status).toBe(403);
-    const advanced = await room.change(0, { type: 'turn' });
+    const advanced = await room.nextTurn(0);
     expect(advanced.value.table.activeSeatId).toBe('P3');
     expect(advanced.value.table.seats.map((s) => s.id)).toEqual(['P1', 'P2', 'P3', 'P4']);
     expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(403);
     await room.change(0, { type: 'eliminate', seatId: 'P3' }, true);
-    const next = await room.change(0, { type: 'turn' });
+    const next = await room.nextTurn(0);
     expect(next.value.table.activeSeatId).toBe('P4');
     expect(next.value.table.ended).toBe(false);
   });

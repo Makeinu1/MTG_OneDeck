@@ -47,7 +47,8 @@ it('applies declared damage once and only clears explicitly reviewed cleanup tar
   expect(() => applyTableOperation(table, { type: 'battle.nextDamage' })).toThrow();
 
   table = applyTableOperation(table, { type: 'battle.end' });
-  for (let step = 0; step < 3; step++) table = applyTableOperation(table, { type: 'phase' });
+  // This case tests partial correction. Ordinary boundary cleanup is tested in cockpitTurnProgress.
+  table = { ...table, phase: 'cleanup', cleanupReady: false };
   table = applyTableOperation(table, {
     type: 'cleanup',
     seatId: 'P1',

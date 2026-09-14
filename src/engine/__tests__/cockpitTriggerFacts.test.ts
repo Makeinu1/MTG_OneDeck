@@ -80,6 +80,9 @@ it('keeps private-to-private movement out of another seat’s Feed and enforces 
       toughness: '1',
       text: 'At the beginning of each upkeep, draw a card.',
     });
+  table.seats.forEach((seat) => {
+    seat.kept = true;
+  });
   table = applyTableOperation(table, { type: 'phase' });
   const p1 = table.triggers!.candidates.find((c) => c.controllerId === 'P1')!;
   const p2 = table.triggers!.candidates.find((c) => c.controllerId === 'P2')!;
