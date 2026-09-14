@@ -7,6 +7,7 @@ import { keywords, normalizeKeywords, type Keyword } from '../engine/status';
 import cardBackUrl from '../assets/onedeck/card-back.svg';
 import { tokenVisualFor } from '../ui/tokenVisual';
 import { Icon } from '../ui/icons';
+import { useRecordedPowerToughness } from './game/cockpitCardPresentationContext';
 
 export interface CardViewProps {
   instance: CardInstance;
@@ -119,6 +120,7 @@ function CardViewSurface({
   } | null>(null);
   const suppressClickRef = useRef(false);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const recordedPT = useRecordedPowerToughness(instance);
   const transform = dnd?.transform;
   const isDragging = dnd?.isDragging ?? false;
 
@@ -295,8 +297,18 @@ function CardViewSurface({
         </div>
       )}
 
-      {counters.length > 0 && (
+      {(counters.length > 0 || recordedPT) && (
         <div className="card-view__counters">
+          {recordedPT && (
+            <span
+              className="card-view__counter"
+              data-testid={`recorded-pt-${instance.id}`}
+              aria-label={`記録上のP/T: ${recordedPT.power ?? '不明'}/${recordedPT.toughness ?? '不明'}`}
+              title="基本値・±1/±1カウンター・手動修整の合計。その他の継続効果は手動確認。"
+            >
+              P/T {recordedPT.power ?? '?'}/{recordedPT.toughness ?? '?'}
+            </span>
+          )}
           {counters.map(([type, value]) => (
             <span key={type} className="card-view__counter" data-counter-type={type}>
               {counterLabel(type)} {value}

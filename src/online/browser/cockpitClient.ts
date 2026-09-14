@@ -5,6 +5,7 @@ import { migrateCockpitSnapshot } from '../../engine/cockpitMigration';
 import type { GameSnapshot } from '../../data/gameSnapshot';
 import { openDB, type DBSchema } from 'idb';
 import type { InitDeckCard } from '../../engine/init';
+import { expandSavedDeck, listSavedDecks } from '../../data/savedDecks';
 import type { TableOperation } from '../../engine/cockpitTable';
 import type {
   CockpitCheckpoint,
@@ -38,6 +39,8 @@ interface Connection {
   id: string;
   token: string;
   pending: PendingRequest | null;
+  /** Exact original input, resolved against local deck assets after reload. No deck data is sent here. */
+  replayDeckDigest?: string;
   // Retained only while a new destination is awaiting confirmation.
   previous?: Connection;
 }
@@ -117,6 +120,36 @@ function isDefiniteRejection(error: unknown): boolean {
 }
 
 export class CockpitClient {
+  private readonly replayDecks = new Map<string, InitDeckCard[]>();
+  private async rememberReplayDeck(deck: InitDeckCard[]): Promise<string> {
+    const original = structuredClone(deck);
+    const digest = await inputDigest(original);
+    this.replayDecks.set(digest, original);
+    return digest;
+  }
+  async loadReplayDeck(): Promise<InitDeckCard[] | null> {
+    const connection = this.connection;
+    const digest = connection?.replayDeckDigest;
+    if (!connection || !digest || connection.pending || this.disposed) return null;
+    let original = this.replayDecks.get(digest);
+    if (!original) {
+      try {
+        for (const saved of await listSavedDecks()) {
+          const candidate = expandSavedDeck(saved);
+          if (await inputDigest(candidate) === digest) {
+            original = candidate;
+            break;
+          }
+        }
+      } catch {
+        // Missing/unavailable local assets require explicit deck selection, not board reconstruction.
+        return null;
+      }
+    }
+    if (this.disposed || this.connection !== connection || connection.pending || !original?.length)
+      return null;
+    return structuredClone(original);
+  }
   private connection: Connection | null = null;
   private view: CockpitSessionView | null = null;
   private busy = false;
@@ -319,6 +352,7 @@ export class CockpitClient {
     }
   }
   async join(deck: InitDeckCard[], invitation: string): Promise<void> {
+    deck = structuredClone(deck);
     const match = /^([a-f0-9-]{36})\.([a-f0-9-]{72})$/.exec(invitation.trim());
     if (!match) throw new Error('招待コードを確認してください。');
     const token = [...crypto.getRandomValues(new Uint8Array(32))]
@@ -330,6 +364,7 @@ export class CockpitClient {
         token,
         connectionId: crypto.randomUUID(),
         pending: { type: 'join', digest: await inputDigest(deck) },
+        replayDeckDigest: await this.rememberReplayDeck(deck),
       },
       { type: 'join', token, invitation: match[2], deck },
     );
@@ -371,6 +406,7 @@ export class CockpitClient {
     );
   }
   async importSnapshot(snapshot: GameSnapshot): Promise<void> {
+    snapshot = structuredClone(snapshot);
     migrateCockpitSnapshot(snapshot);
     const token = [...crypto.getRandomValues(new Uint8Array(32))]
       .map((byte) => byte.toString(16).padStart(2, '0'))
@@ -383,17 +419,21 @@ export class CockpitClient {
         id: crypto.randomUUID(),
         token,
         pending: { type: 'import', digest },
+        replayDeckDigest: await this.rememberReplayDeck(snapshot.deck),
       },
       body,
     );
   }
   async start(deck: InitDeckCard[], seats?: 2 | 4): Promise<void> {
+    deck = structuredClone(deck);
+    const replayDeckDigest = await this.rememberReplayDeck(deck);
     const digest = await inputDigest({ deck, seats });
     if (this.disposed) return;
     const raw = localStorage.getItem(CONNECTION_KEY);
     if (raw) {
       const existing = JSON.parse(raw) as Connection;
       if (existing.pending?.type === 'create' && existing.pending.digest === digest) {
+        existing.replayDeckDigest = replayDeckDigest;
         this.connection = existing;
         try {
           await this.reconnect();
@@ -437,6 +477,7 @@ export class CockpitClient {
         token,
         connectionId: crypto.randomUUID(),
         pending: { type: 'create', digest },
+        replayDeckDigest,
       },
       body,
     );

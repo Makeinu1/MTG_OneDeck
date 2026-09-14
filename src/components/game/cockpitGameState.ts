@@ -1,4 +1,5 @@
 import type { CockpitTable } from '../../engine/cockpitTable';
+import { cockpitPowerToughness, type RecordedPowerToughness } from '../../engine/cockpitPowerToughness';
 import {
   objectIdOf,
   type CardInstance,
@@ -14,11 +15,18 @@ import {
  */
 export function cockpitGameState(table: CockpitTable, ownId: string): GameState {
   const own = table.seats.find((seat) => seat.id === ownId)!;
-  const cards = Object.fromEntries(
+  const cards: Record<string, CardInstance & {
+    displayPowerToughness?: RecordedPowerToughness;
+    displayModifierKey?: string;
+  }> = Object.fromEntries(
     Object.entries(table.cards).map(([id, card]) => [
       id,
       {
         ...card,
+        // Presentation-only discriminator: do not bundle tokens with different recorded modifiers.
+        displayPowerToughness: cockpitPowerToughness(table, id),
+        displayModifierKey: JSON.stringify(table.modifiers.filter((modifier) => modifier.cardId === id)
+          .map((modifier) => [modifier.id, modifier.power, modifier.toughness, modifier.duration])),
         effectsAuto: false,
         manualKeywords: [
           ...new Set([
