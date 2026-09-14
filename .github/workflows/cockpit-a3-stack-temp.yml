@@ -74,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git rm .github/a3-stack-transform.py .github/a3-stack-testfix.py .github/workflows/cockpit-a3-stack-temp.yml
+          git rm -f .github/a3-stack-transform.py .github/a3-stack-testfix.py .github/workflows/cockpit-a3-stack-temp.yml
           git add \
             src/components/game/CockpitTableSurface.tsx \
             src/components/game/CockpitSessionScreen.tsx \
