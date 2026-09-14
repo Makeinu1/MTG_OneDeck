@@ -45,7 +45,25 @@ jobs:
           replacement = marker + "\nObject.defineProperty(HTMLElement.prototype, 'scrollIntoView', {\n  configurable: true,\n  value: vi.fn(),\n});\n"
           if text.count(marker) != 1:
               raise SystemExit(f'expected one battle import marker, found {text.count(marker)}')
-          battle.write_text(text.replace(marker, replacement))
+          text = text.replace(marker, replacement)
+
+          deck_old = "  const deck = makeDeck(20);\n"
+          deck_new = """  const deck = makeDeck(20).map((item) => ({\n    ...item,\n    def: {\n      ...item.def,\n      faces: [{ name: item.def.name, typeLine: 'Creature', power: '3', toughness: '3' }],\n    },\n  }));\n"""
+          if text.count(deck_old) != 2:
+              raise SystemExit(f'expected two battle deck fixtures, found {text.count(deck_old)}')
+          text = text.replace(deck_old, deck_new)
+
+          draft_old = "    expect(host.querySelector('.table-damage-rows')?.textContent).toContain('P2');\n"
+          draft_new = "    expect(host.textContent).toContain('40 → 37');\n"
+          if text.count(draft_old) != 1:
+              raise SystemExit(f'expected one damage draft assertion, found {text.count(draft_old)}')
+          text = text.replace(draft_old, draft_new)
+
+          target_old = "    expect(host.textContent).toContain('P2');\n"
+          target_new = "    expect(host.textContent).toContain('プレイヤー2');\n"
+          if text.count(target_old) != 1:
+              raise SystemExit(f'expected one combat target assertion, found {text.count(target_old)}')
+          battle.write_text(text.replace(target_old, target_new))
           PY
           git diff --check
       - name: Install dependencies
