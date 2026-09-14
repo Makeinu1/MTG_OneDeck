@@ -208,6 +208,7 @@ export async function handleCockpitSession(
         return response({ error: 'AUTHENTICATION_REQUIRED' }, 403);
       if (now >= record.lastUsed + COCKPIT_TTL_MS)
         return response({ error: 'SESSION_EXPIRED' }, 410);
+      // Explicit solo checkpoint is deliberate user activity. Automatic read/connect is not.
       record.lastUsed = now;
       storage.transactionSync(() =>
         storage.sql.exec(
@@ -266,6 +267,9 @@ export async function handleCockpitSession(
     }
     return storage.transactionSync(() => {
       let record = loadRecord(storage);
+      // Only a newly accepted user mutation extends the six-hour session TTL.
+      // Presence reads/connects still update member.lastSeen, but do not move lastUsed.
+      let extendTtl = false;
       let actor = record?.multiplayer ? cockpitActor(record.multiplayer, body.token) : 'P1';
       if (record?.multiplayer && body.type === 'join') {
         const multi = record.multiplayer;
@@ -292,6 +296,7 @@ export async function handleCockpitSession(
             peek: null,
           };
           record.revision += 1;
+          extendTtl = true;
         }
       }
       if (record && (record.multiplayer ? !actor : record.ownerToken !== body.token))
@@ -593,6 +598,9 @@ export async function handleCockpitSession(
             receiptKey(record, body.requestId, actor),
             encodedOperation,
           );
+          // A receipt created in this transaction is a newly accepted action.
+          // Replaying an existing receipt above is recovery, not new activity.
+          extendTtl = true;
           receipt = 'committed';
         }
       } else if (
@@ -603,7 +611,7 @@ export async function handleCockpitSession(
         body.type !== 'connect'
       )
         return response({ error: 'INVALID_REQUEST' }, 400);
-      if (!record.multiplayer || cockpitOwnerPresent(record.multiplayer, now))
+      if (extendTtl && (!record.multiplayer || cockpitOwnerPresent(record.multiplayer, now)))
         record.lastUsed = now;
       const data = JSON.stringify(record);
       // Fail before success; throwing also rolls back any new receipt.

@@ -473,8 +473,9 @@ export function CockpitSessionScreen({
         <button onClick={() => void reconnect()} disabled={busy || terminalConnection}>
           再接続
         </button>
+        <p>端末保存から復元できるのは一人回しだけです。2人/4人の対戦卓は失効後に復元できません。</p>
         <button onClick={() => void checkpoint(true)} disabled={busy}>
-          保存した盤面から再開
+          一人回しの端末保存から再開
         </button>
         <button onClick={onBack}>デッキへ戻る</button>
       </main>

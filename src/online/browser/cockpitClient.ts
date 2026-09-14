@@ -136,7 +136,7 @@ export class CockpitClient {
       try {
         for (const saved of await listSavedDecks()) {
           const candidate = expandSavedDeck(saved);
-          if (await inputDigest(candidate) === digest) {
+          if ((await inputDigest(candidate)) === digest) {
             original = candidate;
             break;
           }
@@ -227,7 +227,7 @@ export class CockpitClient {
           );
         if (error.error === 'SESSION_EXPIRED')
           throw new CockpitConnectionError(
-            'セッションは最終利用から6時間で失効しました。',
+            'セッションは最終利用から6時間で失効しました。2人/4人の対戦卓は復元できません。新しい卓を作成または参加してください。一人回しは端末checkpointがある場合だけそこから再開できます。',
             error.error,
           );
         if (error.error === 'TURN_HISTORY_LIMIT')
