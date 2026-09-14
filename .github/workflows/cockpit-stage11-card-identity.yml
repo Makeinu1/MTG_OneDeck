@@ -1,0 +1,119 @@
+name: Cockpit stage 11 card identity
+on:
+  push:
+    branches: [fix/cockpit-stage11-card-identity-20260915]
+permissions:
+  contents: write
+jobs:
+  stage11:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply focused stage 11 patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/engine/cockpitTable.ts')
+          text = path.read_text()
+          old_import = "import {\n  checkpointTableTriggers,"
+          new_import = "import { sameCockpitCardDefinition } from './cockpitCardIdentity';\nimport {\n  checkpointTableTriggers,"
+          assert text.count(old_import) == 1
+          text = text.replace(old_import, new_import, 1)
+
+          old_compare = """      const known = table.defs[entry.def.scryfallId];
+          requireTable(
+            !known || JSON.stringify(known) === JSON.stringify(entry.def),
+            '同じカードIDの定義が一致しません。',
+          );
+          """
+          new_compare = """      const known = table.defs[entry.def.scryfallId];
+          requireTable(
+            !known || sameCockpitCardDefinition(known, entry.def),
+            '同じカードIDの定義が一致しません。',
+          );
+          """
+          assert text.count(old_compare) == 1
+          text = text.replace(old_compare, new_compare, 1)
+
+          old_assign = "      table.defs[entry.def.scryfallId] = structuredClone(entry.def);"
+          new_assign = "      table.defs[entry.def.scryfallId] ??= structuredClone(entry.def);"
+          assert text.count(old_assign) == 1
+          text = text.replace(old_assign, new_assign, 1)
+          path.write_text(text)
+
+          test = Path('src/engine/__tests__/cockpitCardIdentity.test.ts')
+          test.write_text("""import { expect, it } from 'vitest';
+          import { createCockpitTable } from '../cockpitTable';
+          import { makeDeck } from './helpers';
+
+          function displayVariant<T extends ReturnType<typeof makeDeck>>(deck: T): T {
+            return deck.map((entry, index) => ({
+              ...entry,
+              def: {
+                ...(Object.fromEntries(Object.entries(entry.def).reverse()) as typeof entry.def),
+                printedName: `日本語表示 ${index}`,
+                lang: 'ja' as const,
+                faces: entry.def.faces.map((face) => ({
+                  ...face,
+                  printedText: '表示専用テキスト',
+                  imageUrl: `https://example.invalid/card-${index}.png`,
+                })),
+              },
+            })) as T;
+          }
+
+          it('uses rule identity during initial table creation and keeps the first accepted presentation', () => {
+            const original = makeDeck(12);
+            const localized = displayVariant(structuredClone(original));
+            const table = createCockpitTable(original, 1, [original, localized]);
+            const id = original[0].def.scryfallId;
+
+            expect(table.seats[0].zones.hand).toHaveLength(7);
+            expect(table.seats[1].zones.hand).toHaveLength(7);
+            expect(table.defs[id]).toEqual(original[0].def);
+          });
+
+          it('accepts display-only duplicate variants in one input but rejects genuine rule changes', () => {
+            const original = makeDeck(12);
+            const localized = displayVariant(structuredClone(original));
+            const mixed = [original[0], localized[0], ...original.slice(1)];
+            expect(() => createCockpitTable(mixed, 1)).not.toThrow();
+
+            const conflict = displayVariant(structuredClone(original));
+            conflict[0].def.faces[0].oracleText = 'Draw a card.';
+            expect(() => createCockpitTable(original, 1, [original, conflict])).toThrow(
+              '同じカードIDの定義が一致しません。',
+            );
+          });
+          """)
+          PY
+      - run: npm ci
+      - name: Targeted identity regression
+        run: node node_modules/vitest/vitest.mjs run src/engine/__tests__/cockpitCardIdentity.test.ts src/online/cloudflare/__tests__/cockpitProjection.test.ts
+      - name: Build, lint, and diff check
+        shell: bash
+        run: |
+          npm run build
+          node node_modules/eslint/bin/eslint.js src/engine/cockpitTable.ts src/engine/cockpitCardIdentity.ts src/engine/__tests__/cockpitCardIdentity.test.ts src/online/cloudflare/__tests__/cockpitProjection.test.ts
+          git diff --check
+      - name: Commit validated tree without temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/cockpit-stage11-card-identity.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix: align initial card definition identity"
+          git push origin HEAD:${GITHUB_REF_NAME}
