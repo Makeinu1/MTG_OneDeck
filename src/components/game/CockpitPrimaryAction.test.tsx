@@ -38,8 +38,8 @@ function mount(initialTable: CockpitTable = stackTable(), initialModalOpen = fal
   const send = vi.fn<React.ComponentProps<typeof CockpitTableSurface>['send']>(() =>
     Promise.resolve(true),
   );
-  const render = (table: CockpitTable, modalOpen = initialModalOpen) =>
-    act(() =>
+  const render = (table: CockpitTable, modalOpen = initialModalOpen) => {
+    void act(() =>
       root.render(
         <CockpitTableSurface
           view={{ table, canUndo: false, canRedo: false }}
@@ -60,13 +60,14 @@ function mount(initialTable: CockpitTable = stackTable(), initialModalOpen = fal
         </CockpitTableSurface>,
       ),
     );
+  };
   render(initialTable);
   return {
     host,
     send,
     render,
     close() {
-      act(() => root.unmount());
+      void act(() => root.unmount());
       host.remove();
     },
   };
@@ -79,7 +80,7 @@ it('routes Enter through the same contextual primary action as the visible butto
     expect(primary.textContent).toContain('解決');
     expect(primary.textContent).toContain('↵');
 
-    act(() =>
+    void act(() =>
       document.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }),
       ),
@@ -87,7 +88,7 @@ it('routes Enter through the same contextual primary action as the visible butto
     expect(screen.send).toHaveBeenLastCalledWith({ type: 'resolve.begin' });
 
     screen.send.mockClear();
-    act(() => primary.click());
+    void act(() => primary.click());
     expect(screen.send).toHaveBeenLastCalledWith({ type: 'resolve.begin' });
   } finally {
     screen.close();
@@ -97,7 +98,7 @@ it('routes Enter through the same contextual primary action as the visible butto
 it('does not fire the primary Enter shortcut while a child/modal decision owns input', () => {
   const screen = mount(stackTable(), true);
   try {
-    act(() =>
+    void act(() =>
       document.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }),
       ),
@@ -112,7 +113,7 @@ it('releases a vanished fetch entry and does not revive its stale selection', ()
   const table = fetchStackTable();
   const screen = mount(table);
   try {
-    act(() =>
+    void act(() =>
       screen.host.querySelector<HTMLButtonElement>('[data-testid="primary-action"]')!.click(),
     );
     expect(screen.host.querySelector('[aria-label="土地の名前で検索"]')).not.toBeNull();
@@ -124,7 +125,7 @@ it('releases a vanished fetch entry and does not revive its stale selection', ()
     expect(screen.host.querySelector('[aria-label="土地の名前で検索"]')).toBeNull();
 
     screen.send.mockClear();
-    act(() =>
+    void act(() =>
       document.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }),
       ),
