@@ -6,8 +6,8 @@ function access(peek: CockpitLibraryAccess['peek'], totalCount = 10): CockpitLib
     seatId: 'P1',
     totalCount,
     peek,
-    request: async () => null,
-    release: async () => null,
+    request: () => Promise.resolve(null),
+    release: () => Promise.resolve(null),
   };
 }
 
