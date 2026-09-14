@@ -51,7 +51,13 @@ it('acquires only requested top cards before milling and commits those confirmed
 
 it('invalidates an arranged private draft on same-length reorder and hides it after access loss', () => {
   const { hidden, bounded, total, peek } = projections(2);
-  const access: CockpitLibraryAccess = { seatId: 'P1', totalCount: total, peek, request: async () => bounded, release: async () => hidden };
+  const access: CockpitLibraryAccess = {
+    seatId: 'P1',
+    totalCount: total,
+    peek,
+    request: () => Promise.resolve(bounded),
+    release: () => Promise.resolve(hidden),
+  };
   const screen = mount(bounded, access);
   try {
     act(() => button(screen.host, '占術').click());
