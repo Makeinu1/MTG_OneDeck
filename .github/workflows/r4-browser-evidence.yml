@@ -1,0 +1,61 @@
+name: R4 browser evidence
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+    paths: [.github/r4-browser-evidence.marker]
+permissions:
+  contents: read
+jobs:
+  chromium:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create evidence-only Vite entry
+        shell: bash
+        run: |
+          cat > r4-ui-evidence.html <<'EOF'
+          <!doctype html>
+          <html lang="ja">
+            <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+            <body><div id="root"></div><script type="module" src="/scripts/online/r4-ui-evidence-harness.tsx"></script></body>
+          </html>
+          EOF
+      - name: Start local Vite
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/r4-vite.log 2>&1 &
+          echo $! > /tmp/r4-vite.pid
+          for i in $(seq 1 80); do
+            if curl --fail --silent http://127.0.0.1:5173/r4-ui-evidence.html >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/r4-vite.log
+          exit 1
+      - name: Run real Chromium R4 UI evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          O4P06F_CHROME="$CHROME" \
+          R4_UI_EVIDENCE_ORIGIN="http://127.0.0.1:5173" \
+          R4_UI_EVIDENCE_OUTPUT="/tmp/r4-ui-browser-evidence.json" \
+          ./node_modules/.bin/tsx scripts/online/r4-ui-browser-evidence.ts
+          cat /tmp/r4-ui-browser-evidence.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r4-ui-browser-evidence
+          path: /tmp/r4-ui-browser-evidence.json
+          if-no-files-found: ignore
+      - name: Dump Vite log on failure
+        if: failure()
+        run: cat /tmp/r4-vite.log || true
