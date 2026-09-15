@@ -1,8 +1,10 @@
 name: Refine R4 cast union
 on:
   push:
-    branches: [r4a-formal-manual-inventory]
-    paths: [.github/r4-cast-types.marker]
+    branches:
+      - r4a-formal-manual-inventory
+    paths:
+      - .github/r4-cast-types.marker
 permissions:
   contents: write
 jobs:
@@ -15,85 +17,13 @@ jobs:
         with:
           ref: r4a-formal-manual-inventory
           fetch-depth: 0
-      - shell: bash
+      - name: Apply exact cast-union refinement
+        shell: bash
         run: |
           set -euo pipefail
           test "$(git hash-object src/engine/cockpitR4.ts)" = dc6a4f3bd653e77d804bd3ff83942c8ab0f8e2e8
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('src/engine/cockpitR4.ts')
-          text = path.read_text()
-          old = """type R31CastOperation = Extract<R31TableOperation, { type: 'cast' }>;
-type R4PassthroughOperation = Exclude<R31TableOperation, R31CastOperation>;
-
-export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
-  type: 'cast';
-  sourceZone: R4CastSourceZone;
-  additionalCosts?: R4CastAdditionalCosts;
-};
-
-export type R4TableOperation =
-  | R4PassthroughOperation
-  | R4CastOperation
-  | {
-"""
-          new = """type R31CastOperation = Extract<R31TableOperation, { type: 'cast' }>;
-
-export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
-  type: 'cast';
-  sourceZone: R4CastSourceZone;
-  additionalCosts?: R4CastAdditionalCosts;
-};
-
-export type R4TableOperation =
-  | R31TableOperation
-  | R4CastOperation
-  | {
-"""
-          if text.count(old) != 1:
-              raise SystemExit('cast union source did not match exactly once')
-          text = text.replace(old, new, 1)
-          old = """function isLegacyCast(operation: R4TableOperation): operation is never {
-  return operation.type === 'cast' && !('sourceZone' in operation);
-}
-
-export function applyR4TableOperation(
-  table: CockpitTable,
-  request: R4OperationRequest,
-  commandId?: string,
-): CockpitTable {
-  const operation = request.operation;
-  if (isLegacyCast(operation))
-    return applyR31TableOperation(
-      table,
-      { operation: operation as unknown as R31TableOperation, context: request.context },
-      commandId,
-    );
-  if (operation.type === 'cast') return castR4(table, operation, request.context, commandId);
-"""
-          new = """export function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {
-  return operation.type === 'cast' && 'sourceZone' in operation;
-}
-
-export function applyR4TableOperation(
-  table: CockpitTable,
-  request: R4OperationRequest,
-  commandId?: string,
-): CockpitTable {
-  const operation = request.operation;
-  if (isR4CastOperation(operation)) return castR4(table, operation, request.context, commandId);
-  if (operation.type === 'cast')
-    return applyR31TableOperation(
-      table,
-      { operation, context: request.context },
-      commandId,
-    );
-"""
-          if text.count(old) != 1:
-              raise SystemExit('cast dispatcher source did not match exactly once')
-          text = text.replace(old, new, 1)
-          path.write_text(text)
-          PY
+          printf '%s' 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnBhdGggPSBQYXRoKCJzcmMvZW5naW5lL2NvY2twaXRSNC50cyIpCnRleHQgPSBwYXRoLnJlYWRfdGV4dCgpCnJlcGxzID0gWwooIiIiICB0eXBlIENvY2twaXRUYWJsZSwKICB0eXBlIFRhYmxlT3BlcmF0aW9uLAp9IGZyb20gJy4vY29ja3BpdFRhYmxlJzsiIiIsCiIiIiAgdHlwZSBDb2NrcGl0VGFibGUsCn0gZnJvbSAnLi9jb2NrcGl0VGFibGUnOyIiIiksCigiIiJ0eXBlIFIzMUNhc3RPcGVyYXRpb24gPSBFeHRyYWN0PFIzMVRhYmxlT3BlcmF0aW9uLCB7IHR5cGU6ICdjYXN0JyB9PjsKdHlwZSBSNFBhc3N0aHJvdWdoT3BlcmF0aW9uID0gRXhjbHVkZTxSMzFUYWJsZU9wZXJhdGlvbiwgUjMxQ2FzdE9wZXJhdGlvbj47CgpleHBvcnQgdHlwZSBSNENhc3RPcGVyYXRpb24gPSBPbWl0PFIzMUNhc3RPcGVyYXRpb24sICd0eXBlJz4gJiB7CiAgdHlwZTogJ2Nhc3QnOwogIHNvdXJjZVpvbmU6IFI0Q2FzdFNvdXJjZVpvbmU7CiAgYWRkaXRpb25hbENvc3RzPzogUjRDYXN0QWRkaXRpb25hbENvc3RzOwp9OwoKZXhwb3J0IHR5cGUgUjRUYWJsZU9wZXJhdGlvbiA9CiAgfCBSNFBhc3N0aHJvdWdoT3BlcmF0aW9uCiAgfCBSNENhc3RPcGVyYXRpb24iIiIsCiIiInR5cGUgUjMxQ2FzdE9wZXJhdGlvbiA9IEV4dHJhY3Q8UjMxVGFibGVPcGVyYXRpb24sIHsgdHlwZTogJ2Nhc3QnIH0+OwoKZXhwb3J0IHR5cGUgUjRDYXN0T3BlcmF0aW9uID0gT21pdDxSMzFDYXN0T3BlcmF0aW9uLCAndHlwZSc+ICYgewogIHR5cGU6ICdjYXN0JzsKICBzb3VyY2Vab25lOiBSNENhc3RTb3VyY2Vab25lOwogIGFkZGl0aW9uYWxDb3N0cz86IFI0Q2FzdEFkZGl0aW9uYWxDb3N0czsKfTsKCmV4cG9ydCB0eXBlIFI0VGFibGVPcGVyYXRpb24gPQogIHwgUjMxVGFibGVPcGVyYXRpb24KICB8IFI0Q2FzdE9wZXJhdGlvbiIiIiksCigiIiJmdW5jdGlvbiBpc0xlZ2FjeUNhc3Qob3BlcmF0aW9uOiBSNFRhYmxlT3BlcmF0aW9uKTogb3BlcmF0aW9uIGlzIG5ldmVyIHsKICByZXR1cm4gb3BlcmF0aW9uLnR5cGUgPT09ICdjYXN0JyAmJiAhKCdzb3VyY2Vab25lJyBpbiBvcGVyYXRpb24pOwp9CgpleHBvcnQgZnVuY3Rpb24gYXBwbHlSNFRhYmxlT3BlcmF0aW9uKAogIHRhYmxlOiBDb2NrcGl0VGFibGUsCiAgcmVxdWVzdDogUjRPcGVyYXRpb25SZXF1ZXN0LAogIGNvbW1hbmRJZD86IHN0cmluZywKKTogQ29ja3BpdFRhYmxlIHsKICBjb25zdCBvcGVyYXRpb24gPSByZXF1ZXN0Lm9wZXJhdGlvbjsKICBpZiAoaXNMZWdhY3lDYXN0KG9wZXJhdGlvbikpCiAgICByZXR1cm4gYXBwbHlSMzFUYWJsZU9wZXJhdGlvbigKICAgICAgdGFibGUsCiAgICAgIHsgb3BlcmF0aW9uOiBvcGVyYXRpb24gYXMgdW5rbm93biBhcyBSMzFUYWJsZU9wZXJhdGlvbiwgY29udGV4dDogcmVxdWVzdC5jb250ZXh0IH0sCiAgICAgIGNvbW1hbmRJZCwKICAgICk7CiAgaWYgKG9wZXJhdGlvbi50eXBlID09PSAnY2FzdCcpIHJldHVybiBjYXN0UjQodGFibGUsIG9wZXJhdGlvbiwgcmVxdWVzdC5jb250ZXh0LCBjb21tYW5kSWQpOyIiIiwKIiIiZXhwb3J0IGZ1bmN0aW9uIGlzUjRDYXN0T3BlcmF0aW9uKG9wZXJhdGlvbjogUjRUYWJsZU9wZXJhdGlvbik6IG9wZXJhdGlvbiBpcyBSNENhc3RPcGVyYXRpb24gewogIHJldHVybiBvcGVyYXRpb24udHlwZSA9PT0gJ2Nhc3QnICYmICdzb3VyY2Vab25lJyBpbiBvcGVyYXRpb247Cn0KCmV4cG9ydCBmdW5jdGlvbiBhcHBseVI0VGFibGVPcGVyYXRpb24oCiAgdGFibGU6IENvY2twaXRUYWJsZSwKICByZXF1ZXN0OiBSNE9wZXJhdGlvblJlcXVlc3QsCiAgY29tbWFuZElkPzogc3RyaW5nLAopOiBDb2NrcGl0VGFibGUgewogIGNvbnN0IG9wZXJhdGlvbiA9IHJlcXVlc3Qub3BlcmF0aW9uOwogIGlmIChpc1I0Q2FzdE9wZXJhdGlvbihvcGVyYXRpb24pKSByZXR1cm4gY2FzdFI0KHRhYmxlLCBvcGVyYXRpb24sIHJlcXVlc3QuY29udGV4dCwgY29tbWFuZElkKTsKICBpZiAob3BlcmF0aW9uLnR5cGUgPT09ICdjYXN0JykKICAgIHJldHVybiBhcHBseVIzMVRhYmxlT3BlcmF0aW9uKAogICAgICB0YWJsZSwKICAgICAgeyBvcGVyYXRpb24sIGNvbnRleHQ6IHJlcXVlc3QuY29udGV4dCB9LAogICAgICBjb21tYW5kSWQsCiAgICApOyIiIikKXQpmb3Igb2xkLCBuZXcgaW4gcmVwbHM6CiAgICBpZiB0ZXh0LmNvdW50KG9sZCkgIT0gMToKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJleHBlY3RlZCBleGFjdCBzb3VyY2UgYmxvY2sgb25jZSIpCiAgICB0ZXh0ID0gdGV4dC5yZXBsYWNlKG9sZCwgbmV3LCAxKQpwYXRoLndyaXRlX3RleHQodGV4dCkK' | base64 -d > /tmp/r4_refine.py
+          python /tmp/r4_refine.py
           git diff --check
           git rm .github/r4-cast-types.marker .github/workflows/r4-refine-cast-types.yml
           git add src/engine/cockpitR4.ts
