@@ -22,6 +22,7 @@ jobs:
         run: >-
           node node_modules/vitest/vitest.mjs run --project core
           src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR4ManualTrigger.test.ts
           src/engine/__tests__/cockpitR31.test.ts
           src/engine/__tests__/cockpitR31Lifecycle.test.ts
           src/engine/__tests__/cockpitTriggers.test.ts
@@ -33,6 +34,7 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ManualTriggerSession.test.ts
       - name: R3.1 browser client regression tests
         run: >-
           node node_modules/vitest/vitest.mjs run --project dom
@@ -43,6 +45,8 @@ jobs:
           src/components/game/CockpitTableSurface.test.tsx
           src/components/game/CockpitCardTools.test.tsx
           src/components/game/CockpitCastAdditionalCosts.test.tsx
+          src/components/game/CockpitAbilityTools.test.tsx
+          src/components/game/CockpitAbilityTools.manualTrigger.test.tsx
           src/components/game/cockpitPresentation.test.ts
       - name: Types and build
         run: npm run build
@@ -50,16 +54,22 @@ jobs:
         run: >-
           node node_modules/eslint/bin/eslint.js
           src/engine/cockpitR4.ts
+          src/engine/cockpitTriggers.ts
           src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR4ManualTrigger.test.ts
           src/online/cloudflare/cockpitSession.ts
           src/online/cloudflare/cockpitR4Authority.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ManualTriggerSession.test.ts
           src/online/browser/cockpitClient.ts
           src/components/game/CockpitSessionScreen.tsx
           src/components/game/CockpitTableSurface.tsx
           src/components/game/CockpitCardTools.tsx
           src/components/game/CockpitCastAdditionalCosts.tsx
           src/components/game/CockpitCastAdditionalCosts.test.tsx
+          src/components/game/CockpitAbilityTools.tsx
+          src/components/game/CockpitAbilityTools.test.tsx
+          src/components/game/CockpitAbilityTools.manualTrigger.test.tsx
           src/components/game/cockpitPresentation.ts
