@@ -64,6 +64,20 @@ function additionalPrivateIds(operation: R4CastOperation): string[] {
   ];
 }
 
+function castTargetsAreReadable(
+  table: CockpitTable,
+  multi: CockpitMultiplayer,
+  actor: string,
+  targets: string[],
+): boolean {
+  return targets.every((id) => {
+    if (table.seats.some((seat) => seat.id === id && !seat.eliminated)) return true;
+    if (table.stack.some((entry) => entry.id === id)) return true;
+    if (table.cards[id]) return actorCanReadCard(table, multi, actor, id);
+    return false;
+  });
+}
+
 function commonAuthority(
   table: CockpitTable,
   multi: CockpitMultiplayer,
@@ -117,7 +131,8 @@ export function authorizeR4FormalOperation(
     card.zone !== operation.sourceZone ||
     !table.seats.some((seat) => seat.id === card.controllerId && !seat.eliminated) ||
     !actorCanReadCard(table, multi, actor, operation.cardId) ||
-    !actorCanReadFace(table, actor, operation.cardId)
+    !actorCanReadFace(table, actor, operation.cardId) ||
+    !castTargetsAreReadable(table, multi, actor, operation.targets)
   )
     return false;
   return additionalPrivateIds(operation).every(
