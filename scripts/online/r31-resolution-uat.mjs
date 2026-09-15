@@ -69,6 +69,14 @@ try {
       }
     });
     pages.push(page);
+    await page.route('https://api.scryfall.com/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'access-control-allow-origin': '*' },
+        body: JSON.stringify({ object: 'list', has_more: false, data: [] }),
+      });
+    });
     await page.goto(origin);
     await page.evaluate(async (rows) => {
       const { saveResolvedDeck } = await import('/src/data/savedDecks.ts');
