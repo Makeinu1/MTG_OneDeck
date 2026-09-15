@@ -21,7 +21,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts':
     '9a04564197dca5abeb710a815708465ea4095abe603a156c867cc6bac4c8a7d2',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts':
-    '1ef426da8294c51d7cafdf85b26533faad2e5567ee744b46e358be6d002f9f54',
+    '4be4c74687a47d5f98e8215517627834495dfc926a85c927c8cabd4e48042f5f',
   'src/online/cloudflare/index.ts':
     'b7922124ac72eee3e6dc876b8160fe7a1367e86de82c7e211766a896665b38dd',
   'wrangler.jsonc':
@@ -165,7 +165,7 @@ for (const path of production) {
   }
   for (const specifier of moduleSpecifiers(source)) {
     const local = specifier.startsWith('./') && !specifier.includes('..');
-    const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
+    const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitCardIdentity', '../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
     const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
       ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
     assert.equal(local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport, true, `${normalized(path)} -> ${specifier}`);
