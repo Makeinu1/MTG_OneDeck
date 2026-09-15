@@ -1,0 +1,72 @@
+name: R4 resolution entry migration
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+    paths: [.github/r4-resolution-entry.marker]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply exact resolution entry migration
+        run: python scripts/r4-resolution-entry-migration.py
+      - name: Engine resolution entry regression
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/cockpitR4Entry.test.ts
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR4State.test.ts
+          src/engine/__tests__/cockpitR31.test.ts
+          src/engine/__tests__/cockpitR31Lifecycle.test.ts
+          src/engine/__tests__/cockpitTriggers.test.ts
+      - name: Server and UI resolution entry regression
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+          src/components/game/CockpitPermanentEntrySetup.test.tsx
+          src/components/game/CockpitTableSurface.entrySetup.test.tsx
+          src/components/game/CockpitTableSurface.test.tsx
+      - name: Types and build
+        run: npm run build
+      - name: Lint changed source
+        run: >-
+          node node_modules/eslint/bin/eslint.js
+          src/engine/cockpitTable.ts
+          src/engine/cockpitR4.ts
+          src/engine/__tests__/cockpitR4Entry.test.ts
+          src/online/cloudflare/cockpitR4Authority.ts
+          src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts
+          src/components/game/CockpitPermanentEntrySetup.tsx
+          src/components/game/CockpitPermanentEntrySetup.test.tsx
+          src/components/game/CockpitTableSurface.tsx
+          src/components/game/CockpitTableSurface.entrySetup.test.tsx
+      - run: git diff --check
+      - name: Commit verified source only
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/engine/cockpitTable.ts \
+            src/engine/cockpitR4.ts \
+            src/engine/__tests__/cockpitR4Entry.test.ts \
+            src/online/cloudflare/cockpitR4Authority.ts \
+            src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts \
+            src/components/game/CockpitPermanentEntrySetup.tsx \
+            src/components/game/CockpitPermanentEntrySetup.test.tsx \
+            src/components/game/CockpitTableSurface.tsx \
+            src/components/game/CockpitTableSurface.entrySetup.test.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "feat(r4): add resolution permanent entry setup"
+          git push origin HEAD:r4a-formal-manual-inventory
