@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Apply R3.1 final audit fixes
-        run: node scripts/r3-1/fix-final-audit.mjs
+        run: node scripts/r3-1/run-final-audit-fix.mjs
       - run: npm ci
       - name: R3.1 engine lifecycle tests
         run: |
