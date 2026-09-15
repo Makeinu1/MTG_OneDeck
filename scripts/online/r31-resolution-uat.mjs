@@ -114,6 +114,7 @@ try {
       const body = response.request().postDataJSON();
       return body?.type === 'commit' && body.operation?.type === operation;
     });
+  const multiplayerPrimary = (page) => page.locator('.restored-resolve');
 
   stage = 'create-and-join';
   await host.getByRole('button', { name: '2人対戦を作成', exact: true }).click();
@@ -152,6 +153,7 @@ try {
     const responsePromise = responseFor(host, 'cast');
     await host.getByRole('button', { name: '支払って唱える', exact: true }).click();
     assert.equal((await responsePromise).status(), 200);
+    await host.getByRole('button', { name: '支払って唱える', exact: true }).waitFor({ state: 'hidden' });
     await waitUntil(async () => (await read(host)).table.stack.some((entry) => entry.source.id === id), 'cast');
     return (await read(host)).table.stack[0].id;
   };
@@ -164,8 +166,10 @@ try {
   record('two spells form a response stack in canonical B/A order');
 
   stage = 'manual-resolution-begin';
+  await multiplayerPrimary(host).waitFor();
+  assert.match((await multiplayerPrimary(host).textContent()) ?? '', /解決/);
   const beginResponse = responseFor(host, 'resolve.begin');
-  await host.getByTestId('primary-action').click();
+  await multiplayerPrimary(host).click();
   assert.equal((await beginResponse).status(), 200);
   await waitUntil(async () => (await read(host)).table.resolution?.id === b, 'Resolution B start');
   await host.getByLabel('《R3手動解決》の処理').waitFor();
@@ -174,9 +178,8 @@ try {
   stage = 'fold-and-return';
   await host.getByRole('button', { name: '作業面を閉じる', exact: true }).click();
   assert.equal((await read(host)).table.resolution?.id, b);
-  await host.getByTestId('primary-action').getByRole('button').click().catch(async () => {
-    await host.getByTestId('primary-action').click();
-  });
+  assert.match((await multiplayerPrimary(host).textContent()) ?? '', /処理に戻る/);
+  await multiplayerPrimary(host).click();
   await host.getByLabel('《R3手動解決》の処理').waitFor();
   assert.equal((await read(host)).table.resolution?.id, b);
   record('folding/browsing presentation does not end B; primary action returns to the same resolution');
@@ -185,10 +188,9 @@ try {
   await host.reload();
   await host.getByTestId('game-screen').waitFor();
   await waitUntil(async () => (await read(host)).table.resolution?.id === b, 'reconnect Resolution B');
-  const primary = host.getByTestId('primary-action');
-  await primary.waitFor();
-  assert.equal(await primary.getAttribute('aria-label'), '処理に戻る');
-  await primary.click();
+  await multiplayerPrimary(host).waitFor();
+  assert.match((await multiplayerPrimary(host).textContent()) ?? '', /処理に戻る/);
+  await multiplayerPrimary(host).click();
   await host.getByLabel('《R3手動解決》の処理').waitFor();
   record('reload reconstructs the same Manual Resolution B from canonical state');
 
@@ -204,7 +206,7 @@ try {
   state = await read(host);
   assert.equal(state.table.resolution, null);
   assert.equal(state.table.stack[0].id, a);
-  assert.equal(await host.getByTestId('primary-action').getAttribute('aria-label'), '解決');
+  assert.match((await multiplayerPrimary(host).textContent()) ?? '', /解決/);
   record('finishing B returns to StackResponse A and never auto-starts A');
 
   report.pageErrors = pageErrors;
