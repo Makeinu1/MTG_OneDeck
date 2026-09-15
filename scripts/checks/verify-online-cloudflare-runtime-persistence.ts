@@ -180,7 +180,7 @@ for (const path of production) {
     const cockpitR4AuthorityImport = normalized(path) === 'src/online/cloudflare/cockpitR4Authority.ts' &&
       ['../../engine/cockpitR4', '../../engine/cockpitTable', '../../engine/commands'].includes(specifier);
     const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
     assert.equal(
       local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport,
       true,
