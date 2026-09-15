@@ -1,14 +1,14 @@
 name: Cockpit repair verification
 on:
   push:
-    branches: [fix/cockpit-playflow-17-20260914]
+    branches: [fix/cockpit-playflow-17-20260914, r3-1-manual-resolution]
   workflow_call:
     inputs:
       source_sha:
         type: string
         required: true
 permissions:
-  contents: read
+  contents: write
 jobs:
   stage1:
     if: inputs.source_sha != '' || !contains(github.event.head_commit.message, '[stage1-assemble]')
@@ -18,18 +18,33 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.source_sha || github.sha }}
-          persist-credentials: false
+          persist-credentials: true
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - name: Apply staged R3.1 patch when present
+        run: |
+          if [ -f scripts/r3-1/apply-session-client-ui.mjs ]; then node scripts/r3-1/apply-session-client-ui.mjs; fi
       - run: npm ci
+      - name: Targeted R3.1 engine identity tests
+        run: node node_modules/vitest/vitest.mjs run --project core src/engine/__tests__/cockpitR31.test.ts
       - name: Targeted recovery and SQLite tests
-        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
+        run: node node_modules/vitest/vitest.mjs run --project dom src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
       - name: Types, build, and changed-file lint
         run: |
           npm run build
-          node node_modules/eslint/bin/eslint.js src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/online/browser/__tests__/cockpitClient.test.ts scripts/online/cockpit-recovery-evidence.mjs
+          node node_modules/eslint/bin/eslint.js src/engine/cockpitR31.ts src/engine/__tests__/cockpitR31.test.ts src/online/browser/cockpitClient.ts src/online/cloudflare/cockpitSession.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/online/browser/__tests__/cockpitClient.test.ts scripts/online/cockpit-recovery-evidence.mjs
+      - name: Commit verified staged patch
+        if: success()
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/online/browser/cockpitClient.ts src/online/cloudflare/cockpitSession.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx
+            git commit -m "r3.1: wire context through session client and UI [stage1-assemble]"
+            git push origin HEAD:r3-1-manual-resolution
+          fi
       - name: Isolated browser and local Worker tools
         run: |
           mkdir -p "$RUNNER_TEMP/cockpit-runtime"
