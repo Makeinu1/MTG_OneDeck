@@ -47,11 +47,9 @@ it('offers only finite atomic cast-cost primitives for selected cards', () => {
     const life = host.querySelector<HTMLInputElement>('input[type="number"][max="100000"]')!;
     act(() => {
       life.value = '3';
-      life.dispatchEvent(new Event('change', { bubbles: true }));
+      life.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ life: 3 }),
-    );
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ life: 3 }));
   } finally {
     act(() => root.unmount());
     host.remove();
