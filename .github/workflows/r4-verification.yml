@@ -32,6 +32,7 @@ jobs:
           src/online/cloudflare/__tests__/cockpitSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts
       - name: R3.1 browser client regression tests
         run: >-
           node node_modules/vitest/vitest.mjs run --project dom
@@ -54,6 +55,7 @@ jobs:
           src/online/cloudflare/cockpitR4Authority.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts
           src/online/browser/cockpitClient.ts
           src/components/game/CockpitSessionScreen.tsx
           src/components/game/CockpitTableSurface.tsx
