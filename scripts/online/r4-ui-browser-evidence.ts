@@ -41,33 +41,53 @@ try {
     const clicked = await page.evaluate<boolean>(expression);
     if (!clicked) throw new Error(`Could not click ${label}`);
   };
+  const clickButton = async (text: string, label = text) =>
+    click(
+      `(() => { const node=[...document.querySelectorAll('button')].find((b) => (b.textContent||'').trim() === ${JSON.stringify(text)}); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
+      label,
+    );
+  const openCardMenu = async (cardId: string) => {
+    await waitFor<boolean>(
+      page,
+      `(() => Boolean(document.querySelector('[data-layout-card-id="${cardId}"] .card-view')))()`,
+      `card ${cardId}`,
+    );
+    const opened = await page.evaluate<boolean>(
+      `(() => { const node=document.querySelector('[data-layout-card-id="${cardId}"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`,
+    );
+    if (!opened) throw new Error(`Could not open card menu for ${cardId}`);
+  };
 
   await waitFor<boolean>(
     page,
-    `(() => Boolean(document.querySelector('[data-layout-card-id="${ids.landId}"] .table-card__quick')))()`,
-    'formal land quick action',
+    `(() => Boolean(document.querySelector('[data-layout-card-id="${ids.landId}"] .card-view')))()`,
+    'formal land card',
   );
-  await click(
-    `(() => { const node=document.querySelector('[data-layout-card-id="${ids.landId}"] .table-card__quick'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
-    'formal playLand quick action',
+  const landActivated = await page.evaluate<boolean>(
+    `(() => { const node=document.querySelector('[data-layout-card-id="${ids.landId}"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,detail:2})); return true; })()`,
   );
+  if (!landActivated) throw new Error('Could not double-click formal playLand card');
   await waitFor<boolean>(
     page,
     `(() => window.__r4EvidenceOperations?.some((op) => op.type === 'playLand') || null)()`,
     'playLand commit',
   );
 
+  await openCardMenu(ids.costId);
   await waitFor<boolean>(
     page,
-    `(() => Boolean(document.querySelector('[data-layout-card-id="${ids.costId}"] .card-view')))()`,
-    'additional-cost hand card',
+    `(() => [...document.querySelectorAll('button')].some((b) => (b.textContent||'').trim() === '選択する') || null)()`,
+    'cost-card context menu',
   );
-  await click(
-    `(() => { const node=document.querySelector('[data-layout-card-id="${ids.costId}"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
-    'additional-cost hand selection',
+  await clickButton('選択する', 'additional-cost card selection');
+  await waitFor<boolean>(
+    page,
+    `(() => document.body.textContent?.includes('選択 1枚') || null)()`,
+    'selected cost card',
   );
+
   await click(
-    `(() => { const node=[...document.querySelectorAll('button')].find((b) => (b.textContent||'').trim().startsWith('墓地')); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
+    `(() => { const node=document.querySelector('[data-testid="graveyard-tile"]'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
     'graveyard browser',
   );
   await waitFor<boolean>(
@@ -107,19 +127,19 @@ try {
     'unusual-zone cast commit',
   );
 
-  const faceOpened = await page.evaluate<boolean>(
-    `(() => { const node=document.querySelector('[data-layout-card-id="${ids.faceDownId}"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`,
+  await openCardMenu(ids.faceDownId);
+  await waitFor<boolean>(
+    page,
+    `(() => [...document.querySelectorAll('button')].some((b) => (b.textContent||'').trim() === '詳細・その他の操作') || null)()`,
+    'face-down card context menu',
   );
-  if (!faceOpened) throw new Error('Could not inspect face-down permanent');
+  await clickButton('詳細・その他の操作', 'face-down card details');
   await waitFor<boolean>(
     page,
     `(() => [...document.querySelectorAll('button')].some((b) => (b.textContent||'').trim() === '表向きにする') || null)()`,
     'face-up special action',
   );
-  await click(
-    `(() => { const node=[...document.querySelectorAll('button')].find((b) => (b.textContent||'').trim() === '表向きにする'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
-    'special.turnFaceUp',
-  );
+  await clickButton('表向きにする', 'special.turnFaceUp');
   await waitFor<boolean>(
     page,
     `(() => window.__r4EvidenceOperations?.some((op) => op.type === 'special.turnFaceUp') || null)()`,
