@@ -10,7 +10,6 @@ import { manaActivationChoices } from '../../engine/autotap';
 import {
   manaColors,
   tableManaResources,
-  tableCastPayment,
   tableZones,
   type CockpitTable,
   type TableOperation,
@@ -22,6 +21,13 @@ import {
   type ExpectedInteractionContext,
   type R31TableOperation,
 } from '../../engine/cockpitR31';
+import {
+  emptyR4CastAdditionalCosts,
+  r4CastPayment,
+  type R4CastAdditionalCosts,
+  type R4CastSourceZone,
+  type R4TableOperation,
+} from '../../engine/cockpitR4';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
 import {
   CockpitClient,
@@ -47,6 +53,7 @@ import { saveAudioPreferences } from './presentation/audioVisualPreferences';
 import { ThemeToggle } from '../ThemeToggle';
 import { isAmbientEnabled, setAmbientEnabled, AMBIENT_CHANGE_EVENT } from './ambientMotion';
 import { CockpitManaBatch } from './CockpitManaBatch';
+import { CockpitCastAdditionalCosts } from './CockpitCastAdditionalCosts';
 import { liveStackDetail } from './cockpitTransientSelections';
 import './cockpitSession.css';
 
@@ -59,6 +66,15 @@ const zoneLabels: Record<ZoneId, string> = {
   command: '統率領域',
   stack: 'スタック',
 };
+const r4CastSourceZones: readonly R4CastSourceZone[] = [
+  'hand',
+  'command',
+  'graveyard',
+  'exile',
+  'library',
+];
+const isR4CastSourceZone = (zone: ZoneId): zone is R4CastSourceZone =>
+  r4CastSourceZones.includes(zone as R4CastSourceZone);
 const keywordLabels = {
   flying: '飛行',
   vigilance: '警戒',
@@ -131,12 +147,15 @@ export function CockpitSessionScreen({
   const [position, setPosition] = useState<'top' | 'bottom'>('top');
   const [cast, setCast] = useState<{
     cardId: string;
+    sourceZone: R4CastSourceZone;
     x: number;
     excludedSourceIds: string[];
     manualManaCost: string | null;
     costNote: string;
     targets: string[];
+    additionalCosts: R4CastAdditionalCosts;
     paymentPlan: GameCommand[];
+    additionalCostPlan: GameCommand[];
     error: string;
     context: ExpectedInteractionContext;
   } | null>(null);
@@ -300,7 +319,12 @@ export function CockpitSessionScreen({
     };
   }, [deck, snapshot, seats, invitation]);
   async function send(
-    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+    operation:
+      | TableOperation
+      | R31TableOperation
+      | R4TableOperation
+      | { type: 'undo' }
+      | { type: 'redo' },
     expectedContext?: ExpectedInteractionContext,
   ) {
     if (busy || uncertain || sendingRef.current) return false;
@@ -318,7 +342,9 @@ export function CockpitSessionScreen({
         : null;
       const moving =
         presentsDraw ||
-        ['keep', 'move', 'activate', 'resolve.finish', 'resolve.fetch'].includes(operation.type);
+        ['keep', 'move', 'playLand', 'cast', 'activate', 'resolve.finish', 'resolve.fetch'].includes(
+          operation.type,
+        );
       const origins = new Map<string, DOMRect>();
       if (moving)
         document.querySelectorAll<HTMLElement>('[data-layout-card-id]').forEach((node) => {
@@ -538,30 +564,55 @@ export function CockpitSessionScreen({
     cardId: string,
     x = 0,
     excludedSourceIds: string[] = [],
-    targets = selected.filter((id) => id !== cardId),
+    targets = selected.filter(
+      (id) => id !== cardId && !['hand', 'library'].includes(table.cards[id]?.zone ?? ''),
+    ),
     manualManaCost: string | null = cast?.cardId === cardId ? cast.manualManaCost : null,
     costNote = cast?.cardId === cardId ? cast.costNote : '',
+    additionalCosts: R4CastAdditionalCosts =
+      cast?.cardId === cardId ? cast.additionalCosts : emptyR4CastAdditionalCosts(),
   ) {
+    const previous = cast?.cardId === cardId ? cast : null;
+    const card = table.cards[cardId];
+    const sourceZone =
+      previous?.sourceZone ?? (card && isR4CastSourceZone(card.zone) ? card.zone : null);
+    if (!sourceZone) {
+      setOperationError(true);
+      setMessage('この領域からは「唱える」を開始できません。');
+      return;
+    }
     let paymentPlan: GameCommand[] = [];
+    let additionalCostPlan: GameCommand[] = [];
     let error = '';
     try {
-      paymentPlan = tableCastPayment(table, cardId, x, excludedSourceIds, manualManaCost, costNote);
+      const plans = r4CastPayment(table, {
+        cardId,
+        x,
+        excludedSourceIds,
+        manualManaCost,
+        costNote,
+        additionalCosts,
+      });
+      paymentPlan = plans.paymentPlan;
+      additionalCostPlan = plans.additionalCostPlan;
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : 'マナ支援の条件を確認してください。';
+      error = cause instanceof Error ? cause.message : '支払い条件を確認してください。';
     }
     setDetail(null);
     setCastPeek(false);
     setCast({
       cardId,
+      sourceZone,
       x,
       excludedSourceIds,
       manualManaCost,
       costNote,
       targets,
+      additionalCosts,
       paymentPlan,
+      additionalCostPlan,
       error,
-      context:
-        cast?.cardId === cardId ? cast.context : captureExpectedInteractionContext(table),
+      context: previous?.context ?? captureExpectedInteractionContext(table),
     });
   }
   const disabled =
@@ -1173,10 +1224,8 @@ export function CockpitSessionScreen({
                   disabled={disabled}
                   onClick={() =>
                     void send({
-                      type: 'move',
-                      ids: [detailCard.id],
-                      to: 'battlefield',
-                      position: 'top',
+                      type: 'playLand',
+                      cardId: detailCard.id,
                     }).then((saved) => {
                       if (saved)
                         setDetail((current) => (current === detailCard.id ? null : current));
@@ -1187,7 +1236,7 @@ export function CockpitSessionScreen({
                 </button>
               )}
 
-            {['hand', 'command'].includes(detailCard.zone) &&
+            {isR4CastSourceZone(detailCard.zone) &&
               !/\bLand\b/.test(detailDef?.faces[detailCard.faceIndex]?.typeLine ?? '') && (
                 <button disabled={disabled} onClick={() => prepareCast(detailCard.id)}>
                   支払いを確認して唱える
@@ -1661,7 +1710,7 @@ export function CockpitSessionScreen({
                       />
                     </label>
                     <p>
-                      非マナコストは必要な基本操作で先に確定して記録し、ここで二重に払いません。手動指定は合法性の自動確認ではありません。
+                      マナ以外の追加コストは下の有限項目で選ぶと、この「唱える」と同じ確定操作で支払います。手動指定は合法性の自動確認ではありません。
                     </p>
                   </fieldset>
                 )}
@@ -1712,6 +1761,25 @@ export function CockpitSessionScreen({
                   </label>
                 ))}
               </details>
+              <CockpitCastAdditionalCosts
+                table={table}
+                castCardId={cast.cardId}
+                selected={selected}
+                costs={cast.additionalCosts}
+                disabled={disabled}
+                label={label}
+                onChange={(additionalCosts) =>
+                  prepareCast(
+                    cast.cardId,
+                    cast.x,
+                    cast.excludedSourceIds,
+                    cast.targets,
+                    cast.manualManaCost,
+                    cast.costNote,
+                    additionalCosts,
+                  )
+                }
+              />
               <details>
                 <summary>対象を変更</summary>
                 <p>盤面で選択していたカードを引き継ぎます。</p>
@@ -1722,7 +1790,11 @@ export function CockpitSessionScreen({
                       targets: [
                         ...new Set([
                           ...cast.targets,
-                          ...selected.filter((id) => id !== cast.cardId),
+                          ...selected.filter(
+                            (id) =>
+                              id !== cast.cardId &&
+                              !['hand', 'library'].includes(table.cards[id]?.zone ?? ''),
+                          ),
                         ]),
                       ],
                     })
@@ -1820,9 +1892,11 @@ export function CockpitSessionScreen({
                     .join('、') || '指定なし'}
                 </p>
                 {cast.error && <p role="alert">{cast.error}</p>}
-                {!cast.error && !cast.paymentPlan.length && <p>マナの消費はありません。</p>}
+                {!cast.error &&
+                  !cast.paymentPlan.length &&
+                  !cast.additionalCostPlan.length && <p>支払い操作はありません。</p>}
                 <ul>
-                  {cast.paymentPlan.map((command, index) => (
+                  {[...cast.paymentPlan, ...cast.additionalCostPlan].map((command, index) => (
                     <li key={index}>{cockpitCostText(command, label)}</li>
                   ))}
                 </ul>
@@ -1835,12 +1909,14 @@ export function CockpitSessionScreen({
                     {
                       type: 'cast',
                       cardId: cast.cardId,
+                      sourceZone: cast.sourceZone,
                       targets: cast.targets,
                       x: cast.x,
                       excludedSourceIds: cast.excludedSourceIds,
                       manualManaCost: cast.manualManaCost,
                       costNote: cast.costNote,
                       paymentPlan: cast.paymentPlan,
+                      additionalCosts: cast.additionalCosts,
                     },
                     cast.context,
                   ).then((saved) => {

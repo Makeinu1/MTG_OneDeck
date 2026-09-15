@@ -516,7 +516,7 @@ export function CockpitBattleTools({
           )}
           <p>
             ダメージ第{combat.damageStep ?? 1}
-            段階。プレインズウォーカーは忠誠度、バトルは守備値を減らします。致死移動は手動です。
+            段階。プレインズウォーカーは忠誠度、バトルは守備値を減らします。致死などはカードを選択し「状態起因処理」で確定します。
           </p>
           {combat.damageApplied && (combat.damageStep ?? 1) === 1 && (
             <button

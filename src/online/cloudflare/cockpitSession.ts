@@ -8,6 +8,12 @@ import {
   type CockpitMultiplayer,
   type CockpitMultiplayerView,
 } from './cockpitMultiplayer';
+import {
+  authorizeR4FormalOperation,
+  isR4FormalOperation,
+  r4OperationCreatesKnowledgeBarrier,
+  r4OperationRequiresContext,
+} from './cockpitR4Authority';
 import { migrateCockpitSnapshot, backfillCockpitTable } from '../../engine/cockpitMigration';
 import type { GameSnapshot } from '../../data/gameSnapshot';
 import {
@@ -16,11 +22,8 @@ import {
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
-import {
-  applyR31TableOperation,
-  type ExpectedInteractionContext,
-  type R31TableOperation,
-} from '../../engine/cockpitR31';
+import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
+import { applyR4TableOperation, type R4TableOperation } from '../../engine/cockpitR4';
 import type { InitDeckCard } from '../../engine/init';
 import type { OnlineCloudflareSqlStorage } from './types';
 
@@ -77,7 +80,7 @@ export type CockpitSessionRequest = (
       token: string;
       requestId: string;
       revision: number;
-      operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' };
+      operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' };
       context?: ExpectedInteractionContext;
     }
 ) & { connectionId?: string };
@@ -130,8 +133,14 @@ function knowledgeSafeUndo(record: SessionRecord): boolean {
 }
 function operationCreatesKnowledgeBarrier(
   table: CockpitTable,
-  operation: TableOperation | R31TableOperation,
+  operation: TableOperation | R4TableOperation,
 ): boolean {
+  const r4Operation = operation as R4TableOperation;
+  if (
+    isR4FormalOperation(r4Operation) &&
+    r4OperationCreatesKnowledgeBarrier(table, r4Operation)
+  )
+    return true;
   switch (operation.type) {
     case 'draw':
     case 'shuffle':
@@ -148,6 +157,8 @@ function operationCreatesKnowledgeBarrier(
       return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
     case 'move':
       return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
+    case 'playLand':
+      return table.cards[operation.cardId]?.zone === 'hand';
     case 'cast':
       return (
         table.cards[operation.cardId]?.zone === 'hand' ||
@@ -638,16 +649,31 @@ export async function handleCockpitSession(
           } else {
             if (
               !body.context &&
-              body.operation.type === 'move' &&
-              body.operation.reason !== undefined
+              ((body.operation.type === 'move' && body.operation.reason !== undefined) ||
+                r4OperationRequiresContext(body.operation as R4TableOperation))
             )
               return response({ error: 'INVALID_REQUEST' }, 400);
-            if (
-              record.multiplayer &&
-              (!authorizeCockpitOperation(before, record.multiplayer, actor, body.operation, now) ||
-                body.operation.type === 'eliminate')
-            )
-              return response({ error: 'NOT_AUTHORIZED' }, 403);
+            if (record.multiplayer) {
+              const multi = record.multiplayer;
+              const r4Authorization = authorizeR4FormalOperation(
+                before,
+                multi,
+                actor,
+                body.operation as R4TableOperation,
+                now,
+              );
+              const authorized =
+                r4Authorization ??
+                authorizeCockpitOperation(
+                  before,
+                  multi,
+                  actor,
+                  body.operation as TableOperation | { type: 'undo' } | { type: 'redo' },
+                  now,
+                );
+              if (!authorized || body.operation.type === 'eliminate')
+                return response({ error: 'NOT_AUTHORIZED' }, 403);
+            }
             if (body.operation.type === 'undo') {
               ensureKnowledgeHistory(record);
               const previous = record.undo.at(-1);
@@ -676,13 +702,21 @@ export async function handleCockpitSession(
               const crossesKnowledgeBarrier = Boolean(
                 record.multiplayer && operationCreatesKnowledgeBarrier(before, body.operation),
               );
-              record.table = body.context
-                ? applyR31TableOperation(
-                    before,
-                    { operation: body.operation as R31TableOperation, context: body.context },
-                    body.requestId,
-                  )
-                : applyTableOperation(before, body.operation, body.requestId);
+              if (body.context) {
+                record.table = applyR4TableOperation(
+                  before,
+                  { operation: body.operation as R4TableOperation, context: body.context },
+                  body.requestId,
+                );
+              } else {
+                if (r4OperationRequiresContext(body.operation as R4TableOperation))
+                  return response({ error: 'INVALID_REQUEST' }, 400);
+                record.table = applyTableOperation(
+                  before,
+                  body.operation as TableOperation,
+                  body.requestId,
+                );
+              }
               const operation = body.operation;
               if (crossesKnowledgeBarrier)
                 record.knowledgeEpoch = knowledgeEpochBefore + 1;

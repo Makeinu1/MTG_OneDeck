@@ -63,6 +63,37 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 3: `export interface RecordedPowerToughness {`
 - line 11: `export function cockpitPowerToughness(`
 
+## `src/engine/cockpitR31.ts`
+
+- line 10: `export type ExpectedInteractionContext =`
+- line 14: `export type ManualZoneMeaning = 'move' | 'discard' | 'mill' | 'sacrifice' | 'destroy';`
+- line 22: `export type R31TableOperation =`
+- line 34: `export interface R31OperationRequest {`
+- line 39: `export function captureExpectedInteractionContext(table: CockpitTable): ExpectedInteractionContext {`
+- line 45: `export function requireExpectedInteractionContext(`
+- line 57: `export function resolutionProcess(`
+- line 69: `export function defaultResolutionDestination(`
+- line 84: `export function canLifecycleResolveWithoutManual(`
+- line 96: `export function validateManualZoneMeaning(`
+- line 180: `export function applyR31TableOperation(`
+
+## `src/engine/cockpitR4.ts`
+
+- line 28: `export interface PermanentEntrySetup {`
+- line 36: `export type R4CastSourceZone = 'hand' | 'command' | 'graveyard' | 'exile' | 'library';`
+- line 38: `export interface R4CastAdditionalCosts {`
+- line 49: `export const emptyR4CastAdditionalCosts = (): R4CastAdditionalCosts => ({`
+- line 64: `export type R4ResolveEndOperation = R31ResolveEndOperation & {`
+- line 68: `export type R4CastOperation = Omit<R31CastOperation, 'type'> & {`
+- line 74: `export type R4TableOperation =`
+- line 93: `export interface R4OperationRequest {`
+- line 142: `export function validatePermanentEntrySetup(`
+- line 189: `export function applyPermanentEntrySetup(`
+- line 229: `export function r4CastAdditionalCostPlan(`
+- line 342: `export function r4CastPayment(`
+- line 850: `export function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {`
+- line 854: `export function applyR4TableOperation(`
+
 ## `src/engine/cockpitTable.ts`
 
 - line 38: `export const tableZones: readonly ZoneId[] = [`
@@ -76,31 +107,34 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 112: `export interface CockpitTable {`
 - line 135: `export interface TableTokenCharacteristics {`
 - line 143: `export type TableOperation =`
-- line 277: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
-- line 397: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
-- line 520: `export function tableActivationPayment(`
-- line 659: `export function tableAutoPayment(`
-- line 679: `export function tableCastPayment(`
-- line 763: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
-- line 781: `export function endsWithTableTurn(duration: string): boolean {`
-- line 786: `export function tableCleanupNeedsReview(table: CockpitTable, handCount?: number): boolean {`
-- line 829: `export function applyTableOperation(`
-- line 2145: `export function createCockpitTable(`
-- line 2251: `export function assertCockpitCardDef(def: CardDef): void {`
+- line 283: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
+- line 348: `export function applyTableZoneTransition(`
+- line 419: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
+- line 542: `export function tableActivationPayment(`
+- line 681: `export function tableAutoPayment(`
+- line 701: `export function tableCastPayment(`
+- line 742: `export function finishTableStack(`
+- line 796: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
+- line 814: `export function endsWithTableTurn(duration: string): boolean {`
+- line 819: `export function tableCleanupNeedsReview(table: CockpitTable, handCount?: number): boolean {`
+- line 862: `export function applyTableOperation(`
+- line 2197: `export function createCockpitTable(`
+- line 2303: `export function assertCockpitCardDef(def: CardDef): void {`
 
 ## `src/engine/cockpitTriggers.ts`
 
-- line 18: `export interface TableTrigger extends PendingTrigger {`
-- line 27: `export interface TableTriggerState {`
-- line 36: `export function emptyTableTriggers(turn: number): TableTriggerState {`
-- line 47: `export function tableObjectSnapshot(table: CockpitTable, card: CardInstance): ObjectSnapshot {`
-- line 66: `export function tableObjectReference(table: CockpitTable, card: CardInstance) {`
-- line 125: `export interface TableTriggerTrace {`
-- line 131: `export function triggerTrace(before: CockpitTable, id: string): TableTriggerTrace {`
-- line 135: `export function checkpointTableTriggers(`
-- line 359: `export function readyTableTriggers(table: CockpitTable): TableTrigger[] {`
-- line 366: `export function nextTriggerController(table: CockpitTable): string | undefined {`
-- line 374: `export type TriggerOperation =`
+- line 20: `export interface TableTrigger extends PendingTrigger {`
+- line 29: `export interface TableTriggerState {`
+- line 38: `export function emptyTableTriggers(turn: number): TableTriggerState {`
+- line 49: `export function tableObjectSnapshot(table: CockpitTable, card: CardInstance): ObjectSnapshot {`
+- line 68: `export function tableObjectReference(table: CockpitTable, card: CardInstance) {`
+- line 127: `export interface TableTriggerTrace {`
+- line 134: `export function triggerTrace(`
+- line 168: `export function checkpointTableTriggers(`
+- line 395: `export function readyTableTriggers(table: CockpitTable): TableTrigger[] {`
+- line 408: `export function blockingPublicTableTriggers(table: CockpitTable): TableTrigger[] {`
+- line 417: `export function nextTriggerController(table: CockpitTable): string | undefined {`
+- line 425: `export type TriggerOperation =`
 
 ## `src/engine/commander.ts`
 
@@ -1593,60 +1627,62 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 230: `export interface ActivationCostComponent {`
 - line 243: `export interface ActivationEnvelope {`
 - line 252: `export type ZoneChangeReason =`
-- line 266: `export interface ZoneChangeEvent {`
-- line 284: `export type KnownEventKind =`
-- line 291: `export type NewEnvelopeEventKind = 'damage' | 'lifeChange' | 'draw';`
-- line 293: `export type EventCause =`
-- line 298: `export type EventDeterminismRef =`
-- line 302: `export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeEventKind> {`
-- line 319: `export type EventSourceRef =`
-- line 330: `export type EventTargetRef =`
-- line 340: `export interface LifeChangeEvent extends EventEnvelopeBase<'lifeChange'> {`
-- line 357: `export interface DamageEvent extends EventEnvelopeBase<'damage'> {`
-- line 371: `export interface DrawEvent extends EventEnvelopeBase<'draw'> {`
-- line 387: `export interface AttackDeclarationEvent {`
-- line 411: `export interface CounterChangeEvent {`
-- line 432: `export interface AbilityTriggeredEvent {`
-- line 442: `export interface ActivatedManaAbilityEvent {`
-- line 453: `export interface ManaAddedEvent {`
-- line 464: `export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison' | 'commanderDamage';`
-- line 465: `export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';`
-- line 466: `export type DefeatPlayerRef = 'P1' | `opponent:${string}`;`
-- line 468: `export interface DefeatAdvisoryRecord {`
-- line 474: `export interface DefeatAdvisoryEvent {`
-- line 496: `export interface DungeonRoom {`
-- line 503: `export interface DungeonDef {`
-- line 511: `export interface DungeonState {`
-- line 518: `export interface VentureEvent {`
-- line 542: `export type GameEvent =`
-- line 552: `export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';`
-- line 554: `export interface PendingTriggerSchedule {`
-- line 563: `export type TriggerCondition =`
-- line 574: `export interface PendingTrigger {`
-- line 593: `export interface OncePerTurnTriggerLedger {`
-- line 598: `export interface PendingManaTrigger {`
-- line 610: `export interface CommanderZoneRuleChoice {`
-- line 622: `export interface LegendRuleChoice {`
-- line 631: `export interface CleanupDiscardRuleChoice {`
-- line 640: `export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice | CleanupDiscardRuleChoice;`
-- line 642: `export type PendingSbaChoice = CommanderZoneRuleChoice;`
-- line 644: `export type RuleChoiceSelection =`
-- line 649: `export interface CommanderInfo {`
-- line 654: `export interface LogEntry {`
-- line 661: `export interface PlayerState {`
-- line 676: `export interface GameState {`
-- line 716: `export function emptyPlayerPrivateZones(): PlayerPrivateZones {`
-- line 720: `export function clonePlayerPrivateZones(`
-- line 730: `export function cloneZonesByPlayer(`
-- line 742: `export function playerPrivateZonesFromFlatZones(`
-- line 752: `export function zonesByPlayerWithP1Mirror(`
-- line 762: `export function syncP1ZonesByPlayerFromFlatZones(state: GameState): GameState {`
-- line 772: `export function syncFlatPrivateZonesFromPlayers(state: GameState): GameState {`
-- line 785: `export function requirePlayer(state: GameState, id: PlayerId): PlayerState {`
-- line 793: `export function playerIdForLifeLabel(label: string): PlayerId {`
-- line 799: `export function defeatPlayerRefForLifeLabel(label: string): DefeatPlayerRef {`
-- line 825: `export function syncPlayersFromLegacyScalars(state: GameState): GameState {`
-- line 886: `export function syncDerivedViews(state: DerivedViewsInput): GameState {`
+- line 266: `export type EventProcessRef =`
+- line 277: `export interface ProcessOriginSnapshot {`
+- line 287: `export interface ZoneChangeEvent {`
+- line 306: `export type KnownEventKind =`
+- line 313: `export type NewEnvelopeEventKind = 'damage' | 'lifeChange' | 'draw';`
+- line 315: `export type EventCause =`
+- line 320: `export type EventDeterminismRef =`
+- line 324: `export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeEventKind> {`
+- line 342: `export type EventSourceRef =`
+- line 353: `export type EventTargetRef =`
+- line 363: `export interface LifeChangeEvent extends EventEnvelopeBase<'lifeChange'> {`
+- line 380: `export interface DamageEvent extends EventEnvelopeBase<'damage'> {`
+- line 394: `export interface DrawEvent extends EventEnvelopeBase<'draw'> {`
+- line 410: `export interface AttackDeclarationEvent {`
+- line 435: `export interface CounterChangeEvent {`
+- line 457: `export interface AbilityTriggeredEvent {`
+- line 467: `export interface ActivatedManaAbilityEvent {`
+- line 479: `export interface ManaAddedEvent {`
+- line 491: `export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison' | 'commanderDamage';`
+- line 492: `export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';`
+- line 493: `export type DefeatPlayerRef = 'P1' | `opponent:${string}`;`
+- line 495: `export interface DefeatAdvisoryRecord {`
+- line 501: `export interface DefeatAdvisoryEvent {`
+- line 524: `export interface DungeonRoom {`
+- line 531: `export interface DungeonDef {`
+- line 539: `export interface DungeonState {`
+- line 546: `export interface VentureEvent {`
+- line 571: `export type GameEvent =`
+- line 581: `export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';`
+- line 583: `export interface PendingTriggerSchedule {`
+- line 592: `export type TriggerCondition =`
+- line 603: `export interface PendingTrigger {`
+- line 623: `export interface OncePerTurnTriggerLedger {`
+- line 628: `export interface PendingManaTrigger {`
+- line 640: `export interface CommanderZoneRuleChoice {`
+- line 652: `export interface LegendRuleChoice {`
+- line 661: `export interface CleanupDiscardRuleChoice {`
+- line 670: `export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice | CleanupDiscardRuleChoice;`
+- line 672: `export type PendingSbaChoice = CommanderZoneRuleChoice;`
+- line 674: `export type RuleChoiceSelection =`
+- line 679: `export interface CommanderInfo {`
+- line 684: `export interface LogEntry {`
+- line 691: `export interface PlayerState {`
+- line 706: `export interface GameState {`
+- line 746: `export function emptyPlayerPrivateZones(): PlayerPrivateZones {`
+- line 750: `export function clonePlayerPrivateZones(`
+- line 760: `export function cloneZonesByPlayer(`
+- line 772: `export function playerPrivateZonesFromFlatZones(`
+- line 782: `export function zonesByPlayerWithP1Mirror(`
+- line 792: `export function syncP1ZonesByPlayerFromFlatZones(state: GameState): GameState {`
+- line 802: `export function syncFlatPrivateZonesFromPlayers(state: GameState): GameState {`
+- line 815: `export function requirePlayer(state: GameState, id: PlayerId): PlayerState {`
+- line 823: `export function playerIdForLifeLabel(label: string): PlayerId {`
+- line 829: `export function defeatPlayerRefForLifeLabel(label: string): DefeatPlayerRef {`
+- line 855: `export function syncPlayersFromLegacyScalars(state: GameState): GameState {`
+- line 916: `export function syncDerivedViews(state: DerivedViewsInput): GameState {`
 
 ## `src/store/gameStore.ts`
 

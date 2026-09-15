@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { objectIdOf } from '../../engine/types';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
+import type { R4TableOperation } from '../../engine/cockpitR4';
 import {
   captureExpectedInteractionContext,
   type ExpectedInteractionContext,
@@ -24,7 +25,7 @@ export function CockpitSelectionTools({
   selected: string[];
   disabled: boolean;
   send: (
-    operation: TableOperation,
+    operation: TableOperation | R4TableOperation,
     context?: ExpectedInteractionContext,
   ) => Promise<boolean>;
   browseLibrary: () => void;
@@ -62,6 +63,9 @@ export function CockpitSelectionTools({
     'idle',
   );
   const seat = table.seats.find((entry) => entry.id === seatId)!;
+  const stateActionReady =
+    selected.length > 0 &&
+    selected.every((id) => table.cards[id]?.zone === 'battlefield' && !table.cards[id].isToken);
   const arrangeSeat = table.seats.find((entry) => entry.id === arrange?.seatId);
   const arrangementMatches = Boolean(
     arrange &&
@@ -178,6 +182,24 @@ export function CockpitSelectionTools({
   ].filter((entry) => Object.values(entry.counters).some((value) => value > 0));
   return (
     <>
+      <details className="cockpit-session__tools">
+        <summary>状態起因処理</summary>
+        <p>致死、タフネス0、忠誠度0などを人が確認した後、選択した実カードを同時に墓地へ移します。該当性はOneDeckが自動裁定しません。</p>
+        <button
+          disabled={disabled || table.hold || Boolean(table.resolution) || !stateActionReady}
+          onClick={() =>
+            void send(
+              { type: 'state.apply', graveyardIds: [...selected] },
+              captureExpectedInteractionContext(table),
+            )
+          }
+        >
+          選択したカードを状態起因処理で墓地へ
+        </button>
+        {selected.some((id) => table.cards[id]?.isToken) && (
+          <p role="status">トークンの消滅を含む状態起因処理は後続拡張です。</p>
+        )}
+      </details>
       <details className="cockpit-session__tools">
         <summary>山札・カウンター・ライフ</summary>
         <p>
