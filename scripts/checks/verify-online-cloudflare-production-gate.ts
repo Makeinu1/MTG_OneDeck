@@ -119,7 +119,9 @@ assert.equal(checks.indexOf(current) < checks.indexOf(lint), true);
 
 const production = sourceFiles(resolve(repositoryRoot, 'src/online/cloudflare'));
 assert.deepEqual(production.map(normalized), [
-  'src/online/cloudflare/cockpitMultiplayer.ts',  'src/online/cloudflare/cockpitSession.ts',
+  'src/online/cloudflare/cockpitMultiplayer.ts',
+  'src/online/cloudflare/cockpitR4Authority.ts',
+  'src/online/cloudflare/cockpitSession.ts',
   'src/online/cloudflare/codec.ts',
   'src/online/cloudflare/facts.ts',
   'src/online/cloudflare/index.ts',
@@ -159,9 +161,15 @@ for (const path of production) {
   for (const specifier of moduleSpecifiers(source)) {
     const local = specifier.startsWith('./') && !specifier.includes('..');
     const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitCardIdentity', '../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
+    const cockpitR4AuthorityImport = normalized(path) === 'src/online/cloudflare/cockpitR4Authority.ts' &&
+      ['../../engine/cockpitR4', '../../engine/cockpitTable', '../../engine/commands'].includes(specifier);
     const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-    assert.equal(local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport, true, `${normalized(path)} -> ${specifier}`);
+      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+    assert.equal(
+      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport,
+      true,
+      `${normalized(path)} -> ${specifier}`,
+    );
   }
 }
 
