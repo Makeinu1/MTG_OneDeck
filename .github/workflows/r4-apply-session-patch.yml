@@ -1,0 +1,27 @@
+name: Apply R4 session authority patch
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+    paths: [.github/r4-session.patch]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: r4a-formal-manual-inventory
+          fetch-depth: 0
+      - shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/online/cloudflare/cockpitSession.ts)" = dc341842d1eb50d7299a2a4790af2f46ba749049
+          git apply --check .github/r4-session.patch
+          git apply .github/r4-session.patch
+          git rm .github/r4-session.patch .github/workflows/r4-apply-session-patch.yml
+          git add src/online/cloudflare/cockpitSession.ts
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(r4): enforce formal cast authority and knowledge boundaries'
+          git push origin HEAD:refs/heads/r4a-formal-manual-inventory
