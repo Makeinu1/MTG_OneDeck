@@ -38,7 +38,8 @@ function moduleSpecifiers(text: string): readonly string[] {
 describe('O4P-03B architecture boundary', () => {
   it('adds only the closed dependency-free Cloudflare transport surface', () => {
     const expected = [
-      'src/online/cloudflare/cockpitMultiplayer.ts',      'src/online/cloudflare/cockpitSession.ts',
+      'src/online/cloudflare/cockpitMultiplayer.ts',
+      'src/online/cloudflare/cockpitSession.ts',
       'src/online/cloudflare/codec.ts',
       'src/online/cloudflare/facts.ts',
       'src/online/cloudflare/index.ts',
@@ -62,12 +63,15 @@ describe('O4P-03B architecture boundary', () => {
       'src/online/cloudflare/__tests__/review.o4p-03b-websocket-recovery.test.ts',
       'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
       'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
-    ]) expect(existsSync(resolve(repositoryRoot, path)), path).toBe(true);
+    ])
+      expect(existsSync(resolve(repositoryRoot, path)), path).toBe(true);
 
-    const before = JSON.parse(execFileSync('git', ['show', `${baseSha}:package.json`], {
-      cwd: repositoryRoot,
-      encoding: 'utf8',
-    })) as Record<string, unknown>;
+    const before = JSON.parse(
+      execFileSync('git', ['show', `${baseSha}:package.json`], {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+      }),
+    ) as Record<string, unknown>;
     const after = JSON.parse(source('package.json')) as Record<string, unknown>;
     expect(after.dependencies).toEqual(before.dependencies);
     expect(after.devDependencies).toEqual(before.devDependencies);
@@ -94,14 +98,32 @@ describe('O4P-03B architecture boundary', () => {
       if (normalized(file) === 'src/online/cloudflare/facts.ts') {
         expect(text).toMatch(/console\.log\(JSON\.stringify\(fact\)\)/);
       } else {
-        expect(text, normalized(file)).not.toMatch(/react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i);
+        expect(text, normalized(file)).not.toMatch(
+          /react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i,
+        );
       }
       for (const specifier of moduleSpecifiers(text)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        const cockpitMultiplayerImport = normalized(file) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
-        const cockpitImport = normalized(file) === 'src/online/cloudflare/cockpitSession.ts' &&
-          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(file)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport =
+          normalized(file) === 'src/online/cloudflare/cockpitMultiplayer.ts' &&
+          [
+            '../../engine/cockpitCardIdentity',
+            '../../engine/cockpitTable',
+            '../../engine/init',
+            '../../engine/types',
+          ].includes(specifier);
+        const cockpitImport =
+          normalized(file) === 'src/online/cloudflare/cockpitSession.ts' &&
+          [
+            '../../engine/cockpitTable',
+            '../../engine/cockpitMigration',
+            '../../engine/init',
+            '../../data/gameSnapshot',
+          ].includes(specifier);
+        expect(
+          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport,
+          `${normalized(file)} -> ${specifier}`,
+        ).toBe(true);
       }
     }
     for (const root of [
@@ -115,7 +137,9 @@ describe('O4P-03B architecture boundary', () => {
       'src/store',
     ]) {
       for (const file of productionFiles(resolve(repositoryRoot, root))) {
-        expect(readFileSync(file, 'utf8'), normalized(file)).not.toMatch(/online\/cloudflare|\.\.\/cloudflare/);
+        expect(readFileSync(file, 'utf8'), normalized(file)).not.toMatch(
+          /online\/cloudflare|\.\.\/cloudflare/,
+        );
       }
     }
   });
@@ -128,9 +152,14 @@ describe('O4P-03B architecture boundary', () => {
     expect(runtime).toMatch(/webSocketMessage\s*\(/);
     expect(runtime).toMatch(/webSocketClose\s*\(/);
     expect(runtime).toMatch(/webSocketError\s*\(/);
-    const errorHandler = runtime.match(/webSocketError\(socket: OnlineCloudflareWebSocket\): void \{([\s\S]*?)\n {2}\}/)?.[1] ?? '';
+    const errorHandler =
+      runtime.match(
+        /webSocketError\(socket: OnlineCloudflareWebSocket\): void \{([\s\S]*?)\n {2}\}/,
+      )?.[1] ?? '';
     expect(errorHandler).toContain("emitWebSocketFactV1('error'");
-    expect(errorHandler).not.toMatch(/handleDisconnect|persistSameRevision|repository\.|security\.|socket\.close/);
+    expect(errorHandler).not.toMatch(
+      /handleDisconnect|persistSameRevision|repository\.|security\.|socket\.close/,
+    );
     expect(runtime).not.toMatch(/\.accept\s*\(|addEventListener\s*\(|onmessage|onclose|onerror/);
     expect(`${runtime}\n${websocket}`).not.toMatch(/setTimeout|setInterval|alarm\s*\(/);
     expect(types).toMatch(/ONLINE_CLOUDFLARE_MAX_ATTACHMENT_BYTES_V1\s*=\s*16_384/);
@@ -140,24 +169,33 @@ describe('O4P-03B architecture boundary', () => {
     expect(websocket).toMatch(/Object\.getOwnPropertyNames/);
     expect(websocket).toMatch(/Object\.getOwnPropertySymbols/);
     expect(websocket).toMatch(/Object\.getOwnPropertyDescriptor/);
-    expect(websocket).not.toMatch(/participantCapability|observerCapability|seatCapability|receiptDigest|coreRoot/);
+    expect(websocket).not.toMatch(
+      /participantCapability|observerCapability|seatCapability|receiptDigest|coreRoot/,
+    );
   });
 
   it('keeps same-revision presence persistence exact and accepted-command authority unchanged', () => {
     const persistence = source('src/online/cloudflare/persistence.ts');
-    const sameRevisionPersistence = persistence.match(
-      /persistSameRevision\s*\([\s\S]*?\n {2}\}\n\n\}/,
-    )?.[0] ?? '';
+    const sameRevisionPersistence =
+      persistence.match(/persistSameRevision\s*\([\s\S]*?\n {2}\}\n\n\}/)?.[0] ?? '';
     expect(persistence).toMatch(/persistSameRevision\s*\(/);
     expect(sameRevisionPersistence).not.toBe('');
-    expect(persistence).not.toMatch(/commitPresence\s*\(|persistPresence\s*\(|commitPresenceSameRevision\s*\(/);
+    expect(persistence).not.toMatch(
+      /commitPresence\s*\(|persistPresence\s*\(|commitPresenceSameRevision\s*\(/,
+    );
     expect(persistence).toMatch(
       /UPDATE online_room_state SET room_lifecycle = \?, state_json = \? WHERE singleton = 1 AND room_id = \? AND revision = \? AND state_json = \? RETURNING singleton/,
     );
-    expect(sameRevisionPersistence).toMatch(/comparablePresenceState\(previousJson\) !== comparablePresenceState\(nextJson\)/);
+    expect(sameRevisionPersistence).toMatch(
+      /comparablePresenceState\(previousJson\) !== comparablePresenceState\(nextJson\)/,
+    );
     expect(sameRevisionPersistence).toMatch(/transactionSync\s*\(/);
-    expect(sameRevisionPersistence).not.toMatch(/ALTER TABLE|DROP TABLE|PRAGMA|retry|setTimeout|setInterval/i);
-    expect(source('src/online/cloudflare/types.ts')).toMatch(/ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1\s*=\s*1/);
+    expect(sameRevisionPersistence).not.toMatch(
+      /ALTER TABLE|DROP TABLE|PRAGMA|retry|setTimeout|setInterval/i,
+    );
+    expect(source('src/online/cloudflare/types.ts')).toMatch(
+      /ONLINE_CLOUDFLARE_ROOM_SCHEMA_VERSION_V1\s*=\s*1/,
+    );
   });
 
   it('exports only closed public helpers and exactly four immutable outbox operations', () => {
@@ -169,10 +207,15 @@ describe('O4P-03B architecture boundary', () => {
       'enqueueOnlineCloudflareOutboxV1',
       'replayOnlineCloudflareOutboxV1',
       'settleOnlineCloudflareOutboxV1',
-    ]) expect(barrel).toMatch(new RegExp(`\\b${name}\\b`));
-    expect(barrel).not.toMatch(/appendOnline|acknowledgeOnline|frameKind|frameStringField|parseOnlineCloudflareWebSocketFrame|serializeOnlineCloudflareWebSocketValue/);
+    ])
+      expect(barrel).toMatch(new RegExp(`\\b${name}\\b`));
+    expect(barrel).not.toMatch(
+      /appendOnline|acknowledgeOnline|frameKind|frameStringField|parseOnlineCloudflareWebSocketFrame|serializeOnlineCloudflareWebSocketValue/,
+    );
     expect(outbox).toMatch(/response:\s*unknown/);
-    expect(outbox).toMatch(/Object\.getOwnPropertyNames|Object\.getOwnPropertySymbols|Object\.getOwnPropertyDescriptor/);
+    expect(outbox).toMatch(
+      /Object\.getOwnPropertyNames|Object\.getOwnPropertySymbols|Object\.getOwnPropertyDescriptor/,
+    );
     expect(outbox).not.toMatch(/localStorage|indexedDB|fetch\s*\(|setTimeout|setInterval/);
   });
 
@@ -192,7 +235,11 @@ describe('O4P-03B architecture boundary', () => {
         OnlineRoomDurableObject: { type: 'durable-object', storage: 'sqlite' },
       },
     });
-    const production = productionFiles(cloudflareRoot).map((path) => readFileSync(path, 'utf8')).join('\n');
-    expect(production).not.toMatch(/accountId|apiToken|customDomain|migrationTag|point.?in.?time|banParticipant|kickParticipant/i);
+    const production = productionFiles(cloudflareRoot)
+      .map((path) => readFileSync(path, 'utf8'))
+      .join('\n');
+    expect(production).not.toMatch(
+      /accountId|apiToken|customDomain|migrationTag|point.?in.?time|banParticipant|kickParticipant/i,
+    );
   });
 });

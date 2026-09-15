@@ -28,13 +28,16 @@ function productionFiles(root: string): readonly string[] {
 }
 
 function moduleSpecifiers(text: string): readonly string[] {
-  return [...text.matchAll(/(?:from\s+|import\s*\()(['"])([^'"]+)\1/g)].map((match) => match[2] ?? '');
+  return [...text.matchAll(/(?:from\s+|import\s*\()(['"])([^'"]+)\1/g)].map(
+    (match) => match[2] ?? '',
+  );
 }
 
 describe('O4P-03C architecture boundary', () => {
   it('adds exactly one production security module without dependency, version, or config drift', () => {
     expect(productionFiles(cloudflareRoot).map(normalized)).toEqual([
-      'src/online/cloudflare/cockpitMultiplayer.ts',      'src/online/cloudflare/cockpitSession.ts',
+      'src/online/cloudflare/cockpitMultiplayer.ts',
+      'src/online/cloudflare/cockpitSession.ts',
       'src/online/cloudflare/codec.ts',
       'src/online/cloudflare/facts.ts',
       'src/online/cloudflare/index.ts',
@@ -56,8 +59,14 @@ describe('O4P-03C architecture boundary', () => {
       'research/cr-grounding/o4p-03c-correction-3-judge-surgery.draft.md',
       'src/online/cloudflare/__tests__/review.o4p-03c-capability-abuse-control.test.ts',
       'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
-    ]) expect(existsSync(resolve(repositoryRoot, path)), path).toBe(true);
-    const before = JSON.parse(execFileSync('git', ['show', `${baseSha}:package.json`], { cwd: repositoryRoot, encoding: 'utf8' })) as Record<string, unknown>;
+    ])
+      expect(existsSync(resolve(repositoryRoot, path)), path).toBe(true);
+    const before = JSON.parse(
+      execFileSync('git', ['show', `${baseSha}:package.json`], {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+      }),
+    ) as Record<string, unknown>;
     const after = JSON.parse(source('package.json')) as Record<string, unknown>;
     expect(after.dependencies).toEqual(before.dependencies);
     expect(after.devDependencies).toEqual(before.devDependencies);
@@ -65,25 +74,67 @@ describe('O4P-03C architecture boundary', () => {
   });
 
   it('keeps lower imports one-way and production free of runtime-only authority', () => {
-    const allowed = new Set(['../protocol/index', '../projection/index', '../room/index', '../room/validationSupport', '../lobby/index', '../deckSubmission/index', '../genesis/index', '../pregame/index', '../tabletopManual/index', '../visibilityDecisions/index', '../visibilityDecisions/types', '../../engine/core/index']);
+    const allowed = new Set([
+      '../protocol/index',
+      '../projection/index',
+      '../room/index',
+      '../room/validationSupport',
+      '../lobby/index',
+      '../deckSubmission/index',
+      '../genesis/index',
+      '../pregame/index',
+      '../tabletopManual/index',
+      '../visibilityDecisions/index',
+      '../visibilityDecisions/types',
+      '../../engine/core/index',
+    ]);
     for (const path of productionFiles(cloudflareRoot)) {
       const text = readFileSync(path, 'utf8');
       if (normalized(path) === 'src/online/cloudflare/facts.ts') {
         expect(text).toMatch(/console\.log\(JSON\.stringify\(fact\)\)/);
       } else {
-        expect(text, normalized(path)).not.toMatch(/react|react-dom|zustand|indexeddb|localstorage|console\.|node:|setTimeout|setInterval|setAlarm|addEventListener\s*\(|\.accept\s*\(/i);
+        expect(text, normalized(path)).not.toMatch(
+          /react|react-dom|zustand|indexeddb|localstorage|console\.|node:|setTimeout|setInterval|setAlarm|addEventListener\s*\(|\.accept\s*\(/i,
+        );
       }
       for (const specifier of moduleSpecifiers(text)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
-        const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(path)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport =
+          normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' &&
+          [
+            '../../engine/cockpitCardIdentity',
+            '../../engine/cockpitTable',
+            '../../engine/init',
+            '../../engine/types',
+          ].includes(specifier);
+        const cockpitImport =
+          normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
+          [
+            '../../engine/cockpitTable',
+            '../../engine/cockpitMigration',
+            '../../engine/init',
+            '../../data/gameSnapshot',
+          ].includes(specifier);
+        expect(
+          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport,
+          `${normalized(path)} -> ${specifier}`,
+        ).toBe(true);
       }
     }
-    for (const root of ['src/engine', 'src/online/room', 'src/online/protocol', 'src/online/projection', 'src/online/deckSubmission', 'src/online/genesis', 'src/online/headless', 'src/store']) {
+    for (const root of [
+      'src/engine',
+      'src/online/room',
+      'src/online/protocol',
+      'src/online/projection',
+      'src/online/deckSubmission',
+      'src/online/genesis',
+      'src/online/headless',
+      'src/store',
+    ]) {
       for (const path of productionFiles(resolve(repositoryRoot, root))) {
-        expect(readFileSync(path, 'utf8'), normalized(path)).not.toMatch(/online\/cloudflare|\.\.\/cloudflare/);
+        expect(readFileSync(path, 'utf8'), normalized(path)).not.toMatch(
+          /online\/cloudflare|\.\.\/cloudflare/,
+        );
       }
     }
   });
@@ -110,18 +161,36 @@ describe('O4P-03C architecture boundary', () => {
       ['ONLINE_CLOUDFLARE_MAX_SERIALIZED_WEBSOCKET_FRAME_BYTES_V1', '65_536'],
       ['ONLINE_CLOUDFLARE_MAX_SECURITY_AUDIT_FACTS_V1', '256'],
       ['ONLINE_CLOUDFLARE_MAX_RETIRED_CAPABILITIES_PER_GRANT_V1', '256'],
-    ]) expect(security).toMatch(new RegExp(`${name}\\s*=\\s*${value}`));
-    for (const table of ['online_security_state', 'online_capability_grant', 'online_controller_lease', 'online_security_audit']) {
-      expect(security).toMatch(new RegExp(`CREATE TABLE(?: IF NOT EXISTS)? ${table}[^\u0060]+STRICT`));
+    ])
+      expect(security).toMatch(new RegExp(`${name}\\s*=\\s*${value}`));
+    for (const table of [
+      'online_security_state',
+      'online_capability_grant',
+      'online_controller_lease',
+      'online_security_audit',
+    ]) {
+      expect(security).toMatch(
+        new RegExp(`CREATE TABLE(?: IF NOT EXISTS)? ${table}[^\u0060]+STRICT`),
+      );
     }
     expect(security).toMatch(/UPDATE online_security_state[\s\S]*RETURNING singleton/);
     expect(security).toMatch(/UPDATE online_capability_grant[\s\S]*RETURNING participant_id/);
     expect(security).toMatch(/DELETE FROM online_controller_lease[\s\S]*RETURNING participant_id/);
     expect(security).toMatch(/grant_count INTEGER NOT NULL/);
     expect(security).toMatch(/retired_tokens_json TEXT NOT NULL/);
-    expect(support).toMatch(/'room' \| 'lobby' \| 'pregame' \| 'commands' \| 'capabilities' \| 'websocket'/);
+    expect(support).toMatch(
+      /'room' \| 'lobby' \| 'pregame' \| 'commands' \| 'capabilities' \| 'websocket'/,
+    );
     expect(runtime).toMatch(/route\.action === 'capabilities' && request\.method === 'POST'/);
-    for (const field of ['connectionId', 'capabilityGeneration', 'capabilityExpiresAt', 'messageWindowStartedAt', 'messageCount', 'malformedWindowStartedAt', 'malformedCount']) {
+    for (const field of [
+      'connectionId',
+      'capabilityGeneration',
+      'capabilityExpiresAt',
+      'messageWindowStartedAt',
+      'messageCount',
+      'malformedWindowStartedAt',
+      'malformedCount',
+    ]) {
       expect(types).toContain(`readonly ${field}`);
     }
   });
@@ -130,8 +199,12 @@ describe('O4P-03C architecture boundary', () => {
     const barrel = source('src/online/cloudflare/index.ts');
     const websocket = source('src/online/cloudflare/websocket.ts');
     expect(barrel).not.toMatch(/export\s+\*/);
-    expect(barrel).not.toMatch(/OnlineCloudflareSecurityRepository|OnlineCloudflareSecurityError|securityTablesForTests|protocolCapability|currentToken|rawGrant|AuditRow|GrantRow|LeaseRow/);
-    expect(barrel).not.toMatch(/MAX_SOCKET_COUNT|WEBSOCKET_MESSAGE_LIMIT|HTTP_ACTION_LIMIT|ROTATION_LIMIT|MAX_SOCKETS|MAX_FRAME_BYTES|MAX_AUDIT_V1/);
+    expect(barrel).not.toMatch(
+      /OnlineCloudflareSecurityRepository|OnlineCloudflareSecurityError|securityTablesForTests|protocolCapability|currentToken|rawGrant|AuditRow|GrantRow|LeaseRow/,
+    );
+    expect(barrel).not.toMatch(
+      /MAX_SOCKET_COUNT|WEBSOCKET_MESSAGE_LIMIT|HTTP_ACTION_LIMIT|ROTATION_LIMIT|MAX_SOCKETS|MAX_FRAME_BYTES|MAX_AUDIT_V1/,
+    );
     for (const name of [
       'ONLINE_CLOUDFLARE_SECURITY_SCHEMA_VERSION_V1',
       'ONLINE_CLOUDFLARE_CAPABILITY_LIFETIME_MS_V1',
@@ -141,8 +214,11 @@ describe('O4P-03C architecture boundary', () => {
       'createOnlineCloudflareCapabilityRotationResponseV1',
       'isOnlineCloudflareSecurityCapabilityV1',
       'isOnlineCloudflareSecurityClockV1',
-    ]) expect(barrel).toContain(name);
-    expect(websocket).not.toMatch(/participantCapability|observerCapability|seatCapability|receiptDigest|coreRoot|currentToken/);
+    ])
+      expect(barrel).toContain(name);
+    expect(websocket).not.toMatch(
+      /participantCapability|observerCapability|seatCapability|receiptDigest|coreRoot|currentToken/,
+    );
   });
 
   it('contains only the exact O4P-03D successor deployment metadata and no secret or external-abuse authority', () => {
@@ -154,10 +230,16 @@ describe('O4P-03C architecture boundary', () => {
       workers_dev: true,
       observability: { enabled: true, head_sampling_rate: 1 },
       version_metadata: { binding: 'CF_VERSION_METADATA' },
-      durable_objects: { bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }] },
+      durable_objects: {
+        bindings: [{ name: 'ONLINE_ROOMS', class_name: 'OnlineRoomDurableObject' }],
+      },
       exports: { OnlineRoomDurableObject: { type: 'durable-object', storage: 'sqlite' } },
     });
-    const production = productionFiles(cloudflareRoot).map((path) => readFileSync(path, 'utf8')).join('\n');
-    expect(production).not.toMatch(/accountId|apiToken|workers\.dev|customDomain|migrationTag|point.?in.?time|structuredLog|dashboard|alert|waf|captcha|banParticipant|kickParticipant/i);
+    const production = productionFiles(cloudflareRoot)
+      .map((path) => readFileSync(path, 'utf8'))
+      .join('\n');
+    expect(production).not.toMatch(
+      /accountId|apiToken|workers\.dev|customDomain|migrationTag|point.?in.?time|structuredLog|dashboard|alert|waf|captcha|banParticipant|kickParticipant/i,
+    );
   });
 });

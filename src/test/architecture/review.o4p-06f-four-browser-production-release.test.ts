@@ -38,7 +38,14 @@ function git(...args: readonly string[]): string {
 
 describe('review O4P-06F four-browser production release', () => {
   it('freezes the exact acceptance-only authority and unchanged product boundary', () => {
-    for (const path of [CONTRACT, ACCEPTANCE, IMPLEMENTATION, HARNESS, ORDINARY_TEST, THIS_REVIEW]) {
+    for (const path of [
+      CONTRACT,
+      ACCEPTANCE,
+      IMPLEMENTATION,
+      HARNESS,
+      ORDINARY_TEST,
+      THIS_REVIEW,
+    ]) {
       expect(existsSync(resolve(ROOT, path)), path).toBe(true);
     }
     expect(git('rev-parse', `${BASE_SHA}^{commit}`)).toBe(BASE_SHA);
@@ -46,9 +53,21 @@ describe('review O4P-06F four-browser production release', () => {
     const changedSrc = git('diff', '--name-only', BASE_SHA, TERMINAL_SHA, '--', 'src')
       .split('\n')
       .filter((path) => Boolean(path) && !OBSOLETE_GOVERNANCE_REVIEWS.has(path));
-    expect(changedSrc).toEqual([ORDINARY_TEST, THIS_REVIEW, TERMINAL_ROADMAP_REVIEW, ...FULL_CHECK_REPAIR_REVIEWS, ...PRODUCTION_CORRECTION_PATHS].sort());
-    expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc', '.github'))
-      .toBe('.github/workflows/deploy-pages.yml');
+    expect(changedSrc).toEqual(
+      [
+        ORDINARY_TEST,
+        THIS_REVIEW,
+        TERMINAL_ROADMAP_REVIEW,
+        ...FULL_CHECK_REPAIR_REVIEWS,
+        ...PRODUCTION_CORRECTION_PATHS,
+      ].sort(),
+    );
+    expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc')).toBe(
+      '',
+    );
+    expect(git('diff', '--name-only', BASE_SHA, '--', '.github/workflows/deploy-pages.yml')).toBe(
+      '.github/workflows/deploy-pages.yml',
+    );
 
     const before = JSON.parse(git('show', `${BASE_SHA}:package.json`)) as {
       dependencies?: unknown;
@@ -62,19 +81,29 @@ describe('review O4P-06F four-browser production release', () => {
     expect(after.dependencies).toEqual(before.dependencies);
     expect(after.devDependencies).toEqual(before.devDependencies);
     expect(after.scripts?.['check:release']).toBe('node scripts/checks/release-check.mjs');
-    expect(after.scripts?.['evidence:o4p-06f']).toBe('tsx scripts/online/o4p-06f-four-browser-evidence.ts');
+    expect(after.scripts?.['evidence:o4p-06f']).toBe(
+      'tsx scripts/online/o4p-06f-four-browser-evidence.ts',
+    );
 
     const workflow = text('.github/workflows/deploy-pages.yml');
     expect(workflow).toContain('npm run check:release');
     expect(workflow).not.toContain('change-lane');
 
-    const onlineTsconfig = JSON.parse(text('scripts/online/tsconfig.json')) as { include?: unknown };
-    expect(onlineTsconfig.include).toEqual(['./cockpit-multiplayer-evidence.ts', './o4p-03d-evidence.ts', './o4p-06f-four-browser-evidence.ts', './o4p-09i-full-match-evidence.ts', './remote-priority-journey-evidence.ts']);
+    const onlineTsconfig = JSON.parse(text('scripts/online/tsconfig.json')) as {
+      include?: unknown;
+    };
+    expect(onlineTsconfig.include).toEqual([
+      './cockpit-multiplayer-evidence.ts',
+      './o4p-03d-evidence.ts',
+      './o4p-06f-four-browser-evidence.ts',
+      './o4p-09i-full-match-evidence.ts',
+      './remote-priority-journey-evidence.ts',
+    ]);
   });
 
   it('requires four isolated Chrome contexts and browser-owned production traffic', () => {
     const source = text(HARNESS);
-    expect(source).toContain("const CONTEXT_COUNT = 4");
+    expect(source).toContain('const CONTEXT_COUNT = 4');
     expect(source).toContain('Target.createBrowserContext');
     expect(source).toContain('Target.disposeBrowserContext');
     expect(source).toContain('https://makeinu1.github.io/MTG_OneDeck/');
@@ -107,13 +136,16 @@ describe('review O4P-06F four-browser production release', () => {
       'replayCount',
       'preDeploymentProjectionHashes',
       'postDeploymentProjectionHashes',
-    ]) expect(source).toContain(literal);
+    ])
+      expect(source).toContain(literal);
     expect(source).toMatch(/revision\s*!==\s*5|revision\s*===\s*5/);
     expect(source).toMatch(/acceptedCommandCount\s*!==\s*5|acceptedCommandCount\s*===\s*5/);
     expect(source).toContain('capabilityFragments');
     expect(source).toContain('assertSecretFree');
     expect(source).toContain('finally');
-    expect(source).not.toMatch(/console\.(?:log|error)\([^\n]*(?:Capability|inviteCapability|seatCapability|tableCapability)/);
+    expect(source).not.toMatch(
+      /console\.(?:log|error)\([^\n]*(?:Capability|inviteCapability|seatCapability|tableCapability)/,
+    );
     expect(source).not.toMatch(/writeFile|appendFile|HAR|trace\.start|screenshot/);
   });
 
@@ -124,8 +156,16 @@ describe('review O4P-06F four-browser production release', () => {
     expect(source).toContain('export async function runO4p06fFourBrowserEvidenceV1');
     expect(source).toContain('export function validateO4p06fEvidenceSummaryV1');
     for (const term of [
-      'four distinct', 'secret', 'fragment', 'timeout', 'cleanup', 'reconnect',
-      'projection hash', 'wrong revision', 'console warning',
-    ]) expect(test.toLowerCase()).toContain(term);
+      'four distinct',
+      'secret',
+      'fragment',
+      'timeout',
+      'cleanup',
+      'reconnect',
+      'projection hash',
+      'wrong revision',
+      'console warning',
+    ])
+      expect(test.toLowerCase()).toContain(term);
   });
 });

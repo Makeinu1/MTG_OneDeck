@@ -32,24 +32,30 @@ function productionFiles(root: string): readonly string[] {
 }
 
 function moduleSpecifiers(text: string): readonly string[] {
-  return [...text.matchAll(/(?:from\s+|import\s*\()(['"])([^'"]+)\1/g)].map((match) => match[2] ?? '');
+  return [...text.matchAll(/(?:from\s+|import\s*\()(['"])([^'"]+)\1/g)].map(
+    (match) => match[2] ?? '',
+  );
 }
 
 describe('O4P-07A dynamic card resolution architecture boundary', () => {
   it('adds the closed dependency-free lower and server resolver surfaces', () => {
-    expect(productionFiles(resolve(repositoryRoot, 'src/online/deckSubmission')).map(normalized)).toEqual([
+    expect(
+      productionFiles(resolve(repositoryRoot, 'src/online/deckSubmission')).map(normalized),
+    ).toEqual([
       'src/online/deckSubmission/index.ts',
       'src/online/deckSubmission/resolution.ts',
       'src/online/deckSubmission/types.ts',
       'src/online/deckSubmission/validation.ts',
     ]);
-    expect(productionFiles(resolve(repositoryRoot, 'src/online/cloudflare')).map(normalized)).toContain(
-      'src/online/cloudflare/scryfallResolver.ts',
-    );
-    const before = JSON.parse(execFileSync('git', ['show', `${baseSha}:package.json`], {
-      cwd: repositoryRoot,
-      encoding: 'utf8',
-    })) as Record<string, unknown>;
+    expect(
+      productionFiles(resolve(repositoryRoot, 'src/online/cloudflare')).map(normalized),
+    ).toContain('src/online/cloudflare/scryfallResolver.ts');
+    const before = JSON.parse(
+      execFileSync('git', ['show', `${baseSha}:package.json`], {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+      }),
+    ) as Record<string, unknown>;
     const after = JSON.parse(source('package.json')) as Record<string, unknown>;
     expect(after.dependencies).toEqual(before.dependencies);
     expect(after.devDependencies).toEqual(before.devDependencies);
@@ -59,7 +65,9 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
   it('keeps deck submission below Cloudflare and Cloudflare on public lower barrels', () => {
     for (const path of productionFiles(resolve(repositoryRoot, 'src/online/deckSubmission'))) {
       const text = readFileSync(path, 'utf8');
-      expect(text, normalized(path)).not.toMatch(/online\/cloudflare|\.\.\/cloudflare|react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i);
+      expect(text, normalized(path)).not.toMatch(
+        /online\/cloudflare|\.\.\/cloudflare|react|react-dom|zustand|indexeddb|localstorage|console\.|node:/i,
+      );
     }
     const allowed = new Set([
       '../protocol/index',
@@ -78,10 +86,26 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
     for (const path of productionFiles(resolve(repositoryRoot, 'src/online/cloudflare'))) {
       for (const specifier of moduleSpecifiers(readFileSync(path, 'utf8'))) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
-        const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(path)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport =
+          normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' &&
+          [
+            '../../engine/cockpitCardIdentity',
+            '../../engine/cockpitTable',
+            '../../engine/init',
+            '../../engine/types',
+          ].includes(specifier);
+        const cockpitImport =
+          normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
+          [
+            '../../engine/cockpitTable',
+            '../../engine/cockpitMigration',
+            '../../engine/init',
+            '../../data/gameSnapshot',
+          ].includes(specifier);
+        expect(
+          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport,
+          `${normalized(path)} -> ${specifier}`,
+        ).toBe(true);
       }
     }
   });
@@ -91,7 +115,9 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
     const resolution = source('src/online/deckSubmission/resolution.ts');
     const resolverBoundary = source('src/online/cloudflare/scryfallResolver.ts');
     expect(types).toMatch(/kind:\s*'online-forming-lobby-deck-submit-v2'/);
-    expect(types).toMatch(/section:\s*OnlineDeckSubmissionSectionV2[\s\S]*quantity:\s*number[\s\S]*scryfallId:\s*string[\s\S]*oracleId:\s*string/);
+    expect(types).toMatch(
+      /section:\s*OnlineDeckSubmissionSectionV2[\s\S]*quantity:\s*number[\s\S]*scryfallId:\s*string[\s\S]*oracleId:\s*string/,
+    );
     const request = types.match(/export type OnlineDeckSubmitV2[\s\S]*?\n\}>;/)?.[0] ?? '';
     expect(request).not.toBe('');
     expect(request).not.toMatch(/CardDef|name|oracleText|printedText|faces|definition/);
@@ -111,15 +137,25 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
       'online_deck_submission_history_v2',
       'online_deck_submission_snapshot_v2',
     ]) {
-      expect(persistence).toMatch(new RegExp(`CREATE TABLE IF NOT EXISTS ${table}[^\u0060]+STRICT`));
+      expect(persistence).toMatch(
+        new RegExp(`CREATE TABLE IF NOT EXISTS ${table}[^\u0060]+STRICT`),
+      );
     }
-    expect(persistence).toMatch(/UPDATE online_deck_submission_head_v2[\s\S]*WHERE room_id = \? AND seat_index = \? AND revision = \? RETURNING seat_index/);
-    expect(persistence).toMatch(/UPDATE online_deck_submission_history_v2[\s\S]*WHERE room_id = \? AND seat_index = \? AND submission_id = \? RETURNING submission_id/);
-    expect(persistence).toMatch(/UPDATE online_deck_submission_head_v2 SET revision = \?, state = \?, snapshot_digest = NULL WHERE room_id = \? AND seat_index = \? AND revision = \? RETURNING seat_index/);
+    expect(persistence).toMatch(
+      /UPDATE online_deck_submission_head_v2[\s\S]*WHERE room_id = \? AND seat_index = \? AND revision = \? RETURNING seat_index/,
+    );
+    expect(persistence).toMatch(
+      /UPDATE online_deck_submission_history_v2[\s\S]*WHERE room_id = \? AND seat_index = \? AND submission_id = \? RETURNING submission_id/,
+    );
+    expect(persistence).toMatch(
+      /UPDATE online_deck_submission_head_v2 SET revision = \?, state = \?, snapshot_digest = NULL WHERE room_id = \? AND seat_index = \? AND revision = \? RETURNING seat_index/,
+    );
     expect(persistence).toMatch(/UPDATE online_application_migration[\s\S]*RETURNING singleton/);
     expect(types).toMatch(/ONLINE_DECK_SUBMISSION_MAX_CANONICAL_BYTES_V2\s*=\s*262_144/);
     expect(validation).toMatch(/TextEncoder/);
-    const tableDeclarations = [...persistence.matchAll(/const CREATE_DECK_[A-Z_]+ = `([^`]+)`/g)].map((match) => match[1] ?? '').join('\n');
+    const tableDeclarations = [...persistence.matchAll(/const CREATE_DECK_[A-Z_]+ = `([^`]+)`/g)]
+      .map((match) => match[1] ?? '')
+      .join('\n');
     expect(tableDeclarations).not.toMatch(/capability|bearer|deck_text|card_name|oracle_text/i);
   });
 
@@ -129,8 +165,12 @@ describe('O4P-07A dynamic card resolution architecture boundary', () => {
     const runtime = sourceAt(closureSha, 'src/online/cloudflare/runtime.ts');
     const persistence = sourceAt(closureSha, 'src/online/cloudflare/persistence.ts');
     const resolution = sourceAt(closureSha, 'src/online/deckSubmission/resolution.ts');
-    expect(`${runtime}\n${persistence}\n${resolution}`).not.toMatch(/catalogV1|fourDeckBootstrapV1|parseBootstrapDeckTextV1|ONLINE_BOOTSTRAP_DECK/);
-    expect(runtime).toMatch(/searchParams\.get\('schemaVersion'\) === '2'[\s\S]*projectLobbyV2[\s\S]*projectOnlineFormingLobbyV1/);
+    expect(`${runtime}\n${persistence}\n${resolution}`).not.toMatch(
+      /catalogV1|fourDeckBootstrapV1|parseBootstrapDeckTextV1|ONLINE_BOOTSTRAP_DECK/,
+    );
+    expect(runtime).toMatch(
+      /searchParams\.get\('schemaVersion'\) === '2'[\s\S]*projectLobbyV2[\s\S]*projectOnlineFormingLobbyV1/,
+    );
     expect(runtime).toMatch(/kind === 'online-forming-lobby-start-v1'/);
   });
 });
