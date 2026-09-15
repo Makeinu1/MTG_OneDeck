@@ -35,11 +35,27 @@ jobs:
 
           path = Path('src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts')
           text = path.read_text()
+          old = "import type { OnlineCloudflareSqlStorage } from '../types';\n"
+          new = "import { r4OperationCreatesKnowledgeBarrier } from '../cockpitR4Authority';\nimport type { OnlineCloudflareSqlStorage } from '../types';\n"
+          if text.count(old) != 1:
+              raise SystemExit('state session import changed unexpectedly')
+          text = text.replace(old, new, 1)
           old = "          requestId: `state-${++seq}`,\n"
           new = "          requestId: `state-operation-${++seq}`,\n"
           if text.count(old) != 1:
               raise SystemExit('generated state request id changed unexpectedly')
-          path.write_text(text.replace(old, new, 1))
+          text = text.replace(old, new, 1)
+          old = "    const missing = await commit({ type: 'state.apply', graveyardIds: [cardId] });\n"
+          new = """    expect(\n      r4OperationCreatesKnowledgeBarrier(record.table, {\n        type: 'state.apply',\n        graveyardIds: [cardId],\n      }),\n    ).toBe(true);\n\n    const missing = await commit({ type: 'state.apply', graveyardIds: [cardId] });\n"""
+          if text.count(old) != 1:
+              raise SystemExit('state knowledge assertion insertion changed unexpectedly')
+          text = text.replace(old, new, 1)
+          old = "    expect(applied.value.canUndo).toBe(false);\n\n    const persisted = JSON.parse(\n      storage.sql.exec<{ data: string }>('SELECT data FROM cockpit_session WHERE id = 1').toArray()[0].data,\n    ) as { knowledgeEpoch?: number };\n    expect(persisted.knowledgeEpoch).toBe(1);\n"
+          new = "    // Solo Undo remains available; knowledge-epoch blocking is a multiplayer trust boundary.\n    expect(applied.value.canUndo).toBe(true);\n"
+          if text.count(old) != 1:
+              raise SystemExit('state solo undo assertion changed unexpectedly')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
 
           path = Path('src/components/game/CockpitSelectionTools.test.tsx')
           text = path.read_text()
