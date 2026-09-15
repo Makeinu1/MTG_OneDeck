@@ -1,7 +1,7 @@
 name: Cockpit repair verification
 on:
   push:
-    branches: [fix/cockpit-playflow-17-20260914]
+    branches: [fix/cockpit-playflow-17-20260914, r3-1-manual-resolution]
   workflow_call:
     inputs:
       source_sha:
@@ -24,12 +24,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Targeted recovery and SQLite tests
-        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
+      - name: Targeted recovery, SQLite, and R3.1 identity tests
+        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts src/engine/__tests__/cockpitR31.test.ts
       - name: Types, build, and changed-file lint
         run: |
           npm run build
-          node node_modules/eslint/bin/eslint.js src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/online/browser/__tests__/cockpitClient.test.ts scripts/online/cockpit-recovery-evidence.mjs
+          node node_modules/eslint/bin/eslint.js src/engine/cockpitR31.ts src/engine/__tests__/cockpitR31.test.ts src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/online/browser/__tests__/cockpitClient.test.ts scripts/online/cockpit-recovery-evidence.mjs
       - name: Isolated browser and local Worker tools
         run: |
           mkdir -p "$RUNNER_TEMP/cockpit-runtime"
