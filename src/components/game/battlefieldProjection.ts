@@ -46,7 +46,7 @@ function stableRecord(record: Readonly<Record<string, number>>): string {
     .join(',');
 }
 
-function tokenVisualKey(state: GameState, card: CardInstance): string {
+function tokenVisualKey(state: GameState, card: CardInstance & { displayModifierKey?: string }): string {
   const attacker = state.combat?.attackers.find((entry) => entry.cardId === card.id);
   const blocker = state.combat?.blockers.find((entry) => entry.cardId === card.id);
   return [
@@ -55,6 +55,7 @@ function tokenVisualKey(state: GameState, card: CardInstance): string {
     card.controllerId,
     card.tapped ? 1 : 0,
     stableRecord(card.counters),
+    card.displayModifierKey ?? '',
     card.damageMarked,
     card.hasDeathtouchDamage ? 1 : 0,
     card.enteredTurn,

@@ -1,3 +1,5 @@
+import { CockpitCleanupTools } from './CockpitCleanupTools';
+import { tableCleanupNeedsReview } from '../../engine/cockpitTable';
 import { CockpitFeed } from './CockpitFeed';
 import { readyTableTriggers } from '../../engine/cockpitTriggers';
 import { CockpitWorkPanel as TableWorkPanel } from './CockpitWorkPanel';
@@ -34,6 +36,7 @@ import { DanceFloorLights } from './DanceFloorLights';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { loadKeybindings } from '../../data/keybindings';
 import { CockpitFetchSearch } from './CockpitFetchSearch';
+import { hasCockpitLibraryAccess, type CockpitLibraryAccess } from './cockpitLibraryAccess';
 
 const zoneNames: Record<ZoneId, string> = {
   hand: '手札',
@@ -86,7 +89,7 @@ export function CockpitTableSurface({
       paused: boolean;
       canOperate: boolean;
       counts: Record<string, { hand: number; library: number }>;
-      peek: object | null;
+      peek: { seatId: string; zone: 'hand' | 'library'; count?: number } | null;
     };
   };
   modalOpen?: boolean;
@@ -105,7 +108,11 @@ export function CockpitTableSurface({
   children:
     | ReactNode
     | ((browse: (zone: ZoneId, seatId: string) => void, workOpen: boolean) => ReactNode);
-  peek: (seatId: string, zone: 'hand' | 'library' | null) => Promise<void>;
+  peek: (
+    seatId: string,
+    zone: 'hand' | 'library' | null,
+    count?: number,
+  ) => Promise<CockpitTable | null | void>;
   seatId: string;
   chooseSeat: (id: string) => void;
   openStackEntry?: (id: string) => void;
@@ -140,6 +147,8 @@ export function CockpitTableSurface({
     new Map<string, { query: string; page: number; filter: string }>(),
   );
   const [fetchEntry, setFetchEntry] = useState<string | null>(null);
+  const fetchTarget = fetchEntry ? table.stack.find((entry) => entry.id === fetchEntry) : undefined;
+  if (fetchEntry && !fetchTarget) setFetchEntry(null);
   const [reviewTurn, setReviewTurn] = useState(false);
   const [mana, setMana] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -147,11 +156,31 @@ export function CockpitTableSurface({
   const [expandedBundles, setExpandedBundles] = useState<string[]>([]);
   const [hover, setHover] = useState<{ id: string; left: number; top: number } | null>(null);
   const [destination, setDestination] = useState<ZoneId>('graveyard');
+  const [zoneLibraryStatus, setZoneLibraryStatus] = useState<'idle' | 'loading' | 'rejected'>(
+    'idle',
+  );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // Mana resources are an operation helper and reject eliminated seats. Rendering must
+  // keep those seats visible for spectators without reopening their operation authority.
   const resources = useMemo(
-    () => new Map(table.seats.map((seat) => [seat.id, tableManaResources(table, seat.id)])),
+    () =>
+      new Map(
+        table.seats
+          .filter((seat) => !seat.eliminated)
+          .map((seat) => [seat.id, tableManaResources(table, seat.id)]),
+      ),
     [table],
   );
+  const libraryAccessFor = (targetSeat: string): CockpitLibraryAccess | undefined =>
+    multi
+      ? {
+          seatId: targetSeat,
+          totalCount: multi.counts[targetSeat]?.library ?? 0,
+          peek: multi.peek,
+          request: async (count) => (await peek(targetSeat, 'library', count)) ?? null,
+          release: async () => (await peek(targetSeat, null)) ?? null,
+        }
+      : undefined;
   if (lastTurn !== table.activeSeatId) {
     setLastTurn(table.activeSeatId);
     if (focus && !pinned && !work && !stack && table.activeSeatId !== ownId)
@@ -185,34 +214,22 @@ export function CockpitTableSurface({
     !!table.resolution ||
     !!table.combat ||
     table.stack.length > 0;
-  function prepareTurn() {
-    if (triggersReady) {
-      setFeed(true);
-      return;
-    }
-    if (progressBlocked) return;
-    if (multi) void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' });
-    else if (
-      !table.startProgress &&
-      table.phase !== 'untap' &&
-      ((own.maximumHandSize !== null && own.zones.hand.length > own.maximumHandSize) ||
-        table.grants.length ||
-        table.modifiers.length)
-    )
-      setReviewTurn(true);
-    else void send({ type: 'turn.ready' });
-  }
   function advancePhase() {
     if (triggersReady) {
       setFeed(true);
       return;
     }
-    if (table.startProgress) {
-      prepareTurn();
+    if (progressBlocked || (reviewTurn && table.phase === 'cleanup')) return;
+    if (reviewTurn) setReviewTurn(false);
+    const count = multi?.counts[table.activeSeatId]?.hand;
+    if (table.phase === 'cleanup' && !table.cleanupReady && tableCleanupNeedsReview(table, count)) {
+      setReviewTurn(true);
       return;
     }
-    if (!progressBlocked) void send({ type: table.phase === 'cleanup' ? 'turn' : 'phase' });
+    void send({ type: 'phase' });
   }
+  // Every normal next button/key means one boundary, in both solo and shared tables.
+  const prepareTurn = advancePhase;
   async function keepHand(bottom: string[]) {
     if (!(await send({ type: 'keep', seatId: ownId, bottom }))) return;
     select([]);
@@ -229,16 +246,23 @@ export function CockpitTableSurface({
     feed ||
     opening ||
     mana ||
-    reviewTurn ||
-    !!fetchEntry ||
+    (reviewTurn && table.phase === 'cleanup') ||
+    !!fetchTarget ||
     handWorkspace ||
     !!cardMenu;
+  function runPrimaryAction() {
+    if (dialogOpen || disabled || opening || table.hold || boardChoice) return;
+    if (table.resolution) setWork(true);
+    else if (triggersReady) setFeed(true);
+    else if (table.stack[0]) resolveTop();
+    else if (table.combat) setWork(true);
+    else if (table.phase === 'untap' || table.startProgress) prepareTurn();
+    else advancePhase();
+  }
   useShortcuts({
     keybindings,
     isDialogOpen: dialogOpen,
-    onNextTurn: () => {
-      if (!dialogOpen) prepareTurn();
-    },
+    onNextTurn: runPrimaryAction,
     onNextPhase: () => {
       if (!dialogOpen) advancePhase();
     },
@@ -257,6 +281,17 @@ export function CockpitTableSurface({
   });
   const opponents = table.seats.filter((seat) => seat.id !== ownId);
   function openZone(next: ZoneId, owner = ownId) {
+    if (
+      multi &&
+      zone === 'library' &&
+      zoneSeat !== 'all' &&
+      multi.peek?.zone === 'library' &&
+      multi.peek.seatId === zoneSeat &&
+      (next !== 'library' || owner !== zoneSeat)
+    ) {
+      void peek(zoneSeat, null);
+      setZoneLibraryStatus('idle');
+    }
     if (zone) setZoneViews(new Map(zoneViews).set(`${zoneSeat}:${zone}`, { query, page, filter }));
     const saved =
       zone === next && zoneSeat === owner
@@ -274,9 +309,10 @@ export function CockpitTableSurface({
     if (disabled || opening) return;
     const card = table.cards[id];
     if (!card) return;
+    const resource = resources.get(card.controllerId);
     const choices =
-      card.zone === 'battlefield' && !card.tapped
-        ? manaActivationChoices(resources.get(card.controllerId)!, card.controllerId, id)
+      card.zone === 'battlefield' && !card.tapped && resource
+        ? manaActivationChoices(resource, card.controllerId, id)
         : [];
     if (
       choices.length === 1 &&
@@ -299,9 +335,10 @@ export function CockpitTableSurface({
   function card(id: string, index = 0, handCount = 0, inZone = false) {
     const instance = table.cards[id];
     if (!instance) return null;
+    const resource = resources.get(instance.controllerId);
     const manaChoices =
-      instance.zone === 'battlefield' && !instance.tapped
-        ? manaActivationChoices(resources.get(instance.controllerId)!, instance.controllerId, id)
+      instance.zone === 'battlefield' && !instance.tapped && resource
+        ? manaActivationChoices(resource, instance.controllerId, id)
         : [];
     const fan = handCount ? handFanCardLayout(index, handCount) : null;
     const selectable = Boolean(boardChoice) || selectionMode || (opening && bottomMode) || inZone;
@@ -527,26 +564,30 @@ export function CockpitTableSurface({
     );
   }
   const resolution = table.resolution;
-  const zoneIds = zone
-    ? table.seats
-        .filter((seat) => zoneSeat === 'all' || zoneSeat === seat.id)
-        .flatMap((seat) => (zone === 'battlefield' ? battlefield(seat.id) : seat.zones[zone]))
-        .filter(
-          (id) =>
-            table.cards[id] &&
-            `${name(id)} ${table.defs[table.cards[id].defId]?.name ?? ''}`
-              .toLowerCase()
-              .includes(query.toLowerCase()) &&
-            (filter === 'all' ||
-              (filter === 'selected'
-                ? selected.includes(id)
-                : filter === 'tapped'
-                  ? table.cards[id].tapped
-                  : filter === 'untapped'
-                    ? !table.cards[id].tapped
-                    : /Creature/.test(face(id)?.typeLine ?? ''))),
-        )
-    : [];
+  const zoneLibraryAccess =
+    zone === 'library' && zoneSeat !== 'all' ? libraryAccessFor(zoneSeat) : undefined;
+  const zoneLibraryReady = hasCockpitLibraryAccess(zoneLibraryAccess);
+  const zoneIds =
+    zone && (zone !== 'library' || zoneLibraryReady)
+      ? table.seats
+          .filter((seat) => zoneSeat === 'all' || zoneSeat === seat.id)
+          .flatMap((seat) => (zone === 'battlefield' ? battlefield(seat.id) : seat.zones[zone]))
+          .filter(
+            (id) =>
+              table.cards[id] &&
+              `${name(id)} ${table.defs[table.cards[id].defId]?.name ?? ''}`
+                .toLowerCase()
+                .includes(query.toLowerCase()) &&
+              (filter === 'all' ||
+                (filter === 'selected'
+                  ? selected.includes(id)
+                  : filter === 'tapped'
+                    ? table.cards[id].tapped
+                    : filter === 'untapped'
+                      ? !table.cards[id].tapped
+                      : /Creature/.test(face(id)?.typeLine ?? ''))),
+          )
+      : [];
   const lastPage = Math.max(0, Math.ceil(zoneIds.length / 24) - 1);
   const visiblePage = Math.min(page, lastPage);
   const top = table.stack[0];
@@ -639,7 +680,8 @@ export function CockpitTableSurface({
       const entries = untapped.map((id) => ({
         cardId: id,
         commands: (() => {
-          const choices = manaActivationChoices(resources.get(ownId)!, ownId, id);
+          const resource = resources.get(ownId);
+          const choices = resource ? manaActivationChoices(resource, ownId, id) : [];
           return choices.length === 1 ? choices[0] : [];
         })(),
       }));
@@ -1007,6 +1049,7 @@ export function CockpitTableSurface({
               <button
                 className={`thumb-zone__primary${current ? ' thumb-zone__primary--stack' : ' thumb-zone__primary--advance'}`}
                 data-testid="primary-action"
+                title={`主操作 (${keyHint(keybindings.nextTurn)})`}
                 aria-label={
                   resolution
                     ? '処理に戻る'
@@ -1022,15 +1065,8 @@ export function CockpitTableSurface({
                               ? '戦闘'
                               : '次へ'
                 }
-                disabled={disabled || opening || table.hold || !!boardChoice}
-                onClick={() => {
-                  if (resolution) setWork(true);
-                  else if (triggersReady) setFeed(true);
-                  else if (top) resolveTop();
-                  else if (table.combat) setWork(true);
-                  else if (table.phase === 'untap' || table.startProgress) prepareTurn();
-                  else advancePhase();
-                }}
+                disabled={disabled || opening || table.hold || !!boardChoice || dialogOpen}
+                onClick={runPrimaryAction}
               >
                 <Icon name={current ? 'stack' : 'phase-next'} />
                 <span>
@@ -1048,10 +1084,11 @@ export function CockpitTableSurface({
                               ? '戦闘'
                               : '次へ'}
                 </span>
+                <kbd aria-hidden="true">{keyHint(keybindings.nextTurn)}</kbd>
               </button>
               <button
                 className="thumb-zone__icon-btn"
-                title="次のターン"
+                title="次のステップ"
                 disabled={progressBlocked}
                 onClick={prepareTurn}
               >
@@ -1191,9 +1228,9 @@ export function CockpitTableSurface({
               {!multi
                 ? table.phase === 'untap'
                   ? 'ターン開始'
-                  : '次のターン'
+                  : '次へ'
                 : table.phase === 'cleanup'
-                  ? '次のターンへ'
+                  ? 'クリーンナップ・次のターンへ'
                   : table.phase === 'main1'
                     ? '戦闘へ'
                     : '次へ'}
@@ -1306,9 +1343,60 @@ export function CockpitTableSurface({
           wide
           title={zoneNames[zone]}
           open={panel === 'zone' && !feed}
-          onClose={() => setPanel(null)}
+          onClose={() => {
+            if (
+              multi &&
+              zone === 'library' &&
+              zoneSeat !== 'all' &&
+              multi.peek?.zone === 'library' &&
+              multi.peek.seatId === zoneSeat
+            )
+              void peek(zoneSeat, null);
+            setZoneLibraryStatus('idle');
+            setPanel(null);
+          }}
         >
-          {multi && (zone === 'library' || (zone === 'hand' && zoneSeat !== ownId)) && (
+          {multi && zone === 'library' && zoneSeat !== 'all' && (
+            <div className="cockpit-session__bar">
+              <span>山札は必要なときだけ自分へ投影します。閲覧内容は他席へ公開されません。</span>
+              {!zoneLibraryReady && multi.canOperate && (
+                <button
+                  disabled={pending || zoneLibraryStatus === 'loading'}
+                  onClick={() => {
+                    setZoneLibraryStatus('loading');
+                    void libraryAccessFor(zoneSeat)!
+                      .request()
+                      .then((next) => setZoneLibraryStatus(next ? 'idle' : 'rejected'));
+                  }}
+                >
+                  {zoneLibraryStatus === 'loading' ? '取得中…' : 'この山札を自分だけ閲覧'}
+                </button>
+              )}
+              {multi.peek?.zone === 'library' && multi.peek.seatId === zoneSeat && (
+                <button
+                  disabled={pending}
+                  onClick={() => {
+                    setZoneLibraryStatus('idle');
+                    void libraryAccessFor(zoneSeat)!.release();
+                  }}
+                >
+                  閲覧を終了
+                </button>
+              )}
+              {!zoneLibraryReady && (
+                <span role="status">
+                  {zoneLibraryStatus === 'loading'
+                    ? '山札を取得中です。'
+                    : zoneLibraryStatus === 'rejected'
+                      ? '閲覧を開始できませんでした。操作権と接続状態を確認してください。'
+                      : multi.canOperate
+                        ? `未取得です。山札は${multi.counts[zoneSeat]?.library ?? 0}枚あります。`
+                        : '未取得です。現在の操作権では閲覧できません。'}
+                </span>
+              )}
+            </div>
+          )}
+          {multi && zone === 'hand' && zoneSeat !== ownId && (
             <div className="cockpit-session__bar">
               <span>本人の選択は本人が決めます。閲覧した内容は他席へ公開されません。</span>
               {multi.canOperate && (
@@ -1316,7 +1404,7 @@ export function CockpitTableSurface({
                   この領域を自分だけ閲覧
                 </button>
               )}
-              {multi.peek && (
+              {multi.peek?.zone === 'hand' && multi.peek.seatId === zoneSeat && (
                 <button disabled={pending} onClick={() => void peek(zoneSeat, null)}>
                   閲覧を終了
                 </button>
@@ -1432,7 +1520,14 @@ export function CockpitTableSurface({
                   </div>
                 ))}
               </div>
-              {!zoneIds.length && <p>該当するカードはありません</p>}
+              {!zoneIds.length &&
+                (zone === 'library' && !zoneLibraryReady ? (
+                  <p role="status">山札は未取得です。取得前の0件表示は候補0件を意味しません。</p>
+                ) : zone === 'library' && zoneLibraryAccess?.totalCount === 0 ? (
+                  <p role="status">山札は0枚です。</p>
+                ) : (
+                  <p>該当するカードはありません</p>
+                ))}
             </div>
             <aside className="table-zone-selection" aria-label="選択したカード">
               <h3>選択したカード · {selected.length}枚</h3>
@@ -1511,57 +1606,27 @@ export function CockpitTableSurface({
         </nav>
         {typeof children === 'function' ? children(openZone, work) : children}
       </TableWorkPanel>
-      {reviewTurn && (
-        <Modal
-          title={table.phase === 'untap' ? 'ターンの準備' : '次のターン'}
-          onClose={() => setReviewTurn(false)}
-        >
-          {own.maximumHandSize !== null && own.zones.hand.length > own.maximumHandSize ? (
-            <>
-              <p>
-                手札が{own.zones.hand.length}枚あります。{own.maximumHandSize}
-                枚になるように捨ててから進みます。
-              </p>
-              <button
-                onClick={() => {
-                  setReviewTurn(false);
-                  openZone('hand');
-                  setSelectionMode(true);
-                }}
-              >
-                捨てるカードを選ぶ
-              </button>
-            </>
-          ) : (
-            <>
-              <p>自分のカードをアンタップし、1枚引いてメイン・フェイズへ進みます。</p>
-              {!!(table.grants.length || table.modifiers.length) && (
-                <p>
-                  期限のある効果が残っています。終了する効果は先に解除してください。この操作では効果を自動で解除しません。
-                </p>
-              )}
-              <button
-                disabled={progressBlocked}
-                onClick={() =>
-                  void send({ type: 'turn.ready', effectsReviewed: true }).then((saved) => {
-                    if (saved) setReviewTurn(false);
-                  })
-                }
-              >
-                アンタップ・ドローして進む
-              </button>
-            </>
-          )}
-        </Modal>
-      )}
-      {fetchEntry && table.stack.find((entry) => entry.id === fetchEntry) && (
-        <CockpitFetchSearch
-          key={fetchEntry}
+      {reviewTurn && table.phase === 'cleanup' && (
+        <CockpitCleanupTools
           table={table}
-          entry={table.stack.find((entry) => entry.id === fetchEntry)!}
+          seatId={table.activeSeatId}
+          selected={selected}
+          disabled={disabled}
+          send={send}
+          autoOpen
+          onClose={() => setReviewTurn(false)}
+          handCount={multi?.counts[table.activeSeatId]?.hand}
+        />
+      )}
+      {fetchTarget && (
+        <CockpitFetchSearch
+          key={fetchTarget.id}
+          table={table}
+          entry={fetchTarget}
           disabled={disabled}
           send={send}
           onClose={() => setFetchEntry(null)}
+          libraryAccess={libraryAccessFor(fetchTarget.controllerId)}
         />
       )}
       {mana && (

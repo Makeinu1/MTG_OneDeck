@@ -358,10 +358,13 @@ describe('private cockpit SQLite commit boundary', () => {
     expect(checkpoint.signature).toMatch(/^[a-f0-9]{64}$/);
     const restore = { type: 'restore', token: 'c'.repeat(64), checkpoint };
     expect((await handleCockpitSession(request(restore), storage, 5000)).status).toBe(409);
-    expect(
-      (await handleCockpitSession(request({ type: 'read', token }), storage, 4000 + COCKPIT_TTL_MS))
-        .status,
-    ).toBe(410);
+    const expired = await handleCockpitSession(
+      request({ type: 'read', token }),
+      storage,
+      4000 + COCKPIT_TTL_MS,
+    );
+    expect(expired.status).toBe(410);
+    expect(await expired.json()).toMatchObject({ error: 'SESSION_EXPIRED' });
     const forged = structuredClone(checkpoint);
     forged.table.seats[0].life = 99;
     expect(
@@ -389,7 +392,7 @@ describe('private cockpit SQLite commit boundary', () => {
   });
 });
 
-function multiplayerHarness(seats: 2 | 4) {
+function multiplayerHarness(seats: 2 | 4, deckFactory: (seatIndex: number) => ReturnType<typeof makeDeck> = () => makeDeck(20)) {
   const storage = database();
   let revision = 0;
   let now = 1000;
@@ -416,19 +419,49 @@ function multiplayerHarness(seats: 2 | 4) {
     });
   }
   async function start() {
-    const created = await call(0, { type: 'create', seats, seed: 1, deck: makeDeck(20) });
+    const created = await call(0, { type: 'create', seats, seed: 1, deck: deckFactory(0) });
     expect(created.status).toBe(200);
     const invitation = created.value.multiplayer!.invitation;
     for (let i = 1; i < seats; i++)
-      expect((await call(i, { type: 'join', invitation, deck: makeDeck(20) })).status).toBe(200);
+      expect((await call(i, { type: 'join', invitation, deck: deckFactory(i) })).status).toBe(200);
     for (let i = 0; i < seats; i++)
       expect((await change(i, { type: 'keep', seatId: `P${i + 1}` })).status).toBe(200);
     expect((await change(0, { type: 'start' }, true)).status).toBe(200);
+  }
+  async function nextTurn(operator: number) {
+    let state = await call(operator, { type: 'read' });
+    const turn = state.value.table.turn;
+    for (let step = 0; step < 12 && state.value.table.turn === turn; step++) {
+      const table = state.value.table;
+      if (table.phase === 'cleanup' && !table.cleanupReady) {
+        const activeIndex = table.seats.findIndex((seat) => seat.id === table.activeSeatId);
+        const active = table.seats[activeIndex];
+        const hand = active.eliminated
+          ? []
+          : (await call(activeIndex, { type: 'read' })).value.table.seats[activeIndex].zones.hand;
+        const required =
+          active.maximumHandSize === null ? 0 : Math.max(0, hand.length - active.maximumHandSize);
+        state = await change(operator, {
+          type: 'cleanup',
+          seatId: active.id,
+          discardIds: hand.slice(0, required),
+          damageIds: [],
+          grantIds: [],
+          modifierIds: [],
+          complete: true,
+          effectsReviewed: true,
+        });
+      } else state = await change(operator, { type: 'phase' });
+      expect(state.status, `${table.phase}:${state.value.error ?? "ok"}`).toBe(200);
+    }
+    expect(state.value.table.turn).toBe(turn + 1);
+    return state;
   }
   return {
     call,
     change,
     start,
+    nextTurn,
     credentials,
     advance: (ms: number) => {
       now += ms;
@@ -446,7 +479,9 @@ describe('shared Cockpit multiplayer', () => {
     expect(kicked.status).toBe(200);
     expect(kicked.value.table.ended).toBe(false);
     expect(kicked.value.multiplayer!.invitation).not.toBe(invitation);
-    expect((await room.call(1, { type: 'read' })).status).toBe(403);
+    const kickedRead = await room.call(1, { type: 'read' });
+    expect(kickedRead.status).toBe(403);
+    expect(kickedRead.value.error).toBe('AUTHENTICATION_REQUIRED');
     expect((await room.call(1, { type: 'join', invitation, deck: makeDeck(20) })).status).toBe(403);
     for (let i = 1; i < 4; i++)
       expect(
@@ -466,7 +501,7 @@ describe('shared Cockpit multiplayer', () => {
     expect(departed.value.multiplayer!.masterId).toBe('P2');
     expect(departed.value.multiplayer!.borrowedFrom).toBeNull();
     expect((await room.change(1, { type: 'return' }, true)).status).toBe(403);
-    expect((await room.change(1, { type: 'turn' })).status).toBe(200);
+    expect((await room.nextTurn(1)).status).toBe(200);
   });
 
   it('two seats keep private projections, delegate HOLD, reconcile commits, undo and resume with one active connection', async () => {
@@ -570,13 +605,99 @@ describe('shared Cockpit multiplayer', () => {
     expect(eliminated.value.table.combat!.attackers.map((entry) => entry.cardId)).toEqual(['a2']);
     await room.change(0, { type: 'battle.end' });
     expect((await room.change(0, { type: 'turn.ready' })).status).toBe(403);
-    const advanced = await room.change(0, { type: 'turn' });
+    const advanced = await room.nextTurn(0);
     expect(advanced.value.table.activeSeatId).toBe('P3');
     expect(advanced.value.table.seats.map((s) => s.id)).toEqual(['P1', 'P2', 'P3', 'P4']);
     expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(403);
     await room.change(0, { type: 'eliminate', seatId: 'P3' }, true);
-    const next = await room.change(0, { type: 'turn' });
+    const next = await room.nextTurn(0);
     expect(next.value.table.activeSeatId).toBe('P4');
     expect(next.value.table.ended).toBe(false);
   });
+});
+
+
+it('dismisses a departing seat pending trigger and preserves saved summoning-sickness mana boundary', async () => {
+  const triggerRoom = multiplayerHarness(4);
+  await triggerRoom.start();
+  const triggered = await triggerRoom.change(0, {
+    type: 'token',
+    id: 'departing-witness',
+    seatId: 'P2',
+    name: 'Departing Witness',
+    typeLine: 'Creature',
+    power: '1',
+    toughness: '1',
+    text: 'When Departing Witness enters the battlefield, draw a card.',
+  });
+  expect(triggered.status).toBe(200);
+  const pending = triggered.value.table.triggers?.candidates.find(
+    (candidate) => candidate.controllerId === 'P2' && candidate.status === 'pending',
+  );
+  expect(pending).toBeDefined();
+  const eliminated = await triggerRoom.change(0, { type: 'eliminate', seatId: 'P2' }, true);
+  expect(eliminated.status).toBe(200);
+  expect(eliminated.value.table.ended).toBe(false);
+  expect(
+    eliminated.value.table.triggers?.candidates.find(
+      (candidate) => candidate.pendingTriggerId === pending!.pendingTriggerId,
+    ),
+  ).toMatchObject({ status: 'dismissed', reason: 'コントローラーがゲームを離れました。' });
+  expect((await triggerRoom.change(0, { type: 'phase' })).status).toBe(200);
+
+  const manaDef = {
+    ...makeDeck(1)[0].def,
+    scryfallId: 'stage13-mana-creature',
+    oracleId: 'stage13-mana-creature',
+    name: 'Stage13 Mana Creature',
+    typeLine: 'Creature — Elf Druid',
+    producedMana: ['G'] as ['G'],
+    faces: [
+      {
+        name: 'Stage13 Mana Creature',
+        typeLine: 'Creature — Elf Druid',
+        oracleText: '{T}: Add {G}.',
+        power: '1',
+        toughness: '1',
+      },
+    ],
+  };
+  const manaDeck = () =>
+    Array.from({ length: 20 }, () => ({ def: structuredClone(manaDef), isCommander: false }));
+  const room = multiplayerHarness(4, manaDeck);
+  await room.start();
+  let read = await room.call(0, { type: 'read' });
+  const manaCard = read.value.table.seats[0].zones.hand[0];
+  expect(
+    (await room.change(0, { type: 'move', ids: [manaCard], to: 'battlefield', position: 'top' }))
+      .status,
+  ).toBe(200);
+  await room.nextTurn(0);
+  await room.nextTurn(0);
+  read = await room.nextTurn(0);
+  expect(read.value.table.activeSeatId).toBe('P4');
+  expect(read.value.table.seats[0].turnStartedAt).toBe(1);
+  const generate = {
+    type: 'generate',
+    cardId: manaCard,
+    commands: [
+      { type: 'setTapped', cardId: manaCard, tapped: true },
+      { type: 'addMana', color: 'G', amount: 1 },
+    ],
+  };
+  expect((await room.change(0, generate)).status).toBe(422);
+  const afterElimination = await room.change(0, { type: 'eliminate', seatId: 'P2' }, true);
+  expect(afterElimination.status).toBe(200);
+  expect(afterElimination.value.table.seats[0].turnStartedAt).toBe(1);
+  expect((await room.change(0, generate)).status).toBe(422);
+  const nextP1 = await room.nextTurn(0);
+  expect(nextP1.value.table.activeSeatId).toBe('P1');
+  expect(nextP1.value.table.seats[0].turnStartedAt).toBe(nextP1.value.table.turn);
+  const generated = await room.change(0, generate);
+  expect(generated.status).toBe(200);
+  expect(generated.value.table.seats[0].mana.G).toBe(1);
+  expect(generated.value.table.cards[manaCard].tapped).toBe(true);
+  const persisted = await room.call(0, { type: 'read' });
+  expect(persisted.value.table.seats[0].mana.G).toBe(1);
+  expect(persisted.value.table.cards[manaCard].tapped).toBe(true);
 });

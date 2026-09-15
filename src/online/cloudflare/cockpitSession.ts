@@ -208,6 +208,7 @@ export async function handleCockpitSession(
         return response({ error: 'AUTHENTICATION_REQUIRED' }, 403);
       if (now >= record.lastUsed + COCKPIT_TTL_MS)
         return response({ error: 'SESSION_EXPIRED' }, 410);
+      // Explicit solo checkpoint is deliberate user activity. Automatic read/connect is not.
       record.lastUsed = now;
       storage.transactionSync(() =>
         storage.sql.exec(
@@ -266,6 +267,9 @@ export async function handleCockpitSession(
     }
     return storage.transactionSync(() => {
       let record = loadRecord(storage);
+      // Only a newly accepted user mutation extends the six-hour session TTL.
+      // Presence reads/connects still update member.lastSeen, but do not move lastUsed.
+      let extendTtl = false;
       let actor = record?.multiplayer ? cockpitActor(record.multiplayer, body.token) : 'P1';
       if (record?.multiplayer && body.type === 'join') {
         const multi = record.multiplayer;
@@ -292,6 +296,7 @@ export async function handleCockpitSession(
             peek: null,
           };
           record.revision += 1;
+          extendTtl = true;
         }
       }
       if (record && (record.multiplayer ? !actor : record.ownerToken !== body.token))
@@ -441,6 +446,8 @@ export async function handleCockpitSession(
                   multi.borrowedFrom
                 )
                   return response({ error: 'NOT_AUTHORIZED' }, 403);
+                multi.members[actor].peek = null;
+                multi.members[control.seatId].peek = null;
                 multi.borrowedFrom = actor;
                 multi.masterId = control.seatId;
                 multi.holds = multi.holds.filter((id) => id !== control.seatId);
@@ -448,11 +455,14 @@ export async function handleCockpitSession(
               case 'return':
                 if (actor !== multi.masterId || !multi.borrowedFrom)
                   return response({ error: 'NOT_AUTHORIZED' }, 403);
+                multi.members[actor].peek = null;
+                multi.members[multi.borrowedFrom].peek = null;
                 multi.masterId = multi.borrowedFrom;
                 multi.borrowedFrom = null;
                 break;
               case 'reclaim':
                 if (actor !== 'P1') return response({ error: 'NOT_AUTHORIZED' }, 403);
+                for (const member of Object.values(multi.members)) member.peek = null;
                 multi.masterId =
                   record.table.seats.find(
                     (seat) =>
@@ -467,8 +477,22 @@ export async function handleCockpitSession(
                   !['hand', 'library', null].includes(control.zone)
                 )
                   return response({ error: 'NOT_AUTHORIZED' }, 403);
+                if (
+                  control.count !== undefined &&
+                  (control.zone !== 'library' ||
+                    !Number.isSafeInteger(control.count) ||
+                    control.count < 1 ||
+                    control.count > 500)
+                )
+                  return response({ error: 'INVALID_REQUEST' }, 400);
                 multi.members[actor].peek = control.zone
-                  ? { seatId: control.seatId, zone: control.zone }
+                  ? {
+                      seatId: control.seatId,
+                      zone: control.zone,
+                      ...(control.zone === 'library' && control.count !== undefined
+                        ? { count: control.count }
+                        : {}),
+                    }
                   : null;
                 break;
               case 'kick':
@@ -515,6 +539,7 @@ export async function handleCockpitSession(
                   multi.borrowedFrom = null;
                 }
                 if (multi.borrowedFrom === control.seatId) multi.borrowedFrom = null;
+                for (const member of Object.values(multi.members)) member.peek = null;
                 record.undo = [];
                 record.redo = [];
                 break;
@@ -573,6 +598,9 @@ export async function handleCockpitSession(
             receiptKey(record, body.requestId, actor),
             encodedOperation,
           );
+          // A receipt created in this transaction is a newly accepted action.
+          // Replaying an existing receipt above is recovery, not new activity.
+          extendTtl = true;
           receipt = 'committed';
         }
       } else if (
@@ -583,7 +611,7 @@ export async function handleCockpitSession(
         body.type !== 'connect'
       )
         return response({ error: 'INVALID_REQUEST' }, 400);
-      if (!record.multiplayer || cockpitOwnerPresent(record.multiplayer, now))
+      if (extendTtl && (!record.multiplayer || cockpitOwnerPresent(record.multiplayer, now)))
         record.lastUsed = now;
       const data = JSON.stringify(record);
       // Fail before success; throwing also rolls back any new receipt.

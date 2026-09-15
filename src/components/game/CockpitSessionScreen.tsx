@@ -1,3 +1,5 @@
+import { CockpitCardPresentation } from './CockpitCardPresentation';
+import { CockpitReplayButton } from './CockpitReplayButton';
 import { CockpitWorkPanel } from './CockpitWorkPanel';
 import { CockpitRoomControls } from './CockpitRoomControls';
 import type { CockpitControl } from '../../online/browser/cockpitClient';
@@ -10,12 +12,17 @@ import {
   tableManaResources,
   tableCastPayment,
   tableZones,
+  type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
 import type { GameCommand } from '../../engine/commands';
 import type { ZoneId } from '../../engine/types';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
-import { CockpitClient } from '../../online/browser/cockpitClient';
+import {
+  CockpitClient,
+  isCockpitOperationRejection,
+  isCockpitTerminalFailure,
+} from '../../online/browser/cockpitClient';
 import { CockpitTableSurface } from './CockpitTableSurface';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
@@ -24,7 +31,6 @@ import { CockpitCardTools, CockpitTokenTools } from './CockpitCardTools';
 import { CockpitAbilityTools } from './CockpitAbilityTools';
 import { cockpitCostText } from './cockpitCostText';
 import { CockpitBattleTools } from './CockpitBattleTools';
-import { CockpitCleanupTools } from './CockpitCleanupTools';
 import { CommanderRitualLayer } from './presentation/CommanderRitualLayer';
 import { SemanticPresentationLayer } from './presentation/SemanticPresentationLayer';
 import { TransitionCue } from './TransitionCue';
@@ -36,6 +42,7 @@ import { saveAudioPreferences } from './presentation/audioVisualPreferences';
 import { ThemeToggle } from '../ThemeToggle';
 import { isAmbientEnabled, setAmbientEnabled, AMBIENT_CHANGE_EVENT } from './ambientMotion';
 import { CockpitManaBatch } from './CockpitManaBatch';
+import { liveStackDetail } from './cockpitTransientSelections';
 import './cockpitSession.css';
 
 const zoneLabels: Record<ZoneId, string> = {
@@ -94,6 +101,7 @@ export function CockpitSessionScreen({
   const [message, setMessage] = useState('接続中…');
   const [busy, setBusy] = useState(true);
   const [uncertain, setUncertain] = useState(false);
+  const [terminalConnection, setTerminalConnection] = useState(false);
   const [operationError, setOperationError] = useState(false);
   const [seatId, setSeatId] = useState('P1');
   const [menu, setMenu] = useState(false);
@@ -219,16 +227,28 @@ export function CockpitSessionScreen({
           setDetail((current) => (current && sameObject(current) ? current : null));
           setAbility((current) => (current && sameObject(current) ? current : null));
           setCast((current) => (current && sameObject(current.cardId) ? current : null));
+          setStackDetail((current) =>
+            current && liveStackDetail(next.table, current) ? current : null,
+          );
           viewRef.current = next;
           setView(next);
           setRoomInvitation(client.invitation());
         }
       },
-      (issue) => {
+      (issue, error) => {
         if (active) {
           suppressRemoteMotion.current = true;
           setMessage(issue);
+          setTerminalConnection(isCockpitTerminalFailure(error));
           setUncertain(true);
+        }
+      },
+      () => {
+        if (active) {
+          setUncertain(false);
+          setTerminalConnection(false);
+          setOperationError(false);
+          setMessage('接続が回復しました。サーバーの確定盤面から続けられます。');
         }
       },
     );
@@ -260,6 +280,7 @@ export function CockpitSessionScreen({
               : '接続できませんでした。再接続して確認してください。',
           );
           setBusy(false);
+          setTerminalConnection(isCockpitTerminalFailure(error));
           setUncertain(true);
         }
       });
@@ -366,19 +387,8 @@ export function CockpitSessionScreen({
       return true;
     } catch (error) {
       setOperationError(true);
-      setUncertain(
-        !(
-          error instanceof Error &&
-          'code' in error &&
-          [
-            'REVISION_CONFLICT',
-            'ELIMINATION_REQUIRES_CONTROL_REVIEW',
-            'NOT_AUTHORIZED',
-            'PREGAME_INCOMPLETE',
-            'OWNER_ABSENT',
-          ].includes(String(error.code))
-        ),
-      );
+      setTerminalConnection(isCockpitTerminalFailure(error));
+      setUncertain(!isCockpitOperationRejection(error));
       setMessage(error instanceof Error ? error.message : '結果を確認中です。再接続してください。');
       return false;
     } finally {
@@ -386,31 +396,35 @@ export function CockpitSessionScreen({
       setBusy(false);
     }
   }
-  async function control(operation: CockpitControl): Promise<void> {
-    if (busy || uncertain) return;
+  async function control(operation: CockpitControl): Promise<CockpitSessionView | null> {
+    if (busy || uncertain) return null;
     setOperationError(false);
     setBusy(true);
     try {
       await clientRef.current?.control(operation);
       setMessage('操作権と共有状態を保存しました。');
+      return viewRef.current;
     } catch (error) {
-      setUncertain(
-        !(
-          error instanceof Error &&
-          'code' in error &&
-          [
-            'REVISION_CONFLICT',
-            'ELIMINATION_REQUIRES_CONTROL_REVIEW',
-            'NOT_AUTHORIZED',
-            'PREGAME_INCOMPLETE',
-            'OWNER_ABSENT',
-          ].includes(String(error.code))
-        ),
-      );
+      setTerminalConnection(isCockpitTerminalFailure(error));
+      setUncertain(!isCockpitOperationRejection(error));
       setMessage(error instanceof Error ? error.message : '再接続してください。');
+      return null;
     } finally {
       setBusy(false);
     }
+  }
+  async function changePeek(
+    targetSeat: string,
+    targetZone: 'hand' | 'library' | null,
+    count?: number,
+  ): Promise<CockpitTable | null> {
+    const next = await control({
+      type: 'peek',
+      seatId: targetSeat,
+      zone: targetZone,
+      ...(targetZone === 'library' && count !== undefined ? { count } : {}),
+    });
+    return next?.table ?? null;
   }
   async function checkpoint(restore: boolean) {
     setBusy(true);
@@ -418,6 +432,7 @@ export function CockpitSessionScreen({
       if (restore) {
         await clientRef.current?.restoreCheckpoint();
         setUncertain(false);
+        setTerminalConnection(false);
       } else await clientRef.current?.saveCheckpoint();
       setMessage(
         restore
@@ -437,12 +452,14 @@ export function CockpitSessionScreen({
     try {
       const result = await clientRef.current?.reconnect();
       setUncertain(false);
+      setTerminalConnection(false);
       setMessage(
         result === 'unseen'
           ? '前の操作は未確定です。盤面を確認し、必要ならもう一度操作してください。'
           : 'サーバーの確定状態に復帰しました。',
       );
     } catch (error) {
+      setTerminalConnection(isCockpitTerminalFailure(error));
       setUncertain(true);
       setMessage(error instanceof Error ? error.message : '復帰できませんでした。');
     } finally {
@@ -453,11 +470,12 @@ export function CockpitSessionScreen({
     return (
       <main className="cockpit-session">
         <p role="status">{message}</p>
-        <button onClick={() => void reconnect()} disabled={busy}>
+        <button onClick={() => void reconnect()} disabled={busy || terminalConnection}>
           再接続
         </button>
+        <p>端末保存から復元できるのは一人回しだけです。2人/4人の対戦卓は失効後に復元できません。</p>
         <button onClick={() => void checkpoint(true)} disabled={busy}>
-          保存した盤面から再開
+          一人回しの端末保存から再開
         </button>
         <button onClick={onBack}>デッキへ戻る</button>
       </main>
@@ -477,9 +495,7 @@ export function CockpitSessionScreen({
   );
   const detailCard = detail ? table.cards[detail] : undefined;
   const detailDef = detailCard ? table.defs[detailCard.defId] : undefined;
-  const stackEntry =
-    table.stack.find((entry) => entry.id === stackDetail) ??
-    (table.resolution?.id === stackDetail ? table.resolution : null);
+  const stackEntry = liveStackDetail(table, stackDetail);
   const label = (id: string) => {
     const card = table.cards[id];
     const def = card && table.defs[card.defId];
@@ -589,9 +605,9 @@ export function CockpitSessionScreen({
     </div>
   );
   return (
-    <main
+    <CockpitCardPresentation
+      table={table}
       className={`cockpit-session${multi ? ' cockpit-session--multiplayer' : ''}`}
-      data-testid="game-screen"
     >
       <SemanticPresentationLayer
         openingDealCount={
@@ -613,23 +629,12 @@ export function CockpitSessionScreen({
             最後の盤面は引き続き確認できます。
           </p>
           {onReplay && (
-            <button
+            <CockpitReplayButton
               disabled={busy || uncertain}
-              onClick={() => {
-                const ownId = multi?.ownSeatId ?? table.seats[0].id;
-                const replayDeck =
-                  deck ??
-                  Object.values(table.cards)
-                    .filter((card) => card.ownerId === ownId && !card.isToken && !card.isCopy)
-                    .map((card) => ({
-                      def: table.defs[card.defId],
-                      isCommander: card.isCommander,
-                    }));
-                onReplay(replayDeck, multi ? (table.seats.length as 2 | 4) : undefined);
-              }}
-            >
-              {multi ? '同じデッキで新しい対戦部屋' : '同じデッキでもう一度'}
-            </button>
+              seats={multi ? (table.seats.length as 2 | 4) : undefined}
+              loadDeck={() => clientRef.current?.loadReplayDeck() ?? Promise.resolve(null)}
+              onReplay={onReplay}
+            />
           )}
           <button onClick={onBack}>デッキ選択へ戻る</button>
         </section>
@@ -640,7 +645,7 @@ export function CockpitSessionScreen({
           (!!attachment && !attachment.paused) ||
           (!!ability && !abilityPeek) ||
           (!!cast && !castPeek) ||
-          !!stackDetail ||
+          Boolean(stackEntry) ||
           confirmEnd
         }
         view={view}
@@ -737,9 +742,7 @@ export function CockpitSessionScreen({
         openStackEntry={setStackDetail}
         seatId={seatId}
         chooseSeat={setSeatId}
-        peek={(targetSeat, targetZone) =>
-          control({ type: 'peek', seatId: targetSeat, zone: targetZone })
-        }
+        peek={changePeek}
       >
         {(browse, workOpen) => (
           <>
@@ -774,6 +777,17 @@ export function CockpitSessionScreen({
               selected={selected}
               disabled={disabled}
               send={send}
+              libraryAccess={
+                multi
+                  ? {
+                      seatId,
+                      totalCount: multi.counts[seatId]?.library ?? 0,
+                      peek: multi.peek,
+                      request: (count) => changePeek(seatId, 'library', count),
+                      release: () => changePeek(seatId, null),
+                    }
+                  : undefined
+              }
             />
             <CockpitTokenTools
               table={table}
@@ -802,9 +816,9 @@ export function CockpitSessionScreen({
                   Boolean(table.combat) ||
                   table.stack.length > 0
                 }
-                onClick={() => void send({ type: 'turn' })}
+                onClick={() => void send({ type: 'phase' })}
               >
-                次のターン
+                次のステップ
               </button>
               <p>
                 アンタップ開始時の任意操作です。途中で誘発や判断が必要なら個別に進めてください。HOLD・Stack・処理中は進みません。
@@ -813,13 +827,13 @@ export function CockpitSessionScreen({
                 disabled={
                   disabled ||
                   table.hold ||
-                  table.phase !== 'untap' ||
+                  (table.phase !== 'untap' && !table.startProgress) ||
                   Boolean(table.resolution) ||
                   table.stack.length > 0
                 }
                 onClick={() => void send({ type: 'shortcut' })}
               >
-                現在のターンの席をアンタップ→1枚ドロー→メイン
+                現在のターンをメインまで進める（誘発で中断）
               </button>
               <button
                 disabled={disabled}
@@ -836,13 +850,25 @@ export function CockpitSessionScreen({
               >
                 {seat.label}のマナを空にする
               </button>
-              <CockpitCleanupTools
-                table={table}
-                seatId={seatId}
-                selected={selected}
-                disabled={disabled}
-                send={send}
-              />
+              <p>クリーンナップの手札選択と期限確認は、主操作「次へ」から行います。</p>
+              <details>
+                <summary>例外時の手動補正</summary>
+                <p>
+                  次のステップのアンタップ・ドロー・マナ処理を手動で反映した場合だけ使用してください。誘発・未完のクリーンナップは飛ばしません。
+                </p>
+                <button
+                  disabled={
+                    disabled ||
+                    table.hold ||
+                    !!table.stack.length ||
+                    !!table.resolution ||
+                    !!table.combat
+                  }
+                  onClick={() => void send({ type: 'phase', manual: true })}
+                >
+                  次のステップの定型処理を手動反映済みとして進む
+                </button>
+              </details>
             </details>
 
             {table.stack.map((entry) => (
@@ -880,7 +906,7 @@ export function CockpitSessionScreen({
               / {table.seats.find((entry) => entry.id === table.activeSeatId)?.label}
             </span>
             <span role="status">{message}</span>
-            <button onClick={() => void reconnect()} disabled={busy}>
+            <button onClick={() => void reconnect()} disabled={busy || terminalConnection}>
               再接続
             </button>
             <button
@@ -981,7 +1007,9 @@ export function CockpitSessionScreen({
       {(uncertain || operationError) && (
         <div className="table-connection" role="alert">
           {message}
-          {uncertain ? (
+          {terminalConnection ? (
+            <button onClick={onBack}>デッキへ戻る</button>
+          ) : uncertain ? (
             <button disabled={busy} onClick={() => void reconnect()}>
               再接続
             </button>
@@ -1782,6 +1810,6 @@ export function CockpitSessionScreen({
           </div>
         </CockpitWorkPanel>
       )}
-    </main>
+    </CockpitCardPresentation>
   );
 }

@@ -1,10 +1,11 @@
+import { sameCockpitCardDefinition } from '../../engine/cockpitCardIdentity';
 import {
   createCockpitTable,
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
 import type { InitDeckCard } from '../../engine/init';
-import type { ZoneId } from '../../engine/types';
+import type { CardInstance, ZoneId } from '../../engine/types';
 
 export const COCKPIT_PRESENCE_MS = 30_000;
 export interface CockpitMember {
@@ -12,7 +13,7 @@ export interface CockpitMember {
   connectionId: string;
   lastSeen: number;
   kicked: boolean;
-  peek: { seatId: string; zone: 'hand' | 'library' } | null;
+  peek: { seatId: string; zone: 'hand' | 'library'; count?: number } | null;
 }
 export interface CockpitMultiplayer {
   invitation: string;
@@ -28,7 +29,7 @@ export type CockpitControl =
   | { type: 'grant'; seatId: string }
   | { type: 'return' }
   | { type: 'reclaim' }
-  | { type: 'peek'; seatId: string; zone: 'hand' | 'library' | null }
+  | { type: 'peek'; seatId: string; zone: 'hand' | 'library' | null; count?: number }
   | { type: 'kick'; seatId: string }
   | { type: 'eliminate'; seatId: string };
 export interface CockpitMultiplayerView {
@@ -69,9 +70,9 @@ export function addCockpitDeck(
   );
   const result = structuredClone(table);
   for (const [id, def] of Object.entries(built.defs)) {
-    if (result.defs[id] && JSON.stringify(result.defs[id]) !== JSON.stringify(def))
+    if (result.defs[id] && !sameCockpitCardDefinition(result.defs[id], def))
       throw new Error('CARD_DEFINITION_CONFLICT');
-    result.defs[id] = def;
+    result.defs[id] ??= def;
   }
   Object.assign(result.cards, built.cards);
   result.seats[index] = built.seats[index];
@@ -87,8 +88,9 @@ export function projectCockpit(
 ): { table: CockpitTable; multiplayer: CockpitMultiplayerView } {
   const projected = structuredClone(table);
   projected.hold ||= multi.holds.length > 0;
+  const ownerPresent = cockpitOwnerPresent(multi, now);
   const peek =
-    multi.masterId === actor && !table.seats.find((s) => s.id === actor)?.eliminated
+    ownerPresent && multi.masterId === actor && !table.seats.find((s) => s.id === actor)?.eliminated
       ? multi.members[actor].peek
       : null;
   const visible = new Set<string>();
@@ -100,11 +102,13 @@ export function projectCockpit(
   ) as CockpitMultiplayerView['counts'];
   for (const seat of projected.seats) {
     for (const zone of Object.keys(seat.zones) as ZoneId[]) {
-      seat.zones[zone] = seat.zones[zone].filter((id) => {
+      seat.zones[zone] = seat.zones[zone].filter((id, index) => {
         const permitted =
           !['hand', 'library'].includes(zone) ||
           (zone === 'hand' && seat.id === actor) ||
-          (peek?.seatId === seat.id && peek.zone === zone) ||
+          (peek?.seatId === seat.id &&
+            peek.zone === zone &&
+            (peek.count === undefined || index < peek.count)) ||
           table.visibility[id]?.includes(actor);
         if (permitted) visible.add(id);
         return permitted;
@@ -115,53 +119,67 @@ export function projectCockpit(
     Object.entries(projected.cards).filter(([id]) => visible.has(id)),
   );
   const knownDefs = new Set<string>();
+  // Historical public sources remain public after moving. A hidden historical
+  // source is masked independently of whether its current physical card is visible.
+  const present = (card: CardInstance, privateRead = false): CardInstance => {
+    const hiddenFace =
+      card.faceDown && card.controllerId !== actor && !table.visibility[card.id]?.includes(actor);
+    const hiddenZone =
+      !privateRead &&
+      ['hand', 'library'].includes(card.zone) &&
+      card.ownerId !== actor &&
+      !table.visibility[card.id]?.includes(actor);
+    const result: CardInstance =
+      hiddenFace || hiddenZone
+        ? {
+            id: card.id,
+            defId: 'cockpit-hidden',
+            zone: card.zone,
+            ownerId: card.ownerId,
+            controllerId: card.controllerId,
+            zoneChangeCounter: card.zoneChangeCounter,
+            tapped: card.tapped,
+            faceIndex: 0,
+            faceDown: true,
+            counters: card.counters,
+            damageMarked: card.damageMarked,
+            hasDeathtouchDamage: card.hasDeathtouchDamage,
+            isToken: card.isToken,
+            isCommander: false,
+            enteredTurn: card.enteredTurn,
+          }
+        : { ...card };
+    // These legacy envelopes can contain nested snapshots and card definitions.
+    // The public stack entry already has its effect, costs and selected targets.
+    delete result.sourceSnapshot;
+    delete result.targetSelections;
+    delete result.activationEnvelope;
+    delete result.triggerCondition;
+    knownDefs.add(result.defId);
+    return result;
+  };
   for (const card of Object.values(projected.cards)) {
-    if (
-      card.faceDown &&
-      card.controllerId !== actor &&
-      !table.visibility[card.id]?.includes(actor)
-    ) {
-      projected.cards[card.id] = {
-        id: card.id,
-        defId: 'cockpit-hidden',
-        zone: card.zone,
-        ownerId: card.ownerId,
-        controllerId: card.controllerId,
-        zoneChangeCounter: card.zoneChangeCounter,
-        tapped: card.tapped,
-        faceIndex: 0,
-        faceDown: true,
-        counters: card.counters,
-        damageMarked: card.damageMarked,
-        hasDeathtouchDamage: card.hasDeathtouchDamage,
-        isToken: card.isToken,
-        isCommander: false,
-        enteredTurn: card.enteredTurn,
-      };
-    }
-    // Nested legacy selections may retain private snapshots. The shared Stack carries its own public context.
-    delete projected.cards[card.id].sourceSnapshot;
-    delete projected.cards[card.id].targetSelections;
-    knownDefs.add(projected.cards[card.id].defId);
+    // The current authorized peek may show private-zone cards to its holder.
+    const authorized = peek?.seatId === card.ownerId && peek.zone === card.zone;
+    projected.cards[card.id] = present(card, authorized);
   }
+  const publicStackIds = new Set(projected.stack.map((entry) => entry.id));
+  const snapshotWasPublic = (snapshot: CardInstance) =>
+    !['hand', 'library'].includes(snapshot.zone);
   for (const entry of [
     ...projected.stack,
     ...(projected.resolution ? [projected.resolution] : []),
   ]) {
-    knownDefs.add(entry.source.defId);
-    delete entry.source.sourceSnapshot;
-    delete entry.source.targetSelections;
+    entry.source = present(entry.source);
     if (entry.targetSnapshots)
       entry.targetSnapshots = Object.fromEntries(
         Object.entries(entry.targetSnapshots)
-          .filter(([id]) => visible.has(id))
-          .map(([id, snapshot]) => [
-            id,
-            projected.cards[id]?.defId === 'cockpit-hidden' ? projected.cards[id] : snapshot,
-          ]),
+          .filter(
+            ([id, snapshot]) =>
+              visible.has(id) || publicStackIds.has(id) || snapshotWasPublic(snapshot),
+          )
+          .map(([id, snapshot]) => [id, present(snapshot)]),
       );
-    for (const snapshot of Object.values(entry.targetSnapshots ?? {}))
-      knownDefs.add(snapshot.defId);
   }
   if (projected.triggers) {
     // Detection reads the full table. Clients receive only permitted candidate context.
@@ -181,9 +199,7 @@ export function projectCockpit(
             candidate.controllerId === actor),
       )
       .map((candidate) => {
-        delete candidate.source.sourceSnapshot;
-        delete candidate.source.targetSelections;
-        knownDefs.add(candidate.source.defId);
+        candidate.source = present(candidate.source);
         return candidate;
       });
   }
@@ -233,7 +249,7 @@ export function projectCockpit(
       typeLine: '',
       faces: [{ name: '非公開カード', typeLine: '', oracleText: '' }],
     };
-  const paused = !cockpitOwnerPresent(multi, now);
+  const paused = !ownerPresent;
   return {
     table: projected,
     multiplayer: {

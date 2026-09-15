@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { migrateCockpitSnapshot } from '../cockpitMigration';
-import { applyTableOperation } from '../cockpitTable';
+import { applyTableOperation, type CockpitTable } from '../cockpitTable';
 import { initGame } from '../init';
 import { applyCommand, objectSnapshotForCard } from '../commands';
 import { makeDeck } from './helpers';
@@ -78,6 +78,143 @@ describe('legacy snapshot one-way migration', () => {
     expect(abilityTable.stack[0].source.zone).toBe('battlefield');
     expect(abilityTable.stack[0].targets).toEqual(['OPPONENT_A']);
     expect(abilityTable.stack[0].text).toBe('Manual effect');
+  });
+
+  it('retains last-in-first-out order across mixed legacy stack items and JSON reload', () => {
+    const deck = makeDeck(20);
+    let state = initGame(deck, 7);
+    state = applyCommand(state, { type: 'draw', count: 7 }).state;
+    const [first, second, source] = state.zones.hand;
+    state = applyCommand(state, {
+      type: 'moveCard',
+      cardId: source,
+      to: 'battlefield',
+      position: 'top',
+    }).state;
+    for (const cardId of [first, second])
+      state = applyCommand(state, { type: 'moveCard', cardId, to: 'stack', position: 'top' }).state;
+    state = applyCommand(state, {
+      type: 'addAbilityToStack',
+      sourceId: source,
+      kind: 'activated',
+      resolutionText: 'Manual ability',
+      sourceSnapshot: objectSnapshotForCard(state, source)!,
+      targetSelections: [
+        {
+          slotId: 'player',
+          raw: 'target player',
+          kind: 'player',
+          legalityMode: 'unchecked-warning',
+          selection: { kind: 'player', playerId: 'OPPONENT_A' },
+        },
+      ],
+    }).state;
+    const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+    const original = structuredClone(snapshot);
+    let table = migrateCockpitSnapshot(snapshot);
+    const expected = [...state.zones.stack].reverse();
+    expect(table.stack.map((entry) => entry.stackCardId)).toEqual(expected);
+    expect(table.stack[0]).toMatchObject({
+      kind: 'activated',
+      targets: ['OPPONENT_A'],
+      text: 'Manual ability',
+    });
+    const mana = structuredClone(table.seats[0].mana);
+    table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+    for (const cardId of expected) {
+      expect(table.stack[0].stackCardId).toBe(cardId);
+      table = applyTableOperation(table, { type: 'resolve.begin' });
+      table = applyTableOperation(table, { type: 'resolve.end', to: 'graveyard' });
+    }
+    expect(table.stack).toHaveLength(0);
+    expect(table.seats[0].mana).toEqual(mana);
+    expect(snapshot).toEqual(original);
+  });
+
+
+  it('covers explicit zero, triggered and copied legacy stack cases through JSON reload and top resolution', () => {
+    const deck = makeDeck(16);
+
+    {
+      const state = initGame(deck, 31);
+      const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+      const original = structuredClone(snapshot);
+      let table = migrateCockpitSnapshot(snapshot);
+      expect(table.stack).toEqual([]);
+      table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+      expect(table.stack).toEqual([]);
+      expect(snapshot).toEqual(original);
+    }
+
+    {
+      let state = initGame(deck, 32);
+      state = applyCommand(state, { type: 'draw', count: 7 }).state;
+      const source = state.zones.hand[0];
+      state = applyCommand(state, {
+        type: 'moveCard',
+        cardId: source,
+        to: 'battlefield',
+        position: 'top',
+      }).state;
+      state = applyCommand(state, {
+        type: 'addAbilityToStack',
+        sourceId: source,
+        kind: 'triggered',
+        resolutionText: 'Triggered legacy effect',
+        sourceSnapshot: objectSnapshotForCard(state, source)!,
+        targetSelections: [
+          {
+            slotId: 'player',
+            raw: 'target player',
+            kind: 'player',
+            legalityMode: 'unchecked-warning',
+            selection: { kind: 'player', playerId: 'OPPONENT_A' },
+          },
+        ],
+      }).state;
+      const legacyTop = state.zones.stack.at(-1)!;
+      const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+      const original = structuredClone(snapshot);
+      let table = migrateCockpitSnapshot(snapshot);
+      expect(table.stack[0]).toMatchObject({
+        stackCardId: legacyTop,
+        kind: 'triggered',
+        text: 'Triggered legacy effect',
+        targets: ['OPPONENT_A'],
+      });
+      table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+      expect(table.stack[0].stackCardId).toBe(legacyTop);
+      table = applyTableOperation(table, { type: 'resolve.begin' });
+      expect(table.resolution).toMatchObject({ stackCardId: legacyTop, kind: 'triggered' });
+      table = applyTableOperation(table, { type: 'resolve.end', to: 'graveyard' });
+      expect(table.stack).toHaveLength(0);
+      expect(snapshot).toEqual(original);
+    }
+
+    {
+      let state = initGame(deck, 33);
+      state = applyCommand(state, { type: 'draw', count: 7 }).state;
+      const spell = state.zones.hand[0];
+      state = applyCommand(state, {
+        type: 'moveCard',
+        cardId: spell,
+        to: 'stack',
+        position: 'top',
+      }).state;
+      state.cards[spell].isCopy = true;
+      const snapshot = { version: 1, state, deck, autoAdvanceToMain: false };
+      const original = structuredClone(snapshot);
+      let table = migrateCockpitSnapshot(snapshot);
+      expect(table.stack[0]).toMatchObject({ stackCardId: spell, kind: 'spell', copied: true });
+      table = JSON.parse(JSON.stringify(table)) as CockpitTable;
+      expect(table.stack[0]).toMatchObject({ stackCardId: spell, copied: true });
+      table = applyTableOperation(table, { type: 'resolve.begin' });
+      expect(table.resolution?.copied).toBe(true);
+      table = applyTableOperation(table, { type: 'resolve.end', to: 'graveyard' });
+      expect(table.stack).toHaveLength(0);
+      expect(table.cards[spell]).toBeUndefined();
+      expect(snapshot).toEqual(original);
+    }
   });
 
   it('keeps an unsupported pending choice intact instead of silently dropping it', () => {

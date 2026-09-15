@@ -49,33 +49,44 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 63: `export interface TableManualCosts {`
 - line 74: `export const emptyManualCosts = (): TableManualCosts => ({`
 
+## `src/engine/cockpitCardIdentity.ts`
+
+- line 4: `export function sameCockpitCardDefinition(left: CardDef, right: CardDef): boolean {`
+
 ## `src/engine/cockpitMigration.ts`
 
 - line 14: `export function migrateCockpitSnapshot(snapshot: GameSnapshot): CockpitTable {`
-- line 201: `export function backfillCockpitTable(table: CockpitTable): void {`
+- line 203: `export function backfillCockpitTable(table: CockpitTable): void {`
+
+## `src/engine/cockpitPowerToughness.ts`
+
+- line 3: `export interface RecordedPowerToughness {`
+- line 11: `export function cockpitPowerToughness(`
 
 ## `src/engine/cockpitTable.ts`
 
-- line 37: `export const tableZones: readonly ZoneId[] = [`
-- line 46: `export const manaColors: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];`
-- line 47: `export const emptyTableMana = (): ManaPool => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });`
-- line 48: `export interface TableSeat {`
-- line 62: `export interface TableStackEntry {`
-- line 75: `export interface TableGrant {`
-- line 84: `export interface TableModifier {`
-- line 93: `export interface TableCombat {`
-- line 101: `export interface CockpitTable {`
-- line 122: `export interface TableTokenCharacteristics {`
-- line 130: `export type TableOperation =`
-- line 262: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
-- line 330: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
-- line 463: `export function tableActivationPayment(`
-- line 602: `export function tableAutoPayment(`
-- line 622: `export function tableCastPayment(`
-- line 706: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
-- line 723: `export function applyTableOperation(`
-- line 1973: `export function createCockpitTable(`
-- line 2078: `export function assertCockpitCardDef(def: CardDef): void {`
+- line 38: `export const tableZones: readonly ZoneId[] = [`
+- line 47: `export const manaColors: readonly ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];`
+- line 48: `export const emptyTableMana = (): ManaPool => ({ W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 });`
+- line 49: `export interface TableSeat {`
+- line 65: `export interface TableStackEntry {`
+- line 78: `export interface TableGrant {`
+- line 87: `export interface TableModifier {`
+- line 96: `export interface TableCombat {`
+- line 112: `export interface CockpitTable {`
+- line 135: `export interface TableTokenCharacteristics {`
+- line 143: `export type TableOperation =`
+- line 277: `export function tableSeat(table: CockpitTable, id: string): TableSeat {`
+- line 397: `export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {`
+- line 520: `export function tableActivationPayment(`
+- line 659: `export function tableAutoPayment(`
+- line 679: `export function tableCastPayment(`
+- line 763: `export function tableFetchAbility(table: CockpitTable, entry: TableStackEntry) {`
+- line 781: `export function endsWithTableTurn(duration: string): boolean {`
+- line 786: `export function tableCleanupNeedsReview(table: CockpitTable, handCount?: number): boolean {`
+- line 829: `export function applyTableOperation(`
+- line 2145: `export function createCockpitTable(`
+- line 2251: `export function assertCockpitCardDef(def: CardDef): void {`
 
 ## `src/engine/cockpitTriggers.ts`
 

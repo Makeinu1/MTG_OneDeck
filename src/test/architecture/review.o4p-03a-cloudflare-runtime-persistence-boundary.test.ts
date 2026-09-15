@@ -83,7 +83,8 @@ describe('O4P-03A architecture boundary', () => {
       '../visibilityDecisions/types',
       '../../engine/core/index',
     ]);
-    const forbiddenSource = /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
+    const forbiddenSource =
+      /(?:react|react-dom|zustand|indexeddb|localstorage|console\.|node:|addEventListener\s*\(\s*['"]message|setTimeout|setInterval)/i;
     for (const filePath of productionFiles(cloudflareRoot)) {
       const sourceText = readFileSync(filePath, 'utf8');
       if (normalized(filePath) === 'src/online/cloudflare/facts.ts') {
@@ -93,10 +94,26 @@ describe('O4P-03A architecture boundary', () => {
       }
       for (const specifier of moduleSpecifiers(sourceText)) {
         const local = specifier.startsWith('./') && !specifier.includes('..');
-        const cockpitMultiplayerImport = normalized(filePath) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
-        const cockpitImport = normalized(filePath) === 'src/online/cloudflare/cockpitSession.ts' &&
-          ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-        expect(local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport, `${normalized(filePath)} -> ${specifier}`).toBe(true);
+        const cockpitMultiplayerImport =
+          normalized(filePath) === 'src/online/cloudflare/cockpitMultiplayer.ts' &&
+          [
+            '../../engine/cockpitCardIdentity',
+            '../../engine/cockpitTable',
+            '../../engine/init',
+            '../../engine/types',
+          ].includes(specifier);
+        const cockpitImport =
+          normalized(filePath) === 'src/online/cloudflare/cockpitSession.ts' &&
+          [
+            '../../engine/cockpitTable',
+            '../../engine/cockpitMigration',
+            '../../engine/init',
+            '../../data/gameSnapshot',
+          ].includes(specifier);
+        expect(
+          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport,
+          `${normalized(filePath)} -> ${specifier}`,
+        ).toBe(true);
       }
     }
 
@@ -140,10 +157,12 @@ describe('O4P-03A architecture boundary', () => {
     expect(sqlLiterals).not.toMatch(/\$\{/u);
     expect(persistence).not.toMatch(/eval\s*\(|deleteAll/i);
     expect(persistence.match(/DROP TABLE/giu)).toHaveLength(2);
-    expect(persistence).toContain("DROP TABLE IF EXISTS online_accepted_command_migration");
+    expect(persistence).toContain('DROP TABLE IF EXISTS online_accepted_command_migration');
     expect(persistence).toContain("this.storage.sql.exec('DROP TABLE online_accepted_command')");
     expect(persistence.match(/ALTER TABLE/giu)).toHaveLength(1);
-    expect(persistence).toContain('ALTER TABLE online_accepted_command_migration RENAME TO online_accepted_command');
+    expect(persistence).toContain(
+      'ALTER TABLE online_accepted_command_migration RENAME TO online_accepted_command',
+    );
     expect(persistence.match(/pragma_index_/giu)).toHaveLength(2);
     expect(persistence).toContain("pragma_index_list('online_accepted_command')");
     expect(persistence).toContain('pragma_index_info(il.name)');
