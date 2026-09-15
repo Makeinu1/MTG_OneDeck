@@ -1,6 +1,8 @@
 import {
   applyR31TableOperation,
+  defaultResolutionDestination,
   requireExpectedInteractionContext,
+  resolutionProcess,
   type ExpectedInteractionContext,
   type R31TableOperation,
 } from './cockpitR31';
@@ -15,6 +17,7 @@ import {
 import {
   applyTableOperation,
   applyTableZoneTransition,
+  finishTableStack,
   manaColors,
   tableCastPayment,
   type CockpitTable,
@@ -55,6 +58,12 @@ export const emptyR4CastAdditionalCosts = (): R4CastAdditionalCosts => ({
 });
 
 type R31CastOperation = Extract<R31TableOperation, { type: 'cast' }>;
+type R31ResolveEndOperation = Extract<R31TableOperation, { type: 'resolve.end' }>;
+type R4InheritedOperation = Exclude<R31TableOperation, R31ResolveEndOperation>;
+
+export type R4ResolveEndOperation = R31ResolveEndOperation & {
+  entrySetup?: PermanentEntrySetup;
+};
 
 export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
   type: 'cast';
@@ -63,7 +72,8 @@ export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
 };
 
 export type R4TableOperation =
-  | R31TableOperation
+  | R4InheritedOperation
+  | R4ResolveEndOperation
   | R4CastOperation
   | {
       type: 'playLand';
@@ -174,6 +184,25 @@ export function validatePermanentEntrySetup(
 
   if (setup.protectorId !== undefined)
     requireR4(usableSeat(table, setup.protectorId), 'INVALID_ENTRY_SETUP');
+}
+
+export function applyPermanentEntrySetup(
+  table: CockpitTable,
+  cardId: string,
+  setup: PermanentEntrySetup | undefined,
+): void {
+  if (!setup) return;
+  validatePermanentEntrySetup(table, cardId, setup);
+  const card = table.cards[cardId];
+  requireR4(card?.zone === 'battlefield', 'INVALID_ENTRY_SETUP');
+  if (setup.controllerId !== undefined) card.controllerId = setup.controllerId;
+  if (setup.tapped !== undefined) card.tapped = setup.tapped;
+  if (setup.counters !== undefined)
+    card.counters = Object.fromEntries(
+      Object.entries(setup.counters).filter(([, count]) => count > 0),
+    );
+  if (setup.attachmentTargetId !== undefined) card.attachedTo = setup.attachmentTargetId;
+  if (setup.protectorId !== undefined) card.protectorId = setup.protectorId;
 }
 
 function validateCounterRemoval(
@@ -593,6 +622,46 @@ function castR4(
   return table;
 }
 
+function resolvePermanentWithEntrySetup(
+  before: CockpitTable,
+  operation: R4ResolveEndOperation,
+  context: ExpectedInteractionContext,
+  commandId?: string,
+): CockpitTable {
+  requireR4(operation.entrySetup !== undefined, 'INVALID_ENTRY_SETUP');
+  requireR4(
+    context.kind === 'resolution' && context.entryId === operation.entryId,
+    'STALE_INTERACTION_CONTEXT',
+  );
+  requireExpectedInteractionContext(before, context);
+  const entry = before.resolution;
+  requireR4(entry?.id === operation.entryId && entry.kind === 'spell', 'STALE_INTERACTION_CONTEXT');
+  requireR4(operation.to === 'battlefield', 'INVALID_ENTRY_SETUP');
+  requireR4(defaultResolutionDestination(before, entry) === 'battlefield', 'INVALID_ENTRY_SETUP');
+  const cardId = entry.stackCardId ?? entry.source.id;
+  requireR4(before.cards[cardId]?.zone === 'stack', 'INVALID_ENTRY_SETUP');
+  validatePermanentEntrySetup(before, cardId, operation.entrySetup);
+
+  const process = resolutionProcess(operation.entryId, 'lifecycle');
+  const trace = triggerTrace(before, commandId ?? `resolve:${operation.entryId}`, process);
+  const table = structuredClone(before);
+  table.triggers ??= emptyTableTriggers(table.turn);
+  const liveEntry = table.resolution;
+  requireR4(liveEntry?.id === operation.entryId, 'STALE_INTERACTION_CONTEXT');
+  finishTableStack(
+    table,
+    liveEntry,
+    'battlefield',
+    trace,
+    'resolved',
+    (next, ids) => {
+      requireR4(ids.length === 1 && ids[0] === cardId, 'INVALID_ENTRY_SETUP');
+      applyPermanentEntrySetup(next, cardId, operation.entrySetup);
+    },
+  );
+  return table;
+}
+
 function playLand(
   before: CockpitTable,
   operation: Extract<R4TableOperation, { type: 'playLand' }>,
@@ -631,43 +700,17 @@ function playLand(
   const trace = triggerTrace(before, process.id, process);
   const table = structuredClone(before);
   table.triggers ??= emptyTableTriggers(table.turn);
-  checkpointTableTriggers(table, trace, 'change');
-
-  const next = table.cards[operation.cardId];
-  for (const seat of table.seats)
-    for (const zone of Object.keys(seat.zones) as (keyof typeof seat.zones)[])
-      seat.zones[zone] = seat.zones[zone].filter((id) => id !== next.id);
-
-  next.zoneChangeCounter += 1;
-  next.counters = {};
-  next.damageMarked = 0;
-  next.hasDeathtouchDamage = false;
-  next.tapped = false;
-  next.faceDown = false;
-  next.manualKeywords = [];
-  delete next.attachedTo;
-  delete next.protectorId;
-  table.grants = table.grants.filter((grant) => grant.cardId !== next.id);
-  table.modifiers = table.modifiers.filter((modifier) => modifier.cardId !== next.id);
-  delete table.visibility[next.id];
-  for (const other of Object.values(table.cards))
-    if (other.attachedTo === next.id) delete other.attachedTo;
-  next.controllerId = next.ownerId;
-  next.enteredTurn = table.turn;
-  next.zone = 'battlefield';
-  table.seats.find((seat) => seat.id === next.ownerId)!.zones.battlefield.unshift(next.id);
-
-  const setup = operation.entrySetup;
-  if (setup?.controllerId !== undefined) next.controllerId = setup.controllerId;
-  if (setup?.tapped !== undefined) next.tapped = setup.tapped;
-  if (setup?.counters !== undefined)
-    next.counters = Object.fromEntries(
-      Object.entries(setup.counters).filter(([, count]) => count > 0),
-    );
-  if (setup?.attachmentTargetId !== undefined) next.attachedTo = setup.attachmentTargetId;
-  if (setup?.protectorId !== undefined) next.protectorId = setup.protectorId;
-
-  checkpointTableTriggers(table, trace, 'playLand', 'move');
+  applyTableZoneTransition(
+    table,
+    [operation.cardId],
+    'battlefield',
+    'top',
+    trace,
+    'playLand',
+    'move',
+    false,
+    (next) => applyPermanentEntrySetup(next, operation.cardId, operation.entrySetup),
+  );
   return table;
 }
 
@@ -814,6 +857,8 @@ export function applyR4TableOperation(
   commandId?: string,
 ): CockpitTable {
   const operation = request.operation;
+  if (operation.type === 'resolve.end' && operation.entrySetup !== undefined)
+    return resolvePermanentWithEntrySetup(table, operation, request.context, commandId);
   if (operation.type === 'state.apply')
     return applyConfirmedStateActions(table, operation, request.context, commandId);
   if (operation.type === 'trigger.manualAdd')

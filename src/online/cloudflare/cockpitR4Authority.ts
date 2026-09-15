@@ -16,6 +16,7 @@ export type R4FormalOperation =
   | Extract<R4TableOperation, { type: 'special.turnFaceUp' }>
   | Extract<R4TableOperation, { type: 'trigger.manualAdd' }>
   | Extract<R4TableOperation, { type: 'state.apply' }>
+  | Extract<R4TableOperation, { type: 'resolve.end' }>
   | R4CastOperation
   | R4ActivateOperation;
 
@@ -25,6 +26,7 @@ export function isR4FormalOperation(operation: R4TableOperation): operation is R
     operation.type === 'special.turnFaceUp' ||
     operation.type === 'trigger.manualAdd' ||
     operation.type === 'state.apply' ||
+    (operation.type === 'resolve.end' && operation.entrySetup !== undefined) ||
     operation.type === 'activate' ||
     (operation.type === 'cast' && 'sourceZone' in operation)
   );
@@ -173,6 +175,19 @@ export function authorizeR4FormalOperation(
     );
   }
 
+  if (operation.type === 'resolve.end') {
+    const entry = table.resolution;
+    const cardId = entry?.stackCardId ?? entry?.source.id;
+    return Boolean(
+      operation.entrySetup !== undefined &&
+        entry?.id === operation.entryId &&
+        entry.kind === 'spell' &&
+        operation.to === 'battlefield' &&
+        cardId &&
+        table.cards[cardId]?.zone === 'stack',
+    );
+  }
+
   if (operation.type === 'state.apply') {
     return Boolean(
       Array.isArray(operation.graveyardIds) &&
@@ -253,6 +268,7 @@ export function r4OperationCreatesKnowledgeBarrier(
   if (operation.type === 'trigger.manualAdd') return false;
   if (operation.type === 'state.apply')
     return operation.graveyardIds.some((id) => Boolean(table.cards[id]?.faceDown));
+  if (operation.type === 'resolve.end') return false;
   if (operation.type === 'activate') {
     if (isPrivateSource(table, operation.sourceId) || table.cards[operation.sourceId]?.faceDown)
       return true;

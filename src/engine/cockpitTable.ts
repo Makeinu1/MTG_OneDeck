@@ -1168,8 +1168,19 @@ export function applyTableOperation(
               /\bLand\b/.test(table.defs[target.defId]?.faces[target.faceIndex]?.typeLine ?? ''),
             '自分の山札から土地を選んでください。',
           );
-          move(table, [target.id], 'battlefield', 'top', trace);
-          table.cards[target.id].tapped = operation.tapped;
+          applyTableZoneTransition(
+            table,
+            [target.id],
+            'battlefield',
+            'top',
+            trace,
+            'move',
+            'move',
+            false,
+            (next) => {
+              next.cards[target.id].tapped = operation.tapped;
+            },
+          );
         }
         seat.zones.library = shuffledOrder(seat.zones.library, createRng(operation.seed));
         finishTableStack(table, entry, 'graveyard', trace);
