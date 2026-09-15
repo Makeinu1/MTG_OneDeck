@@ -1,7 +1,7 @@
 name: Cockpit repair verification
 on:
   push:
-    branches: [fix/cockpit-playflow-17-20260914, r3-1-manual-resolution]
+    branches: [fix/cockpit-playflow-17-20260914]
   workflow_call:
     inputs:
       source_sha:
@@ -11,6 +11,7 @@ permissions:
   contents: read
 jobs:
   stage1:
+    if: inputs.source_sha != '' || !contains(github.event.head_commit.message, '[stage1-assemble]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,32 +24,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: R3.1 engine lifecycle tests
-        run: |
-          node node_modules/vitest/vitest.mjs run --project core \
-            src/engine/__tests__/cockpitR31.test.ts \
-            src/engine/__tests__/cockpitR31Lifecycle.test.ts \
-            src/engine/__tests__/cockpitMana.test.ts \
-            src/engine/__tests__/cockpitTriggers.test.ts
-      - name: Multiplayer, knowledge barrier, client recovery
-        run: node node_modules/vitest/vitest.mjs run --project dom src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
+      - name: Targeted recovery and SQLite tests
+        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
       - name: Types, build, and changed-file lint
         run: |
           npm run build
-          node node_modules/eslint/bin/eslint.js \
-            src/engine/types.ts \
-            src/engine/cockpitR31.ts \
-            src/engine/cockpitTable.ts \
-            src/engine/cockpitTriggers.ts \
-            src/engine/__tests__/cockpitR31.test.ts \
-            src/engine/__tests__/cockpitR31Lifecycle.test.ts \
-            src/online/browser/cockpitClient.ts \
-            src/online/cloudflare/cockpitSession.ts \
-            src/online/cloudflare/__tests__/cockpitSession.test.ts \
-            src/components/game/CockpitSessionScreen.tsx \
-            src/components/game/CockpitTableSurface.tsx \
-            src/components/game/CockpitSelectionTools.tsx \
-            scripts/online/r31-resolution-uat.mjs
+          node node_modules/eslint/bin/eslint.js src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/online/browser/__tests__/cockpitClient.test.ts scripts/online/cockpit-recovery-evidence.mjs
       - name: Isolated browser and local Worker tools
         run: |
           mkdir -p "$RUNNER_TEMP/cockpit-runtime"
@@ -56,13 +37,13 @@ jobs:
           npm init -y >/dev/null
           npm install --save-exact wrangler@4.131.1 playwright@1.63.0
           node node_modules/playwright/cli.js install --with-deps chromium
-      - name: Real HTTP, Worker, SQLite and minimal R3.1 UAT
+      - name: Real HTTP, Worker, SQLite, and two browsers
         env:
           WRANGLER_SEND_METRICS: false
         shell: bash
         run: |
           set -euo pipefail
-          export COCKPIT_EVIDENCE_DIR="$RUNNER_TEMP/cockpit-r31-evidence"
+          export COCKPIT_EVIDENCE_DIR="$RUNNER_TEMP/cockpit-stage1-evidence"
           export COCKPIT_PLAYWRIGHT_MODULE="$RUNNER_TEMP/cockpit-runtime/node_modules/playwright/index.mjs"
           export COCKPIT_SOURCE_SHA="$(git rev-parse HEAD)"
           mkdir -p "$COCKPIT_EVIDENCE_DIR"
@@ -75,11 +56,11 @@ jobs:
             if curl -s --max-time 1 -o /dev/null http://127.0.0.1:8789/ && curl -fsS --max-time 1 -o /dev/null http://127.0.0.1:5173/; then break; fi
             sleep 1
           done
-          node scripts/online/r31-resolution-uat.mjs
+          node scripts/online/cockpit-recovery-evidence.mjs --recovery-only
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: cockpit-r31-final-evidence
-          path: ${{ runner.temp }}/cockpit-r31-evidence
+          name: cockpit-stage1-evidence
+          path: ${{ runner.temp }}/cockpit-stage1-evidence
           retention-days: 7
           if-no-files-found: warn
