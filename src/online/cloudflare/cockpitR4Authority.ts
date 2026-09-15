@@ -44,6 +44,13 @@ function actorCanReadCard(
   return index >= 0 && index < peek.count;
 }
 
+function actorCanReadFace(table: CockpitTable, actor: string, cardId: string): boolean {
+  const card = table.cards[cardId];
+  if (!card) return false;
+  if (!card.faceDown) return true;
+  return card.controllerId === actor || Boolean(table.visibility[cardId]?.includes(actor));
+}
+
 function additionalPrivateIds(operation: R4CastOperation): string[] {
   const costs = operation.additionalCosts;
   if (!costs) return [];
@@ -99,7 +106,8 @@ export function authorizeR4FormalOperation(
     return Boolean(
       card?.zone === 'battlefield' &&
         card.faceDown &&
-        table.seats.some((seat) => seat.id === card.controllerId && !seat.eliminated),
+        table.seats.some((seat) => seat.id === card.controllerId && !seat.eliminated) &&
+        actorCanReadFace(table, actor, operation.cardId),
     );
   }
 
@@ -108,10 +116,13 @@ export function authorizeR4FormalOperation(
     !card ||
     card.zone !== operation.sourceZone ||
     !table.seats.some((seat) => seat.id === card.controllerId && !seat.eliminated) ||
-    !actorCanReadCard(table, multi, actor, operation.cardId)
+    !actorCanReadCard(table, multi, actor, operation.cardId) ||
+    !actorCanReadFace(table, actor, operation.cardId)
   )
     return false;
-  return additionalPrivateIds(operation).every((id) => actorCanReadCard(table, multi, actor, id));
+  return additionalPrivateIds(operation).every(
+    (id) => actorCanReadCard(table, multi, actor, id) && actorCanReadFace(table, actor, id),
+  );
 }
 
 function isPrivateSource(table: CockpitTable, cardId: string): boolean {
@@ -124,7 +135,7 @@ export function r4OperationCreatesKnowledgeBarrier(
 ): boolean {
   if (operation.type === 'playLand') return isPrivateSource(table, operation.cardId);
   if (operation.type === 'special.turnFaceUp') return Boolean(table.cards[operation.cardId]?.faceDown);
-  if (isPrivateSource(table, operation.cardId)) return true;
+  if (isPrivateSource(table, operation.cardId) || table.cards[operation.cardId]?.faceDown) return true;
   if (operation.additionalCosts) {
     const ids = [
       ...operation.additionalCosts.discardIds,
@@ -134,11 +145,12 @@ export function r4OperationCreatesKnowledgeBarrier(
       ...operation.additionalCosts.tapIds,
       ...operation.additionalCosts.counters.map((cost) => cost.cardId),
     ];
-    if (ids.some((id) => isPrivateSource(table, id))) return true;
+    if (ids.some((id) => isPrivateSource(table, id) || table.cards[id]?.faceDown)) return true;
   }
   return operation.paymentPlan.some(
     (command) =>
       command.type === 'discard' ||
-      (command.type === 'moveCard' && isPrivateSource(table, command.cardId)),
+      (command.type === 'moveCard' &&
+        (isPrivateSource(table, command.cardId) || table.cards[command.cardId]?.faceDown)),
   );
 }
