@@ -20,6 +20,7 @@ import {
   defaultResolutionDestination,
   type R31TableOperation,
 } from '../../engine/cockpitR31';
+import type { R4TableOperation } from '../../engine/cockpitR4';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { ContextMenu } from '../ContextMenu';
@@ -109,7 +110,7 @@ export function CockpitTableSurface({
   cast: (id: string) => void;
   activate?: (id: string, choice?: string) => void;
   send: (
-    op: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+    op: TableOperation | R31TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' },
   ) => Promise<boolean>;
   openMenu: () => void;
   children:
@@ -336,8 +337,10 @@ export function CockpitTableSurface({
       activate(id);
     else if (card.zone === 'battlefield')
       void send({ type: 'tap', ids: [id], tapped: !card.tapped });
-    else if (isLand(id)) void send({ type: 'move', ids: [id], to: 'battlefield', position: 'top' });
-    else cast(id);
+    else if (isLand(id)) {
+      if (card.zone === 'hand') void send({ type: 'playLand', cardId: id });
+      else inspect(id);
+    } else cast(id);
   }
   function card(id: string, index = 0, handCount = 0, inZone = false) {
     const instance = table.cards[id];
@@ -436,7 +439,9 @@ export function CockpitTableSurface({
                     ? '能力を起動'
                     : 'タップ'
               : isLand(id)
-                ? '土地を置く'
+                ? table.cards[id].zone === 'hand'
+                  ? '土地を置く'
+                  : '詳細'
                 : '唱える'}
           </button>
         )}
@@ -765,7 +770,9 @@ export function CockpitTableSurface({
           if (!isLand(id)) cast(id);
           return;
         }
-        if (
+        if (to === 'battlefield' && instance.zone === 'hand' && isLand(id))
+          void send({ type: 'playLand', cardId: id });
+        else if (
           to === 'battlefield' &&
           (instance.zone === 'hand' || instance.zone === 'command') &&
           !isLand(id)
@@ -1307,7 +1314,9 @@ export function CockpitTableSurface({
                       ? 'アンタップ'
                       : 'タップ／起動'
                   : isLand(cardMenu.id)
-                    ? '土地を置く'
+                    ? table.cards[cardMenu.id]?.zone === 'hand'
+                      ? '土地を置く'
+                      : '詳細'
                     : '唱える',
               disabled: disabled || opening,
               onSelect: () => quick(cardMenu.id),
