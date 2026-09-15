@@ -18,9 +18,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: R4 slice and R3.1 regression tests
+      - name: R4 core and R3.1 engine/server regression tests
         run: >-
-          node node_modules/vitest/vitest.mjs run
+          node node_modules/vitest/vitest.mjs run --project core
           src/engine/__tests__/cockpitR4.test.ts
           src/engine/__tests__/cockpitR31.test.ts
           src/engine/__tests__/cockpitR31Lifecycle.test.ts
@@ -28,6 +28,9 @@ jobs:
           src/engine/__tests__/manaTransaction.test.ts
           src/online/cloudflare/__tests__/cockpitSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+      - name: R3.1 browser client regression tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
           src/online/browser/__tests__/cockpitClient.test.ts
       - name: Types and build
         run: npm run build
