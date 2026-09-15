@@ -1,0 +1,101 @@
+name: Refine R4 cast union
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+    paths: [.github/r4-cast-types.marker]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: r4a-formal-manual-inventory
+          fetch-depth: 0
+      - shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/engine/cockpitR4.ts)" = dc6a4f3bd653e77d804bd3ff83942c8ab0f8e2e8
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/engine/cockpitR4.ts')
+          text = path.read_text()
+          old = """type R31CastOperation = Extract<R31TableOperation, { type: 'cast' }>;
+type R4PassthroughOperation = Exclude<R31TableOperation, R31CastOperation>;
+
+export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
+  type: 'cast';
+  sourceZone: R4CastSourceZone;
+  additionalCosts?: R4CastAdditionalCosts;
+};
+
+export type R4TableOperation =
+  | R4PassthroughOperation
+  | R4CastOperation
+  | {
+"""
+          new = """type R31CastOperation = Extract<R31TableOperation, { type: 'cast' }>;
+
+export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
+  type: 'cast';
+  sourceZone: R4CastSourceZone;
+  additionalCosts?: R4CastAdditionalCosts;
+};
+
+export type R4TableOperation =
+  | R31TableOperation
+  | R4CastOperation
+  | {
+"""
+          if text.count(old) != 1:
+              raise SystemExit('cast union source did not match exactly once')
+          text = text.replace(old, new, 1)
+          old = """function isLegacyCast(operation: R4TableOperation): operation is never {
+  return operation.type === 'cast' && !('sourceZone' in operation);
+}
+
+export function applyR4TableOperation(
+  table: CockpitTable,
+  request: R4OperationRequest,
+  commandId?: string,
+): CockpitTable {
+  const operation = request.operation;
+  if (isLegacyCast(operation))
+    return applyR31TableOperation(
+      table,
+      { operation: operation as unknown as R31TableOperation, context: request.context },
+      commandId,
+    );
+  if (operation.type === 'cast') return castR4(table, operation, request.context, commandId);
+"""
+          new = """export function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {
+  return operation.type === 'cast' && 'sourceZone' in operation;
+}
+
+export function applyR4TableOperation(
+  table: CockpitTable,
+  request: R4OperationRequest,
+  commandId?: string,
+): CockpitTable {
+  const operation = request.operation;
+  if (isR4CastOperation(operation)) return castR4(table, operation, request.context, commandId);
+  if (operation.type === 'cast')
+    return applyR31TableOperation(
+      table,
+      { operation, context: request.context },
+      commandId,
+    );
+"""
+          if text.count(old) != 1:
+              raise SystemExit('cast dispatcher source did not match exactly once')
+          text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          git diff --check
+          git rm .github/r4-cast-types.marker .github/workflows/r4-refine-cast-types.yml
+          git add src/engine/cockpitR4.ts
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'refactor(r4): model legacy and formal casts explicitly'
+          git push origin HEAD:refs/heads/r4a-formal-manual-inventory
