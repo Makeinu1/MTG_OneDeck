@@ -55,6 +55,7 @@ export function CockpitAbilityTools({
   const [error, setError] = useState('');
   const choice = choices.find((item) => item.key === key);
   const useManual = key !== 'triggered' && (manual || choice?.manual || key === 'manual');
+  const addingManualTrigger = key === 'triggered' && !candidate && !linkedCandidate;
   let automaticProposal: typeof proposal = null;
   let paymentError = '';
   if (choice && !useManual) {
@@ -253,7 +254,11 @@ export function CockpitAbilityTools({
           </p>
         </fieldset>
       )}
+      {addingManualTrigger && (
+        <p>対象は誘発候補を追加した後、スタックへ載せるときに確定します。</p>
+      )}
       <button
+        disabled={addingManualTrigger}
         onClick={() => {
           setTargets([...selected]);
           setProposal(null);
@@ -267,6 +272,7 @@ export function CockpitAbilityTools({
           <input
             type="checkbox"
             checked={targets.includes(entry.id)}
+            disabled={addingManualTrigger}
             onChange={(event) => {
               setTargets(
                 event.target.checked
@@ -284,6 +290,7 @@ export function CockpitAbilityTools({
           <input
             type="checkbox"
             checked={targetSeats.includes(seat.id)}
+            disabled={addingManualTrigger}
             onChange={() => {
               setTargetSeats(
                 targetSeats.includes(seat.id)
@@ -302,7 +309,11 @@ export function CockpitAbilityTools({
           checked={confirmed}
           onChange={(event) => setConfirmed(event.target.checked)}
         />
-        {key === 'triggered' ? '誘発・対象・順番を確認した' : '対象と起動条件を確認した'}
+        {addingManualTrigger
+          ? '誘発内容を確認した'
+          : key === 'triggered'
+            ? '誘発・対象・順番を確認した'
+            : '対象と起動条件を確認した'}
       </label>
       <button
         hidden={!useManual && !!choice}
@@ -353,7 +364,14 @@ export function CockpitAbilityTools({
                       targets: shownProposal.targets,
                       text: shownProposal.text,
                     }
-                  : { ...shownProposal, id: crypto.randomUUID() },
+                  : key === 'triggered'
+                    ? {
+                        type: 'trigger.manualAdd',
+                        id: crypto.randomUUID(),
+                        sourceId,
+                        text: shownProposal.text,
+                      }
+                    : { ...shownProposal, id: crypto.randomUUID() },
               ).then((saved) => {
                 if (saved) {
                   setProposal(null);
@@ -362,7 +380,11 @@ export function CockpitAbilityTools({
               })
             }
           >
-            {key === 'triggered' ? 'スタックに登録' : 'コストを支払って起動する'}
+            {key === 'triggered'
+              ? linkedCandidate
+                ? 'スタックに登録'
+                : '誘発候補として追加'
+              : 'コストを支払って起動する'}
           </button>
           {!automaticProposal && <button onClick={() => setProposal(null)}>選び直す</button>}
         </section>

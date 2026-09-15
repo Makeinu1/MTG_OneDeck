@@ -8,6 +8,7 @@ import {
   blockingPublicTableTriggers,
   checkpointTableTriggers,
   emptyTableTriggers,
+  tableObjectSnapshot,
   triggerTrace,
   type TableTriggerTrace,
 } from './cockpitTriggers';
@@ -702,6 +703,64 @@ function turnFaceUp(
   return table;
 }
 
+function addManualTrigger(
+  before: CockpitTable,
+  operation: Extract<R4TableOperation, { type: 'trigger.manualAdd' }>,
+  context: ExpectedInteractionContext,
+): CockpitTable {
+  requireExpectedInteractionContext(before, context);
+  requireR4(!before.hold, 'HOLD中は誘発を追加できません。');
+  requireR4(
+    typeof operation.id === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(operation.id),
+    'INVALID_MANUAL_TRIGGER',
+  );
+  requireR4(
+    typeof operation.text === 'string' &&
+      operation.text.trim().length > 0 &&
+      operation.text.length <= 5000,
+    'INVALID_MANUAL_TRIGGER',
+  );
+  const source = before.cards[operation.sourceId];
+  requireR4(
+    source &&
+      !source.faceDown &&
+      !['hand', 'library'].includes(source.zone) &&
+      usableSeat(before, source.controllerId),
+    'INVALID_MANUAL_TRIGGER_SOURCE',
+  );
+
+  const table = structuredClone(before);
+  table.triggers ??= emptyTableTriggers(table.turn);
+  requireR4(
+    !table.triggers.candidates.some((candidate) => candidate.pendingTriggerId === operation.id),
+    'INVALID_MANUAL_TRIGGER',
+  );
+  const liveSource = table.cards[source.id];
+  const def = table.defs[liveSource.defId];
+  const eventId = `manual-trigger:${operation.id}`;
+  table.triggers.candidates.push({
+    pendingTriggerId: operation.id,
+    eventId,
+    simultaneousGroupId: eventId,
+    triggerId: 'manual',
+    sourceId: liveSource.id,
+    sourceObjectId: `${liveSource.id}:${liveSource.zoneChangeCounter}`,
+    sourceSnapshot: tableObjectSnapshot(table, liveSource),
+    controllerId: liveSource.controllerId,
+    label: `手動誘発：${def?.printedName ?? def?.name ?? 'カード'}`,
+    stackPlacementBucket: 'ordinary',
+    ...(context.kind === 'resolution'
+      ? { originProcess: { kind: 'resolution' as const, id: context.entryId } }
+      : {}),
+    resolutionText: operation.text.trim(),
+    source: structuredClone(liveSource),
+    text: operation.text.trim(),
+    status: 'pending',
+    requiresManualRuling: true,
+  });
+  return table;
+}
+
 export function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {
   return operation.type === 'cast' && 'sourceZone' in operation;
 }
@@ -712,6 +771,8 @@ export function applyR4TableOperation(
   commandId?: string,
 ): CockpitTable {
   const operation = request.operation;
+  if (operation.type === 'trigger.manualAdd')
+    return addManualTrigger(table, operation, request.context);
   if (isR4CastOperation(operation)) return castR4(table, operation, request.context, commandId);
   if (operation.type === 'cast')
     return applyR31TableOperation(

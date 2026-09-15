@@ -14,6 +14,7 @@ type R4ActivateOperation = Extract<R4TableOperation, { type: 'activate' }>;
 export type R4FormalOperation =
   | Extract<R4TableOperation, { type: 'playLand' }>
   | Extract<R4TableOperation, { type: 'special.turnFaceUp' }>
+  | Extract<R4TableOperation, { type: 'trigger.manualAdd' }>
   | R4CastOperation
   | R4ActivateOperation;
 
@@ -21,6 +22,7 @@ export function isR4FormalOperation(operation: R4TableOperation): operation is R
   return (
     operation.type === 'playLand' ||
     operation.type === 'special.turnFaceUp' ||
+    operation.type === 'trigger.manualAdd' ||
     operation.type === 'activate' ||
     (operation.type === 'cast' && 'sourceZone' in operation)
   );
@@ -169,6 +171,17 @@ export function authorizeR4FormalOperation(
     );
   }
 
+  if (operation.type === 'trigger.manualAdd') {
+    const source = table.cards[operation.sourceId];
+    return Boolean(
+      source &&
+        !source.faceDown &&
+        !['hand', 'library'].includes(source.zone) &&
+        table.seats.some((seat) => seat.id === source.controllerId && !seat.eliminated) &&
+        actorCanReadCard(table, multi, actor, source.id),
+    );
+  }
+
   if (operation.type === 'activate') {
     const source = table.cards[operation.sourceId];
     if (
@@ -222,6 +235,7 @@ export function r4OperationCreatesKnowledgeBarrier(
 ): boolean {
   if (operation.type === 'playLand') return isPrivateSource(table, operation.cardId);
   if (operation.type === 'special.turnFaceUp') return Boolean(table.cards[operation.cardId]?.faceDown);
+  if (operation.type === 'trigger.manualAdd') return false;
   if (operation.type === 'activate') {
     if (isPrivateSource(table, operation.sourceId) || table.cards[operation.sourceId]?.faceDown)
       return true;

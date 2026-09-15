@@ -423,6 +423,7 @@ export function nextTriggerController(table: CockpitTable): string | undefined {
   )?.id;
 }
 export type TriggerOperation =
+  | { type: 'trigger.manualAdd'; id: string; sourceId: string; text: string }
   | { type: 'trigger.place'; candidateId: string; id: string; targets: string[]; text?: string }
   | { type: 'trigger.link'; candidateId: string; entryId: string }
   | { type: 'trigger.dismiss'; candidateId: string; reason: string };
