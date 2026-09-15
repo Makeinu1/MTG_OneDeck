@@ -19,11 +19,12 @@ jobs:
       - run: npm ci
       - name: Apply exact resolution entry migration
         run: python scripts/r4-resolution-entry-migration.py
-      - name: Align generated stack fixture with R4 raw-mutation gate
+      - name: Align generated stack fixtures with R4 raw-mutation gate
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
+
           path = Path('src/engine/__tests__/cockpitR4Entry.test.ts')
           text = path.read_text()
           text = text.replace(
@@ -35,6 +36,19 @@ jobs:
           new = """  const table = createCockpitTable(makeDeck(30), 51);\n  const cardId = table.seats[0].zones.hand[0];\n  const def = table.defs[table.cards[cardId].defId];\n  def.faces[0].typeLine = 'Creature';\n  def.faces[0].oracleText = `When ${def.name} enters the battlefield, draw a card.`;\n  const card = table.cards[cardId];\n  table.seats[0].zones.hand = table.seats[0].zones.hand.filter((id) => id !== cardId);\n  card.zoneChangeCounter += 1;\n  card.zone = 'stack';\n  card.controllerId = card.ownerId;\n  card.enteredTurn = 0;\n  table.seats[0].zones.stack.unshift(cardId);\n"""
           if text.count(old) != 1:
               raise SystemExit('generated resolvingPermanent fixture changed unexpectedly')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('src/components/game/CockpitTableSurface.entrySetup.test.tsx')
+          text = path.read_text()
+          text = text.replace(
+              "import { applyTableOperation, createCockpitTable } from '../../engine/cockpitTable';\n",
+              "import { createCockpitTable } from '../../engine/cockpitTable';\n",
+              1,
+          )
+          old = """  let table = createCockpitTable(makeDeck(30), 72);\n  table.seats[0].kept = true;\n  const cardId = table.seats[0].zones.hand[0];\n  const def = table.defs[table.cards[cardId].defId];\n  def.faces[0].typeLine = 'Creature';\n  def.faces[0].oracleText = 'Manual permanent text.';\n  table = applyTableOperation(table, {\n    type: 'move',\n    ids: [cardId],\n    to: 'stack',\n    position: 'top',\n  });\n"""
+          new = """  const table = createCockpitTable(makeDeck(30), 72);\n  table.seats[0].kept = true;\n  const cardId = table.seats[0].zones.hand[0];\n  const def = table.defs[table.cards[cardId].defId];\n  def.faces[0].typeLine = 'Creature';\n  def.faces[0].oracleText = 'Manual permanent text.';\n  const card = table.cards[cardId];\n  table.seats[0].zones.hand = table.seats[0].zones.hand.filter((id) => id !== cardId);\n  card.zoneChangeCounter += 1;\n  card.zone = 'stack';\n  card.controllerId = card.ownerId;\n  card.enteredTurn = 0;\n  table.seats[0].zones.stack.unshift(cardId);\n"""
+          if text.count(old) != 1:
+              raise SystemExit('generated TableSurface entry fixture changed unexpectedly')
           path.write_text(text.replace(old, new, 1))
           PY
       - name: Engine resolution entry regression
