@@ -683,13 +683,17 @@ export async function handleCockpitSession(
               const crossesKnowledgeBarrier = Boolean(
                 record.multiplayer && operationCreatesKnowledgeBarrier(before, body.operation),
               );
-              record.table = body.context
-                ? applyR4TableOperation(
-                    before,
-                    { operation: body.operation as R4TableOperation, context: body.context },
-                    body.requestId,
-                  )
-                : applyTableOperation(before, body.operation, body.requestId);
+              if (body.context) {
+                record.table = applyR4TableOperation(
+                  before,
+                  { operation: body.operation as R4TableOperation, context: body.context },
+                  body.requestId,
+                );
+              } else {
+                if (body.operation.type === 'playLand')
+                  return response({ error: 'INVALID_REQUEST' }, 400);
+                record.table = applyTableOperation(before, body.operation, body.requestId);
+              }
               const operation = body.operation;
               if (crossesKnowledgeBarrier)
                 record.knowledgeEpoch = knowledgeEpochBefore + 1;
