@@ -44,12 +44,13 @@ it('offers only finite atomic cast-cost primitives for selected cards', () => {
     expect(host.textContent).toContain('chargeカウンターを取り除く');
     expect(host.textContent).not.toContain('任意の操作');
 
-    const life = host.querySelector<HTMLInputElement>('input[type="number"][max="100000"]')!;
-    act(() => {
-      life.value = '3';
-      life.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ life: 3 }));
+    const discardLabel = [...host.querySelectorAll('label')].find(
+      (label) => label.textContent?.trim() === '捨てる',
+    )!;
+    act(() => discardLabel.querySelector<HTMLInputElement>('input')!.click());
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ discardIds: [handId] }),
+    );
   } finally {
     act(() => root.unmount());
     host.remove();
