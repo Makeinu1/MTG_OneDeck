@@ -26,7 +26,16 @@ jobs:
       - name: Apply staged R3.1 patches when present
         run: |
           if [ -f scripts/r3-1/apply-session-client-ui.mjs ]; then node scripts/r3-1/apply-session-client-ui.mjs; fi
-          if [ -f scripts/r3-1/apply-provenance.mjs ]; then node scripts/r3-1/apply-provenance.mjs; fi
+          if [ -f scripts/r3-1/apply-provenance.mjs ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/r3-1/apply-provenance.mjs')
+          s = p.read_text()
+          s = s.replace("commandId ?? `local-${(table.triggers?.sequence ?? 0) + 1}`", "commandId ?? 'local-' + ((table.triggers?.sequence ?? 0) + 1)")
+          p.write_text(s)
+          PY
+            node scripts/r3-1/apply-provenance.mjs
+          fi
       - run: npm ci
       - name: Targeted R3.1 engine tests
         run: node node_modules/vitest/vitest.mjs run --project core src/engine/__tests__/cockpitR31.test.ts src/engine/__tests__/cockpitTriggers.test.ts
