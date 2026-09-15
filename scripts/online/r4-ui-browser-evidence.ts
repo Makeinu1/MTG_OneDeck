@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { writeFileSync } from 'node:fs';
+import type { CockpitTable } from '../../src/engine/cockpitTable';
+import type { R4CastOperation, R4TableOperation } from '../../src/engine/cockpitR4';
 import {
   launchO4p06fCdpBrowserV1,
   type O4p06fPageV1,
@@ -17,6 +19,10 @@ async function waitFor<T>(page: O4p06fPageV1, expression: string, label: string)
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error(`Timed out waiting for ${label}`);
+}
+
+function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {
+  return operation.type === 'cast' && 'sourceZone' in operation;
 }
 
 const browser = await launchO4p06fCdpBrowserV1(timeoutMs);
@@ -162,17 +168,15 @@ try {
   );
 
   const state = await page.evaluate<{
-    operations: Array<Record<string, unknown>>;
-    table: any;
+    operations: R4TableOperation[];
+    table: CockpitTable;
   }>(`(() => ({ operations: window.__r4EvidenceOperations, table: window.__r4EvidenceTable }))()`);
   const operations = state.operations;
-  const land = operations.find((op) => op.type === 'playLand');
-  const cast = operations.find((op) => op.type === 'cast' && op.sourceZone === 'graveyard') as
-    | (Record<string, any> & { additionalCosts?: { discardIds?: string[] } })
-    | undefined;
-  const special = operations.find((op) => op.type === 'special.turnFaceUp');
+  const land = operations.find((operation) => operation.type === 'playLand');
+  const cast = operations.find(isR4CastOperation);
+  const special = operations.find((operation) => operation.type === 'special.turnFaceUp');
   if (!land || land.cardId !== ids.landId) throw new Error('playLand evidence mismatch');
-  if (!cast || cast.cardId !== ids.graveId || !cast.additionalCosts?.discardIds?.includes(ids.costId))
+  if (!cast || cast.cardId !== ids.graveId || !cast.additionalCosts?.discardIds.includes(ids.costId))
     throw new Error('unusual-zone cast/additional-cost evidence mismatch');
   if (!special || special.cardId !== ids.faceDownId) throw new Error('special action evidence mismatch');
   if (state.table.cards[ids.landId]?.zone !== 'battlefield')
@@ -191,9 +195,9 @@ try {
   const summary = {
     kind: 'r4-ui-browser-evidence-v1',
     chromeVersion: browser.chromeVersion,
-    operations: operations.map((op) => ({
-      type: op.type,
-      ...(typeof op.sourceZone === 'string' ? { sourceZone: op.sourceZone } : {}),
+    operations: operations.map((operation) => ({
+      type: operation.type,
+      ...(isR4CastOperation(operation) ? { sourceZone: operation.sourceZone } : {}),
     })),
     playLand: { cardId: ids.landId, zone: state.table.cards[ids.landId].zone },
     unusualZoneCast: {
