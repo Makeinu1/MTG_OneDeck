@@ -58,7 +58,7 @@ import {
                     { operation: body.operation as R31TableOperation, context: body.context },
                     body.requestId,
                   )
-                : applyTableOperation(before, body.operation as TableOperation, body.requestId);
+                : applyTableOperation(before, body.operation, body.requestId);
               const operation = body.operation;`,
   ],
 ]);
