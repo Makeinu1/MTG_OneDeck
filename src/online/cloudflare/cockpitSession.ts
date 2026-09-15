@@ -16,11 +16,8 @@ import {
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
-import {
-  applyR31TableOperation,
-  type ExpectedInteractionContext,
-  type R31TableOperation,
-} from '../../engine/cockpitR31';
+import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
+import { applyR4TableOperation, type R4TableOperation } from '../../engine/cockpitR4';
 import type { InitDeckCard } from '../../engine/init';
 import type { OnlineCloudflareSqlStorage } from './types';
 
@@ -77,7 +74,7 @@ export type CockpitSessionRequest = (
       token: string;
       requestId: string;
       revision: number;
-      operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' };
+      operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' };
       context?: ExpectedInteractionContext;
     }
 ) & { connectionId?: string };
@@ -130,7 +127,7 @@ function knowledgeSafeUndo(record: SessionRecord): boolean {
 }
 function operationCreatesKnowledgeBarrier(
   table: CockpitTable,
-  operation: TableOperation | R31TableOperation,
+  operation: TableOperation | R4TableOperation,
 ): boolean {
   switch (operation.type) {
     case 'draw':
@@ -148,6 +145,8 @@ function operationCreatesKnowledgeBarrier(
       return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
     case 'move':
       return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
+    case 'playLand':
+      return table.cards[operation.cardId]?.zone === 'hand';
     case 'cast':
       return (
         table.cards[operation.cardId]?.zone === 'hand' ||
@@ -638,16 +637,24 @@ export async function handleCockpitSession(
           } else {
             if (
               !body.context &&
-              body.operation.type === 'move' &&
-              body.operation.reason !== undefined
+              ((body.operation.type === 'move' && body.operation.reason !== undefined) ||
+                body.operation.type === 'playLand')
             )
               return response({ error: 'INVALID_REQUEST' }, 400);
-            if (
-              record.multiplayer &&
-              (!authorizeCockpitOperation(before, record.multiplayer, actor, body.operation, now) ||
-                body.operation.type === 'eliminate')
-            )
-              return response({ error: 'NOT_AUTHORIZED' }, 403);
+            if (record.multiplayer) {
+              const multi = record.multiplayer;
+              const authorized =
+                body.operation.type === 'playLand'
+                  ? cockpitOwnerPresent(multi, now) &&
+                    multi.started &&
+                    actor === multi.masterId &&
+                    !multi.holds.length &&
+                    !before.ended &&
+                    !before.seats.find((seat) => seat.id === actor)?.eliminated
+                  : authorizeCockpitOperation(before, multi, actor, body.operation, now);
+              if (!authorized || body.operation.type === 'eliminate')
+                return response({ error: 'NOT_AUTHORIZED' }, 403);
+            }
             if (body.operation.type === 'undo') {
               ensureKnowledgeHistory(record);
               const previous = record.undo.at(-1);
@@ -677,9 +684,9 @@ export async function handleCockpitSession(
                 record.multiplayer && operationCreatesKnowledgeBarrier(before, body.operation),
               );
               record.table = body.context
-                ? applyR31TableOperation(
+                ? applyR4TableOperation(
                     before,
-                    { operation: body.operation as R31TableOperation, context: body.context },
+                    { operation: body.operation as R4TableOperation, context: body.context },
                     body.requestId,
                   )
                 : applyTableOperation(before, body.operation, body.requestId);
