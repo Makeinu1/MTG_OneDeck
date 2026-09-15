@@ -3,6 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 
 import { makeDeck } from '../../../engine/__tests__/helpers';
+import type { CockpitTable } from '../../../engine/cockpitTable';
+import {
+  r4CastPayment,
+  type R4CastAdditionalCosts,
+  type R4CastSourceZone,
+} from '../../../engine/cockpitR4';
+import type { ZoneId } from '../../../engine/types';
 import {
   handleCockpitSession,
   type CockpitSessionView,
@@ -44,28 +51,7 @@ function request(body: unknown): Request {
 }
 
 type SessionErrorView = CockpitSessionView & { error?: string };
-type TestCard = {
-  id: string;
-  defId: string;
-  faceIndex: number;
-  zone: string;
-  ownerId: string;
-  controllerId: string;
-  faceDown: boolean;
-};
-type TestRecord = {
-  table: {
-    cards: Record<string, TestCard>;
-    defs: Record<
-      string,
-      {
-        faces: { typeLine?: string; manaCost?: string; oracleText?: string }[];
-      }
-    >;
-    seats: { id: string; zones: Record<string, string[]> }[];
-    visibility: Record<string, string[]>;
-  };
-};
+type TestRecord = { table: CockpitTable };
 
 function loadRecord(storage: OnlineCloudflareSqlStorage): TestRecord {
   const row = storage.sql
@@ -78,10 +64,10 @@ function saveRecord(storage: OnlineCloudflareSqlStorage, record: TestRecord): vo
   storage.sql.exec('UPDATE cockpit_session SET data = ? WHERE id = 1', JSON.stringify(record));
 }
 
-function relocate(record: TestRecord, cardId: string, to: string): void {
+function relocate(record: TestRecord, cardId: string, to: ZoneId): void {
   const card = record.table.cards[cardId];
   for (const seat of record.table.seats)
-    for (const zone of Object.keys(seat.zones))
+    for (const zone of Object.keys(seat.zones) as ZoneId[])
       seat.zones[zone] = seat.zones[zone].filter((id) => id !== cardId);
   card.zone = to;
   card.controllerId = card.ownerId;
@@ -147,22 +133,28 @@ async function startedSession() {
   expect((await commit(1, { type: 'keep', seatId: 'P2' })).status).toBe(200);
   expect((await control(0, { type: 'start' })).status).toBe(200);
 
-  return { storage, call, commit, control };
+  return { storage, commit, control };
 }
 
-function zeroCostCast(cardId: string, sourceZone: string, extra: Record<string, unknown> = {}) {
+function castOperation(
+  table: CockpitTable,
+  cardId: string,
+  sourceZone: R4CastSourceZone,
+  additionalCosts?: R4CastAdditionalCosts,
+) {
+  const paymentPlan = r4CastPayment(table, { cardId, x: 0, additionalCosts }).paymentPlan;
   return {
     type: 'cast',
     cardId,
     sourceZone,
     targets: [],
     x: 0,
-    paymentPlan: [],
-    ...extra,
+    paymentPlan,
+    ...(additionalCosts ? { additionalCosts } : {}),
   };
 }
 
-function emptyAdditionalCosts() {
+function emptyAdditionalCosts(): R4CastAdditionalCosts {
   return {
     tapIds: [],
     sacrificeIds: [],
@@ -187,7 +179,10 @@ describe('R4 formal-operation server authority', () => {
     relocate(record, graveyardSpellId, 'graveyard');
     saveRecord(storage, record);
 
-    const publicCast = await commit(0, zeroCostCast(graveyardSpellId, 'graveyard'));
+    const publicCast = await commit(
+      0,
+      castOperation(record.table, graveyardSpellId, 'graveyard'),
+    );
     expect(publicCast.status).toBe(200);
     expect(publicCast.value.table.cards[graveyardSpellId]).toMatchObject({ zone: 'stack' });
     expect(publicCast.value.table.stack[0].source).toMatchObject({
@@ -195,14 +190,22 @@ describe('R4 formal-operation server authority', () => {
       zone: 'graveyard',
     });
 
-    const guessedLibraryCast = await commit(0, zeroCostCast(hiddenLibrarySpellId, 'library'));
+    const beforeLibraryCast = loadRecord(storage);
+    const guessedLibraryCast = await commit(
+      0,
+      castOperation(beforeLibraryCast.table, hiddenLibrarySpellId, 'library'),
+    );
     expect(guessedLibraryCast.status).toBe(403);
     expect(guessedLibraryCast.value.error).toBe('NOT_AUTHORIZED');
 
     expect((await control(0, { type: 'peek', seatId: 'P1', zone: 'library', count: 1 })).status).toBe(
       200,
     );
-    const peekedLibraryCast = await commit(0, zeroCostCast(hiddenLibrarySpellId, 'library'));
+    const afterPeek = loadRecord(storage);
+    const peekedLibraryCast = await commit(
+      0,
+      castOperation(afterPeek.table, hiddenLibrarySpellId, 'library'),
+    );
     expect(peekedLibraryCast.status).toBe(200);
     expect(peekedLibraryCast.value.table.cards[hiddenLibrarySpellId]).toMatchObject({ zone: 'stack' });
     expect(peekedLibraryCast.value.canUndo).toBe(false);
@@ -225,7 +228,7 @@ describe('R4 formal-operation server authority', () => {
     };
     const hiddenCostCast = await commit(
       0,
-      zeroCostCast(sourceId, 'graveyard', { additionalCosts }),
+      castOperation(record.table, sourceId, 'graveyard', additionalCosts),
     );
     expect(hiddenCostCast.status).toBe(403);
     expect(hiddenCostCast.value.error).toBe('NOT_AUTHORIZED');
@@ -233,9 +236,10 @@ describe('R4 formal-operation server authority', () => {
     expect((await control(0, { type: 'peek', seatId: 'P1', zone: 'library', count: 1 })).status).toBe(
       200,
     );
+    const afterPeek = loadRecord(storage);
     const authorizedCostCast = await commit(
       0,
-      zeroCostCast(sourceId, 'graveyard', { additionalCosts }),
+      castOperation(afterPeek.table, sourceId, 'graveyard', additionalCosts),
     );
     expect(authorizedCostCast.status).toBe(200);
     expect(authorizedCostCast.value.table.cards[sourceId]).toMatchObject({ zone: 'stack' });
