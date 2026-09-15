@@ -6,7 +6,7 @@ on:
     paths: [.github/r4-release-preflight.marker]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   preflight:
@@ -22,27 +22,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Align duplicated Cloudflare verifier inventories
-        run: |
-          set -euo pipefail
-          python scripts/r4-release-align-cloudflare-verifiers.py
-          git diff --check -- \
-            scripts/checks/verify-online-cloudflare-websocket-recovery.ts \
-            scripts/checks/verify-online-cloudflare-capability-abuse-control.ts \
-            scripts/checks/verify-online-cloudflare-production-gate.ts
-          if ! git diff --quiet -- \
-            scripts/checks/verify-online-cloudflare-websocket-recovery.ts \
-            scripts/checks/verify-online-cloudflare-capability-abuse-control.ts \
-            scripts/checks/verify-online-cloudflare-production-gate.ts; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add \
-              scripts/checks/verify-online-cloudflare-websocket-recovery.ts \
-              scripts/checks/verify-online-cloudflare-capability-abuse-control.ts \
-              scripts/checks/verify-online-cloudflare-production-gate.ts
-            git commit -m "test: align Cloudflare production verifier inventory for R4"
-            git push origin HEAD:r4a-formal-manual-inventory
-          fi
       - name: Build intended final tree without temporary preflight files
         run: |
           set -euo pipefail
