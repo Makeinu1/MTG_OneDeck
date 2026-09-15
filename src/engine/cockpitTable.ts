@@ -345,7 +345,7 @@ function currentCombatDamageSource(table: CockpitTable, card: CardInstance): boo
   );
 }
 
-function move(
+export function applyTableZoneTransition(
   table: CockpitTable,
   ids: string[],
   to: ZoneId,
@@ -354,6 +354,7 @@ function move(
   meaning = 'move',
   reason: import('./types').ZoneChangeReason = 'move',
   enterAsToken = false,
+  beforeFinalCheckpoint?: (table: CockpitTable, ids: readonly string[]) => void,
 ): void {
   checkpointTableTriggers(table, trace, 'change');
   distinct(ids);
@@ -378,6 +379,7 @@ function move(
       card.faceDown = false;
       card.manualKeywords = [];
       delete card.attachedTo;
+      delete card.protectorId;
       table.grants = table.grants.filter((grant) => grant.cardId !== id);
       table.modifiers = table.modifiers.filter((modifier) => modifier.cardId !== id);
       delete table.visibility[id];
@@ -397,7 +399,21 @@ function move(
     if (position === 'top') zone.unshift(...group);
     else zone.push(...group);
   }
+  beforeFinalCheckpoint?.(table, ids);
   checkpointTableTriggers(table, trace, meaning, reason);
+}
+
+function move(
+  table: CockpitTable,
+  ids: string[],
+  to: ZoneId,
+  position: 'top' | 'bottom',
+  trace?: TableTriggerTrace,
+  meaning = 'move',
+  reason: import('./types').ZoneChangeReason = 'move',
+  enterAsToken = false,
+): void {
+  applyTableZoneTransition(table, ids, to, position, trace, meaning, reason, enterAsToken);
 }
 
 export function tableManaResources(table: CockpitTable, seatId: string): ManaResources {
@@ -723,19 +739,30 @@ export function tableCastPayment(
   return tableAutoPayment(table, plan, card.controllerId);
 }
 
-function finishTableStack(
+export function finishTableStack(
   table: CockpitTable,
   entry: TableStackEntry,
   to: ZoneId,
   trace?: TableTriggerTrace,
   outcome: 'resolved' | 'removed' = 'resolved',
+  beforeFinalCheckpoint?: (table: CockpitTable, ids: readonly string[]) => void,
 ): void {
   requireTable(tableZones.includes(to) && to !== 'stack', '処理後の領域を確認してください。');
   const stackId = entry.stackCardId ?? (entry.kind === 'spell' ? entry.source.id : undefined);
   if (stackId && table.cards[stackId]?.zone === 'stack') {
     if (entry.kind === 'spell' && (!entry.copied || to === 'battlefield')) {
       // CR 608.3f: token characteristics must be present in the ETB snapshot itself.
-      move(table, [stackId], to, 'top', trace, 'resolve', 'resolve', entry.copied === true);
+      applyTableZoneTransition(
+        table,
+        [stackId],
+        to,
+        'top',
+        trace,
+        'resolve',
+        'resolve',
+        entry.copied === true,
+        beforeFinalCheckpoint,
+      );
     } else {
       for (const seat of table.seats)
         seat.zones.stack = seat.zones.stack.filter((id) => id !== stackId);

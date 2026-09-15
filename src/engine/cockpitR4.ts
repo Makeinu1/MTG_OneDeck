@@ -14,6 +14,7 @@ import {
 } from './cockpitTriggers';
 import {
   applyTableOperation,
+  applyTableZoneTransition,
   manaColors,
   tableCastPayment,
   type CockpitTable,
@@ -73,6 +74,10 @@ export type R4TableOperation =
       type: 'special.turnFaceUp';
       cardId: string;
       faceIndex: number;
+    }
+  | {
+      type: 'state.apply';
+      graveyardIds: string[];
     };
 
 export interface R4OperationRequest {
@@ -703,6 +708,44 @@ function turnFaceUp(
   return table;
 }
 
+function applyConfirmedStateActions(
+  before: CockpitTable,
+  operation: Extract<R4TableOperation, { type: 'state.apply' }>,
+  context: ExpectedInteractionContext,
+  commandId?: string,
+): CockpitTable {
+  requireR4(context.kind === 'unbound', 'STALE_INTERACTION_CONTEXT');
+  requireExpectedInteractionContext(before, context);
+  requireR4(!before.hold && !before.resolution, 'HOLDまたは処理中は実行できません。');
+  requireR4(
+    Array.isArray(operation.graveyardIds) &&
+      operation.graveyardIds.length > 0 &&
+      operation.graveyardIds.length <= 100 &&
+      new Set(operation.graveyardIds).size === operation.graveyardIds.length,
+    'INVALID_STATE_ACTION',
+  );
+  for (const id of operation.graveyardIds) {
+    const card = before.cards[id];
+    requireR4(card?.zone === 'battlefield' && !card.isToken, 'INVALID_STATE_ACTION');
+  }
+
+  const processId = commandId ?? `state:${before.turn}:${before.triggers?.sequence ?? 0}`;
+  const trace = triggerTrace(before, processId, { kind: 'system', id: processId });
+  const table = structuredClone(before);
+  table.triggers ??= emptyTableTriggers(table.turn);
+  if (table.phase === 'cleanup') table.cleanupReady = false;
+  applyTableZoneTransition(
+    table,
+    operation.graveyardIds,
+    'graveyard',
+    'top',
+    trace,
+    'state.apply',
+    'sba',
+  );
+  return table;
+}
+
 function addManualTrigger(
   before: CockpitTable,
   operation: Extract<R4TableOperation, { type: 'trigger.manualAdd' }>,
@@ -771,6 +814,8 @@ export function applyR4TableOperation(
   commandId?: string,
 ): CockpitTable {
   const operation = request.operation;
+  if (operation.type === 'state.apply')
+    return applyConfirmedStateActions(table, operation, request.context, commandId);
   if (operation.type === 'trigger.manualAdd')
     return addManualTrigger(table, operation, request.context);
   if (isR4CastOperation(operation)) return castR4(table, operation, request.context, commandId);
