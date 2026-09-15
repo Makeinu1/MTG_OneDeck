@@ -1,0 +1,40 @@
+name: R4 verification
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+  pull_request:
+    branches: [r3-1-manual-resolution]
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: R4 slice and R3.1 regression tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR31.test.ts
+          src/engine/__tests__/cockpitR31Lifecycle.test.ts
+          src/engine/__tests__/cockpitTriggers.test.ts
+          src/engine/__tests__/manaTransaction.test.ts
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+          src/online/browser/__tests__/cockpitClient.test.ts
+      - name: Types and build
+        run: npm run build
+      - name: Changed-file lint
+        run: >-
+          node node_modules/eslint/bin/eslint.js
+          src/engine/cockpitR4.ts
+          src/engine/__tests__/cockpitR4.test.ts
+          src/online/cloudflare/cockpitSession.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
