@@ -8,6 +8,12 @@ import {
   type CockpitMultiplayer,
   type CockpitMultiplayerView,
 } from './cockpitMultiplayer';
+import {
+  authorizeR4FormalOperation,
+  isR4FormalOperation,
+  r4OperationCreatesKnowledgeBarrier,
+  r4OperationRequiresContext,
+} from './cockpitR4Authority';
 import { migrateCockpitSnapshot, backfillCockpitTable } from '../../engine/cockpitMigration';
 import type { GameSnapshot } from '../../data/gameSnapshot';
 import {
@@ -129,6 +135,12 @@ function operationCreatesKnowledgeBarrier(
   table: CockpitTable,
   operation: TableOperation | R4TableOperation,
 ): boolean {
+  const r4Operation = operation as R4TableOperation;
+  if (
+    isR4FormalOperation(r4Operation) &&
+    r4OperationCreatesKnowledgeBarrier(table, r4Operation)
+  )
+    return true;
   switch (operation.type) {
     case 'draw':
     case 'shuffle':
@@ -638,26 +650,27 @@ export async function handleCockpitSession(
             if (
               !body.context &&
               ((body.operation.type === 'move' && body.operation.reason !== undefined) ||
-                body.operation.type === 'playLand')
+                r4OperationRequiresContext(body.operation as R4TableOperation))
             )
               return response({ error: 'INVALID_REQUEST' }, 400);
             if (record.multiplayer) {
               const multi = record.multiplayer;
-              const playLandCard =
-                body.operation.type === 'playLand' ? before.cards[body.operation.cardId] : undefined;
+              const r4Authorization = authorizeR4FormalOperation(
+                before,
+                multi,
+                actor,
+                body.operation as R4TableOperation,
+                now,
+              );
               const authorized =
-                body.operation.type === 'playLand'
-                  ? cockpitOwnerPresent(multi, now) &&
-                    multi.started &&
-                    actor === multi.masterId &&
-                    actor === before.activeSeatId &&
-                    playLandCard?.zone === 'hand' &&
-                    playLandCard.ownerId === actor &&
-                    playLandCard.controllerId === actor &&
-                    !multi.holds.length &&
-                    !before.ended &&
-                    !before.seats.find((seat) => seat.id === actor)?.eliminated
-                  : authorizeCockpitOperation(before, multi, actor, body.operation, now);
+                r4Authorization ??
+                authorizeCockpitOperation(
+                  before,
+                  multi,
+                  actor,
+                  body.operation as TableOperation | { type: 'undo' } | { type: 'redo' },
+                  now,
+                );
               if (!authorized || body.operation.type === 'eliminate')
                 return response({ error: 'NOT_AUTHORIZED' }, 403);
             }
@@ -696,9 +709,13 @@ export async function handleCockpitSession(
                   body.requestId,
                 );
               } else {
-                if (body.operation.type === 'playLand')
+                if (r4OperationRequiresContext(body.operation as R4TableOperation))
                   return response({ error: 'INVALID_REQUEST' }, 400);
-                record.table = applyTableOperation(before, body.operation, body.requestId);
+                record.table = applyTableOperation(
+                  before,
+                  body.operation as TableOperation,
+                  body.requestId,
+                );
               }
               const operation = body.operation;
               if (crossesKnowledgeBarrier)
