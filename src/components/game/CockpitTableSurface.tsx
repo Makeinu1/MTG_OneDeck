@@ -15,6 +15,7 @@ import {
 import { manaActivationChoices } from '../../engine/autotap';
 import { tableAbilityChoices } from '../../engine/cockpitAbilities';
 import type { ZoneId } from '../../engine/types';
+import type { R31TableOperation } from '../../engine/cockpitR31';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { ContextMenu } from '../ContextMenu';
@@ -103,7 +104,9 @@ export function CockpitTableSurface({
   inspect: (id: string) => void;
   cast: (id: string) => void;
   activate?: (id: string, choice?: string) => void;
-  send: (op: TableOperation | { type: 'undo' } | { type: 'redo' }) => Promise<boolean>;
+  send: (
+    op: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+  ) => Promise<boolean>;
   openMenu: () => void;
   children:
     | ReactNode
@@ -627,7 +630,7 @@ export function CockpitTableSurface({
       return;
     }
     setDestination(permanent ? 'battlefield' : 'graveyard');
-    void send({ type: 'resolve.begin' }).then((saved) => {
+    void send({ type: 'resolve.begin', entryId: top.id }).then((saved) => {
       if (saved) setWork(true);
     });
   }
@@ -1759,7 +1762,12 @@ export function CockpitTableSurface({
               <button
                 disabled={disabled}
                 onClick={() =>
-                  void send({ type: 'resolve.end', to: destination }).then((saved) => {
+                  table.resolution &&
+                  void send({
+                    type: 'resolve.end',
+                    entryId: table.resolution.id,
+                    to: destination,
+                  }).then((saved) => {
                     if (saved) setStack(false);
                   })
                 }

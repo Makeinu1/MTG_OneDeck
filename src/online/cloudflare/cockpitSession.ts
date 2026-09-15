@@ -16,6 +16,11 @@ import {
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
+import {
+  applyR31TableOperation,
+  type ExpectedInteractionContext,
+  type R31TableOperation,
+} from '../../engine/cockpitR31';
 import type { InitDeckCard } from '../../engine/init';
 import type { OnlineCloudflareSqlStorage } from './types';
 
@@ -68,7 +73,8 @@ export type CockpitSessionRequest = (
       token: string;
       requestId: string;
       revision: number;
-      operation: TableOperation | { type: 'undo' } | { type: 'redo' };
+      operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' };
+      context?: ExpectedInteractionContext;
     }
 ) & { connectionId?: string };
 
@@ -387,7 +393,9 @@ export async function handleCockpitSession(
         )
           return response({ error: 'INVALID_REQUEST' }, 400);
         const encodedOperation = JSON.stringify(
-          body.type === 'commit' ? body.operation : body.control,
+          body.type === 'commit'
+            ? { operation: body.operation, ...(body.context ? { context: body.context } : {}) }
+            : body.control,
         );
         const existing = storage.sql
           .exec<{
@@ -568,7 +576,13 @@ export async function handleCockpitSession(
               record.undo.push(before);
               record.table = next;
             } else {
-              record.table = applyTableOperation(before, body.operation, body.requestId);
+              record.table = body.context
+                ? applyR31TableOperation(
+                    before,
+                    { operation: body.operation as R31TableOperation, context: body.context },
+                    body.requestId,
+                  )
+                : applyTableOperation(before, body.operation, body.requestId);
               const operation = body.operation;
               if (
                 operation.type === 'trigger.place' ||

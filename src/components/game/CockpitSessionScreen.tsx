@@ -17,6 +17,10 @@ import {
 } from '../../engine/cockpitTable';
 import type { GameCommand } from '../../engine/commands';
 import type { ZoneId } from '../../engine/types';
+import {
+  captureExpectedInteractionContext,
+  type R31TableOperation,
+} from '../../engine/cockpitR31';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
 import {
   CockpitClient,
@@ -291,7 +295,9 @@ export function CockpitSessionScreen({
       if (motionFrameRef.current !== null) cancelAnimationFrame(motionFrameRef.current);
     };
   }, [deck, snapshot, seats, invitation]);
-  async function send(operation: TableOperation | { type: 'undo' } | { type: 'redo' }) {
+  async function send(
+    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+  ) {
     if (busy || uncertain || sendingRef.current) return false;
     sendingRef.current = true;
     setOperationError(false);
@@ -314,7 +320,11 @@ export function CockpitSessionScreen({
           if (node.getClientRects().length)
             origins.set(node.dataset.layoutCardId!, node.getBoundingClientRect());
         });
-      await clientRef.current?.commit(operation);
+      const context =
+        operation.type === 'undo' || operation.type === 'redo' || !before
+          ? undefined
+          : captureExpectedInteractionContext(before);
+      await clientRef.current?.commit(operation, context);
       const after = viewRef.current?.table;
       if (before && after) {
         publishCockpitOperation(operation, before, after);
