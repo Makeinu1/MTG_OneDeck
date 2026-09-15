@@ -23,36 +23,25 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Apply staged R3.1 provenance patch
-        run: |
-          if [ -f scripts/r3-1/apply-provenance.mjs ]; then
-            python3 - <<'PY'
-          from pathlib import Path
-          p = Path('scripts/r3-1/apply-provenance.mjs')
-          s = p.read_text()
-          s = s.replace("commandId ?? `local-${(table.triggers?.sequence ?? 0) + 1}`", "commandId ?? 'local-' + ((table.triggers?.sequence ?? 0) + 1)")
-          s = s.replace("enteringDef.faces[0].oracleText = `When ${enteringDef.name} enters the battlefield, draw a card.`;", "enteringDef.faces[0].oracleText = 'When ' + enteringDef.name + ' enters the battlefield, draw a card.';")
-          p.write_text(s)
-          PY
-            node scripts/r3-1/apply-provenance.mjs
-          fi
+      - name: Apply staged R3.1 boundary patch
+        run: node scripts/r3-1/apply-boundaries.mjs
       - run: npm ci
       - name: Targeted R3.1 engine tests
         run: node node_modules/vitest/vitest.mjs run --project core src/engine/__tests__/cockpitR31.test.ts src/engine/__tests__/cockpitTriggers.test.ts
-      - name: Targeted recovery and SQLite tests
+      - name: Targeted multiplayer and recovery tests
         run: node node_modules/vitest/vitest.mjs run --project dom src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
       - name: Types, build, and changed-file lint
         run: |
           npm run build
-          node node_modules/eslint/bin/eslint.js src/engine/types.ts src/engine/cockpitR31.ts src/engine/cockpitTable.ts src/engine/cockpitTriggers.ts src/engine/__tests__/cockpitR31.test.ts src/online/browser/cockpitClient.ts src/online/cloudflare/cockpitSession.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitSelectionTools.tsx src/online/browser/__tests__/cockpitClient.test.ts scripts/online/cockpit-recovery-evidence.mjs
+          node node_modules/eslint/bin/eslint.js src/engine/cockpitTable.ts src/engine/cockpitTriggers.ts src/online/cloudflare/cockpitSession.ts src/online/cloudflare/__tests__/cockpitSession.test.ts src/components/game/CockpitTableSurface.tsx
       - name: Commit verified staged patch
         if: success()
         run: |
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/engine/types.ts src/engine/cockpitR31.ts src/engine/cockpitTable.ts src/engine/cockpitTriggers.ts src/engine/__tests__/cockpitR31.test.ts src/online/cloudflare/cockpitSession.ts src/components/game/CockpitSelectionTools.tsx
-            git commit -m "r3.1: persist process provenance and trigger origin [stage1-assemble]"
+            git add src/engine/cockpitTable.ts src/engine/cockpitTriggers.ts src/online/cloudflare/cockpitSession.ts src/online/cloudflare/__tests__/cockpitSession.test.ts src/components/game/CockpitTableSurface.tsx
+            git commit -m "r3.1: enforce trigger and knowledge boundaries [stage1-assemble]"
             git push origin HEAD:r3-1-manual-resolution
           fi
       - name: Isolated browser and local Worker tools
