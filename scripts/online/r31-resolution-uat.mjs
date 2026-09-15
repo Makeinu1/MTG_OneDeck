@@ -49,6 +49,7 @@ try {
   browser = await chromium.launch({ headless: true });
   let pageErrors = 0;
   let consoleErrors = 0;
+  const consoleErrorMessages = [];
 
   for (let i = 0; i < 2; i++) {
     const context = await browser.newContext({
@@ -57,9 +58,15 @@ try {
     });
     const page = await context.newPage();
     page.setDefaultTimeout(15000);
-    page.on('pageerror', () => pageErrors++);
+    page.on('pageerror', (error) => {
+      pageErrors++;
+      if (consoleErrorMessages.length < 50) consoleErrorMessages.push(`pageerror: ${error.message}`);
+    });
     page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors++;
+      if (message.type() === 'error') {
+        consoleErrors++;
+        if (consoleErrorMessages.length < 50) consoleErrorMessages.push(message.text());
+      }
     });
     pages.push(page);
     await page.goto(origin);
@@ -211,6 +218,7 @@ try {
 
   report.pageErrors = pageErrors;
   report.consoleErrors = consoleErrors;
+  report.consoleErrorMessages = consoleErrorMessages;
   assert.equal(pageErrors, 0);
   assert.equal(consoleErrors, 0);
   report.passed = true;
