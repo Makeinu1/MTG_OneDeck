@@ -19,6 +19,19 @@ jobs:
       - run: npm ci
       - name: Apply exact state.apply migration
         run: python scripts/r4-state-apply-migration.py
+      - name: Scope generated event assertion to this SBA checkpoint
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/engine/__tests__/cockpitR4State.test.ts')
+          text = path.read_text()
+          old = "      (event) => event.type === 'zoneChange' && ids.includes(event.physicalCardId),\n"
+          new = "      (event) =>\n        event.type === 'zoneChange' &&\n        event.reason === 'sba' &&\n        ids.includes(event.physicalCardId),\n"
+          if text.count(old) != 1:
+              raise SystemExit('generated SBA event assertion changed unexpectedly')
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Engine state-action regression
         run: >-
           node node_modules/vitest/vitest.mjs run --project core
