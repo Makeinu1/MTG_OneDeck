@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/checks/generate-engine-api.mjs
-          git rm .github/workflows/stage14-release-gate-repair-temp.yml
+          rm .github/workflows/stage14-release-gate-repair-temp.yml
           python - <<'PY'
           from pathlib import Path
           import subprocess
