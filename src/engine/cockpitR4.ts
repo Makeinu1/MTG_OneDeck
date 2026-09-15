@@ -16,7 +16,6 @@ import {
   manaColors,
   tableCastPayment,
   type CockpitTable,
-  type TableOperation,
 } from './cockpitTable';
 import type { GameCommand } from './commands';
 import type { EventProcessRef, ZoneId } from './types';
@@ -54,7 +53,6 @@ export const emptyR4CastAdditionalCosts = (): R4CastAdditionalCosts => ({
 });
 
 type R31CastOperation = Extract<R31TableOperation, { type: 'cast' }>;
-type R4PassthroughOperation = Exclude<R31TableOperation, R31CastOperation>;
 
 export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
   type: 'cast';
@@ -63,7 +61,7 @@ export type R4CastOperation = Omit<R31CastOperation, 'type'> & {
 };
 
 export type R4TableOperation =
-  | R4PassthroughOperation
+  | R31TableOperation
   | R4CastOperation
   | {
       type: 'playLand';
@@ -704,8 +702,8 @@ function turnFaceUp(
   return table;
 }
 
-function isLegacyCast(operation: R4TableOperation): operation is never {
-  return operation.type === 'cast' && !('sourceZone' in operation);
+export function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {
+  return operation.type === 'cast' && 'sourceZone' in operation;
 }
 
 export function applyR4TableOperation(
@@ -714,13 +712,13 @@ export function applyR4TableOperation(
   commandId?: string,
 ): CockpitTable {
   const operation = request.operation;
-  if (isLegacyCast(operation))
+  if (isR4CastOperation(operation)) return castR4(table, operation, request.context, commandId);
+  if (operation.type === 'cast')
     return applyR31TableOperation(
       table,
-      { operation: operation as unknown as R31TableOperation, context: request.context },
+      { operation, context: request.context },
       commandId,
     );
-  if (operation.type === 'cast') return castR4(table, operation, request.context, commandId);
   if (operation.type === 'playLand') return playLand(table, operation, request.context, commandId);
   if (operation.type === 'special.turnFaceUp')
     return turnFaceUp(table, operation, request.context, commandId);
