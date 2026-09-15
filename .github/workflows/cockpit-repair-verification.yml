@@ -24,8 +24,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Targeted recovery, SQLite, and R3.1 identity tests
-        run: node node_modules/vitest/vitest.mjs run src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts src/engine/__tests__/cockpitR31.test.ts
+      - name: Targeted R3.1 engine identity tests
+        run: node node_modules/vitest/vitest.mjs run --project core src/engine/__tests__/cockpitR31.test.ts
+      - name: Targeted recovery and SQLite tests
+        run: node node_modules/vitest/vitest.mjs run --project dom src/online/browser/__tests__/cockpitClient.test.ts src/online/cloudflare/__tests__/cockpitSession.test.ts
       - name: Types, build, and changed-file lint
         run: |
           npm run build
