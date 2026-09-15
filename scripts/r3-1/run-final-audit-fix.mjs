@@ -1,12 +1,15 @@
 import fs from 'node:fs';
 
-const path = 'scripts/r3-1/fix-final-audit.mjs';
-let source = fs.readFileSync(path, 'utf8');
-source = source
-  .replaceAll('${label(ability)}', '\\${label(ability)}')
-  .replaceAll('${index + 1}', '\\${index + 1}');
-fs.writeFileSync(path, source);
-await import('./fix-final-audit.mjs?escaped=1');
+const screen = fs.readFileSync('src/components/game/CockpitSessionScreen.tsx', 'utf8');
+if (!screen.includes('const [abilityContext, setAbilityContext]')) {
+  const path = 'scripts/r3-1/fix-final-audit.mjs';
+  let source = fs.readFileSync(path, 'utf8');
+  source = source
+    .replaceAll('${label(ability)}', '\\${label(ability)}')
+    .replaceAll('${index + 1}', '\\${index + 1}');
+  fs.writeFileSync(path, source);
+  await import('./fix-final-audit.mjs?escaped=1');
+}
 
 const uatPath = 'scripts/online/r31-resolution-uat.mjs';
 let uat = fs.readFileSync(uatPath, 'utf8');
