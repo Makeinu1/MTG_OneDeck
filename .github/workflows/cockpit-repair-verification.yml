@@ -23,9 +23,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Apply staged R3.1 patches when present
+      - name: Apply staged R3.1 provenance patch
         run: |
-          if [ -f scripts/r3-1/apply-session-client-ui.mjs ]; then node scripts/r3-1/apply-session-client-ui.mjs; fi
           if [ -f scripts/r3-1/apply-provenance.mjs ]; then
             python3 - <<'PY'
           from pathlib import Path
@@ -52,7 +51,7 @@ jobs:
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/engine/types.ts src/engine/cockpitR31.ts src/engine/cockpitTable.ts src/engine/cockpitTriggers.ts src/engine/__tests__/cockpitR31.test.ts src/online/browser/cockpitClient.ts src/online/cloudflare/cockpitSession.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitSelectionTools.tsx
+            git add src/engine/types.ts src/engine/cockpitR31.ts src/engine/cockpitTable.ts src/engine/cockpitTriggers.ts src/engine/__tests__/cockpitR31.test.ts src/online/cloudflare/cockpitSession.ts src/components/game/CockpitSelectionTools.tsx
             git commit -m "r3.1: persist process provenance and trigger origin [stage1-assemble]"
             git push origin HEAD:r3-1-manual-resolution
           fi
