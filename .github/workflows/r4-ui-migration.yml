@@ -47,11 +47,10 @@ jobs:
           node node_modules/vitest/vitest.mjs run --project dom src/online/cloudflare/__tests__/cockpitSession.test.ts src/online/cloudflare/__tests__/cockpitR4Session.test.ts src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts src/online/browser/__tests__/cockpitClient.test.ts src/components/game/CockpitTableSurface.test.tsx src/components/game/CockpitCardTools.test.tsx src/components/game/CockpitCastAdditionalCosts.test.tsx src/components/game/cockpitPresentation.test.ts
           npm run build
           node node_modules/eslint/bin/eslint.js src/engine/cockpitR4.ts src/online/cloudflare/cockpitSession.ts src/online/cloudflare/cockpitR4Authority.ts src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitCardTools.tsx src/components/game/CockpitCastAdditionalCosts.tsx src/components/game/CockpitCastAdditionalCosts.test.tsx src/components/game/cockpitPresentation.ts
-      - name: Commit migration and self-clean
+      - name: Commit verified UI source migration
         shell: bash
         run: |
           set -euo pipefail
-          git rm .github/r4-ui-migration.marker .github/workflows/r4-ui-migration.yml .github/r4-ui-client-presentation.py .github/r4-ui-card-surface.py .github/r4-ui-session.py .github/r4-ui-verification.py
-          git add src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitCardTools.tsx src/components/game/cockpitPresentation.ts .github/workflows/r4-verification.yml
+          git add src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitCardTools.tsx src/components/game/cockpitPresentation.ts
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(r4): wire formal cast costs and special actions into UI'
           git push origin HEAD:refs/heads/r4a-formal-manual-inventory
