@@ -1,4 +1,9 @@
-import { applyTableOperation, type CockpitTable, type TableOperation } from './cockpitTable';
+import {
+  applyTableOperation,
+  type CockpitTable,
+  type TableOperation,
+  type TableStackEntry,
+} from './cockpitTable';
 import { triggerTrace } from './cockpitTriggers';
 import type { EventProcessRef, ZoneChangeReason, ZoneId } from './types';
 
@@ -56,6 +61,38 @@ export function resolutionProcess(
   return { kind: 'resolution', id: entryId, role };
 }
 
+function stackFace(table: CockpitTable, entry: TableStackEntry) {
+  const def = table.defs[entry.source.defId];
+  return def?.faces[entry.source.faceIndex] ?? def?.faces[0];
+}
+
+export function defaultResolutionDestination(
+  table: CockpitTable,
+  entry: TableStackEntry,
+): ZoneId {
+  if (entry.kind !== 'spell') return 'graveyard';
+  const typeLine = stackFace(table, entry)?.typeLine ?? '';
+  return /\b(?:Creature|Artifact|Enchantment|Planeswalker|Battle)\b/.test(typeLine)
+    ? 'battlefield'
+    : 'graveyard';
+}
+
+/**
+ * Conservative lifecycle-only shortcut. False negatives intentionally fall back
+ * to Manual Resolution; unknown entry-time state must never be skipped.
+ */
+export function canLifecycleResolveWithoutManual(
+  table: CockpitTable,
+  entry: TableStackEntry,
+): boolean {
+  if (entry.kind !== 'spell' || defaultResolutionDestination(table, entry) !== 'battlefield')
+    return false;
+  const face = stackFace(table, entry);
+  const typeLine = face?.typeLine ?? '';
+  if (/\b(?:Planeswalker|Battle|Aura)\b/.test(typeLine)) return false;
+  return !(face?.oracleText ?? '').trim();
+}
+
 export function validateManualZoneMeaning(
   table: CockpitTable,
   ids: readonly string[],
@@ -80,6 +117,46 @@ export function validateManualZoneMeaning(
 function requireAtomicResolutionTarget(table: CockpitTable, entryId: string): void {
   if (table.resolution || table.stack[0]?.id !== entryId)
     throw new Error('STALE_INTERACTION_CONTEXT');
+}
+
+function actionProcess(
+  table: CockpitTable,
+  operation: R31TableOperation,
+  context: ExpectedInteractionContext,
+  commandId?: string,
+): EventProcessRef | undefined {
+  const parentResolutionId = context.kind === 'resolution' ? context.entryId : undefined;
+  if (operation.type === 'cast') {
+    const card = table.cards[operation.cardId];
+    return {
+      kind: 'action',
+      id: commandId ?? `cast:${operation.cardId}:${card?.zoneChangeCounter ?? 0}`,
+      actionType: 'cast',
+      role: 'action',
+      ...(parentResolutionId ? { parentResolutionId } : {}),
+    };
+  }
+  if (operation.type === 'activate') {
+    return {
+      kind: 'action',
+      id: operation.id,
+      actionType: 'activate',
+      role: 'action',
+      ...(parentResolutionId ? { parentResolutionId } : {}),
+    };
+  }
+  if (operation.type === 'generate' || operation.type === 'generateBatch') {
+    return {
+      kind: 'action',
+      id:
+        commandId ??
+        `mana:${table.turn}:${table.triggers?.sequence ?? 0}:${operation.type === 'generate' ? operation.cardId : operation.entries.length}`,
+      actionType: 'mana',
+      role: 'action',
+      ...(parentResolutionId ? { parentResolutionId } : {}),
+    };
+  }
+  return undefined;
 }
 
 /**
@@ -142,7 +219,8 @@ export function applyR31TableOperation(
 
   requireExpectedInteractionContext(table, context);
   const process =
-    context.kind === 'resolution' ? resolutionProcess(context.entryId, 'effect') : undefined;
+    actionProcess(table, operation, context, commandId) ??
+    (context.kind === 'resolution' ? resolutionProcess(context.entryId, 'effect') : undefined);
   const trace = process ? traceFor(table, commandId, process) : undefined;
 
   if (operation.type === 'move' && operation.reason)
