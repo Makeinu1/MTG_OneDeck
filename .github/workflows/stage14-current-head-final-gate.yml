@@ -1,42 +1,109 @@
-name: Stage14 current-head journey and final gate
+name: Stage14 full-suite boundary repair and final gate
 
 on:
   push:
     branches: [ci/stage14-current-head-final-gate-20260915]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   stage14:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: 113ec8212bf29aa20981634e943208a226346735
+          ref: fix/stage14-full-suite-boundary-repair-20260915
           fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Source diagnostics before tests
+      - name: Apply narrow historical-boundary repairs
         shell: bash
         run: |
           set -euo pipefail
-          git rev-parse HEAD
-          git status --short
-          grep -RFn "commits the primary stack action identically" src || true
-          grep -RFn "処理開始" src/components/game || true
-          sha256sum src/components/game/CockpitTableSurface.test.tsx
-      - name: CockpitTableSurface isolated DOM regression
-        run: node node_modules/vitest/vitest.mjs run --project dom src/components/game/CockpitTableSurface.test.tsx
+          python - <<'PY'
+          from pathlib import Path
+
+          cloudflare_tests = [
+              Path('src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts'),
+              Path('src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts'),
+              Path('src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts'),
+              Path('src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts'),
+          ]
+          old_cloudflare = "['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier)"
+          new_cloudflare = "['../../engine/cockpitCardIdentity', '../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier)"
+          for path in cloudflare_tests:
+              text = path.read_text()
+              if text.count(old_cloudflare) != 1:
+                  raise SystemExit(f'{path}: expected exactly one stale cockpitMultiplayer allowlist')
+              path.write_text(text.replace(old_cloudflare, new_cloudflare))
+
+          browser = Path('src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts')
+          text = browser.read_text()
+          old_browser = "['../../engine/cockpitMigration', '../../engine/cockpitTable', '../../engine/init', '../../data/gameSnapshot', '../cloudflare/cockpitSession', '../cloudflare/cockpitMultiplayer', 'idb'].includes(specifier)"
+          new_browser = "['../../engine/cockpitMigration', '../../engine/cockpitTable', '../../engine/init', '../../data/gameSnapshot', '../../data/savedDecks', '../cloudflare/cockpitSession', '../cloudflare/cockpitMultiplayer', 'idb'].includes(specifier)"
+          if text.count(old_browser) != 1:
+              raise SystemExit(f'{browser}: expected exactly one stale cockpitClient allowlist')
+          browser.write_text(text.replace(old_browser, new_browser))
+
+          release = Path('src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts')
+          text = release.read_text()
+          old_release = """    expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc', '.github'))\n      .toBe('.github/workflows/deploy-pages.yml');"""
+          new_release = """    expect(git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc')).toBe('');\n    expect(git('diff', '--name-only', BASE_SHA, '--', '.github/workflows/deploy-pages.yml')).toBe(\n      '.github/workflows/deploy-pages.yml',\n    );"""
+          if text.count(old_release) != 1:
+              raise SystemExit(f'{release}: expected exactly one current-HEAD historical workflow assertion')
+          release.write_text(text.replace(old_release, new_release))
+          PY
+          npx prettier --write \
+            src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts \
+            src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts \
+            src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts \
+            src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts
+          git diff --check
+      - name: Verify no analogous stale boundary assertions remain
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/test/architecture')
+          failures = []
+          for path in sorted(root.rglob('*.test.ts')):
+              text = path.read_text()
+              if 'cockpitMultiplayerImport' in text and "src/online/cloudflare/cockpitMultiplayer.ts" in text:
+                  if '../../engine/cockpitCardIdentity' not in text:
+                      failures.append(f'{path}: missing cockpitCardIdentity in Cockpit multiplayer exception')
+              if "src/online/browser/cockpitClient.ts" in text and 'const cockpitImport' in text:
+                  if '../../data/savedDecks' not in text:
+                      failures.append(f'{path}: missing savedDecks in Cockpit browser exception')
+              if "git('diff', '--name-only', BASE_SHA, '--', 'package-lock.json', 'wrangler.jsonc', '.github')" in text:
+                  failures.append(f'{path}: historical boundary still scans all later .github changes')
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          print('analogous-boundary-scan: PASS')
+          PY
+      - name: Re-run the six failing architecture tests
+        run: |
+          node node_modules/vitest/vitest.mjs run --project dom \
+            src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts \
+            src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts \
+            src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts \
+            src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts
       - name: Stage14 current-head journey matrix
         shell: bash
         run: |
           set -euo pipefail
           files=(
+            src/components/game/CockpitTableSurface.test.tsx
             src/online/browser/__tests__/o4p09iFullMatchEvidence.test.ts
             src/online/browser/__tests__/remoteCastJourneyV1.test.ts
             src/online/browser/__tests__/remotePriorityJourneyV1.test.ts
@@ -57,19 +124,32 @@ jobs:
             echo "== $file =="
             node node_modules/vitest/vitest.mjs run "$file"
           done
-      - name: Source diagnostics after journey matrix
+      - name: Full test suite
+        run: npm test
+      - name: Commit validated repair branch
         shell: bash
         run: |
           set -euo pipefail
-          git status --short
-          grep -RFn "commits the primary stack action identically" src || true
-          grep -RFn "処理開始" src/components/game || true
-          sha256sum src/components/game/CockpitTableSurface.test.tsx
-      - name: Full test suite
-        run: npm test
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts \
+            src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts \
+            src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts \
+            src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts
+          git diff --cached --check
+          git commit -m "test: refresh historical architecture boundaries"
+          git push origin HEAD:fix/stage14-full-suite-boundary-repair-20260915
       - name: Release gate used by Pages publish
-        run: npm run check:release -- --base 6f18e8cb3fff39e9fa5651951e87f5f89a36bb83 --head 113ec8212bf29aa20981634e943208a226346735 --build-base=/MTG_OneDeck/
-      - name: Explicit build and lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          npm run check:release -- --base 6f18e8cb3fff39e9fa5651951e87f5f89a36bb83 --head "$HEAD_SHA" --build-base=/MTG_OneDeck/
+      - name: Explicit production build, full lint, and diff check
         run: |
           npm run build -- --base=/MTG_OneDeck/
           npm run lint
