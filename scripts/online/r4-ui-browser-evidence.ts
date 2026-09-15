@@ -24,8 +24,8 @@ const context = await browser.createBrowserContext();
 const page = await context.createPage();
 try {
   await page.setViewport?.({ width: 1440, height: 1000 });
-  const navigate = page.navigateForUiEvidence ?? page.navigate;
-  await navigate(`${origin}/r4-ui-evidence.html`);
+  if (page.navigateForUiEvidence) await page.navigateForUiEvidence(`${origin}/r4-ui-evidence.html`);
+  else await page.navigate(`${origin}/r4-ui-evidence.html`);
   const ids = await waitFor<{
     landId: string;
     costId: string;
