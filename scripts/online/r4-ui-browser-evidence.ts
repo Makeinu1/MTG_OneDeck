@@ -25,6 +25,14 @@ function isR4CastOperation(operation: R4TableOperation): operation is R4CastOper
   return operation.type === 'cast' && 'sourceZone' in operation;
 }
 
+async function closeBestEffort(close: () => Promise<void> | void): Promise<void> {
+  try {
+    await close();
+  } catch {
+    // Cleanup must not hide the primary evidence failure.
+  }
+}
+
 const browser = await launchO4p06fCdpBrowserV1(timeoutMs);
 const context = await browser.createBrowserContext();
 const page = await context.createPage();
@@ -55,22 +63,22 @@ try {
   const openCardMenu = async (cardId: string) => {
     await waitFor<boolean>(
       page,
-      `(() => Boolean(document.querySelector('[data-layout-card-id="${cardId}"] .card-view')))()`,
+      `(() => Boolean(document.querySelector('[data-layout-card-id=\"${cardId}\"] .card-view')))()`,
       `card ${cardId}`,
     );
     const opened = await page.evaluate<boolean>(
-      `(() => { const node=document.querySelector('[data-layout-card-id="${cardId}"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`,
+      `(() => { const node=document.querySelector('[data-layout-card-id=\"${cardId}\"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`,
     );
     if (!opened) throw new Error(`Could not open card menu for ${cardId}`);
   };
 
   await waitFor<boolean>(
     page,
-    `(() => Boolean(document.querySelector('[data-layout-card-id="${ids.landId}"] .card-view')))()`,
+    `(() => Boolean(document.querySelector('[data-layout-card-id=\"${ids.landId}\"] .card-view')))()`,
     'formal land card',
   );
   const landActivated = await page.evaluate<boolean>(
-    `(() => { const node=document.querySelector('[data-layout-card-id="${ids.landId}"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,detail:2})); return true; })()`,
+    `(() => { const node=document.querySelector('[data-layout-card-id=\"${ids.landId}\"] .card-view'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,detail:2})); return true; })()`,
   );
   if (!landActivated) throw new Error('Could not double-click formal playLand card');
   await waitFor<boolean>(
@@ -93,16 +101,16 @@ try {
   );
 
   await click(
-    `(() => { const node=document.querySelector('[data-testid="graveyard-tile"]'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
+    `(() => { const node=document.querySelector('[data-testid=\"graveyard-tile\"]'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
     'graveyard browser',
   );
   await waitFor<boolean>(
     page,
-    `(() => Boolean(document.querySelector('[data-card-id="${ids.graveId}"]')))()`,
+    `(() => Boolean(document.querySelector('[data-card-id=\"${ids.graveId}\"]')))()`,
     'graveyard card visibility',
   );
   const opened = await page.evaluate<boolean>(
-    `(() => { const root=document.querySelector('[data-card-id="${ids.graveId}"]'); const node=root?.querySelector('[role="button"]'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`,
+    `(() => { const root=document.querySelector('[data-card-id=\"${ids.graveId}\"]'); const node=root?.querySelector('[role=\"button\"]'); if(!(node instanceof HTMLElement)) return false; node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); return true; })()`,
   );
   if (!opened) throw new Error('Could not inspect graveyard spell');
   await waitFor<boolean>(
@@ -216,7 +224,7 @@ try {
   writeFileSync(output, JSON.stringify(summary, null, 2));
   console.log(JSON.stringify(summary));
 } finally {
-  await page.close().catch(() => undefined);
-  await context.close().catch(() => undefined);
-  await browser.close().catch(() => undefined);
+  await closeBestEffort(() => page.close());
+  await closeBestEffort(() => context.close());
+  await closeBestEffort(() => browser.close());
 }
