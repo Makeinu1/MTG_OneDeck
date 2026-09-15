@@ -524,7 +524,10 @@ describe('shared Cockpit multiplayer', () => {
     expect(
       (await room.change(1, { type: 'return' }, true)).value.table.seats[0].zones.hand,
     ).toHaveLength(0);
-    expect((await room.change(0, { type: 'undo' })).value.multiplayer!.counts.P2.hand).toBe(7);
+    const unsafeUndo = await room.change(0, { type: 'undo' });
+    expect(unsafeUndo.status).toBe(409);
+    expect(unsafeUndo.value.error).toBe('NO_UNDO');
+    expect((await room.call(0, { type: 'read' })).value.multiplayer!.counts.P2.hand).toBe(8);
     room.advance(31_000);
     expect((await room.call(1, { type: 'read' })).value.multiplayer!.paused).toBe(true);
     expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(409);

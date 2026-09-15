@@ -4,7 +4,7 @@ import {
   tableObjectReference,
   emptyTableTriggers,
   nextTriggerController,
-  readyTableTriggers,
+  blockingPublicTableTriggers,
   triggerTrace,
   type TableTriggerState,
   type TableTriggerTrace,
@@ -223,7 +223,13 @@ export type TableOperation =
       colors?: ManaColor[];
     }
   | { type: 'copyPermanent'; id: string; seatId: string; sourceId: string }
-  | { type: 'move'; ids: string[]; to: ZoneId; position: 'top' | 'bottom' }
+  | {
+      type: 'move';
+      ids: string[];
+      to: ZoneId;
+      position: 'top' | 'bottom';
+      reason?: 'move' | 'discard' | 'mill' | 'sacrifice' | 'destroy';
+    }
   | { type: 'tap'; ids: string[]; tapped: boolean }
   | { type: 'life'; seatIds: string[]; delta: number }
   | { type: 'mana'; seatId: string; color: ManaColor; delta: number }
@@ -858,7 +864,7 @@ export function applyTableOperation(
     ].includes(operation.type) &&
     !table.resolution
   )
-    requireTable(!readyTableTriggers(table).length, '未処理の誘発を確認してください。');
+    requireTable(!blockingPublicTableTriggers(table).length, '未処理の誘発を確認してください。');
   switch (operation.type) {
     case 'trigger.place':
     case 'trigger.link':
@@ -1100,7 +1106,7 @@ export function applyTableOperation(
       const beginning = ['untap', 'upkeep', 'draw'].includes(next.phase);
       const startTurn = next.turn;
       for (let step = 0; step < PHASE_ORDER.length + 4; step++) {
-        if (readyTableTriggers(next).length) return next;
+        if (blockingPublicTableTriggers(next).length) return next;
         if (next.phase === 'cleanup' && !next.cleanupReady && tableCleanupNeedsReview(next))
           return next;
         if (next.phase === 'main1' && (beginning || next.turn > startTurn)) return next;
@@ -1156,7 +1162,7 @@ export function applyTableOperation(
       next.startProgress = true;
       for (let step = 0; step < 3 && next.phase !== 'main1'; step++) {
         next = applyTableOperation(next, { type: 'phase' }, undefined, trace);
-        if (readyTableTriggers(next).length) return next;
+        if (blockingPublicTableTriggers(next).length) return next;
       }
       return next;
     }
@@ -1892,7 +1898,15 @@ export function applyTableOperation(
     }
     case 'move':
       requireTable(operation.to !== 'stack', 'Stackへは唱える・能力登録から進んでください。');
-      move(table, operation.ids, operation.to, operation.position, trace);
+      move(
+        table,
+        operation.ids,
+        operation.to,
+        operation.position,
+        trace,
+        operation.reason ?? 'move',
+        operation.reason ?? 'move',
+      );
       table.stack = table.stack.filter(
         (entry) =>
           !operation.ids.includes(
@@ -2138,7 +2152,7 @@ export function applyTableOperation(
       throw new Error('未対応の操作です。');
   }
   checkpointTableTriggers(table, trace, operation.type);
-  if (table.phase === 'cleanup' && readyTableTriggers(table).length) table.cleanupReady = false;
+  if (table.phase === 'cleanup' && blockingPublicTableTriggers(table).length) table.cleanupReady = false;
   return table;
 }
 

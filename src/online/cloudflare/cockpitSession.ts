@@ -16,6 +16,11 @@ import {
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
+import {
+  applyR31TableOperation,
+  type ExpectedInteractionContext,
+  type R31TableOperation,
+} from '../../engine/cockpitR31';
 import type { InitDeckCard } from '../../engine/init';
 import type { OnlineCloudflareSqlStorage } from './types';
 
@@ -29,6 +34,10 @@ interface SessionRecord {
   ownerToken: string;
   undo: CockpitTable[];
   redo: CockpitTable[];
+  /** Monotonic trust boundary; contains no private card data. */
+  knowledgeEpoch?: number;
+  undoKnowledgeEpochs?: number[];
+  redoKnowledgeEpochs?: number[];
 }
 export interface CockpitSessionView {
   multiplayer?: CockpitMultiplayerView;
@@ -68,7 +77,8 @@ export type CockpitSessionRequest = (
       token: string;
       requestId: string;
       revision: number;
-      operation: TableOperation | { type: 'undo' } | { type: 'redo' };
+      operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' };
+      context?: ExpectedInteractionContext;
     }
 ) & { connectionId?: string };
 
@@ -90,12 +100,84 @@ function sameHistoryBoundary(
     ),
   );
 }
+function ensureKnowledgeHistory(record: SessionRecord): void {
+  record.knowledgeEpoch ??= 0;
+  record.undoKnowledgeEpochs ??= [];
+  record.redoKnowledgeEpochs ??= [];
+  while (record.undoKnowledgeEpochs.length < record.undo.length)
+    record.undoKnowledgeEpochs.push(record.knowledgeEpoch);
+  while (record.redoKnowledgeEpochs.length < record.redo.length)
+    record.redoKnowledgeEpochs.push(record.knowledgeEpoch);
+  record.undoKnowledgeEpochs.length = record.undo.length;
+  record.redoKnowledgeEpochs.length = record.redo.length;
+}
+function pushUndoSnapshot(record: SessionRecord, table: CockpitTable, epoch = record.knowledgeEpoch ?? 0): void {
+  ensureKnowledgeHistory(record);
+  record.undo.push(table);
+  record.undoKnowledgeEpochs!.push(epoch);
+}
+function pushRedoSnapshot(record: SessionRecord, table: CockpitTable, epoch = record.knowledgeEpoch ?? 0): void {
+  ensureKnowledgeHistory(record);
+  record.redo.push(table);
+  record.redoKnowledgeEpochs!.push(epoch);
+}
+function knowledgeSafeUndo(record: SessionRecord): boolean {
+  ensureKnowledgeHistory(record);
+  return (
+    !record.multiplayer ||
+    record.undoKnowledgeEpochs!.at(-1) === (record.knowledgeEpoch ?? 0)
+  );
+}
+function operationCreatesKnowledgeBarrier(
+  table: CockpitTable,
+  operation: TableOperation | R31TableOperation,
+): boolean {
+  switch (operation.type) {
+    case 'draw':
+    case 'shuffle':
+    case 'randomDiscard':
+    case 'mulligan':
+    case 'arrange':
+    case 'resolve.fetch':
+    case 'shortcut':
+    case 'turn.ready':
+      return true;
+    case 'phase':
+      return table.phase === 'upkeep';
+    case 'visibility':
+      return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
+    case 'move':
+      return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
+    case 'cast':
+      return (
+        table.cards[operation.cardId]?.zone === 'hand' ||
+        operation.paymentPlan.some(
+          (command) =>
+            command.type === 'discard' ||
+            (command.type === 'moveCard' &&
+              ['hand', 'library'].includes(table.cards[command.cardId]?.zone ?? '')),
+        )
+      );
+    case 'activate':
+      return operation.paymentPlan.some(
+        (command) =>
+          command.type === 'discard' ||
+          (command.type === 'moveCard' &&
+            ['hand', 'library'].includes(table.cards[command.cardId]?.zone ?? '')),
+      );
+    case 'cleanup':
+      return operation.discardIds.length > 0;
+    default:
+      return false;
+  }
+}
 function view(
   record: SessionRecord,
   receipt: CockpitSessionView['receipt'],
   actor = 'P1',
   now = record.lastUsed,
 ): CockpitSessionView {
+  ensureKnowledgeHistory(record);
   // Multiplayer replies contain only the authenticated seat's audience projection.
   return {
     ...(record.multiplayer
@@ -108,6 +190,7 @@ function view(
         (record.multiplayer.masterId === actor &&
           cockpitOwnerPresent(record.multiplayer, now) &&
           !record.multiplayer.holds.length)) &&
+      knowledgeSafeUndo(record) &&
       sameHistoryBoundary(record.table, record.undo.at(-1), Boolean(record.multiplayer)),
     canRedo:
       !record.multiplayer &&
@@ -134,6 +217,7 @@ function loadRecord(storage: OnlineCloudflareSqlStorage): SessionRecord | null {
   if (!row) return null;
   const record = JSON.parse(row.data) as SessionRecord;
   for (const table of [record.table, ...record.undo, ...record.redo]) backfillCockpitTable(table);
+  ensureKnowledgeHistory(record);
   return record;
 }
 function receiptKey(record: SessionRecord, requestId: string, actor = 'P1'): string {
@@ -387,7 +471,9 @@ export async function handleCockpitSession(
         )
           return response({ error: 'INVALID_REQUEST' }, 400);
         const encodedOperation = JSON.stringify(
-          body.type === 'commit' ? body.operation : body.control,
+          body.type === 'commit'
+            ? { operation: body.operation, ...(body.context ? { context: body.context } : {}) }
+            : body.control,
         );
         const existing = storage.sql
           .exec<{
@@ -485,6 +571,7 @@ export async function handleCockpitSession(
                     control.count > 500)
                 )
                   return response({ error: 'INVALID_REQUEST' }, 400);
+                if (control.zone) record.knowledgeEpoch = (record.knowledgeEpoch ?? 0) + 1;
                 multi.members[actor].peek = control.zone
                   ? {
                       seatId: control.seatId,
@@ -550,26 +637,55 @@ export async function handleCockpitSession(
               if (id !== multi.masterId) member.peek = null;
           } else {
             if (
+              !body.context &&
+              body.operation.type === 'move' &&
+              body.operation.reason !== undefined
+            )
+              return response({ error: 'INVALID_REQUEST' }, 400);
+            if (
               record.multiplayer &&
               (!authorizeCockpitOperation(before, record.multiplayer, actor, body.operation, now) ||
                 body.operation.type === 'eliminate')
             )
               return response({ error: 'NOT_AUTHORIZED' }, 403);
             if (body.operation.type === 'undo') {
-              const previous = record.undo.pop();
-              if (!previous || !sameHistoryBoundary(before, previous, Boolean(record.multiplayer)))
+              ensureKnowledgeHistory(record);
+              const previous = record.undo.at(-1);
+              const previousEpoch = record.undoKnowledgeEpochs!.at(-1);
+              if (
+                !previous ||
+                (record.multiplayer && previousEpoch !== (record.knowledgeEpoch ?? 0)) ||
+                !sameHistoryBoundary(before, previous, Boolean(record.multiplayer))
+              )
                 return response({ error: 'NO_UNDO' }, 409);
-              record.redo.push(before);
+              record.undo.pop();
+              record.undoKnowledgeEpochs!.pop();
+              pushRedoSnapshot(record, before);
               record.table = previous;
             } else if (body.operation.type === 'redo') {
-              const next = record.redo.pop();
+              ensureKnowledgeHistory(record);
+              const next = record.redo.at(-1);
               if (!next || !sameHistoryBoundary(before, next, Boolean(record.multiplayer)))
                 return response({ error: 'NO_REDO' }, 409);
-              record.undo.push(before);
+              record.redo.pop();
+              record.redoKnowledgeEpochs!.pop();
+              pushUndoSnapshot(record, before);
               record.table = next;
             } else {
-              record.table = applyTableOperation(before, body.operation, body.requestId);
+              const knowledgeEpochBefore = record.knowledgeEpoch ?? 0;
+              const crossesKnowledgeBarrier = Boolean(
+                record.multiplayer && operationCreatesKnowledgeBarrier(before, body.operation),
+              );
+              record.table = body.context
+                ? applyR31TableOperation(
+                    before,
+                    { operation: body.operation as R31TableOperation, context: body.context },
+                    body.requestId,
+                  )
+                : applyTableOperation(before, body.operation, body.requestId);
               const operation = body.operation;
+              if (crossesKnowledgeBarrier)
+                record.knowledgeEpoch = knowledgeEpochBefore + 1;
               if (
                 operation.type === 'trigger.place' ||
                 operation.type === 'trigger.link' ||
@@ -586,10 +702,12 @@ export async function handleCockpitSession(
                 if (record.undo.length >= 200) {
                   if (record.multiplayer) return response({ error: 'TURN_HISTORY_LIMIT' }, 409);
                   record.undo.shift();
+                  record.undoKnowledgeEpochs?.shift();
                 }
-                record.undo.push(before);
+                pushUndoSnapshot(record, before, knowledgeEpochBefore);
               }
               record.redo = [];
+              record.redoKnowledgeEpochs = [];
             }
           }
           record.revision += 1;

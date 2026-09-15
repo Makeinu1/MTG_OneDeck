@@ -8,6 +8,10 @@ import type { InitDeckCard } from '../../engine/init';
 import { expandSavedDeck, listSavedDecks } from '../../data/savedDecks';
 import type { TableOperation } from '../../engine/cockpitTable';
 import type {
+  ExpectedInteractionContext,
+  R31TableOperation,
+} from '../../engine/cockpitR31';
+import type {
   CockpitCheckpoint,
   CockpitSessionRequest,
   CockpitSessionView,
@@ -523,12 +527,16 @@ export class CockpitClient {
       this.busy = false;
     }
   }
-  async commit(operation: TableOperation | { type: 'undo' } | { type: 'redo' }): Promise<void> {
-    await this.submit(operation, false);
+  async commit(
+    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+    context?: ExpectedInteractionContext,
+  ): Promise<void> {
+    await this.submit(operation, false, context);
   }
   private async submit(
-    operation: TableOperation | { type: 'undo' } | { type: 'redo' } | CockpitControl,
+    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' } | CockpitControl,
     control: boolean,
+    context?: ExpectedInteractionContext,
   ): Promise<void> {
     await this.polling;
     if (!this.connection || !this.view || this.connection.pending || this.busy || this.disposed)
@@ -540,13 +548,15 @@ export class CockpitClient {
       token,
       requestId: crypto.randomUUID(),
       revision: this.view.revision,
-      ...(control ? { control: operation } : { operation }),
+      ...(control
+        ? { control: operation }
+        : { operation, ...(context ? { context } : {}) }),
     } as CockpitSessionRequest & { requestId: string };
     try {
       this.connection.pending = {
         type: 'commit',
         requestId: body.requestId,
-        digest: await inputDigest(operation),
+        digest: await inputDigest({ operation, ...(context ? { context } : {}) }),
       };
       if (this.disposed) throw new CockpitConnectionError('画面を閉じました。');
       this.persist();
