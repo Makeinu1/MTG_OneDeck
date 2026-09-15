@@ -1,0 +1,74 @@
+name: Stage14 release gate repair (temporary)
+
+on:
+  push:
+    branches:
+      - fix/stage14-full-suite-boundary-repair-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/stage14-full-suite-boundary-repair-20260915
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Regenerate engine API and stage exact repair tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/checks/generate-engine-api.mjs
+          git rm .github/workflows/stage14-release-gate-repair-temp.yml
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          paths = subprocess.check_output(['git','diff','--name-only'], text=True).splitlines()
+          expected = {'.github/workflows/stage14-release-gate-repair-temp.yml', 'docs/generated/engine-api.md'}
+          actual = set(paths)
+          if actual != expected:
+              raise SystemExit(f'unexpected repair diff: {sorted(actual)}')
+          text = Path('docs/generated/engine-api.md').read_text()
+          required = [
+              '## `src/engine/cockpitCardIdentity.ts`',
+              '## `src/engine/cockpitPowerToughness.ts`',
+              '## `src/engine/cockpitMigration.ts`',
+              '## `src/engine/cockpitTable.ts`',
+          ]
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f'generated API missing expected sections: {missing}')
+          print('generated-engine-api-repair: PASS')
+          PY
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/generated/engine-api.md .github/workflows/stage14-release-gate-repair-temp.yml
+          git diff --cached --check
+          git commit -m "docs: refresh generated engine API"
+      - name: Verify generated docs are current
+        run: node scripts/checks/generate-engine-api.mjs --check
+      - name: Run complete release gate on exact committed tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          npm run check:release -- --base 6f18e8cb3fff39e9fa5651951e87f5f89a36bb83 --head "$HEAD_SHA" --build-base=/MTG_OneDeck/
+          git diff --check 6f18e8cb3fff39e9fa5651951e87f5f89a36bb83...HEAD
+          test -z "$(git status --porcelain)"
+          echo "validated_sha=$HEAD_SHA"
+          echo "validated_tree=$(git rev-parse HEAD^{tree})"
+      - name: Push only the validated repair commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:fix/stage14-full-suite-boundary-repair-20260915
