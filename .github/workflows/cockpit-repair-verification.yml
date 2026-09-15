@@ -32,6 +32,7 @@ jobs:
           p = Path('scripts/r3-1/apply-provenance.mjs')
           s = p.read_text()
           s = s.replace("commandId ?? `local-${(table.triggers?.sequence ?? 0) + 1}`", "commandId ?? 'local-' + ((table.triggers?.sequence ?? 0) + 1)")
+          s = s.replace("enteringDef.faces[0].oracleText = `When ${enteringDef.name} enters the battlefield, draw a card.`;", "enteringDef.faces[0].oracleText = 'When ' + enteringDef.name + ' enters the battlefield, draw a card.';")
           p.write_text(s)
           PY
             node scripts/r3-1/apply-provenance.mjs
