@@ -141,13 +141,14 @@ function castOperation(
   cardId: string,
   sourceZone: R4CastSourceZone,
   additionalCosts?: R4CastAdditionalCosts,
+  targets: string[] = [],
 ) {
   const paymentPlan = r4CastPayment(table, { cardId, x: 0, additionalCosts }).paymentPlan;
   return {
     type: 'cast',
     cardId,
     sourceZone,
-    targets: [],
+    targets,
     x: 0,
     paymentPlan,
     ...(additionalCosts ? { additionalCosts } : {}),
@@ -209,6 +210,43 @@ describe('R4 formal-operation server authority', () => {
     expect(peekedLibraryCast.status).toBe(200);
     expect(peekedLibraryCast.value.table.cards[hiddenLibrarySpellId]).toMatchObject({ zone: 'stack' });
     expect(peekedLibraryCast.value.canUndo).toBe(false);
+  });
+
+  it('keeps private-zone object ids out of public cast targets', async () => {
+    const { storage, commit, control } = await startedSession();
+    const record = loadRecord(storage);
+    const p1 = record.table.seats.find((seat) => seat.id === 'P1')!;
+    const p2 = record.table.seats.find((seat) => seat.id === 'P2')!;
+    const sourceId = p1.zones.hand[0];
+    const hiddenTargetId = p2.zones.hand[0];
+    makeSpell(record, sourceId);
+    relocate(record, sourceId, 'graveyard');
+    saveRecord(storage, record);
+
+    const guessedTarget = await commit(
+      0,
+      castOperation(record.table, sourceId, 'graveyard', undefined, [hiddenTargetId]),
+    );
+    expect(guessedTarget.status).toBe(403);
+    expect(guessedTarget.value.error).toBe('NOT_AUTHORIZED');
+
+    expect((await control(0, { type: 'peek', seatId: 'P2', zone: 'hand' })).status).toBe(200);
+    const afterPeek = loadRecord(storage);
+    const stillPrivateTarget = await commit(
+      0,
+      castOperation(afterPeek.table, sourceId, 'graveyard', undefined, [hiddenTargetId]),
+    );
+    expect(stillPrivateTarget.status).toBe(403);
+    expect(stillPrivateTarget.value.error).toBe('NOT_AUTHORIZED');
+
+    expect((await control(0, { type: 'peek', seatId: 'P2', zone: null })).status).toBe(200);
+    const publicTargetRecord = loadRecord(storage);
+    const publicTargetCast = await commit(
+      0,
+      castOperation(publicTargetRecord.table, sourceId, 'graveyard', undefined, ['P2']),
+    );
+    expect(publicTargetCast.status).toBe(200);
+    expect(publicTargetCast.value.table.stack[0].targets).toEqual(['P2']);
   });
 
   it('keeps additional-cost private-object authority separate from the public spell source', async () => {
