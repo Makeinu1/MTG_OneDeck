@@ -6,7 +6,7 @@ on:
     paths: [.github/r4-release-preflight.marker]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   preflight:
@@ -22,6 +22,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Regenerate generated engine API
+        run: |
+          set -euo pipefail
+          npm run generate:docs-api
+          git diff --check -- docs/generated/engine-api.md
+          if ! git diff --quiet -- docs/generated/engine-api.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/generated/engine-api.md
+            git commit -m "docs: refresh generated engine API for R4"
+            git push origin HEAD:r4a-formal-manual-inventory
+          fi
       - name: Build intended final tree without temporary preflight files
         run: |
           set -euo pipefail
