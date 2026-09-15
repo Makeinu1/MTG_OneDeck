@@ -1,5 +1,6 @@
 import { applyTableOperation, type CockpitTable, type TableOperation } from './cockpitTable';
-import type { ZoneChangeReason, ZoneId } from './types';
+import { triggerTrace } from './cockpitTriggers';
+import type { EventProcessRef, ZoneChangeReason, ZoneId } from './types';
 
 export type ExpectedInteractionContext =
   | { kind: 'resolution'; entryId: string }
@@ -7,41 +8,23 @@ export type ExpectedInteractionContext =
 
 export type ManualZoneMeaning = 'move' | 'discard' | 'mill' | 'sacrifice' | 'destroy';
 
-export type EventProcessRef =
-  | {
-      kind: 'resolution';
-      id: string;
-      role: 'effect' | 'lifecycle';
-    }
-  | {
-      kind: 'action';
-      id: string;
-      actionType: 'cast' | 'activate' | 'mana' | 'other-formal';
-      role: 'action' | 'cost';
-      parentResolutionId?: string;
-    }
-  | {
-      kind: 'system';
-      id: string;
-    };
-
-export type ProcessOriginSnapshot = {
-  kind: EventProcessRef['kind'];
-  id: string;
-  controllerId?: string;
-  displaySnapshot?: {
-    sourceName?: string;
-    text?: string;
-  };
-};
-
-type LegacyResolutionOperation = Extract<TableOperation, { type: 'resolve.begin' | 'resolve.end' }>;
-type NonResolutionOperation = Exclude<TableOperation, LegacyResolutionOperation>;
+type ReplacedOperation = Extract<
+  TableOperation,
+  { type: 'resolve.begin' | 'resolve.end' | 'move' }
+>;
+type UnchangedOperation = Exclude<TableOperation, ReplacedOperation>;
 
 export type R31TableOperation =
-  | NonResolutionOperation
+  | UnchangedOperation
   | { type: 'resolve.begin'; entryId: string }
-  | { type: 'resolve.end'; entryId: string; to: ZoneId };
+  | { type: 'resolve.end'; entryId: string; to: ZoneId }
+  | {
+      type: 'move';
+      ids: string[];
+      to: ZoneId;
+      position: 'top' | 'bottom';
+      reason?: ManualZoneMeaning;
+    };
 
 export interface R31OperationRequest {
   operation: R31TableOperation;
@@ -105,6 +88,18 @@ function requireAtomicResolutionTarget(table: CockpitTable, entryId: string): vo
  * explicit before the reducer runs. The legacy resolve payload is never exposed
  * to new callers.
  */
+function traceFor(
+  table: CockpitTable,
+  commandId: string | undefined,
+  process: EventProcessRef,
+) {
+  return triggerTrace(
+    table,
+    commandId ?? 'local-' + ((table.triggers?.sequence ?? 0) + 1),
+    process,
+  );
+}
+
 export function applyR31TableOperation(
   table: CockpitTable,
   request: R31OperationRequest,
@@ -123,16 +118,35 @@ export function applyR31TableOperation(
     if (context.kind !== 'resolution' || context.entryId !== operation.entryId)
       throw new Error('STALE_INTERACTION_CONTEXT');
     requireExpectedInteractionContext(table, context);
-    return applyTableOperation(table, { type: 'resolve.end', to: operation.to }, commandId);
+    const process = resolutionProcess(operation.entryId, 'lifecycle');
+    return applyTableOperation(
+      table,
+      { type: 'resolve.end', to: operation.to },
+      commandId,
+      traceFor(table, commandId, process),
+    );
   }
 
   if (operation.type === 'resolve.finish' || operation.type === 'resolve.fetch') {
     if (context.kind !== 'unbound') throw new Error('STALE_INTERACTION_CONTEXT');
     requireExpectedInteractionContext(table, context);
     requireAtomicResolutionTarget(table, operation.entryId);
-    return applyTableOperation(table, operation, commandId);
+    const process = resolutionProcess(operation.entryId, 'lifecycle');
+    return applyTableOperation(
+      table,
+      operation,
+      commandId,
+      traceFor(table, commandId, process),
+    );
   }
 
   requireExpectedInteractionContext(table, context);
-  return applyTableOperation(table, operation, commandId);
+  const process =
+    context.kind === 'resolution' ? resolutionProcess(context.entryId, 'effect') : undefined;
+  const trace = process ? traceFor(table, commandId, process) : undefined;
+
+  if (operation.type === 'move' && operation.reason)
+    validateManualZoneMeaning(table, operation.ids, operation.reason);
+
+  return applyTableOperation(table, operation, commandId, trace);
 }

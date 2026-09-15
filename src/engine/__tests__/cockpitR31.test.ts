@@ -80,4 +80,59 @@ describe('R3.1 interaction identity substrate', () => {
     );
     expect(validateManualZoneMeaning(table, [handId], 'move')).toBe('move');
   });
+
+  it('persists resolution process provenance on events and explicit zone meaning', () => {
+    const table = withStackEntry('A');
+    const resolving = applyR31TableOperation(
+      table,
+      {
+        context: { kind: 'unbound' },
+        operation: { type: 'resolve.begin', entryId: 'A' },
+      },
+      'begin-A',
+    );
+    const handId = resolving.seats[0].zones.hand[1];
+    const next = applyR31TableOperation(
+      resolving,
+      {
+        context: { kind: 'resolution', entryId: 'A' },
+        operation: {
+          type: 'move',
+          ids: [handId],
+          to: 'graveyard',
+          position: 'top',
+          reason: 'discard',
+        },
+      },
+      'discard-A',
+    );
+    const event = next.triggers?.events.find(
+      (item) => item.type === 'zoneChange' && item.physicalCardId === handId,
+    );
+    expect(event).toMatchObject({
+      type: 'zoneChange',
+      reason: 'discard',
+      process: { kind: 'resolution', id: 'A', role: 'effect' },
+    });
+  });
+
+  it('snapshots the originating resolution on pending trigger candidates', () => {
+    const table = withStackEntry('A');
+    const enteringId = table.seats[0].zones.hand[1];
+    const enteringDef = table.defs[table.cards[enteringId].defId];
+    enteringDef.faces[0].oracleText = 'When ' + enteringDef.name + ' enters the battlefield, draw a card.';
+    const resolving = applyR31TableOperation(table, {
+      context: { kind: 'unbound' },
+      operation: { type: 'resolve.begin', entryId: 'A' },
+    });
+    const next = applyR31TableOperation(resolving, {
+      context: { kind: 'resolution', entryId: 'A' },
+      operation: { type: 'move', ids: [enteringId], to: 'battlefield', position: 'top' },
+    });
+    const candidate = next.triggers?.candidates.find((item) => item.status === 'pending');
+    expect(candidate?.originProcess).toMatchObject({
+      kind: 'resolution',
+      id: 'A',
+    });
+  });
 });

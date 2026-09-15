@@ -137,7 +137,7 @@ export function CockpitSelectionTools({
       return;
     }
     setLibraryStatus('idle');
-    await send({ type: 'move', ids, to: 'graveyard', position: 'top' });
+    await send({ type: 'move', ids, to: 'graveyard', position: 'top', reason: 'mill' });
     if (peekOwned) await libraryAccess?.release();
   }
 

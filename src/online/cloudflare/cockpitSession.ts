@@ -558,6 +558,12 @@ export async function handleCockpitSession(
               if (id !== multi.masterId) member.peek = null;
           } else {
             if (
+              !body.context &&
+              body.operation.type === 'move' &&
+              body.operation.reason !== undefined
+            )
+              return response({ error: 'INVALID_REQUEST' }, 400);
+            if (
               record.multiplayer &&
               (!authorizeCockpitOperation(before, record.multiplayer, actor, body.operation, now) ||
                 body.operation.type === 'eliminate')

@@ -223,7 +223,13 @@ export type TableOperation =
       colors?: ManaColor[];
     }
   | { type: 'copyPermanent'; id: string; seatId: string; sourceId: string }
-  | { type: 'move'; ids: string[]; to: ZoneId; position: 'top' | 'bottom' }
+  | {
+      type: 'move';
+      ids: string[];
+      to: ZoneId;
+      position: 'top' | 'bottom';
+      reason?: 'move' | 'discard' | 'mill' | 'sacrifice' | 'destroy';
+    }
   | { type: 'tap'; ids: string[]; tapped: boolean }
   | { type: 'life'; seatIds: string[]; delta: number }
   | { type: 'mana'; seatId: string; color: ManaColor; delta: number }
@@ -1892,7 +1898,15 @@ export function applyTableOperation(
     }
     case 'move':
       requireTable(operation.to !== 'stack', 'Stackへは唱える・能力登録から進んでください。');
-      move(table, operation.ids, operation.to, operation.position, trace);
+      move(
+        table,
+        operation.ids,
+        operation.to,
+        operation.position,
+        trace,
+        operation.reason ?? 'move',
+        operation.reason ?? 'move',
+      );
       table.stack = table.stack.filter(
         (entry) =>
           !operation.ids.includes(
