@@ -15,7 +15,11 @@ import {
 import { manaActivationChoices } from '../../engine/autotap';
 import { tableAbilityChoices } from '../../engine/cockpitAbilities';
 import type { ZoneId } from '../../engine/types';
-import type { R31TableOperation } from '../../engine/cockpitR31';
+import {
+  canLifecycleResolveWithoutManual,
+  defaultResolutionDestination,
+  type R31TableOperation,
+} from '../../engine/cockpitR31';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { ContextMenu } from '../ContextMenu';
@@ -596,16 +600,12 @@ export function CockpitTableSurface({
   const top = table.stack[0];
   const current = resolution ?? top;
   const fetchable = top && (!multi || top.controllerId === ownId) && tableFetchAbility(table, top);
-  const permanent =
-    top?.kind === 'spell' &&
-    /Creature|Artifact|Enchantment|Planeswalker|Battle/.test(
-      table.defs[top.source.defId]?.faces[top.source.faceIndex]?.typeLine ?? '',
-    );
+  const lifecycleOnly = Boolean(top && canLifecycleResolveWithoutManual(table, top));
   const resolveLabel = resolution
     ? '効果の処理に戻る'
     : fetchable
       ? '解決して土地を探す'
-      : permanent
+      : lifecycleOnly
         ? '解決して戦場に出す'
         : '効果を処理する';
   function resolveTop(manual = false) {
@@ -623,13 +623,13 @@ export function CockpitTableSurface({
       setFetchEntry(top.id);
       return;
     }
-    if (!manual && permanent) {
+    if (!manual && lifecycleOnly) {
       void send({ type: 'resolve.finish', entryId: top.id, to: 'battlefield' }).then((saved) => {
         if (saved) setStack(false);
       });
       return;
     }
-    setDestination(permanent ? 'battlefield' : 'graveyard');
+    setDestination(defaultResolutionDestination(table, top));
     void send({ type: 'resolve.begin', entryId: top.id }).then((saved) => {
       if (saved) setWork(true);
     });
@@ -1682,7 +1682,12 @@ export function CockpitTableSurface({
           )}
           <ol className="table-stack-order">
             {table.stack.map((entry, index) => (
-              <li key={entry.id} className={index === 0 ? 'is-next' : ''}>
+              <li
+                key={entry.id}
+                className={
+                  resolution?.id === entry.id || (!resolution && index === 0) ? 'is-next' : ''
+                }
+              >
                 <CardView
                   instance={{ ...entry.source, tapped: false }}
                   def={table.defs[entry.source.defId]}
@@ -1691,7 +1696,14 @@ export function CockpitTableSurface({
                 />
                 <div>
                   <small>
-                    {index === 0 ? (resolution ? '解決中' : '次に解決') : `${index + 1}番目`} ·{' '}
+                    {resolution?.id === entry.id
+                      ? '解決中'
+                      : index === 0
+                        ? resolution
+                          ? '解決待ち'
+                          : '次に解決'
+                        : `${index + 1}番目`}{' '}
+                    ·{' '}
                     {table.seats.find((seat) => seat.id === entry.controllerId)?.label}
                   </small>
                   <strong>
@@ -1744,21 +1756,6 @@ export function CockpitTableSurface({
               >
                 カードを動かす・数値を変える
               </button>
-              <label>
-                処理後の行き先{' '}
-                <select
-                  value={destination}
-                  onChange={(event) => setDestination(event.target.value as ZoneId)}
-                >
-                  {(
-                    ['battlefield', 'graveyard', 'exile', 'hand', 'command', 'library'] as const
-                  ).map((item) => (
-                    <option key={item} value={item}>
-                      {zoneNames[item]}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <button
                 disabled={disabled}
                 onClick={() =>
@@ -1766,14 +1763,47 @@ export function CockpitTableSurface({
                   void send({
                     type: 'resolve.end',
                     entryId: table.resolution.id,
-                    to: destination,
+                    to: defaultResolutionDestination(table, table.resolution),
                   }).then((saved) => {
                     if (saved) setStack(false);
                   })
                 }
               >
-                解決を終える
+                処理完了
               </button>
+              <details>
+                <summary>終了方法…</summary>
+                <label>
+                  例外的な行き先{' '}
+                  <select
+                    value={destination}
+                    onChange={(event) => setDestination(event.target.value as ZoneId)}
+                  >
+                    {(
+                      ['battlefield', 'graveyard', 'exile', 'hand', 'command', 'library'] as const
+                    ).map((item) => (
+                      <option key={item} value={item}>
+                        {zoneNames[item]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  disabled={disabled}
+                  onClick={() =>
+                    table.resolution &&
+                    void send({
+                      type: 'resolve.end',
+                      entryId: table.resolution.id,
+                      to: destination,
+                    }).then((saved) => {
+                      if (saved) setStack(false);
+                    })
+                  }
+                >
+                  指定した領域で処理完了
+                </button>
+              </details>
             </>
           ) : (
             <button disabled={disabled || table.hold || !top} onClick={() => resolveTop(true)}>

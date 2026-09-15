@@ -205,7 +205,7 @@ try {
   stage = 'finish-b-no-auto-chain';
   await host.locator('.table-progress__source').click();
   const finishResponse = responseFor(host, 'resolve.end');
-  await host.getByRole('button', { name: '解決を終える', exact: true }).click();
+  await host.getByRole('button', { name: '処理完了', exact: true }).click();
   assert.equal((await finishResponse).status(), 200);
   await waitUntil(async () => {
     const view = await read(host);
