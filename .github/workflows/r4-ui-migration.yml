@@ -1,0 +1,57 @@
+name: Apply R4 UI migration
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+    paths: [.github/r4-ui-migration.marker]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: r4a-formal-manual-inventory
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify exact pre-migration blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/components/game/CockpitSessionScreen.tsx)" = 789369c66f557a754b0ff119780184f553c75fb1
+          test "$(git hash-object src/components/game/CockpitTableSurface.tsx)" = efd283aeaa8e07fc73e856c8d4e2594e0aaabd34
+          test "$(git hash-object src/components/game/CockpitCardTools.tsx)" = c62e406eb8f7f845a679a7aebec1fc84c1e8675d
+          test "$(git hash-object src/components/game/cockpitPresentation.ts)" = 6cebde2f8f2fc0eccda9630c0271aeab8e904694
+          test "$(git hash-object src/online/browser/cockpitClient.ts)" = 6a4f184d59dd78d21729325f95392ed3665dbbf9
+          test "$(git hash-object .github/workflows/r4-verification.yml)" = 8c2bd7a1eeb9a2333541774f66d466f51c28f57f
+      - name: Apply exact R4 UI patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/r4-ui-client-presentation.py
+          python .github/r4-ui-card-surface.py
+          python .github/r4-ui-session.py
+          python .github/r4-ui-verification.py
+          git diff --check
+      - name: Verify migration before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/vitest/vitest.mjs run --project core src/engine/__tests__/cockpitR4.test.ts src/engine/__tests__/cockpitR31.test.ts src/engine/__tests__/cockpitR31Lifecycle.test.ts src/engine/__tests__/cockpitTriggers.test.ts src/engine/__tests__/manaTransaction.test.ts
+          node node_modules/vitest/vitest.mjs run --project dom src/online/cloudflare/__tests__/cockpitSession.test.ts src/online/cloudflare/__tests__/cockpitR4Session.test.ts src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts src/online/browser/__tests__/cockpitClient.test.ts src/components/game/CockpitTableSurface.test.tsx src/components/game/CockpitCardTools.test.tsx src/components/game/CockpitCastAdditionalCosts.test.tsx src/components/game/cockpitPresentation.test.ts
+          npm run build
+          node node_modules/eslint/bin/eslint.js src/engine/cockpitR4.ts src/online/cloudflare/cockpitSession.ts src/online/cloudflare/cockpitR4Authority.ts src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitCardTools.tsx src/components/game/CockpitCastAdditionalCosts.tsx src/components/game/CockpitCastAdditionalCosts.test.tsx src/components/game/cockpitPresentation.ts
+      - name: Commit migration and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/r4-ui-migration.marker .github/workflows/r4-ui-migration.yml .github/r4-ui-client-presentation.py .github/r4-ui-card-surface.py .github/r4-ui-session.py .github/r4-ui-verification.py
+          git add src/online/browser/cockpitClient.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitTableSurface.tsx src/components/game/CockpitCardTools.tsx src/components/game/cockpitPresentation.ts .github/workflows/r4-verification.yml
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(r4): wire formal cast costs and special actions into UI'
+          git push origin HEAD:refs/heads/r4a-formal-manual-inventory
