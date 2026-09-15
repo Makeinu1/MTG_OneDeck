@@ -133,19 +133,20 @@ try {
   await guest.getByRole('button', { name: 'このデッキで参加', exact: true }).click();
 
   for (const page of pages) {
+    stage = 'keep-sync';
+    await page.reload();
+    await page.getByTestId('game-screen').waitFor();
+    await page.getByTestId('mulligan-stage').waitFor();
     stage = 'keep';
-    let responsePromise = responseFor(page, 'keep');
+    const responsePromise = responseFor(page, 'keep');
     await page.getByTestId('mulligan-keep').click();
-    let response = await responsePromise;
-    if (response.status() === 409) {
-      await page.locator('.table-connection').getByRole('button', { name: '閉じる', exact: true }).click();
-      responsePromise = responseFor(page, 'keep');
-      await page.getByTestId('mulligan-keep').click();
-      response = await responsePromise;
-    }
+    const response = await responsePromise;
     assert.equal(response.status(), 200);
     await page.getByTestId('mulligan-stage').waitFor({ state: 'hidden' });
   }
+  stage = 'start-sync';
+  await host.reload();
+  await host.getByTestId('game-screen').waitFor();
   await menu(host);
   await host.getByRole('button', { name: '全員で対戦を開始', exact: true }).click();
   await closeMenu(host);
