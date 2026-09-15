@@ -19,17 +19,34 @@ jobs:
       - run: npm ci
       - name: Apply exact state.apply migration
         run: python scripts/r4-state-apply-migration.py
-      - name: Scope generated event assertion to this SBA checkpoint
+      - name: Align generated regressions with existing contracts
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
+
           path = Path('src/engine/__tests__/cockpitR4State.test.ts')
           text = path.read_text()
           old = "      (event) => event.type === 'zoneChange' && ids.includes(event.physicalCardId),\n"
           new = "      (event) =>\n        event.type === 'zoneChange' &&\n        event.reason === 'sba' &&\n        ids.includes(event.physicalCardId),\n"
           if text.count(old) != 1:
               raise SystemExit('generated SBA event assertion changed unexpectedly')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts')
+          text = path.read_text()
+          old = "          requestId: `state-${++seq}`,\n"
+          new = "          requestId: `state-operation-${++seq}`,\n"
+          if text.count(old) != 1:
+              raise SystemExit('generated state request id changed unexpectedly')
+          path.write_text(text.replace(old, new, 1))
+
+          path = Path('src/components/game/CockpitSelectionTools.test.tsx')
+          text = path.read_text()
+          old = "    expect(screen.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'arrange' }));\n"
+          new = """    expect(screen.send).toHaveBeenCalledWith(\n      expect.objectContaining({ type: 'arrange' }),\n      { kind: 'unbound' },\n    );\n"""
+          if text.count(old) != 1:
+              raise SystemExit('SelectionTools arrange assertion changed unexpectedly')
           path.write_text(text.replace(old, new, 1))
           PY
       - name: Engine state-action regression
@@ -59,6 +76,7 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts
           src/components/game/CockpitSelectionTools.tsx
           src/components/game/CockpitSelectionTools.state.test.tsx
+          src/components/game/CockpitSelectionTools.test.tsx
           src/components/game/CockpitBattleTools.tsx
       - run: git diff --check
       - name: Commit verified source only
@@ -74,6 +92,7 @@ jobs:
             src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts \
             src/components/game/CockpitSelectionTools.tsx \
             src/components/game/CockpitSelectionTools.state.test.tsx \
+            src/components/game/CockpitSelectionTools.test.tsx \
             src/components/game/CockpitBattleTools.tsx
           git diff --cached --quiet && exit 0
           git commit -m "feat(r4): add human-confirmed state actions"
