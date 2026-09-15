@@ -60,7 +60,7 @@ function landDeck(count: number) {
 type SessionErrorView = CockpitSessionView & { error?: string };
 
 describe('R4 playLand server commit boundary', () => {
-  it('requires context, rejects multiplayer HOLD, and crosses the knowledge barrier', async () => {
+  it('requires context and semantic authority, rejects HOLD, and crosses the knowledge barrier', async () => {
     const storage = database();
     const credentials = [
       { token: '1'.repeat(64), connectionId: 'connection-r4-player-1' },
@@ -125,6 +125,19 @@ describe('R4 playLand server commit boundary', () => {
     const missingContext = await commit(0, { type: 'playLand', cardId: landId });
     expect(missingContext.status).toBe(400);
     expect(missingContext.value.error).toBe('INVALID_REQUEST');
+    expect((await call(0, { type: 'read' })).value.table.seats[0].zones.hand).toContain(landId);
+
+    // Being the borrowed operator is not permission to write a hidden hand object.
+    expect((await control(1, { type: 'hold', held: true })).status).toBe(200);
+    expect((await control(0, { type: 'grant', seatId: 'P2' })).status).toBe(200);
+    const guessedHiddenLand = await commit(
+      1,
+      { type: 'playLand', cardId: landId },
+      { kind: 'unbound' },
+    );
+    expect(guessedHiddenLand.status).toBe(403);
+    expect(guessedHiddenLand.value.error).toBe('NOT_AUTHORIZED');
+    expect((await control(1, { type: 'return' })).status).toBe(200);
     expect((await call(0, { type: 'read' })).value.table.seats[0].zones.hand).toContain(landId);
 
     expect((await control(1, { type: 'hold', held: true })).status).toBe(200);
