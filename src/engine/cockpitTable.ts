@@ -4,7 +4,7 @@ import {
   tableObjectReference,
   emptyTableTriggers,
   nextTriggerController,
-  readyTableTriggers,
+  blockingPublicTableTriggers,
   triggerTrace,
   type TableTriggerState,
   type TableTriggerTrace,
@@ -864,7 +864,7 @@ export function applyTableOperation(
     ].includes(operation.type) &&
     !table.resolution
   )
-    requireTable(!readyTableTriggers(table).length, '未処理の誘発を確認してください。');
+    requireTable(!blockingPublicTableTriggers(table).length, '未処理の誘発を確認してください。');
   switch (operation.type) {
     case 'trigger.place':
     case 'trigger.link':
@@ -1106,7 +1106,7 @@ export function applyTableOperation(
       const beginning = ['untap', 'upkeep', 'draw'].includes(next.phase);
       const startTurn = next.turn;
       for (let step = 0; step < PHASE_ORDER.length + 4; step++) {
-        if (readyTableTriggers(next).length) return next;
+        if (blockingPublicTableTriggers(next).length) return next;
         if (next.phase === 'cleanup' && !next.cleanupReady && tableCleanupNeedsReview(next))
           return next;
         if (next.phase === 'main1' && (beginning || next.turn > startTurn)) return next;
@@ -1162,7 +1162,7 @@ export function applyTableOperation(
       next.startProgress = true;
       for (let step = 0; step < 3 && next.phase !== 'main1'; step++) {
         next = applyTableOperation(next, { type: 'phase' }, undefined, trace);
-        if (readyTableTriggers(next).length) return next;
+        if (blockingPublicTableTriggers(next).length) return next;
       }
       return next;
     }
@@ -2152,7 +2152,7 @@ export function applyTableOperation(
       throw new Error('未対応の操作です。');
   }
   checkpointTableTriggers(table, trace, operation.type);
-  if (table.phase === 'cleanup' && readyTableTriggers(table).length) table.cleanupReady = false;
+  if (table.phase === 'cleanup' && blockingPublicTableTriggers(table).length) table.cleanupReady = false;
   return table;
 }
 

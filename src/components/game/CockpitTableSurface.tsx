@@ -1,7 +1,7 @@
 import { CockpitCleanupTools } from './CockpitCleanupTools';
 import { tableCleanupNeedsReview } from '../../engine/cockpitTable';
 import { CockpitFeed } from './CockpitFeed';
-import { readyTableTriggers } from '../../engine/cockpitTriggers';
+import { blockingPublicTableTriggers } from '../../engine/cockpitTriggers';
 import { CockpitWorkPanel as TableWorkPanel } from './CockpitWorkPanel';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -127,7 +127,7 @@ export function CockpitTableSurface({
   const triggerCount = (table.triggers?.candidates ?? []).filter(
     (c) => c.status === 'pending',
   ).length;
-  const triggersReady = readyTableTriggers(table).length > 0;
+  const triggersReady = blockingPublicTableTriggers(table).length > 0;
   const [handWorkspace, setHandWorkspace] = useState(false);
   const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
   const activeDragId = activeDrag?.cardId ?? null;

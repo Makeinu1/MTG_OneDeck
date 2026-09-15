@@ -399,8 +399,23 @@ export function readyTableTriggers(table: CockpitTable): TableTrigger[] {
         (c) => c.status === 'pending' && !c.requiresManualRuling,
       );
 }
+
+/**
+ * Progression blocker, distinct from automation readiness. Public manual-ruling
+ * candidates must still stop the table after the current resolution finishes.
+ * Hidden/private candidates never become an invisible global blocker here.
+ */
+export function blockingPublicTableTriggers(table: CockpitTable): TableTrigger[] {
+  if (table.resolution) return [];
+  return (table.triggers?.candidates ?? []).filter(
+    (candidate) =>
+      candidate.status === 'pending' &&
+      !candidate.source.faceDown &&
+      !['hand', 'library'].includes(candidate.source.zone),
+  );
+}
 export function nextTriggerController(table: CockpitTable): string | undefined {
-  const pending = readyTableTriggers(table);
+  const pending = blockingPublicTableTriggers(table);
   const seats = table.seats.filter((s) => !s.eliminated);
   const active = seats.findIndex((s) => s.id === table.activeSeatId);
   return [...seats.slice(active), ...seats.slice(0, active)].find((s) =>
