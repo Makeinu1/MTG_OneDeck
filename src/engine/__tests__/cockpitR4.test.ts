@@ -5,6 +5,7 @@ import {
   applyR4TableOperation,
   emptyR4CastAdditionalCosts,
   r4CastAdditionalCostPlan,
+  r4CastPayment,
   validatePermanentEntrySetup,
 } from '../cockpitR4';
 import type { ZoneId } from '../types';
@@ -163,6 +164,7 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
     const cardId = table.seats[0].zones.hand[0];
     makeSpell(table, cardId);
     relocate(table, cardId, 'graveyard');
+    const paymentPlan = r4CastPayment(table, { cardId, x: 0 }).paymentPlan;
 
     const next = applyR4TableOperation(
       table,
@@ -174,7 +176,7 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
           sourceZone: 'graveyard',
           targets: [],
           x: 0,
-          paymentPlan: [],
+          paymentPlan,
         },
       },
       'cast-from-graveyard',
@@ -216,6 +218,11 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
     };
     const plan = r4CastAdditionalCostPlan(table, castId, additionalCosts);
     expect(plan.map((command) => command.type)).toEqual(['moveCard', 'moveCard']);
+    const paymentPlan = r4CastPayment(table, {
+      cardId: castId,
+      x: 0,
+      additionalCosts,
+    }).paymentPlan;
 
     const next = applyR4TableOperation(
       table,
@@ -227,7 +234,7 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
           sourceZone: 'hand',
           targets: [],
           x: 0,
-          paymentPlan: [],
+          paymentPlan,
           additionalCosts,
         },
       },
@@ -237,7 +244,7 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
     expect(next.cards[castId].zone).toBe('stack');
     expect(next.cards[discardId].zone).toBe('graveyard');
     expect(next.cards[sacrificeId].zone).toBe('graveyard');
-    expect(next.stack[0].paid).toHaveLength(2);
+    expect(next.stack[0].paid.length).toBe(paymentPlan.length + 2);
     expect(next.stack[0].costNote).toContain('追加コスト');
 
     const discard = next.triggers?.events.find(
@@ -278,6 +285,7 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
       paid: [],
       text: 'You may cast the exiled card.',
     };
+    const paymentPlan = r4CastPayment(table, { cardId: castId, x: 0 }).paymentPlan;
 
     const next = applyR4TableOperation(
       table,
@@ -289,7 +297,7 @@ describe('R4 formal unusual-zone cast and atomic additional costs', () => {
           sourceZone: 'exile',
           targets: [],
           x: 0,
-          paymentPlan: [],
+          paymentPlan,
         },
       },
       'nested-cast',
