@@ -19,7 +19,7 @@ jobs:
       - run: npm ci
       - name: Apply exact resolution entry migration
         run: python scripts/r4-resolution-entry-migration.py
-      - name: Align generated stack fixtures with R4 raw-mutation gate and solo UI
+      - name: Align generated fixtures and module boundaries
         shell: bash
         run: |
           python - <<'PY'
@@ -36,6 +36,11 @@ jobs:
           new = """  const table = createCockpitTable(makeDeck(30), 51);\n  const cardId = table.seats[0].zones.hand[0];\n  const def = table.defs[table.cards[cardId].defId];\n  def.faces[0].typeLine = 'Creature';\n  def.faces[0].oracleText = `When ${def.name} enters the battlefield, draw a card.`;\n  const card = table.cards[cardId];\n  table.seats[0].zones.hand = table.seats[0].zones.hand.filter((id) => id !== cardId);\n  card.zoneChangeCounter += 1;\n  card.zone = 'stack';\n  card.controllerId = card.ownerId;\n  card.enteredTurn = 0;\n  table.seats[0].zones.stack.unshift(cardId);\n"""
           if text.count(old) != 1:
               raise SystemExit('generated resolvingPermanent fixture changed unexpectedly')
+          text = text.replace(old, new, 1)
+          old = """    expect(next.triggers?.candidates).toContainEqual(\n      expect.objectContaining({\n        sourceId: cardId,\n        status: 'pending',\n        source: expect.objectContaining({ tapped: true, counters: { charge: 2 } }),\n      }),\n    );\n"""
+          new = """    const pending = next.triggers?.candidates.find((candidate) => candidate.sourceId === cardId);\n    expect(pending?.status).toBe('pending');\n    expect(pending?.source).toMatchObject({ tapped: true, counters: { charge: 2 } });\n"""
+          if text.count(old) != 1:
+              raise SystemExit('generated pending-trigger assertion changed unexpectedly')
           path.write_text(text.replace(old, new, 1))
 
           path = Path('src/components/game/CockpitTableSurface.entrySetup.test.tsx')
@@ -55,6 +60,42 @@ jobs:
           if text.count(old) != 1:
               raise SystemExit('generated TableSurface stack path changed unexpectedly')
           path.write_text(text.replace(old, new, 1))
+
+          utility = Path('src/components/game/cockpitPermanentEntrySetup.ts')
+          utility.write_text("""import type { PermanentEntrySetup } from '../../engine/cockpitR4';\n\nexport interface PermanentEntrySetupDraft {\n  tapped: boolean;\n  counterName: string;\n  counterCount: number;\n  controllerId: string;\n  attachmentTargetId: string;\n  protectorId: string;\n}\n\nexport const emptyPermanentEntrySetupDraft = (): PermanentEntrySetupDraft => ({\n  tapped: false,\n  counterName: '+1/+1',\n  counterCount: 0,\n  controllerId: '',\n  attachmentTargetId: '',\n  protectorId: '',\n});\n\nexport function permanentEntrySetupFromDraft(\n  draft: PermanentEntrySetupDraft,\n): PermanentEntrySetup | undefined {\n  const count =\n    Number.isSafeInteger(draft.counterCount) && draft.counterCount > 0 ? draft.counterCount : 0;\n  const setup: PermanentEntrySetup = {\n    ...(draft.tapped ? { tapped: true } : {}),\n    ...(count && draft.counterName.trim()\n      ? { counters: { [draft.counterName.trim()]: count } }\n      : {}),\n    ...(draft.controllerId ? { controllerId: draft.controllerId } : {}),\n    ...(draft.attachmentTargetId ? { attachmentTargetId: draft.attachmentTargetId } : {}),\n    ...(draft.protectorId ? { protectorId: draft.protectorId } : {}),\n  };\n  return Object.keys(setup).length ? setup : undefined;\n}\n""")
+
+          component = Path('src/components/game/CockpitPermanentEntrySetup.tsx')
+          text = component.read_text()
+          marker = 'export function CockpitPermanentEntrySetup('
+          if text.count(marker) != 1:
+              raise SystemExit('generated entry component changed unexpectedly')
+          body = text[text.index(marker):]
+          component.write_text(
+              "import type { CockpitTable } from '../../engine/cockpitTable';\n"
+              "import type { PermanentEntrySetupDraft } from './cockpitPermanentEntrySetup';\n\n"
+              + body
+          )
+
+          surface = Path('src/components/game/CockpitTableSurface.tsx')
+          text = surface.read_text()
+          old = """import {\n  CockpitPermanentEntrySetup,\n  emptyPermanentEntrySetupDraft,\n  permanentEntrySetupFromDraft,\n  type PermanentEntrySetupDraft,\n} from './CockpitPermanentEntrySetup';\n"""
+          new = """import { CockpitPermanentEntrySetup } from './CockpitPermanentEntrySetup';\nimport {\n  emptyPermanentEntrySetupDraft,\n  permanentEntrySetupFromDraft,\n  type PermanentEntrySetupDraft,\n} from './cockpitPermanentEntrySetup';\n"""
+          if text.count(old) != 1:
+              raise SystemExit('generated TableSurface entry imports changed unexpectedly')
+          surface.write_text(text.replace(old, new, 1))
+
+          test = Path('src/components/game/CockpitPermanentEntrySetup.test.tsx')
+          text = test.read_text()
+          old = """import {\n  CockpitPermanentEntrySetup,\n  emptyPermanentEntrySetupDraft,\n  permanentEntrySetupFromDraft,\n} from './CockpitPermanentEntrySetup';\n"""
+          new = """import { CockpitPermanentEntrySetup } from './CockpitPermanentEntrySetup';\nimport {\n  emptyPermanentEntrySetupDraft,\n  permanentEntrySetupFromDraft,\n} from './cockpitPermanentEntrySetup';\n"""
+          if text.count(old) != 1:
+              raise SystemExit('generated entry test imports changed unexpectedly')
+          text = text.replace(old, new, 1)
+          old = """    const count = host.querySelector<HTMLInputElement>('[aria-label=\"戦場に出るカウンター数\"]')!;\n    act(() => {\n      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;\n      setter.call(count, '2');\n      count.dispatchEvent(new Event('input', { bubbles: true }));\n      count.dispatchEvent(new Event('change', { bubbles: true }));\n    });\n    expect(permanentEntrySetupFromDraft(value)).toEqual({\n      tapped: true,\n      counters: { '+1/+1': 2 },\n    });\n"""
+          new = """    expect(permanentEntrySetupFromDraft({ ...value, counterCount: 2 })).toEqual({\n      tapped: true,\n      counters: { '+1/+1': 2 },\n    });\n"""
+          if text.count(old) != 1:
+              raise SystemExit('generated entry input test changed unexpectedly')
+          test.write_text(text.replace(old, new, 1))
           PY
       - name: Engine resolution entry regression
         run: >-
@@ -84,6 +125,7 @@ jobs:
           src/engine/__tests__/cockpitR4Entry.test.ts
           src/online/cloudflare/cockpitR4Authority.ts
           src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts
+          src/components/game/cockpitPermanentEntrySetup.ts
           src/components/game/CockpitPermanentEntrySetup.tsx
           src/components/game/CockpitPermanentEntrySetup.test.tsx
           src/components/game/CockpitTableSurface.tsx
@@ -100,6 +142,7 @@ jobs:
             src/engine/__tests__/cockpitR4Entry.test.ts \
             src/online/cloudflare/cockpitR4Authority.ts \
             src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts \
+            src/components/game/cockpitPermanentEntrySetup.ts \
             src/components/game/CockpitPermanentEntrySetup.tsx \
             src/components/game/CockpitPermanentEntrySetup.test.tsx \
             src/components/game/CockpitTableSurface.tsx \
