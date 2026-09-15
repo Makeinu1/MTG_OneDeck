@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { AudioVisualProvider } from '../../src/components/game/presentation/AudioVisualProvider';
 import { CockpitSessionScreen } from '../../src/components/game/CockpitSessionScreen';
+import type { ExpectedInteractionContext } from '../../src/engine/cockpitR31';
 import { applyTableOperation, createCockpitTable, type CockpitTable } from '../../src/engine/cockpitTable';
 import { applyR4TableOperation, type R4TableOperation } from '../../src/engine/cockpitR4';
 import { makeDeck } from '../../src/engine/__tests__/helpers';
@@ -16,6 +17,23 @@ interface EvidenceWindow extends Window {
   };
   __r4EvidenceOperations?: R4TableOperation[];
   __r4EvidenceTable?: CockpitTable;
+}
+
+function parseRequestBody(body: BodyInit | null | undefined): Record<string, unknown> {
+  if (typeof body !== 'string') return {};
+  const parsed: unknown = JSON.parse(body);
+  return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>)
+    : {};
+}
+
+function expectedInteractionContext(value: unknown): ExpectedInteractionContext | undefined {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const candidate = value as Record<string, unknown>;
+  if (candidate.kind === 'unbound') return { kind: 'unbound' };
+  if (candidate.kind === 'resolution' && typeof candidate.entryId === 'string')
+    return { kind: 'resolution', entryId: candidate.entryId };
+  return undefined;
 }
 
 const evidenceWindow = window as EvidenceWindow;
@@ -77,18 +95,16 @@ const jsonResponse = () =>
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   if (!url.includes('/api/cockpit/')) return originalFetch(input, init);
-  const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, any>) : {};
+  const body = parseRequestBody(init?.body);
   if (body.type === 'commit') {
     const operation = structuredClone(body.operation) as R4TableOperation;
+    const context = expectedInteractionContext(body.context);
+    const commandId = typeof body.requestId === 'string' ? body.requestId : crypto.randomUUID();
     operations.push(operation);
     try {
-      table = body.context
-        ? applyR4TableOperation(
-            table,
-            { operation, context: body.context },
-            String(body.requestId ?? crypto.randomUUID()),
-          )
-        : applyTableOperation(table, operation as never, String(body.requestId ?? crypto.randomUUID()));
+      table = context
+        ? applyR4TableOperation(table, { operation, context }, commandId)
+        : applyTableOperation(table, operation as never, commandId);
       revision += 1;
       evidenceWindow.__r4EvidenceTable = table;
     } catch (error) {
