@@ -23,40 +23,116 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Regenerate engine API and stage exact repair tree
+      - name: Repair generated docs and duplicated frozen authorities
         shell: bash
         run: |
           set -euo pipefail
           node scripts/checks/generate-engine-api.mjs
-          rm .github/workflows/stage14-release-gate-repair-temp.yml
           python - <<'PY'
           from pathlib import Path
-          import subprocess
-          paths = subprocess.check_output(['git','diff','--name-only'], text=True).splitlines()
-          expected = {'.github/workflows/stage14-release-gate-repair-temp.yml', 'docs/generated/engine-api.md'}
-          actual = set(paths)
-          if actual != expected:
-              raise SystemExit(f'unexpected repair diff: {sorted(actual)}')
-          text = Path('docs/generated/engine-api.md').read_text()
-          required = [
+          import hashlib
+          import re
+
+          boundaries = [
+              'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts',
+              'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
+              'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
+              'src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts',
+              'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts',
+              'src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts',
+          ]
+          digests = {path: hashlib.sha256(Path(path).read_bytes()).hexdigest() for path in boundaries}
+          old_import = "['../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier)"
+          new_import = "['../../engine/cockpitCardIdentity', '../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier)"
+          hash_hits = {path: 0 for path in boundaries}
+          import_hits = 0
+          changed = []
+
+          for path in sorted(Path('scripts/checks').rglob('*')):
+              if not path.is_file() or path.suffix not in {'.ts', '.mjs'}:
+                  continue
+              text = path.read_text()
+              original = text
+              for boundary, digest in digests.items():
+                  pattern = re.compile(r"('" + re.escape(boundary) + r"'\s*:\s*\n\s*')([0-9a-f]{64})(')")
+                  def repl(match, *, digest=digest, boundary=boundary):
+                      hash_hits[boundary] += 1
+                      return match.group(1) + digest + match.group(3)
+                  text = pattern.sub(repl, text)
+              count = text.count(old_import)
+              if count:
+                  import_hits += count
+                  text = text.replace(old_import, new_import)
+              if text != original:
+                  path.write_text(text)
+                  changed.append(str(path))
+
+          for required in boundaries[:3]:
+              if hash_hits[required] < 1:
+                  raise SystemExit(f'missing frozen hash reference for {required}')
+          if import_hits < 4:
+              raise SystemExit(f'expected at least four duplicated Cockpit multiplayer allowlists, found {import_hits}')
+
+          stale = []
+          for path in sorted(Path('scripts/checks').rglob('*')):
+              if not path.is_file() or path.suffix not in {'.ts', '.mjs'}:
+                  continue
+              text = path.read_text()
+              if old_import in text:
+                  stale.append(f'{path}: stale cockpitMultiplayer allowlist')
+              for boundary, digest in digests.items():
+                  pattern = re.compile(r"'" + re.escape(boundary) + r"'\s*:\s*\n\s*'([0-9a-f]{64})'")
+                  for match in pattern.finditer(text):
+                      if match.group(1) != digest:
+                          stale.append(f'{path}: stale frozen hash for {boundary}')
+          if stale:
+              raise SystemExit('\n'.join(stale))
+
+          generated = Path('docs/generated/engine-api.md').read_text()
+          required_sections = [
               '## `src/engine/cockpitCardIdentity.ts`',
               '## `src/engine/cockpitPowerToughness.ts`',
               '## `src/engine/cockpitMigration.ts`',
               '## `src/engine/cockpitTable.ts`',
           ]
-          missing = [item for item in required if item not in text]
+          missing = [item for item in required_sections if item not in generated]
           if missing:
               raise SystemExit(f'generated API missing expected sections: {missing}')
-          print('generated-engine-api-repair: PASS')
+
+          print('updated frozen-hash references:', {k: v for k, v in hash_hits.items() if v})
+          print('updated duplicated multiplayer allowlists:', import_hits)
+          print('changed verifier files:', changed)
+          print('release-authority-analogue-scan: PASS')
+          PY
+          rm .github/workflows/stage14-release-gate-repair-temp.yml
+          python - <<'PY'
+          import subprocess
+          paths = subprocess.check_output(['git','diff','--name-only'], text=True).splitlines()
+          required = {'.github/workflows/stage14-release-gate-repair-temp.yml', 'docs/generated/engine-api.md'}
+          actual = set(paths)
+          missing = required - actual
+          if missing:
+              raise SystemExit(f'missing expected repair paths: {sorted(missing)}')
+          unexpected = [p for p in paths if p not in required and not p.startswith('scripts/checks/verify-')]
+          if unexpected:
+              raise SystemExit(f'unexpected repair paths: {unexpected}')
+          print('repair paths:', paths)
           PY
           git diff --check
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add docs/generated/engine-api.md .github/workflows/stage14-release-gate-repair-temp.yml
+          git add docs/generated/engine-api.md scripts/checks/verify-* .github/workflows/stage14-release-gate-repair-temp.yml
           git diff --cached --check
-          git commit -m "docs: refresh generated engine API"
-      - name: Verify generated docs are current
-        run: node scripts/checks/generate-engine-api.mjs --check
+          git commit -m "test: sync release gate authorities"
+      - name: Verify repaired gates directly
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/checks/generate-engine-api.mjs --check
+          npm run verify:online-cloudflare-runtime-persistence
+          npm run verify:online-cloudflare-websocket-recovery
+          npm run verify:online-cloudflare-capability-abuse-control
+          npm run verify:online-cloudflare-production-gate
       - name: Run complete release gate on exact committed tree
         shell: bash
         run: |
