@@ -643,11 +643,17 @@ export async function handleCockpitSession(
               return response({ error: 'INVALID_REQUEST' }, 400);
             if (record.multiplayer) {
               const multi = record.multiplayer;
+              const playLandCard =
+                body.operation.type === 'playLand' ? before.cards[body.operation.cardId] : undefined;
               const authorized =
                 body.operation.type === 'playLand'
                   ? cockpitOwnerPresent(multi, now) &&
                     multi.started &&
                     actor === multi.masterId &&
+                    actor === before.activeSeatId &&
+                    playLandCard?.zone === 'hand' &&
+                    playLandCard.ownerId === actor &&
+                    playLandCard.controllerId === actor &&
                     !multi.holds.length &&
                     !before.ended &&
                     !before.seats.find((seat) => seat.id === actor)?.eliminated
