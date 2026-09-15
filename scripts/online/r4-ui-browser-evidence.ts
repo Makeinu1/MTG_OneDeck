@@ -110,8 +110,17 @@ try {
   );
   await waitFor<boolean>(
     page,
-    `(() => document.body.textContent?.includes('マナ以外の追加コスト') || null)()`,
-    'additional-cost editor',
+    `(() => [...document.querySelectorAll('summary')].some((node) => (node.textContent||'').trim() === '追加コストを同時に支払う') || null)()`,
+    'finite additional-cost editor',
+  );
+  await click(
+    `(() => { const node=[...document.querySelectorAll('summary')].find((n) => (n.textContent||'').trim() === '追加コストを同時に支払う'); if(!(node instanceof HTMLElement)) return false; node.click(); return true; })()`,
+    'expand finite additional-cost editor',
+  );
+  await waitFor<boolean>(
+    page,
+    `(() => [...document.querySelectorAll('label')].some((n) => (n.textContent||'').trim() === '捨てる') || null)()`,
+    'discard additional-cost option',
   );
   await click(
     `(() => { const label=[...document.querySelectorAll('label')].find((n) => (n.textContent||'').trim() === '捨てる'); const input=label?.querySelector('input'); if(!(input instanceof HTMLInputElement)) return false; input.click(); return true; })()`,
@@ -126,6 +135,12 @@ try {
     `(() => window.__r4EvidenceOperations?.some((op) => op.type === 'cast' && op.sourceZone === 'graveyard') || null)()`,
     'unusual-zone cast commit',
   );
+  await waitFor<boolean>(
+    page,
+    `(() => [...document.querySelectorAll('button')].some((b) => (b.textContent||'').trim() === '選択を終える') || null)()`,
+    'selection-mode exit',
+  );
+  await clickButton('選択を終える', 'exit additional-cost selection mode');
 
   await openCardMenu(ids.faceDownId);
   await waitFor<boolean>(
