@@ -6,7 +6,7 @@ on:
     paths: [.github/r4-release-preflight.marker]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   preflight:
@@ -22,64 +22,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Align production runtime inventory with R4 authority module
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('scripts/checks/verify-online-cloudflare-runtime-persistence.ts')
-          text = path.read_text()
-          old = """    'src/online/cloudflare/cockpitMultiplayer.ts',    'src/online/cloudflare/cockpitSession.ts',
-  'src/online/cloudflare/codec.ts',
-"""
-          new = """    'src/online/cloudflare/cockpitMultiplayer.ts',
-    'src/online/cloudflare/cockpitR4Authority.ts',
-    'src/online/cloudflare/cockpitSession.ts',
-    'src/online/cloudflare/codec.ts',
-"""
-          if text.count(old) != 1:
-              raise SystemExit('Cloudflare production inventory anchor changed unexpectedly')
-          text = text.replace(old, new, 1)
-          old = """    const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitCardIdentity', '../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
-    const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-    assert.equal(local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport, true, `${normalized(path)} -> ${specifier}`);
-"""
-          new = """    const cockpitMultiplayerImport = normalized(path) === 'src/online/cloudflare/cockpitMultiplayer.ts' && ['../../engine/cockpitCardIdentity', '../../engine/cockpitTable', '../../engine/init', '../../engine/types'].includes(specifier);
-    const cockpitR4AuthorityImport = normalized(path) === 'src/online/cloudflare/cockpitR4Authority.ts' &&
-      ['../../engine/cockpitR4', '../../engine/cockpitTable', '../../engine/commands'].includes(specifier);
-    const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
-    assert.equal(
-      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport,
-      true,
-      `${normalized(path)} -> ${specifier}`,
-    );
-"""
-          if text.count(old) != 1:
-              raise SystemExit('Cloudflare import-boundary anchor changed unexpectedly')
-          path.write_text(text.replace(old, new, 1))
-          PY
-          git diff --check -- scripts/checks/verify-online-cloudflare-runtime-persistence.ts
-          if ! git diff --quiet -- scripts/checks/verify-online-cloudflare-runtime-persistence.ts; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add scripts/checks/verify-online-cloudflare-runtime-persistence.ts
-            git commit -m "test: register R4 authority in Cloudflare runtime inventory"
-            git push origin HEAD:r4a-formal-manual-inventory
-          fi
-      - name: Regenerate generated engine API
-        run: |
-          set -euo pipefail
-          npm run generate:docs-api
-          git diff --check -- docs/generated/engine-api.md
-          if ! git diff --quiet -- docs/generated/engine-api.md; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add docs/generated/engine-api.md
-            git commit -m "docs: refresh generated engine API for R4"
-            git push origin HEAD:r4a-formal-manual-inventory
-          fi
       - name: Build intended final tree without temporary preflight files
         run: |
           set -euo pipefail
