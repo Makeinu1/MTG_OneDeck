@@ -40,6 +40,7 @@ jobs:
           src/online/browser/__tests__/cockpitClient.test.ts
           src/components/game/CockpitManaBatch.r4b.test.tsx
           src/components/game/CockpitCorrectionTools.r4b.test.tsx
+          src/components/game/CockpitNormalRawZero.r4b.test.ts
       - name: Normal raw mutation ingress audit
         run: |
           if git grep -nE "\.commit\([^)]*type:[[:space:]]*'(move|life|tap|counter|draw)'" -- src/components; then
@@ -73,6 +74,7 @@ jobs:
           src/components/game/CockpitManaBatch.r4b.test.tsx
           src/components/game/CockpitCorrectionTools.tsx
           src/components/game/CockpitCorrectionTools.r4b.test.tsx
+          src/components/game/CockpitNormalRawZero.r4b.test.ts
           src/components/game/CockpitSelectionTools.tsx
           src/components/game/CockpitSessionScreen.tsx
           src/components/game/CockpitTableSurface.tsx
