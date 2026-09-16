@@ -28,8 +28,8 @@ jobs:
             'scripts/checks/verify-online-cloudflare-capability-abuse-control.ts',
             'scripts/checks/verify-online-cloudflare-production-gate.ts',
           ];
-          const oldList = `  'src/online/cloudflare/cockpitMultiplayer.ts',\n  'src/online/cloudflare/cockpitR4Authority.ts',\n  'src/online/cloudflare/cockpitSession.ts',`;
-          const newList = `  'src/online/cloudflare/cockpitMultiplayer.ts',\n  'src/online/cloudflare/cockpitR4Authority.ts',\n  'src/online/cloudflare/cockpitR4bAudit.ts',\n  'src/online/cloudflare/cockpitR4bSession.ts',\n  'src/online/cloudflare/cockpitSession.ts',`;
+          const oldList = `    'src/online/cloudflare/cockpitMultiplayer.ts',\n    'src/online/cloudflare/cockpitR4Authority.ts',\n    'src/online/cloudflare/cockpitSession.ts',`;
+          const newList = `    'src/online/cloudflare/cockpitMultiplayer.ts',\n    'src/online/cloudflare/cockpitR4Authority.ts',\n    'src/online/cloudflare/cockpitR4bAudit.ts',\n    'src/online/cloudflare/cockpitR4bSession.ts',\n    'src/online/cloudflare/cockpitSession.ts',`;
           const oldImport = `    const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&\n      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);`;
           const newImport = `${oldImport}\n    const cockpitR4bAuditImport = normalized(path) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&\n      ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);\n    const cockpitR4bSessionImport = normalized(path) === 'src/online/cloudflare/cockpitR4bSession.ts' &&\n      ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);`;
           for (const file of files) {
