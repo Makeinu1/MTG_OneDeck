@@ -124,15 +124,26 @@ jobs:
             "    rel.includes('actionCatalog.ts') ||\n    rel.startsWith('engine/') ||\n    rel.endsWith('.draft.md') ||",
           );
 
+          const sessionFile = 'src/online/cloudflare/__tests__/cockpitSession.test.ts';
           replaceExact(
-            'src/online/cloudflare/__tests__/cockpitSession.test.ts',
-            "const R4B_MANUAL_EVENT_TYPES = new Set(['move', 'draw', 'tap', 'life', 'counter']);",
-            "const R4B_MANUAL_EVENT_TYPES = new Set([\n  'move',\n  'draw',\n  'tap',\n  'life',\n  'counter',\n  'token',\n  'trigger.manualAdd',\n]);",
-          );
-          replaceExact(
-            'src/online/cloudflare/__tests__/cockpitSession.test.ts',
+            sessionFile,
             "expect((await room.change(0, { type: 'turn' })).status).toBe(403);",
             "expect((await room.change(0, { type: 'turn' })).status).toBe(409);",
+          );
+          replaceExact(
+            sessionFile,
+            "  return {\n    call,\n    change,\n    start,\n    nextTurn,\n    credentials,",
+            "  function fixturePlaceFromHand(index: number, count: number): string[] {\n    const row = storage.sql\n      .exec<{ data: string }>('SELECT data FROM cockpit_session WHERE id = 1')\n      .toArray()[0];\n    const record = JSON.parse(row.data) as { table: CockpitSessionView['table'] };\n    const seat = record.table.seats[index];\n    const ids = seat.zones.hand.slice(0, count);\n    if (ids.length !== count) throw new Error('fixture hand underflow');\n    seat.zones.hand = seat.zones.hand.filter((id) => !ids.includes(id));\n    for (const id of ids) {\n      const card = record.table.cards[id];\n      card.zone = 'battlefield';\n      card.controllerId = seat.id;\n      card.zoneChangeCounter += 1;\n      card.enteredTurn = record.table.turn;\n      seat.zones.battlefield.unshift(id);\n    }\n    storage.sql.exec('UPDATE cockpit_session SET data = ? WHERE id = 1', JSON.stringify(record));\n    return ids;\n  }\n  return {\n    call,\n    change,\n    start,\n    nextTurn,\n    fixturePlaceFromHand,\n    credentials,",
+          );
+          replaceExact(
+            sessionFile,
+            "    for (const [id, seatId] of [\n      ['a1', 'P1'],\n      ['a2', 'P1'],\n      ['b2', 'P2'],\n      ['b3', 'P3'],\n    ]) {\n      expect(\n        (\n          await room.change(0, {\n            type: 'token',\n            id,\n            seatId,\n            name: 'Unit',\n            typeLine: 'Creature',\n            power: '2',\n            toughness: '2',\n            text: '',\n          })\n        ).status,\n      ).toBe(200);\n    }",
+            "    const [a1, a2] = room.fixturePlaceFromHand(0, 2);\n    const [b2] = room.fixturePlaceFromHand(1, 1);\n    const [b3] = room.fixturePlaceFromHand(2, 1);",
+          );
+          replaceExact(
+            sessionFile,
+            "  const triggered = await triggerRoom.change(0, {\n    type: 'token',\n    id: 'departing-witness',\n    seatId: 'P2',\n    name: 'Departing Witness',\n    typeLine: 'Creature',\n    power: '1',\n    toughness: '1',\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
+            "  const [departingWitness] = triggerRoom.fixturePlaceFromHand(1, 1);\n  const triggered = await triggerRoom.change(0, {\n    type: 'trigger.manualAdd',\n    id: 'departing-witness-trigger',\n    sourceId: departingWitness,\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
           );
           NODE
       - name: Commit repair locally
@@ -155,6 +166,12 @@ jobs:
             git commit -m 'test: align stale fixtures with R4b protocol'
           fi
       - name: Verify release gate
+        run: npm run check:release -- --base 3465e00cfb2c1bc76c22fc05b624b8a746b4061d --head HEAD --build-base=/MTG_OneDeck/
+      - name: Remove temporary repair workflow
+        run: |
+          git rm .github/workflows/r4b-release-ledger-fix.yml
+          git commit -m 'ci: remove temporary R4b release repair workflow'
+      - name: Verify final release gate without repair workflow
         run: npm run check:release -- --base 3465e00cfb2c1bc76c22fc05b624b8a746b4061d --head HEAD --build-base=/MTG_OneDeck/
       - name: Push verified repair
         run: git push
