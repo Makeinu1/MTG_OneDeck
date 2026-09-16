@@ -78,7 +78,7 @@ it('requires HOLD before shared Correction can start', () => {
   try {
     const begin = [...host.querySelectorAll('button')].find(
       (button) => button.textContent === '盤面訂正を始める',
-    ) as HTMLButtonElement | undefined;
+    );
     expect(begin?.disabled).toBe(true);
     expect(host.textContent).toContain('HOLD中だけ開始');
   } finally {
