@@ -1,13 +1,14 @@
 # OneDeck UX Constitution
 
 Updated: 2026-09-16
-Revision: v6.3
+Version: v6.3
 Status: active upper interaction contract
 
-This contract governs product interaction semantics for OneDeck. Lower engine/UI contracts define implementation truth inside their domains; when a lower contract's UX interpretation conflicts with this document, the lower contract must be re-audited rather than silently overriding this constitution. This contract does not authorize weakening frozen engine safety, hidden-information boundaries, canonical identity, persistence, or recovery semantics.
+This contract governs product interaction semantics for OneDeck. Lower engine/UI contracts define implementation truth inside their domains; when a lower contract's UX interpretation conflicts with this document, the lower contract must be reconciled explicitly rather than silently overriding this constitution. This contract does not authorize weakening frozen engine safety, hidden-information boundaries, canonical identity, persistence, or recovery semantics.
 
 ## 1. Product thesis
 
+<!-- clause: UX-CONST-REALITY -->
 OneDeck reconstructs the shared paper Magic table for remote/digital play. Players play Magic; OneDeck follows naturally.
 
 Voice/table conversation is a first-class interaction channel. OneDeck should externalize the parts that digital/remote play loses: shared state, causality, synchronization, continuation, memory and safe authority. Human Magic judgment remains authoritative unless OneDeck has explicitly earned a bounded automation capability.
@@ -18,10 +19,12 @@ The Magic World — cards, players, zones, battlefield, Stack and their visible 
 
 ### 2.1 Human confirmed action wins
 
+<!-- clause: UX-CONST-CORRECTION -->
 When a human has explicitly confirmed an operation or correction, that confirmed intent is authoritative over conflicting automation. Automation must not silently overwrite a later human-confirmed state.
 
 ### 2.2 Automation is an ROI decision
 
+<!-- clause: UX-CONST-AUTOMATION -->
 Automation is permitted when repeated-game value justifies implementation and maintenance cost. High-value automation is not prohibited merely because OneDeck is not a general rules engine.
 
 The safety model is not “automate only what can never be wrong.” OneDeck may automate bounded semantics when confidence and value justify it because Undo and Correction exist as recovery mechanisms. However, automation must remain observable, attributable and reversible where state permits.
@@ -93,12 +96,14 @@ Solo/table-practice play defaults to the user being first player. This is a prod
 
 ### 6.3 Pregame and turn zero
 
+<!-- clause: UX-CONST-PREGAME -->
 Pregame must support a visible human checkpoint for game-start actions that occur before the first ordinary turn/step. The paper-table grammar is effectively “0ターン目の処理ありますか？”.
 
 Effects such as Gemstone Caverns demonstrate why Pregame cannot be modeled as only mulligan → first upkeep. OneDeck need not understand every such card; it must preserve a Manual-first opportunity to perform supported/manual game-start operations before Turn 1 begins.
 
 ### 6.4 Normal and Full Control
 
+<!-- clause: UX-CONST-CONTROL -->
 OneDeck supports two interaction attitudes analogous to paper/Arena practice without copying Arena's full rules engine:
 
 - Normal: skip low-value empty stopping points when OneDeck can safely do so; progress naturally toward meaningful interaction.
@@ -114,6 +119,7 @@ Normal mode may move through routine empty boundaries, but human HOLD/explicit a
 
 ## 7. HOLD and Stack conversation
 
+<!-- clause: UX-CONST-HOLD -->
 HOLD materializes “wait, I want to act now” as a safe request for foreground operation authority.
 
 The turn/current operator owns phase progression and Stack-resolution progression. Before that progression is committed, another player may request HOLD. The current operator approves one requester. HOLD does not instantly steal authority and is not a generic pause, discussion mode or full CR priority-pass implementation.
@@ -136,6 +142,7 @@ Public choices normally remain voice/table conversation. Hidden-information auth
 
 ### 9.1 Undo is actor-owned
 
+<!-- clause: UX-CONST-UNDO -->
 Normal Undo belongs to the actor who performed the operation. Foreground authority does not grant permission to erase another player's history.
 
 ### 9.2 One press means one undo unit
@@ -156,11 +163,12 @@ Correction means canonical shared state does not match the table's agreed realit
 
 ## 10. Room owner and player lifecycle
 
+<!-- clause: UX-CONST-ELIMINATION -->
 Room Owner is session-administration authority and is separate from Turn Owner, Primary Operator and foreground/HOLD authority.
 
 The Room Owner may perform administrative actions required to keep the session viable, including removing a participant who cannot return and force-ending/dissolving the room. These actions must be explicit and attributable; they do not grant ordinary Magic operation authority.
 
-When a player is eliminated/removed from the game, their owned game objects must cease participating in ordinary game zones/interaction. Implementation may represent this with a dedicated removed-from-game/eliminated-owner holding domain, but it must not masquerade as ordinary Exile and must preserve enough identity/history for recovery/audit where required.
+When a player is eliminated/removed from the game, their owned game objects must cease participating in ordinary game zones/interaction. Implementation may represent this with a dedicated removed-from-game/eliminated-owner holding domain, but it must not masquerade as ordinary Exile and must preserve enough identity/history for recovery/inspection where required.
 
 Temporary network disconnection is not itself elimination. Reconnect/reconciliation should restore canonical participation when possible; owner removal is a separate explicit administrative decision.
 
@@ -242,4 +250,4 @@ R6 does not require:
 
 ## 16. Compatibility rule
 
-The detailed R6 v6.2 design/audit documents remain design rationale and implementation guidance. Where they conflict with this v6.3 active contract, this contract governs R6 interaction intent. Frozen engine safety and canonical semantics are not silently rewritten by this document: collisions must be explicitly classified and resolved in the affected lower contract before implementation.
+The detailed R6 v6.2 design documents remain design rationale and implementation guidance. Where they conflict with this v6.3 active contract, this contract governs R6 interaction intent. Frozen engine safety and canonical semantics are not silently rewritten by this document: collisions must be explicitly classified and resolved in the affected lower contract before implementation.
