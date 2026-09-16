@@ -63,6 +63,13 @@ update('src/components/game/CockpitSelectionToolsLibrary.test.tsx', (source) =>
   ),
 );
 
+update('src/online/browser/__tests__/cockpitClient.test.ts', (source) =>
+  source.replaceAll(
+    "client.commit({ type: 'draw', seatId: 'P1', count: 1 })",
+    "client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })",
+  ),
+);
+
 update('src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts', (source) =>
   source.replace(
     "      './remote-priority-journey-evidence.ts',\n    ]);",
