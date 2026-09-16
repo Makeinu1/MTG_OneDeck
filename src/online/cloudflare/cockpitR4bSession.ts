@@ -44,12 +44,6 @@ export interface PreparedR4bCommit {
   crossesKnowledgeBarrier: boolean;
 }
 
-/** R4b extension until the core EventProcessRef union is widened in-place. */
-export interface R4bManualEventProcessRef {
-  kind: 'manual-event';
-  id: string;
-}
-
 function actorCanReadCard(
   table: CockpitTable,
   multi: CockpitMultiplayer,
@@ -327,10 +321,7 @@ export function prepareR4bCommit(
 }
 
 function manualEventProcessRef(id: string): EventProcessRef {
-  // The runtime provenance variant is deliberately opaque and contains no private data.
-  // It is cast through the pre-R4b core union until that union is widened in-place.
-  const process: R4bManualEventProcessRef = { kind: 'manual-event', id };
-  return process as unknown as EventProcessRef;
+  return { kind: 'manual-event', id };
 }
 
 function applyR4bManualEvent(
