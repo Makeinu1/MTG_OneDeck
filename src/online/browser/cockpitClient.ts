@@ -21,6 +21,16 @@ const COCKPIT_ORIGIN = import.meta.env.PROD
   : '';
 const CONNECTION_KEY = 'mtg-onedeck:cockpit-connection-v1';
 const R4B_PROTOCOL_VERSION = 2 as const;
+const R4B_CONTEXTUAL_FORMAL_TYPES = new Set<R4bOperation['type']>([
+  'playLand',
+  'cast',
+  'activate',
+  'generate',
+  'generateBatch',
+  'special.turnFaceUp',
+  'trigger.manualAdd',
+  'state.apply',
+]);
 interface CheckpointSchema extends DBSchema {
   checkpoint: { key: string; value: CockpitCheckpoint };
 }
@@ -565,6 +575,15 @@ export class CockpitClient {
     operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' },
     context?: ExpectedInteractionContext,
   ): Promise<void> {
+    if (
+      context &&
+      operation.type !== 'undo' &&
+      operation.type !== 'redo' &&
+      R4B_CONTEXTUAL_FORMAL_TYPES.has(operation.type as R4bOperation['type'])
+    ) {
+      await this.commitV2(operation as R4bOperation, context);
+      return;
+    }
     await this.submit(operation, false, context);
   }
   async commitV2(
