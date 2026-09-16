@@ -19,6 +19,6 @@ The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md
 
 - [`solo-ui-sep05-integration-design.md`](solo-ui-sep05-integration-design.md) — current table layout and interaction design; the September 5 reference is commit `e0c98b4`.
 - [`trigger-feed-manual-integration-design.md`](trigger-feed-manual-integration-design.md) — trigger detection, Feed and manual operations; implementation, QA evidence and shipment records are in section 12.
-- [`r6-ux-constitution-2026-09-16.md`](r6-ux-constitution-2026-09-16.md) — R6 UX constitution and UI translation baseline: reconstruct the paper Magic table with digital Magic World + voice, preserve Current Work/Stack/HOLD/Trigger memory without becoming a rules engine, and keep Manual/Human-Table-Resolved as a first-class path. This does not implement or replace R4b/R5.
-- [`r6-existing-solo-layout-audit-2026-09-16.md`](r6-existing-solo-layout-audit-2026-09-16.md) — audit of the current solo/local layout against R6: what to Preserve / Repair / Remove before changing screen composition.
+- [`r6-ux-constitution-2026-09-16.md`](r6-ux-constitution-2026-09-16.md) — R6 UX/UI constitution v6.2: reconstruct the paper Magic table with digital Magic World + voice; preserve the strong existing solo table geometry while replacing the control hierarchy around it. This does not implement or replace R4b/R5.
+- [`r6-existing-solo-layout-audit-2026-09-16.md`](r6-existing-solo-layout-audit-2026-09-16.md) — current solo/local layout audit: Preserve / Repair / Remove findings used as normative R6 design input.
 - [`cockpit-ui-restoration-2026-09-13.md`](cockpit-ui-restoration-2026-09-13.md) — historical initial restoration record, superseded by the designs above.
