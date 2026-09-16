@@ -17,6 +17,11 @@ import {
 } from '../../engine/cockpitTable';
 import type { GameCommand } from '../../engine/commands';
 import type { ZoneId } from '../../engine/types';
+import {
+  captureExpectedInteractionContext,
+  type ExpectedInteractionContext,
+  type R31TableOperation,
+} from '../../engine/cockpitR31';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
 import {
   CockpitClient,
@@ -109,6 +114,7 @@ export function CockpitSessionScreen({
   const [detail, setDetail] = useState<string | null>(null);
   const [ability, setAbility] = useState<string | null>(null);
   const [abilityChoice, setAbilityChoice] = useState<string | undefined>();
+  const [abilityContext, setAbilityContext] = useState<ExpectedInteractionContext | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [attachment, setAttachment] = useState<{
     source: string;
@@ -117,6 +123,7 @@ export function CockpitSessionScreen({
     targetVersion?: number;
     paused?: boolean;
     targetLost?: boolean;
+    context: ExpectedInteractionContext;
   } | null>(null);
   const [stackDetail, setStackDetail] = useState<string | null>(null);
   const [stackDestination, setStackDestination] = useState<ZoneId>('graveyard');
@@ -131,6 +138,7 @@ export function CockpitSessionScreen({
     targets: string[];
     paymentPlan: GameCommand[];
     error: string;
+    context: ExpectedInteractionContext;
   } | null>(null);
   const [keyword, setKeyword] = useState('flying');
   const [keywordValue, setKeywordValue] = useState('');
@@ -291,7 +299,10 @@ export function CockpitSessionScreen({
       if (motionFrameRef.current !== null) cancelAnimationFrame(motionFrameRef.current);
     };
   }, [deck, snapshot, seats, invitation]);
-  async function send(operation: TableOperation | { type: 'undo' } | { type: 'redo' }) {
+  async function send(
+    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+    expectedContext?: ExpectedInteractionContext,
+  ) {
     if (busy || uncertain || sendingRef.current) return false;
     sendingRef.current = true;
     setOperationError(false);
@@ -314,7 +325,11 @@ export function CockpitSessionScreen({
           if (node.getClientRects().length)
             origins.set(node.dataset.layoutCardId!, node.getBoundingClientRect());
         });
-      await clientRef.current?.commit(operation);
+      const context =
+        operation.type === 'undo' || operation.type === 'redo'
+          ? undefined
+          : expectedContext ?? (before ? captureExpectedInteractionContext(before) : undefined);
+      await clientRef.current?.commit(operation, context);
       const after = viewRef.current?.table;
       if (before && after) {
         publishCockpitOperation(operation, before, after);
@@ -511,7 +526,12 @@ export function CockpitSessionScreen({
     const card = table.cards[source];
     if (!card || card.zone !== 'battlefield') return;
     if (attachment && attachment.source !== source) return;
-    setAttachment({ source, version: card.zoneChangeCounter, target: null });
+    setAttachment({
+      source,
+      version: card.zoneChangeCounter,
+      target: null,
+      context: attachment?.context ?? captureExpectedInteractionContext(table),
+    });
     setDetail(null);
   }
   function prepareCast(
@@ -540,6 +560,8 @@ export function CockpitSessionScreen({
       targets,
       paymentPlan,
       error,
+      context:
+        cast?.cardId === cardId ? cast.context : captureExpectedInteractionContext(table),
     });
   }
   const disabled =
@@ -705,11 +727,14 @@ export function CockpitSessionScreen({
                   table.cards[attachment.target]?.zoneChangeCounter !== attachment.targetVersion
                 }
                 onClick={() =>
-                  void send({
-                    type: 'attach',
-                    cardId: attachment.source,
-                    targetId: attachment.target,
-                  }).then((saved) => {
+                  void send(
+                    {
+                      type: 'attach',
+                      cardId: attachment.source,
+                      targetId: attachment.target,
+                    },
+                    attachment.context,
+                  ).then((saved) => {
                     if (saved) setAttachment(null);
                   })
                 }
@@ -733,6 +758,7 @@ export function CockpitSessionScreen({
         inspect={setDetail}
         activate={(id, choice) => {
           setAbilityChoice(choice);
+          setAbilityContext(captureExpectedInteractionContext(table));
           setAbilityPeek(false);
           setAbility(id);
         }}
@@ -1460,7 +1486,10 @@ export function CockpitSessionScreen({
           folded={abilityPeek}
           onPeekChange={setAbilityPeek}
           title={`《${label(ability)}》の能力`}
-          onClose={() => setAbility(null)}
+          onClose={() => {
+            setAbility(null);
+            setAbilityContext(null);
+          }}
         >
           <CockpitAbilityTools
             key={`${ability}:${abilityChoice ?? 'default'}`}
@@ -1471,12 +1500,25 @@ export function CockpitSessionScreen({
             disabled={disabled}
             expanded
             send={async (operation) => {
-              const saved = await send(operation);
-              if (saved) setAbility(null);
+              const saved = await send(
+                operation,
+                abilityContext ?? captureExpectedInteractionContext(table),
+              );
+              if (saved) {
+                setAbility(null);
+                setAbilityContext(null);
+              }
               return saved;
             }}
           />
-          <button onClick={() => setAbility(null)}>能力の使用をやめる</button>
+          <button
+            onClick={() => {
+              setAbility(null);
+              setAbilityContext(null);
+            }}
+          >
+            能力の使用をやめる
+          </button>
         </CockpitWorkPanel>
       )}
       {confirmEnd && (
@@ -1789,16 +1831,19 @@ export function CockpitSessionScreen({
                 className="table-cast-confirm"
                 disabled={disabled || Boolean(cast.error)}
                 onClick={() =>
-                  void send({
-                    type: 'cast',
-                    cardId: cast.cardId,
-                    targets: cast.targets,
-                    x: cast.x,
-                    excludedSourceIds: cast.excludedSourceIds,
-                    manualManaCost: cast.manualManaCost,
-                    costNote: cast.costNote,
-                    paymentPlan: cast.paymentPlan,
-                  }).then((saved) => {
+                  void send(
+                    {
+                      type: 'cast',
+                      cardId: cast.cardId,
+                      targets: cast.targets,
+                      x: cast.x,
+                      excludedSourceIds: cast.excludedSourceIds,
+                      manualManaCost: cast.manualManaCost,
+                      costNote: cast.costNote,
+                      paymentPlan: cast.paymentPlan,
+                    },
+                    cast.context,
+                  ).then((saved) => {
                     if (saved) setCast(null);
                   })
                 }

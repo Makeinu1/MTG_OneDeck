@@ -9,9 +9,11 @@ import {
   type GameState,
   type LogEntry,
   type DamageEvent,
+  type EventProcessRef,
   type ObjectSnapshot,
   type OncePerTurnTriggerLedger,
   type PendingTrigger,
+  type ProcessOriginSnapshot,
   type ZoneChangeReason,
 } from './types';
 
@@ -126,10 +128,41 @@ export interface TableTriggerTrace {
   id: string;
   last: CockpitTable;
   index: number;
+  process?: EventProcessRef;
   damage?: Pick<DamageEvent, 'source' | 'target' | 'amount' | 'combatDamage'>[];
 }
-export function triggerTrace(before: CockpitTable, id: string): TableTriggerTrace {
-  return { id, last: structuredClone(before), index: 0 };
+export function triggerTrace(
+  before: CockpitTable,
+  id: string,
+  process?: EventProcessRef,
+): TableTriggerTrace {
+  return { id, last: structuredClone(before), index: 0, process };
+}
+function processOriginSnapshot(
+  before: CockpitTable,
+  table: CockpitTable,
+  process: EventProcessRef | undefined,
+): ProcessOriginSnapshot | undefined {
+  if (!process) return undefined;
+  const base: ProcessOriginSnapshot = { kind: process.kind, id: process.id };
+  if (process.kind !== 'resolution') return base;
+  const entry =
+    (before.resolution?.id === process.id ? before.resolution : undefined) ??
+    before.stack.find((item) => item.id === process.id) ??
+    (table.resolution?.id === process.id ? table.resolution : undefined) ??
+    table.stack.find((item) => item.id === process.id);
+  if (!entry) return base;
+  base.controllerId = entry.controllerId;
+  const sourcePublic =
+    !entry.source.faceDown && !['hand', 'library'].includes(entry.source.zone);
+  if (sourcePublic) {
+    const def = table.defs[entry.source.defId] ?? before.defs[entry.source.defId];
+    base.displaySnapshot = {
+      sourceName: def?.printedName ?? def?.name,
+      text: entry.text,
+    };
+  }
+  return base;
 }
 /** Called at semantic operation boundaries, including each cost and zone batch. */
 export function checkpointTableTriggers(
@@ -154,6 +187,7 @@ export function checkpointTableTriggers(
     sequence: ++records.sequence,
     simultaneousGroupId: group,
     causeCommandId: trace.id,
+    ...(trace.process ? { process: trace.process } : {}),
   });
   for (const card of Object.values(table.cards)) {
     const previous = before.cards[card.id] ?? (card.zone === 'battlefield' ? card : undefined);
@@ -232,6 +266,7 @@ export function checkpointTableTriggers(
       battlefield: Object.values(table.cards)
         .filter((c) => c.zone === 'battlefield')
         .map((c) => tableObjectSnapshot(table, c)),
+      ...(trace.process ? { process: trace.process } : {}),
     });
   if (meaning === 'battle.apply' && table.combat && !before.combat?.damageApplied) {
     for (const assignment of table.combat.assignments) {
@@ -306,6 +341,7 @@ export function checkpointTableTriggers(
       text,
       status: 'pending',
       requiresManualRuling: review,
+      originProcess: processOriginSnapshot(before, table, trace.process),
     });
   }
   const zoneLabel = {
@@ -363,8 +399,23 @@ export function readyTableTriggers(table: CockpitTable): TableTrigger[] {
         (c) => c.status === 'pending' && !c.requiresManualRuling,
       );
 }
+
+/**
+ * Progression blocker, distinct from automation readiness. Public manual-ruling
+ * candidates must still stop the table after the current resolution finishes.
+ * Hidden/private candidates never become an invisible global blocker here.
+ */
+export function blockingPublicTableTriggers(table: CockpitTable): TableTrigger[] {
+  if (table.resolution) return [];
+  return (table.triggers?.candidates ?? []).filter(
+    (candidate) =>
+      candidate.status === 'pending' &&
+      !candidate.source.faceDown &&
+      !['hand', 'library'].includes(candidate.source.zone),
+  );
+}
 export function nextTriggerController(table: CockpitTable): string | undefined {
-  const pending = readyTableTriggers(table);
+  const pending = blockingPublicTableTriggers(table);
   const seats = table.seats.filter((s) => !s.eliminated);
   const active = seats.findIndex((s) => s.id === table.activeSeatId);
   return [...seats.slice(active), ...seats.slice(0, active)].find((s) =>

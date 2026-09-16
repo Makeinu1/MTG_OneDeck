@@ -263,12 +263,34 @@ export type ZoneChangeReason =
   | 'sacrifice'
   | 'destroy';
 
+export type EventProcessRef =
+  | { kind: 'resolution'; id: string; role: 'effect' | 'lifecycle' }
+  | {
+      kind: 'action';
+      id: string;
+      actionType: 'cast' | 'activate' | 'mana' | 'other-formal';
+      role: 'action' | 'cost';
+      parentResolutionId?: string;
+    }
+  | { kind: 'system'; id: string };
+
+export interface ProcessOriginSnapshot {
+  kind: EventProcessRef['kind'];
+  id: string;
+  controllerId?: string;
+  displaySnapshot?: {
+    sourceName?: string;
+    text?: string;
+  };
+}
+
 export interface ZoneChangeEvent {
   type: 'zoneChange';
   eventId: string;
   sequence: number;
   simultaneousGroupId?: string;
   causeCommandId?: string;
+  process?: EventProcessRef;
   reason: ZoneChangeReason;
   physicalCardId: PhysicalCardId;
   oldObjectId: ObjectId;
@@ -305,6 +327,7 @@ export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeE
   sequence: number;
   simultaneousGroupId?: string;
   causeCommandId?: string;
+  process?: EventProcessRef;
   causeEventId?: string;
   cause: EventCause;
   replacementApplied?: string | string[];
@@ -393,6 +416,7 @@ export interface AttackDeclarationEvent {
   attackingPlayerId: PlayerId;
   attackers: ObjectSnapshot[];
   battlefield: ObjectSnapshot[];
+  process?: EventProcessRef;
   simultaneousGroupId?: never;
   causeCommandId?: never;
   physicalCardId?: never;
@@ -414,6 +438,7 @@ export interface CounterChangeEvent {
   sequence: number;
   simultaneousGroupId?: string;
   causeCommandId?: string;
+  process?: EventProcessRef;
   target: EventTargetRef;
   counterType: string;
   delta: number;
@@ -443,6 +468,7 @@ export interface ActivatedManaAbilityEvent {
   type: 'activatedManaAbility';
   eventId: string;
   sequence: number;
+  process?: EventProcessRef;
   sourceObjectId: ObjectId;
   sourceSnapshot: ObjectSnapshot;
   controllerId: PlayerId;
@@ -454,6 +480,7 @@ export interface ManaAddedEvent {
   type: 'manaAdded';
   eventId: string;
   sequence: number;
+  process?: EventProcessRef;
   playerId: PlayerId;
   sourceObjectId?: ObjectId;
   sourceSnapshot?: ObjectSnapshot;
@@ -475,6 +502,7 @@ export interface DefeatAdvisoryEvent {
   type: 'defeatAdvisory';
   eventId: string;
   sequence: number;
+  process?: EventProcessRef;
   reason: 'sba';
   sbaApplied: DefeatRuleRef;
   simultaneousGroupId: string;
@@ -519,6 +547,7 @@ export interface VentureEvent {
   type: 'venture';
   eventId: string;
   sequence: number;
+  process?: EventProcessRef;
   playerId: PlayerId;
   dungeonDefId: string;
   roomIndex: number;
@@ -587,6 +616,7 @@ export interface PendingTrigger {
   triggeredByAbilityEventId?: string;
   schedule?: PendingTriggerSchedule;
   condition?: TriggerCondition;
+  originProcess?: ProcessOriginSnapshot;
   resolutionText?: string;
 }
 

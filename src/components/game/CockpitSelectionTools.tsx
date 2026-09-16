@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { objectIdOf } from '../../engine/types';
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
+import {
+  captureExpectedInteractionContext,
+  type ExpectedInteractionContext,
+} from '../../engine/cockpitR31';
 import { Modal } from '../Modal';
 import { CardView } from '../CardView';
 import { hasCockpitLibraryAccess, type CockpitLibraryAccess } from './cockpitLibraryAccess';
@@ -19,7 +23,10 @@ export function CockpitSelectionTools({
   seatId: string;
   selected: string[];
   disabled: boolean;
-  send: (operation: TableOperation) => Promise<boolean>;
+  send: (
+    operation: TableOperation,
+    context?: ExpectedInteractionContext,
+  ) => Promise<boolean>;
   browseLibrary: () => void;
   libraryAccess?: CockpitLibraryAccess;
 }) {
@@ -44,9 +51,13 @@ export function CockpitSelectionTools({
     objectIds: string[];
     invalidated?: boolean;
     peekOwned?: boolean;
+    context: ExpectedInteractionContext;
     rows: { id: string; to: 'top' | 'bottom' | 'graveyard' }[];
   } | null>(null);
-  const [proliferate, setProliferate] = useState<string[] | null>(null);
+  const [proliferate, setProliferate] = useState<{
+    ids: string[];
+    context: ExpectedInteractionContext;
+  } | null>(null);
   const [libraryStatus, setLibraryStatus] = useState<'idle' | 'loading' | 'rejected' | 'empty'>(
     'idle',
   );
@@ -77,7 +88,12 @@ export function CockpitSelectionTools({
   if (arrange && !arrange.invalidated && !arrangementMatches)
     setArrange({ ...arrange, invalidated: true });
 
-  function openArrange(source: CockpitTable, kind: '占術' | '諜報', peekOwned = false): boolean {
+  function openArrange(
+    source: CockpitTable,
+    kind: '占術' | '諜報',
+    context: ExpectedInteractionContext,
+    peekOwned = false,
+  ): boolean {
     const sourceSeat = source.seats.find((entry) => entry.id === seatId);
     const examined = sourceSeat?.zones.library.slice(0, count) ?? [];
     if (!examined.length) {
@@ -91,14 +107,16 @@ export function CockpitSelectionTools({
       objectIds: examined.map((id) => objectIdOf(source.cards[id])),
       rows: examined.map((id) => ({ id, to: 'top' })),
       peekOwned,
+      context,
     });
     setLibraryStatus('idle');
     return true;
   }
 
   async function startArrange(kind: '占術' | '諜報'): Promise<void> {
+    const context = captureExpectedInteractionContext(table);
     if (!libraryAccess || hasCockpitLibraryAccess(libraryAccess, count)) {
-      openArrange(table, kind);
+      openArrange(table, kind, context);
       return;
     }
     setLibraryStatus('loading');
@@ -113,10 +131,11 @@ export function CockpitSelectionTools({
       await libraryAccess.release();
       return;
     }
-    if (!openArrange(next, kind, true)) await libraryAccess.release();
+    if (!openArrange(next, kind, context, true)) await libraryAccess.release();
   }
 
   async function mill(): Promise<void> {
+    const context = captureExpectedInteractionContext(table);
     let source = table;
     let peekOwned = false;
     if (libraryAccess && !hasCockpitLibraryAccess(libraryAccess, count)) {
@@ -137,7 +156,10 @@ export function CockpitSelectionTools({
       return;
     }
     setLibraryStatus('idle');
-    await send({ type: 'move', ids, to: 'graveyard', position: 'top' });
+    await send(
+      { type: 'move', ids, to: 'graveyard', position: 'top', reason: 'mill' },
+      context,
+    );
     if (peekOwned) await libraryAccess?.release();
   }
 
@@ -211,7 +233,12 @@ export function CockpitSelectionTools({
         >
           ランダムに捨てる
         </button>
-        <button disabled={disabled} onClick={() => setProliferate([])}>
+        <button
+          disabled={disabled}
+          onClick={() =>
+            setProliferate({ ids: [], context: captureExpectedInteractionContext(table) })
+          }
+        >
           増殖の候補を選ぶ
         </button>
         <hr />
@@ -385,16 +412,19 @@ export function CockpitSelectionTools({
           <button
             disabled={disabled || !arrangementValid}
             onClick={() =>
-              void send({
-                type: 'arrange',
-                seatId: arrange.seatId,
-                examined: arrange.examined,
-                top: arrange.rows.filter((row) => row.to === 'top').map((row) => row.id),
-                bottom: arrange.rows.filter((row) => row.to === 'bottom').map((row) => row.id),
-                graveyard: arrange.rows
-                  .filter((row) => row.to === 'graveyard')
-                  .map((row) => row.id),
-              }).then((saved) => {
+              void send(
+                {
+                  type: 'arrange',
+                  seatId: arrange.seatId,
+                  examined: arrange.examined,
+                  top: arrange.rows.filter((row) => row.to === 'top').map((row) => row.id),
+                  bottom: arrange.rows.filter((row) => row.to === 'bottom').map((row) => row.id),
+                  graveyard: arrange.rows
+                    .filter((row) => row.to === 'graveyard')
+                    .map((row) => row.id),
+                },
+                arrange.context,
+              ).then((saved) => {
                 if (!saved) return;
                 const release = Boolean(
                   arrange.peekOwned &&
@@ -422,13 +452,14 @@ export function CockpitSelectionTools({
             <label key={entry.id} style={{ display: 'block' }}>
               <input
                 type="checkbox"
-                checked={proliferate.includes(entry.id)}
+                checked={proliferate.ids.includes(entry.id)}
                 onChange={() =>
-                  setProliferate(
-                    proliferate.includes(entry.id)
-                      ? proliferate.filter((id) => id !== entry.id)
-                      : [...proliferate, entry.id],
-                  )
+                  setProliferate({
+                    ...proliferate,
+                    ids: proliferate.ids.includes(entry.id)
+                      ? proliferate.ids.filter((id) => id !== entry.id)
+                      : [...proliferate.ids, entry.id],
+                  })
                 }
               />
               {label(entry.id)}:{' '}
@@ -439,13 +470,18 @@ export function CockpitSelectionTools({
             </label>
           ))}
           <button
-            disabled={disabled || !proliferate.length}
+            disabled={disabled || !proliferate.ids.length}
             onClick={() =>
-              void send({
-                type: 'proliferate',
-                ids: proliferate.filter((id) => Object.hasOwn(table.cards, id)),
-                seatIds: proliferate.filter((id) => table.seats.some((entry) => entry.id === id)),
-              }).then((saved) => {
+              void send(
+                {
+                  type: 'proliferate',
+                  ids: proliferate.ids.filter((id) => Object.hasOwn(table.cards, id)),
+                  seatIds: proliferate.ids.filter((id) =>
+                    table.seats.some((entry) => entry.id === id),
+                  ),
+                },
+                proliferate.context,
+              ).then((saved) => {
                 if (saved) setProliferate(null);
               })
             }
