@@ -1,0 +1,41 @@
+name: R4b verification
+on:
+  push:
+    branches: [r4b-mutation-gate-correction]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: R4b core gate and repair tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/cockpitR4b.test.ts
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR31.test.ts
+          src/engine/__tests__/cockpitR31Lifecycle.test.ts
+          src/engine/__tests__/cockpitTriggers.test.ts
+      - name: Existing R4 session regressions
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+          src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+      - name: Types and build
+        run: npm run build
+      - name: R4b lint
+        run: >-
+          node node_modules/eslint/bin/eslint.js
+          src/engine/cockpitR4b.ts
+          src/engine/__tests__/cockpitR4b.test.ts
