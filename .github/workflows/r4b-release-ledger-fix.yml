@@ -21,6 +21,7 @@ jobs:
         run: |
           npm run generate:docs-api
           node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
           import { readFileSync, writeFileSync } from 'node:fs';
 
           const files = [
@@ -113,6 +114,30 @@ jobs:
             expressionLines[expressionIndex] =
               '      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,';
             writeFileSync(file, expressionLines.join('\n'));
+          }
+
+          const frozenPairs = [
+            [
+              'scripts/checks/verify-online-cloudflare-runtime-persistence.ts',
+              'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts',
+            ],
+            [
+              'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
+              'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
+            ],
+            [
+              'scripts/checks/verify-online-cloudflare-capability-abuse-control.ts',
+              'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
+            ],
+          ];
+          for (const [verifier, authority] of frozenPairs) {
+            const digest = createHash('sha256').update(readFileSync(authority)).digest('hex');
+            let source = readFileSync(verifier, 'utf8');
+            const escaped = authority.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = new RegExp(`('${escaped}':\\s*\\n\\s*')[0-9a-f]{64}(')`);
+            if (!pattern.test(source)) throw new Error(`frozen hash anchor missing: ${verifier}`);
+            source = source.replace(pattern, `$1${digest}$2`);
+            writeFileSync(verifier, source);
           }
           NODE
       - name: Commit generated ledger repair locally
