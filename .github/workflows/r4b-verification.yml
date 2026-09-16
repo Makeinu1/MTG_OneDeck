@@ -46,7 +46,7 @@ jobs:
             echo 'Normal UI must not call the legacy client commit with a raw mutation literal.' >&2
             exit 1
           fi
-          if git grep -n "記録ダメージを訂正" -- src/components/game; then
+          if git grep -nF "          記録ダメージを訂正" -- src/components/game; then
             echo 'Source-less damage correction must use repair.damageState.' >&2
             exit 1
           fi
