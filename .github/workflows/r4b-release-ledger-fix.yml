@@ -119,7 +119,7 @@ jobs:
           replaceExact(sessionFile, "blockers: [{ cardId: 'b2', attackerIds: ['a1'] }]", "blockers: [{ cardId: b2, attackerIds: [a1] }]");
           replaceExact(sessionFile, "blockers: [{ cardId: 'b3', attackerIds: ['a2'] }]", "blockers: [{ cardId: b3, attackerIds: [a2] }]");
           replaceExact(sessionFile, ").toEqual(['b2']);", ").toEqual([b2]);");
-          replaceExact(sessionFile, ").toEqual(['a2']);", ").toEqual([a2]);
+          replaceExact(sessionFile, ").toEqual(['a2']);", ").toEqual([a2]);");
           replaceExact(sessionFile, "    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',", "    expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',", 2);
           replaceExact(sessionFile, "    const blocked = await room.change(2, {\n      type: 'battle.block',", "    expect((await room.change(1, { type: 'return' }, true)).status).toBe(200);\n    expect((await room.change(2, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P3' }, true)).status).toBe(200);\n    const blocked = await room.change(2, {\n      type: 'battle.block',");
           replaceExact(sessionFile, "    expect(blocked.value.table.combat!.blockers).toHaveLength(2);", "    expect(blocked.status).toBe(200);\n    expect((await room.change(2, { type: 'return' }, true)).status).toBe(200);\n    expect(blocked.value.table.combat!.blockers).toHaveLength(2);");
