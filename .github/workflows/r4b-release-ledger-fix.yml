@@ -61,6 +61,33 @@ jobs:
             }
 
             let source = lines.join('\n');
+            {
+              const importLines = source.split('\n');
+              const cockpitImportIndex = importLines.findIndex((line) =>
+                line.includes('const cockpitImport =')
+              );
+              const cockpitAllowlistIndex = importLines.findIndex(
+                (line, index) =>
+                  index > cockpitImportIndex &&
+                  line.includes("'../../engine/cockpitR4'") &&
+                  line.includes('.includes(specifier)')
+              );
+              if (cockpitImportIndex < 0 || cockpitAllowlistIndex < 0) {
+                throw new Error(`cockpitSession import allowlist missing: ${file}`);
+              }
+              if (!importLines[cockpitAllowlistIndex].includes("'../../engine/cockpitR4b'")) {
+                const before = importLines[cockpitAllowlistIndex];
+                importLines[cockpitAllowlistIndex] = before.replace(
+                  "'../../engine/cockpitR4',",
+                  "'../../engine/cockpitR4', '../../engine/cockpitR4b',",
+                );
+                if (importLines[cockpitAllowlistIndex] === before) {
+                  throw new Error(`cockpitSession R4 import anchor missing: ${file}`);
+                }
+              }
+              source = importLines.join('\n');
+            }
+
             if (!source.includes('const cockpitR4bAuditImport =')) {
               const importLines = source.split('\n');
               const cockpitImportIndex = importLines.findIndex((line) =>
