@@ -22,6 +22,7 @@ jobs:
         run: |
           python3 .github/r4b-sunset-patch.py
           python3 .github/r4b-pregame-patch.py
+          python3 .github/r4b-error-patch.py
       - name: Targeted R4b final regressions
         shell: bash
         run: |
