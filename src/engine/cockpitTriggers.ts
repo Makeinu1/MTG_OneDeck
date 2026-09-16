@@ -60,5 +60,9 @@ export function checkpointTableTriggers(
       table.triggers.ledger,
       reviewedOccurrence,
     );
+    // The core checkpoint snapshots trace.last before the R5a-1 ledger update.
+    // Keep the shared semantic trace aligned so nested operations cannot observe
+    // a pre-materialization ledger and accidentally resurrect the occurrence.
+    trace.last = structuredClone(table);
   }
 }
