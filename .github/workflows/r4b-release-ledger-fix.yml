@@ -22,27 +22,77 @@ jobs:
           npm run generate:docs-api
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
+
           const files = [
             'scripts/checks/verify-online-cloudflare-runtime-persistence.ts',
             'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
             'scripts/checks/verify-online-cloudflare-capability-abuse-control.ts',
             'scripts/checks/verify-online-cloudflare-production-gate.ts',
           ];
-          const oldList = `    'src/online/cloudflare/cockpitMultiplayer.ts',\n    'src/online/cloudflare/cockpitR4Authority.ts',\n    'src/online/cloudflare/cockpitSession.ts',`;
-          const newList = `    'src/online/cloudflare/cockpitMultiplayer.ts',\n    'src/online/cloudflare/cockpitR4Authority.ts',\n    'src/online/cloudflare/cockpitR4bAudit.ts',\n    'src/online/cloudflare/cockpitR4bSession.ts',\n    'src/online/cloudflare/cockpitSession.ts',`;
-          const oldImport = `    const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&\n      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);`;
-          const newImport = `${oldImport}\n    const cockpitR4bAuditImport = normalized(path) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&\n      ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);\n    const cockpitR4bSessionImport = normalized(path) === 'src/online/cloudflare/cockpitR4bSession.ts' &&\n      ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);`;
+
+          const inventoryEntries = [
+            "    'src/online/cloudflare/cockpitR4bAudit.ts',",
+            "    'src/online/cloudflare/cockpitR4bSession.ts',",
+          ];
+
+          const auditImportLines = [
+            "    const cockpitR4bAuditImport = normalized(path) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&",
+            "      ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);",
+          ];
+          const sessionImportLines = [
+            "    const cockpitR4bSessionImport = normalized(path) === 'src/online/cloudflare/cockpitR4bSession.ts' &&",
+            "      ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);",
+          ];
+
           for (const file of files) {
-            let source = readFileSync(file, 'utf8');
-            if (!source.includes(oldList)) throw new Error(`production ledger anchor missing: ${file}`);
-            source = source.replace(oldList, newList);
-            if (!source.includes(oldImport)) throw new Error(`import ledger anchor missing: ${file}`);
-            source = source.replace(oldImport, newImport);
-            source = source.replace(
-              `local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport,`,
-              `local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,`,
+            const original = readFileSync(file, 'utf8');
+            const lines = original.split('\n');
+
+            if (!original.includes("'src/online/cloudflare/cockpitR4bAudit.ts'")) {
+              const authorityIndex = lines.findIndex((line) =>
+                line.trim() === "'src/online/cloudflare/cockpitR4Authority.ts',"
+              );
+              const sessionIndex = lines.findIndex((line) =>
+                line.trim() === "'src/online/cloudflare/cockpitSession.ts',"
+              );
+              if (authorityIndex < 0 || sessionIndex !== authorityIndex + 1) {
+                throw new Error(`production inventory position unexpected: ${file}`);
+              }
+              lines.splice(sessionIndex, 0, ...inventoryEntries);
+            }
+
+            let source = lines.join('\n');
+            if (!source.includes('const cockpitR4bAuditImport =')) {
+              const importLines = source.split('\n');
+              const cockpitImportIndex = importLines.findIndex((line) =>
+                line.includes('const cockpitImport =')
+              );
+              const assertionIndex = importLines.findIndex(
+                (line, index) => index > cockpitImportIndex && line.trim() === 'assert.equal('
+              );
+              if (cockpitImportIndex < 0 || assertionIndex < 0) {
+                throw new Error(`import allowlist insertion point missing: ${file}`);
+              }
+              importLines.splice(
+                assertionIndex,
+                0,
+                ...auditImportLines,
+                ...sessionImportLines,
+              );
+              source = importLines.join('\n');
+            }
+
+            const expressionLines = source.split('\n');
+            const expressionIndex = expressionLines.findIndex((line) =>
+              line.includes('local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport')
             );
-            writeFileSync(file, source);
+            if (expressionIndex < 0) {
+              throw new Error(`import allowlist expression missing: ${file}`);
+            }
+            expressionLines[expressionIndex] =
+              '      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,';
+
+            writeFileSync(file, expressionLines.join('\n'));
           }
           NODE
       - name: Verify release gate
@@ -51,7 +101,11 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add docs/generated/engine-api.md scripts/checks/verify-online-cloudflare-*.ts
+          git add docs/generated/engine-api.md \
+            scripts/checks/verify-online-cloudflare-runtime-persistence.ts \
+            scripts/checks/verify-online-cloudflare-websocket-recovery.ts \
+            scripts/checks/verify-online-cloudflare-capability-abuse-control.ts \
+            scripts/checks/verify-online-cloudflare-production-gate.ts
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'fix(ci): sync R4b release ledgers'
           git push
