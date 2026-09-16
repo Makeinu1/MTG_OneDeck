@@ -36,8 +36,20 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
           src/online/browser/__tests__/cockpitClientR4b.test.ts
+          src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts
           src/online/browser/__tests__/cockpitClient.test.ts
           src/components/game/CockpitManaBatch.r4b.test.tsx
+          src/components/game/CockpitCorrectionTools.r4b.test.tsx
+      - name: Normal raw mutation ingress audit
+        run: |
+          if git grep -nE "\.commit\([^)]*type:[[:space:]]*'(move|life|tap|counter|draw)'" -- src/components; then
+            echo 'Normal UI must not call the legacy client commit with a raw mutation literal.' >&2
+            exit 1
+          fi
+          if git grep -n "記録ダメージを訂正" -- src/components/game; then
+            echo 'Source-less damage correction must use repair.damageState.' >&2
+            exit 1
+          fi
       - name: Types and build
         run: npm run build
       - name: R4b lint
@@ -54,5 +66,11 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts
           src/online/browser/cockpitClient.ts
           src/online/browser/__tests__/cockpitClientR4b.test.ts
+          src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts
           src/components/game/CockpitManaBatch.tsx
           src/components/game/CockpitManaBatch.r4b.test.tsx
+          src/components/game/CockpitCorrectionTools.tsx
+          src/components/game/CockpitCorrectionTools.r4b.test.tsx
+          src/components/game/CockpitSelectionTools.tsx
+          src/components/game/CockpitSessionScreen.tsx
+          src/components/game/cockpitPresentation.ts
