@@ -53,7 +53,9 @@ function r4bTestRequestBody(body: unknown): unknown {
   return {
     ...value,
     protocolVersion: 2,
-    ...(!history ? { context: value.context ?? { kind: 'unbound' } } : {}),
+    ...(!history && !(value.context === undefined && operation?.type === 'activate')
+      ? { context: value.context ?? { kind: 'unbound' } }
+      : {}),
     ...(manualEvent && value.declaredCause === undefined
       ? { declaredCause: { kind: 'manual-event' } }
       : {}),

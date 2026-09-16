@@ -478,11 +478,32 @@ function multiplayerHarness(seats: 2 | 4, deckFactory: (seatIndex: number) => Re
     expect(state.value.table.turn).toBe(turn + 1);
     return state;
   }
+  function fixturePlaceFromHand(index: number, count: number): string[] {
+    const row = storage.sql
+      .exec<{ data: string }>('SELECT data FROM cockpit_session WHERE id = 1')
+      .toArray()[0];
+    const record = JSON.parse(row.data) as { table: CockpitSessionView['table'] };
+    const seat = record.table.seats[index];
+    const ids = seat.zones.hand.slice(0, count);
+    if (ids.length !== count) throw new Error('fixture hand underflow');
+    seat.zones.hand = seat.zones.hand.filter((id) => !ids.includes(id));
+    for (const id of ids) {
+      const card = record.table.cards[id];
+      card.zone = 'battlefield';
+      card.controllerId = seat.id;
+      card.zoneChangeCounter += 1;
+      card.enteredTurn = record.table.turn;
+      seat.zones.battlefield.unshift(id);
+    }
+    storage.sql.exec('UPDATE cockpit_session SET data = ? WHERE id = 1', JSON.stringify(record));
+    return ids;
+  }
   return {
     call,
     change,
     start,
     nextTurn,
+    fixturePlaceFromHand,
     credentials,
     advance: (ms: number) => {
       now += ms;
@@ -534,7 +555,7 @@ describe('shared Cockpit multiplayer', () => {
     expect(read.value.multiplayer!.counts.P2.hand).toBe(7);
     expect((await room.change(1, { type: 'life', seatIds: ['P1'], delta: -1 })).status).toBe(403);
     expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(200);
-    expect((await room.change(0, { type: 'turn' })).status).toBe(403);
+    expect((await room.change(0, { type: 'turn' })).status).toBe(409);
     expect((await room.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);
     expect((await room.change(1, { type: 'draw', seatId: 'P2', count: 1 })).status).toBe(200);
     expect(
@@ -565,45 +586,29 @@ describe('shared Cockpit multiplayer', () => {
   it('four seats preserve separate defenders and continue after elimination without changing seat identity', async () => {
     const room = multiplayerHarness(4);
     await room.start();
-    for (const [id, seatId] of [
-      ['a1', 'P1'],
-      ['a2', 'P1'],
-      ['b2', 'P2'],
-      ['b3', 'P3'],
-    ]) {
-      expect(
-        (
-          await room.change(0, {
-            type: 'token',
-            id,
-            seatId,
-            name: 'Unit',
-            typeLine: 'Creature',
-            power: '2',
-            toughness: '2',
-            text: '',
-          })
-        ).status,
-      ).toBe(200);
-    }
+    const [a1, a2] = room.fixturePlaceFromHand(0, 2);
+    const [b2] = room.fixturePlaceFromHand(1, 1);
+    const [b3] = room.fixturePlaceFromHand(2, 1);
     expect(
       (
         await room.change(0, {
           type: 'battle.attack',
           attackers: [
-            { cardId: 'a1', targetId: 'P2' },
-            { cardId: 'a2', targetId: 'P3' },
+            { cardId: a1, targetId: 'P2' },
+            { cardId: a2, targetId: 'P3' },
           ],
-          tapIds: ['a1', 'a2'],
+          tapIds: [a1, a2],
         })
       ).status,
     ).toBe(200);
+    expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(200);
+    expect((await room.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);
     expect(
       (
         await room.change(1, {
           type: 'battle.block',
           defendingSeatId: 'P2',
-          blockers: [{ cardId: 'b2', attackerIds: ['a2'] }],
+          blockers: [{ cardId: b2, attackerIds: [a2] }],
         })
       ).status,
     ).toBe(422);
@@ -612,21 +617,26 @@ describe('shared Cockpit multiplayer', () => {
         await room.change(1, {
           type: 'battle.block',
           defendingSeatId: 'P2',
-          blockers: [{ cardId: 'b2', attackerIds: ['a1'] }],
+          blockers: [{ cardId: b2, attackerIds: [a1] }],
         })
       ).status,
     ).toBe(200);
+    expect((await room.change(1, { type: 'return' }, true)).status).toBe(200);
+    expect((await room.change(2, { type: 'hold', held: true }, true)).status).toBe(200);
+    expect((await room.change(0, { type: 'grant', seatId: 'P3' }, true)).status).toBe(200);
     const blocked = await room.change(2, {
       type: 'battle.block',
       defendingSeatId: 'P3',
-      blockers: [{ cardId: 'b3', attackerIds: ['a2'] }],
+      blockers: [{ cardId: b3, attackerIds: [a2] }],
     });
+    expect(blocked.status).toBe(200);
+    expect((await room.change(2, { type: 'return' }, true)).status).toBe(200);
     expect(blocked.value.table.combat!.blockers).toHaveLength(2);
     expect(
       (await room.change(0, { type: 'undo' })).value.table.combat!.blockers.map((b) => b.cardId),
-    ).toEqual(['b2']);
+    ).toEqual([b2]);
     const eliminated = await room.change(0, { type: 'eliminate', seatId: 'P2' }, true);
-    expect(eliminated.value.table.combat!.attackers.map((entry) => entry.cardId)).toEqual(['a2']);
+    expect(eliminated.value.table.combat!.attackers.map((entry) => entry.cardId)).toEqual([a2]);
     await room.change(0, { type: 'battle.end' });
     expect((await room.change(0, { type: 'turn.ready' })).status).toBe(403);
     const advanced = await room.nextTurn(0);
@@ -644,17 +654,17 @@ describe('shared Cockpit multiplayer', () => {
 it('dismisses a departing seat pending trigger and preserves saved summoning-sickness mana boundary', async () => {
   const triggerRoom = multiplayerHarness(4);
   await triggerRoom.start();
-  const triggered = await triggerRoom.change(0, {
-    type: 'token',
-    id: 'departing-witness',
-    seatId: 'P2',
-    name: 'Departing Witness',
-    typeLine: 'Creature',
-    power: '1',
-    toughness: '1',
+  const [departingWitness] = triggerRoom.fixturePlaceFromHand(1, 1);
+  expect((await triggerRoom.change(1, { type: 'hold', held: true }, true)).status).toBe(200);
+  expect((await triggerRoom.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);
+  const triggered = await triggerRoom.change(1, {
+    type: 'trigger.manualAdd',
+    id: 'departing-witness-trigger',
+    sourceId: departingWitness,
     text: 'When Departing Witness enters the battlefield, draw a card.',
   });
   expect(triggered.status).toBe(200);
+  expect((await triggerRoom.change(1, { type: 'return' }, true)).status).toBe(200);
   const pending = triggered.value.table.triggers?.candidates.find(
     (candidate) => candidate.controllerId === 'P2' && candidate.status === 'pending',
   );

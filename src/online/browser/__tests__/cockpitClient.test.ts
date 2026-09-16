@@ -284,7 +284,7 @@ it('distinguishes terminal refusal from unknown HTTP outcomes and preserves the 
   status = 410;
   refusal = 'SESSION_EXPIRED';
   const error = await client
-    .commit({ type: 'draw', seatId: 'P1', count: 1 })
+    .commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })
     .catch((value: unknown) => value);
   expect(error).toMatchObject({ code: 'SESSION_EXPIRED' });
   expect(isCockpitTerminalFailure(error)).toBe(true);
