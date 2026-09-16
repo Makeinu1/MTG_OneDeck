@@ -33,11 +33,32 @@ function database(): OnlineCloudflareSqlStorage {
   };
 }
 
+
+const R4B_MANUAL_EVENT_TYPES = new Set(['move', 'draw', 'tap', 'life', 'counter']);
+function r4bTestRequestBody(body: unknown): unknown {
+  if (!body || typeof body !== 'object') return body;
+  const value = body as Record<string, unknown>;
+  if (value.type !== 'commit') return body;
+  const operation = value.operation as { type?: string; sourceId?: string } | undefined;
+  const history = operation?.type === 'undo' || operation?.type === 'redo';
+  const manualEvent =
+    Boolean(operation?.type && R4B_MANUAL_EVENT_TYPES.has(operation.type)) ||
+    (operation?.type === 'damage' && typeof operation.sourceId === 'string');
+  return {
+    ...value,
+    protocolVersion: 2,
+    ...(!history ? { context: value.context ?? { kind: 'unbound' } } : {}),
+    ...(manualEvent && value.declaredCause === undefined
+      ? { declaredCause: { kind: 'manual-event' } }
+      : {}),
+  };
+}
+
 function request(body: unknown): Request {
   return new Request('http://localhost/api/cockpit/r4-manual-trigger-test', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(r4bTestRequestBody(body)),
   });
 }
 

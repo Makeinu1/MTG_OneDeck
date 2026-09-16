@@ -85,7 +85,7 @@ it('routes Enter through the same contextual primary action as the visible butto
         new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }),
       ),
     );
-    expect(screen.send).toHaveBeenLastCalledWith({ type: 'resolve.begin' });
+    expect(screen.send).toHaveBeenLastCalledWith({ type: 'resolve.begin', entryId: 'primary-stack-entry' });
 
     screen.send.mockClear();
     void act(() => primary.click());
