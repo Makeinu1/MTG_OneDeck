@@ -14,7 +14,7 @@ jobs:
         with:
           ref: r4b-mutation-gate-correction
           fetch-depth: 1
-      - name: Allow sequential identical anchors in migration helper
+      - name: Prepare migration helper without workflow edits
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -24,12 +24,16 @@ jobs:
               "  const count = source.split(from).length - 1;\n  if (count !== 1) throw new Error(`${path}: expected one match, got ${count}`);\n  write(path, source.replace(from, to));",
               "  if (!source.includes(from)) throw new Error(`${path}: expected anchor`);\n  write(path, source.replace(from, to));",
           )
+          marker = "\nconst workflow = '.github/workflows/r4b-verification.yml';"
+          if marker not in s:
+              raise SystemExit('workflow marker missing')
+          s = s.split(marker, 1)[0] + '\n'
           p.write_text(s)
           PY
       - name: Apply R4b Normal mutation UI migration
         run: node scripts/r4b-normal-ui-migrate.mjs
-      - name: Remove one-shot migration machinery
-        run: rm scripts/r4b-normal-ui-migrate.mjs .github/workflows/r4b-normal-ui-migrate-once.yml
+      - name: Remove migration script only
+        run: rm scripts/r4b-normal-ui-migrate.mjs
       - name: Commit migration
         run: |
           git config user.name 'github-actions[bot]'
