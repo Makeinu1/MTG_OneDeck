@@ -1,7 +1,7 @@
 import { materializeReviewedTriggerOccurrence } from './cockpitTriggerOccurrence';
 import {
   checkpointTableTriggers as checkpointTableTriggersCore,
-  type TableTriggerTrace,
+  type TableTriggerTrace as CoreTableTriggerTrace,
 } from './cockpitTriggersCore';
 import type { CockpitTable } from './cockpitTable';
 import type { ZoneChangeReason } from './types';
@@ -34,7 +34,7 @@ export type {
  */
 export function checkpointTableTriggers(
   table: CockpitTable,
-  trace: TableTriggerTrace | undefined,
+  trace: CoreTableTriggerTrace | undefined,
   meaning: string,
   reason: ZoneChangeReason = 'move',
 ): void {
