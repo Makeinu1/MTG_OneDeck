@@ -579,7 +579,7 @@ export class CockpitClient {
       context &&
       operation.type !== 'undo' &&
       operation.type !== 'redo' &&
-      R4B_CONTEXTUAL_FORMAL_TYPES.has(operation.type as R4bOperation['type'])
+      R4B_CONTEXTUAL_FORMAL_TYPES.has(operation.type)
     ) {
       await this.commitV2(operation as R4bOperation, context);
       return;
