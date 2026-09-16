@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { tableZones, type CockpitTable } from '../../engine/cockpitTable';
+import { manaColors, tableZones, type CockpitTable } from '../../engine/cockpitTable';
 import {
   captureExpectedInteractionContext,
   type ExpectedInteractionContext,
 } from '../../engine/cockpitR31';
 import type { R4bOperation, R4bRepairOperation } from '../../engine/cockpitR4b';
-import { objectIdOf, type ZoneId } from '../../engine/types';
+import { objectIdOf, type ManaPool, type ZoneId } from '../../engine/types';
 
 const zoneLabels: Record<Exclude<ZoneId, 'stack'>, string> = {
   hand: '手札',
@@ -26,6 +26,9 @@ interface CorrectionDraft {
   counterValue: number;
   damageMarked: number;
   deathtouchDamage: boolean;
+  mana: ManaPool;
+  commanderCount: number;
+  visibilitySeatIds: string[];
 }
 
 export function CockpitCorrectionTools({
@@ -59,8 +62,8 @@ export function CockpitCorrectionTools({
       cards.length === draft.objects.length &&
       cards.every((card) => card.zone === 'battlefield'),
   );
-  const oneBattlefield =
-    draft?.objects.length === 1 && cards[0]?.zone === 'battlefield' ? draft.objects[0] : null;
+  const oneObject = draft?.objects.length === 1 ? draft.objects[0] : null;
+  const oneBattlefield = oneObject && cards[0]?.zone === 'battlefield' ? oneObject : null;
 
   function begin() {
     const objects = selected.flatMap((cardId) => {
@@ -78,6 +81,9 @@ export function CockpitCorrectionTools({
       counterValue: first?.counters['+1/+1'] ?? 0,
       damageMarked: first?.damageMarked ?? 0,
       deathtouchDamage: first?.hasDeathtouchDamage ?? false,
+      mana: { ...seat.mana },
+      commanderCount: first ? (table.commanderCasts[first.id] ?? 0) : 0,
+      visibilitySeatIds: first ? [...(table.visibility[first.id] ?? [])] : [],
     });
   }
 
@@ -248,6 +254,93 @@ export function CockpitCorrectionTools({
           >
             選択1枚の記録ダメージを訂正
           </button>
+
+          <fieldset>
+            <legend>マナプールを訂正</legend>
+            {manaColors.map((color) => (
+              <label key={color}>
+                {color}
+                <input
+                  type="number"
+                  min="0"
+                  value={draft.mana[color]}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      mana: { ...draft.mana, [color]: Number(event.target.value) },
+                    })
+                  }
+                />
+              </label>
+            ))}
+            <button
+              disabled={correctionUnavailable}
+              onClick={() => void repair({ type: 'repair.manaPool', seatId, value: draft.mana })}
+            >
+              マナプールを訂正
+            </button>
+          </fieldset>
+
+          {oneObject && table.cards[oneObject.cardId]?.isCommander && (
+            <fieldset>
+              <legend>統率者の唱えた回数を訂正</legend>
+              <input
+                type="number"
+                min="0"
+                value={draft.commanderCount}
+                onChange={(event) =>
+                  setDraft({ ...draft, commanderCount: Number(event.target.value) })
+                }
+              />
+              <button
+                disabled={correctionUnavailable}
+                onClick={() =>
+                  void repair({
+                    type: 'repair.commanderCount',
+                    cardId: oneObject.cardId,
+                    value: draft.commanderCount,
+                  })
+                }
+              >
+                統率者カウントを訂正
+              </button>
+            </fieldset>
+          )}
+
+          {oneObject && (
+            <fieldset>
+              <legend>公開状態を訂正</legend>
+              {table.seats.map((targetSeat) => (
+                <label key={targetSeat.id}>
+                  <input
+                    type="checkbox"
+                    checked={draft.visibilitySeatIds.includes(targetSeat.id)}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        visibilitySeatIds: event.target.checked
+                          ? [...draft.visibilitySeatIds, targetSeat.id]
+                          : draft.visibilitySeatIds.filter((id) => id !== targetSeat.id),
+                      })
+                    }
+                  />
+                  {targetSeat.label}
+                </label>
+              ))}
+              <button
+                disabled={correctionUnavailable}
+                onClick={() =>
+                  void repair({
+                    type: 'repair.visibility',
+                    object: oneObject,
+                    seatIds: draft.visibilitySeatIds,
+                  })
+                }
+              >
+                公開状態を訂正
+              </button>
+            </fieldset>
+          )}
 
           <p>既に引いたカードの所在違いは「所在を訂正」で手札へ移します。新しく1枚引く操作はManual Eventです。</p>
           <button onClick={() => setDraft(null)}>盤面訂正を終える</button>

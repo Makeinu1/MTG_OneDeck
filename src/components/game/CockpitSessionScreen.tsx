@@ -772,6 +772,7 @@ export function CockpitSessionScreen({
                 <button onClick={() => setDetail(attachment.target)}>選んだカードを見る</button>
               )}
               <button
+                hidden={!table.resolution}
                 disabled={
                   disabled ||
                   attachment.paused ||
@@ -827,8 +828,8 @@ export function CockpitSessionScreen({
       >
         {(browse, workOpen) => (
           <>
-            <details>
-              <summary>マナの調整</summary>
+            <details hidden={!table.resolution}>
+              <summary>マナの調整（Resolution）</summary>
               <div className="cockpit-session__bar">
                 {manaColors.map((color) => (
                   <label key={color}>
@@ -879,13 +880,15 @@ export function CockpitSessionScreen({
               holdActive={Boolean(multi?.holds.length)}
               send={send}
             />
-            <CockpitTokenTools
-              table={table}
-              seatId={seatId}
-              selected={selected}
-              disabled={disabled}
-              send={send}
-            />
+            <div hidden={!table.resolution}>
+              <CockpitTokenTools
+                table={table}
+                seatId={seatId}
+                selected={selected}
+                disabled={disabled}
+                send={send}
+              />
+            </div>
             <CockpitBattleTools
               visible={workOpen}
               table={table}
@@ -935,6 +938,7 @@ export function CockpitSessionScreen({
                 {seat.label}の一括アンタップ
               </button>
               <button
+                hidden={!table.resolution}
                 disabled={disabled}
                 onClick={() => void send({ type: 'emptyMana', seatIds: [seatId] })}
               >
@@ -1302,12 +1306,14 @@ export function CockpitSessionScreen({
               <div key={card.id} className="table-related-card">
                 <button onClick={() => setDetail(card.id)}>《{label(card.id)}》を見る</button>
                 <button
+                  hidden={!table.resolution}
                   disabled={disabled || (!!attachment && attachment.source !== card.id)}
                   onClick={() => chooseAttachment(card.id)}
                 >
                   《{label(card.id)}》を付け替える
                 </button>
                 <button
+                  hidden={!table.resolution}
                   disabled={disabled}
                   onClick={() => void send({ type: 'attach', cardId: card.id, targetId: null })}
                 >
@@ -1431,6 +1437,7 @@ export function CockpitSessionScreen({
           </p>
           {detailCard.zone === 'battlefield' && (
             <button
+              hidden={!table.resolution}
               disabled={disabled || (!!attachment && attachment.source !== detailCard.id)}
               onClick={() => chooseAttachment(detailCard.id)}
             >
@@ -1442,18 +1449,36 @@ export function CockpitSessionScreen({
               取り付け先を見る
             </button>
           )}
-          <CockpitCardTools
-            key={detailCard.id}
-            table={table}
-            cardId={detailCard.id}
-            disabled={disabled}
-            send={send}
-          />
+          {!table.resolution &&
+            detailCard.zone === 'battlefield' &&
+            detailCard.faceDown && (
+              <button
+                disabled={disabled}
+                onClick={() =>
+                  void send({
+                    type: 'special.turnFaceUp',
+                    cardId: detailCard.id,
+                    faceIndex: detailCard.faceIndex,
+                  })
+                }
+              >
+                表向きにする
+              </button>
+            )}
+          <div hidden={!table.resolution}>
+            <CockpitCardTools
+              key={detailCard.id}
+              table={table}
+              cardId={detailCard.id}
+              disabled={disabled}
+              send={send}
+            />
+          </div>
 
           {detailCard.zone === 'battlefield' && (
             <>
-              <details>
-                <summary>キーワードを付与・解除</summary>
+              <details hidden={!table.resolution}>
+                <summary>キーワードを付与・解除（Resolution）</summary>
                 <label>
                   キーワード
                   <select value={keyword} onChange={(event) => setKeyword(event.target.value)}>

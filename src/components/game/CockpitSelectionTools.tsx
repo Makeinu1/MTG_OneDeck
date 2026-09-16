@@ -219,6 +219,7 @@ export function CockpitSelectionTools({
         {(['占術', '諜報'] as const).map((kind) => (
           <button
             key={kind}
+            hidden={!table.resolution}
             disabled={disabled || count < 1 || libraryStatus === 'loading'}
             onClick={() => void startArrange(kind)}
           >
@@ -243,19 +244,25 @@ export function CockpitSelectionTools({
         <button disabled={disabled} onClick={browseLibrary}>
           山札から探す
         </button>
+        {!table.resolution && (
+          <p>占術・諜報・シャッフル・ランダムDiscard・増殖は現在のResolution中だけ利用できます。</p>
+        )}
         <button
+          hidden={!table.resolution}
           disabled={disabled}
           onClick={() => void send({ type: 'shuffle', seatId, seed: randomSeed() })}
         >
           山札をシャッフル
         </button>
         <button
+          hidden={!table.resolution}
           disabled={disabled || count < 1 || count > seat.zones.hand.length}
           onClick={() => void send({ type: 'randomDiscard', seatId, count, seed: randomSeed() })}
         >
           ランダムに捨てる
         </button>
         <button
+          hidden={!table.resolution}
           disabled={disabled}
           onClick={() =>
             setProliferate({ ids: [], context: captureExpectedInteractionContext(table) })

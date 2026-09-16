@@ -587,6 +587,11 @@ export class CockpitClient {
     if (context && operation.type !== 'undo' && operation.type !== 'redo') {
       const r4bOperation = operation as R4bOperation;
       const gate = classifyR4bOperation(r4bOperation);
+      if (gate.kind === 'retired')
+        throw new CockpitConnectionError(
+          'この旧操作経路は廃止されました。Manual Event、Correction、またはFormal操作を選んでください。',
+          `R4B_OPERATION_RETIRED:${gate.replacement}`,
+        );
       if (gate.kind === 'repair') {
         await this.commitV2(r4bOperation, context, {
           kind: 'correction',
@@ -598,13 +603,19 @@ export class CockpitClient {
         await this.commitV2(r4bOperation, context);
         return;
       }
-      if (gate.kind === 'effect' && gate.manualEventCapable) {
-        await this.commitV2(
-          r4bOperation,
-          context,
-          context.kind === 'unbound' ? { kind: 'manual-event' } : undefined,
+      if (gate.kind === 'effect') {
+        if (context.kind === 'resolution') {
+          await this.commitV2(r4bOperation, context);
+          return;
+        }
+        if (gate.manualEventCapable) {
+          await this.commitV2(r4bOperation, context, { kind: 'manual-event' });
+          return;
+        }
+        throw new CockpitConnectionError(
+          'この操作は解決処理中だけ利用できます。通常盤面ではManual EventまたはCorrectionを選んでください。',
+          'R4B_RESOLUTION_REQUIRED',
         );
-        return;
       }
     }
     await this.submit(operation, false, context);
