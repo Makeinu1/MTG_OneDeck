@@ -89,7 +89,7 @@ it('routes Enter through the same contextual primary action as the visible butto
 
     screen.send.mockClear();
     void act(() => primary.click());
-    expect(screen.send).toHaveBeenLastCalledWith({ type: 'resolve.begin' });
+    expect(screen.send).toHaveBeenLastCalledWith({ type: 'resolve.begin', entryId: 'primary-stack-entry' });
   } finally {
     screen.close();
   }

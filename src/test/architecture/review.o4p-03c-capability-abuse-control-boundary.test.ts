@@ -37,6 +37,9 @@ describe('O4P-03C architecture boundary', () => {
   it('adds exactly one production security module without dependency, version, or config drift', () => {
     expect(productionFiles(cloudflareRoot).map(normalized)).toEqual([
       'src/online/cloudflare/cockpitMultiplayer.ts',
+      'src/online/cloudflare/cockpitR4Authority.ts',
+      'src/online/cloudflare/cockpitR4bAudit.ts',
+      'src/online/cloudflare/cockpitR4bSession.ts',
       'src/online/cloudflare/cockpitSession.ts',
       'src/online/cloudflare/codec.ts',
       'src/online/cloudflare/facts.ts',
@@ -112,11 +115,23 @@ describe('O4P-03C architecture boundary', () => {
           [
             '../../engine/cockpitTable',
             '../../engine/cockpitMigration',
+            '../../engine/cockpitR31',
+            '../../engine/cockpitR4',
+            '../../engine/cockpitR4b',
             '../../engine/init',
             '../../data/gameSnapshot',
           ].includes(specifier);
+        const cockpitR4AuthorityImport =
+          normalized(path) === 'src/online/cloudflare/cockpitR4Authority.ts' &&
+          ['../../engine/cockpitTable', '../../engine/commands', '../../engine/cockpitR4'].includes(specifier);
+        const cockpitR4bAuditImport =
+          normalized(path) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&
+          ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);
+        const cockpitR4bSessionImport =
+          normalized(path) === 'src/online/cloudflare/cockpitR4bSession.ts' &&
+          ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);
         expect(
-          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport,
+          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,
           `${normalized(path)} -> ${specifier}`,
         ).toBe(true);
       }
