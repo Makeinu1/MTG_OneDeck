@@ -1,0 +1,87 @@
+name: R4b verification
+on:
+  push:
+    branches: [r4b-mutation-gate-correction]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: R4b core gate and repair tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/cockpitR4b.test.ts
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR31.test.ts
+          src/engine/__tests__/cockpitR31Lifecycle.test.ts
+          src/engine/__tests__/cockpitTriggers.test.ts
+      - name: R4b v2 session and Formal regressions
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+          src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/browser/__tests__/cockpitClientR4b.test.ts
+          src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts
+          src/online/browser/__tests__/cockpitClientR4bSunset.test.ts
+          src/components/game/CockpitManaBatch.r4b.test.tsx
+          src/components/game/CockpitCorrectionTools.r4b.test.tsx
+          src/components/game/CockpitNormalRawZero.r4b.test.ts
+          src/components/game/CockpitFormalJourney.r4b.test.ts
+      - name: Normal raw mutation ingress audit
+        run: |
+          if git grep -nE "\.commit\([^)]*type:[[:space:]]*'(move|life|tap|counter|draw)'" -- src/components; then
+            echo 'Normal UI must not call the legacy client commit with a raw mutation literal.' >&2
+            exit 1
+          fi
+          if git grep -nF "          記録ダメージを訂正" -- src/components/game; then
+            echo 'Source-less damage correction must use repair.damageState.' >&2
+            exit 1
+          fi
+          git grep -qF "dragContextRef.current = captureExpectedInteractionContext(table)" -- src/components/game/CockpitTableSurface.tsx
+          test "$(git grep -cF "dragContext ?? captureExpectedInteractionContext(table)" -- src/components/game/CockpitTableSurface.tsx | cut -d: -f2)" -ge 2
+      - name: Types and build
+        run: npm run build
+      - name: R4b lint
+        run: >-
+          node node_modules/eslint/bin/eslint.js
+          src/engine/types.ts
+          src/engine/cockpitR4b.ts
+          src/engine/__tests__/cockpitR4b.test.ts
+          src/online/cloudflare/cockpitR4bSession.ts
+          src/online/cloudflare/cockpitR4bAudit.ts
+          src/online/cloudflare/cockpitSession.ts
+          src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+          src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/browser/cockpitClient.ts
+          src/online/browser/__tests__/cockpitClientR4b.test.ts
+          src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts
+          src/online/browser/__tests__/cockpitClientR4bSunset.test.ts
+          src/components/game/CockpitManaBatch.tsx
+          src/components/game/CockpitManaBatch.r4b.test.tsx
+          src/components/game/CockpitCorrectionTools.tsx
+          src/components/game/CockpitCorrectionTools.r4b.test.tsx
+          src/components/game/CockpitNormalRawZero.r4b.test.ts
+          src/components/game/CockpitFormalJourney.r4b.test.ts
+          src/components/game/CockpitSelectionTools.tsx
+          src/components/game/CockpitSessionScreen.tsx
+          src/components/game/CockpitTableSurface.tsx
+          src/components/game/cockpitPresentation.ts

@@ -118,7 +118,7 @@ export type CombatTarget =
 
 export interface CombatAttacker {
   cardId: string;
-  objectId: ObjectId;
+  objectId: string;
   controllerId: PlayerId;
   target: CombatTarget;
   blockedBy: string[];
@@ -127,7 +127,7 @@ export interface CombatAttacker {
 
 export interface CombatBlocker {
   cardId: string;
-  objectId: ObjectId;
+  objectId: string;
   controllerId: PlayerId;
   blocking: string[];
   declaredOrder: number;
@@ -272,6 +272,7 @@ export type EventProcessRef =
       role: 'action' | 'cost';
       parentResolutionId?: string;
     }
+  | { kind: 'manual-event'; id: string }
   | { kind: 'system'; id: string };
 
 export interface ProcessOriginSnapshot {

@@ -112,6 +112,7 @@ async function startedSession() {
   ) =>
     call(index, {
       type: 'commit',
+      protocolVersion: 2,
       requestId: crypto.randomUUID(),
       revision,
       operation,

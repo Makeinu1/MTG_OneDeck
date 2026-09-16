@@ -1,9 +1,10 @@
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
 import type { R4TableOperation } from '../../engine/cockpitR4';
+import type { R4bOperation } from '../../engine/cockpitR4b';
 import { presentationRuntime } from './presentation/presentationRuntime';
 /** Only a successful forward server commit emits transient feedback. */
 export function publishCockpitOperation(
-  operation: TableOperation | R4TableOperation | { type: 'undo' | 'redo' },
+  operation: TableOperation | R4TableOperation | R4bOperation | { type: 'undo' | 'redo' },
   before: CockpitTable,
   after: CockpitTable,
 ): void {

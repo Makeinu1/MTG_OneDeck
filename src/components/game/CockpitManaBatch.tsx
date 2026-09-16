@@ -5,6 +5,10 @@ import {
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
+import {
+  captureExpectedInteractionContext,
+  type ExpectedInteractionContext,
+} from '../../engine/cockpitR31';
 import { Modal } from '../Modal';
 import { cockpitCostText } from './cockpitCostText';
 export function CockpitManaBatch({
@@ -16,9 +20,16 @@ export function CockpitManaBatch({
   table: CockpitTable;
   selected: string[];
   disabled: boolean;
-  send: (operation: TableOperation) => Promise<boolean>;
+  send: (
+    operation: TableOperation,
+    context?: ExpectedInteractionContext,
+  ) => Promise<boolean>;
 }) {
-  const [rows, setRows] = useState<{ cardId: string; choice: number }[] | null>(null);
+  const [draft, setDraft] = useState<{
+    rows: { cardId: string; choice: number }[];
+    context: ExpectedInteractionContext;
+  } | null>(null);
+  const rows = draft?.rows ?? null;
   const name = (id: string) => {
     const def = table.defs[table.cards[id]?.defId];
     return def?.printedName ?? def?.name ?? id;
@@ -38,12 +49,17 @@ export function CockpitManaBatch({
     <>
       <button
         disabled={disabled || !selected.length}
-        onClick={() => setRows(selected.map((cardId) => ({ cardId, choice: 0 })))}
+        onClick={() =>
+          setDraft({
+            rows: selected.map((cardId) => ({ cardId, choice: 0 })),
+            context: captureExpectedInteractionContext(table),
+          })
+        }
       >
         マナの出し方を確認
       </button>
-      {rows && (
-        <Modal title="まとめてマナを出す" onClose={() => setRows(null)} allowBoardPeek>
+      {draft && rows && (
+        <Modal title="まとめてマナを出す" onClose={() => setDraft(null)} allowBoardPeek>
           <p>
             出す色と支払うコストを確認してください。マナを出した後で呪文を唱えるのをやめても、タップや支払いは元に戻りません。
           </p>
@@ -61,13 +77,14 @@ export function CockpitManaBatch({
                   aria-label={`${name(row.cardId)}のマナ生成案`}
                   value={row.choice}
                   onChange={(event) =>
-                    setRows(
-                      rows.map((item) =>
+                    setDraft({
+                      ...draft,
+                      rows: rows.map((item) =>
                         item.cardId === row.cardId
                           ? { ...item, choice: Number(event.target.value) }
                           : item,
                       ),
-                    )
+                    })
                   }
                 >
                   {row.choices.map((commands, index) => (
@@ -86,11 +103,14 @@ export function CockpitManaBatch({
           <button
             disabled={disabled || !proposals?.length || proposals.some((row) => !row.commands)}
             onClick={() =>
-              void send({
-                type: 'generateBatch',
-                entries: proposals!.map((row) => ({ cardId: row.cardId, commands: row.commands })),
-              }).then((saved) => {
-                if (saved) setRows(null);
+              void send(
+                {
+                  type: 'generateBatch',
+                  entries: proposals!.map((row) => ({ cardId: row.cardId, commands: row.commands })),
+                },
+                draft.context,
+              ).then((saved) => {
+                if (saved) setDraft(null);
               })
             }
           >

@@ -15,7 +15,7 @@ import {
   type TableOperation,
 } from '../../engine/cockpitTable';
 import type { GameCommand } from '../../engine/commands';
-import type { ZoneId } from '../../engine/types';
+import { objectIdOf, type ZoneId } from '../../engine/types';
 import {
   captureExpectedInteractionContext,
   type ExpectedInteractionContext,
@@ -28,6 +28,7 @@ import {
   type R4CastSourceZone,
   type R4TableOperation,
 } from '../../engine/cockpitR4';
+import type { R4bOperation } from '../../engine/cockpitR4b';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
 import {
   CockpitClient,
@@ -38,6 +39,7 @@ import { CockpitTableSurface } from './CockpitTableSurface';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { CockpitSelectionTools } from './CockpitSelectionTools';
+import { CockpitCorrectionTools } from './CockpitCorrectionTools';
 import { CockpitCardTools, CockpitTokenTools } from './CockpitCardTools';
 import { CockpitAbilityTools } from './CockpitAbilityTools';
 import { cockpitCostText } from './cockpitCostText';
@@ -323,6 +325,7 @@ export function CockpitSessionScreen({
       | TableOperation
       | R31TableOperation
       | R4TableOperation
+      | R4bOperation
       | { type: 'undo' }
       | { type: 'redo' },
     expectedContext?: ExpectedInteractionContext,
@@ -621,6 +624,26 @@ export function CockpitSessionScreen({
     table.ended ||
     Boolean(multi && !multi.canOperate) ||
     !table.seats.find((entry) => entry.id === (multi?.ownSeatId ?? table.seats[0].id))?.kept;
+  function zoneMoveOperation(
+    ids: string[],
+    target: ZoneId,
+    position: 'top' | 'bottom',
+  ): R4bOperation {
+    if (target === 'command' && ids.length === 1) {
+      const card = table.cards[ids[0]];
+      if (card?.isCommander)
+        return {
+          type: 'commander.moveToCommand',
+          cardId: card.id,
+          objectId: objectIdOf(card),
+        };
+    }
+    return { type: 'move', ids, to: target, position };
+  }
+  const mixedCommanderCommandMove =
+    to === 'command' &&
+    selected.some((id) => table.cards[id]?.isCommander) &&
+    !(selected.length === 1 && table.cards[selected[0]]?.isCommander);
   const selectionActions = (
     <div className="cockpit-session__bar" hidden={!selected.length}>
       {selected.length > 0 && (
@@ -633,6 +656,7 @@ export function CockpitSessionScreen({
           ))}
         </details>
       )}
+      <span>Manual Event（今ゲーム中に行う操作）</span>
       <span>選択 {selected.length}枚</span>
       <button onClick={() => setSelected([])}>選択を取り消す</button>
       <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
@@ -658,8 +682,8 @@ export function CockpitSessionScreen({
         <option value="bottom">下へ・選択順</option>
       </select>
       <button
-        disabled={disabled || !selected.length}
-        onClick={() => void send({ type: 'move', ids: selected, to, position })}
+        disabled={disabled || !selected.length || mixedCommanderCommandMove}
+        onClick={() => void send(zoneMoveOperation(selected, to, position))}
       >
         {zoneLabels[to]}へ移す
       </button>
@@ -768,6 +792,7 @@ export function CockpitSessionScreen({
                 <button onClick={() => setDetail(attachment.target)}>選んだカードを見る</button>
               )}
               <button
+                hidden={!table.resolution}
                 disabled={
                   disabled ||
                   attachment.paused ||
@@ -823,8 +848,8 @@ export function CockpitSessionScreen({
       >
         {(browse, workOpen) => (
           <>
-            <details>
-              <summary>マナの調整</summary>
+            <details hidden={!table.resolution}>
+              <summary>マナの調整（Resolution）</summary>
               <div className="cockpit-session__bar">
                 {manaColors.map((color) => (
                   <label key={color}>
@@ -866,13 +891,24 @@ export function CockpitSessionScreen({
                   : undefined
               }
             />
-            <CockpitTokenTools
+            <CockpitCorrectionTools
               table={table}
               seatId={seatId}
               selected={selected}
               disabled={disabled}
+              shared={Boolean(multi)}
+              holdActive={Boolean(multi?.holds.length)}
               send={send}
             />
+            <div hidden={!table.resolution}>
+              <CockpitTokenTools
+                table={table}
+                seatId={seatId}
+                selected={selected}
+                disabled={disabled}
+                send={send}
+              />
+            </div>
             <CockpitBattleTools
               visible={workOpen}
               table={table}
@@ -922,6 +958,7 @@ export function CockpitSessionScreen({
                 {seat.label}の一括アンタップ
               </button>
               <button
+                hidden={!table.resolution}
                 disabled={disabled}
                 onClick={() => void send({ type: 'emptyMana', seatIds: [seatId] })}
               >
@@ -1289,12 +1326,14 @@ export function CockpitSessionScreen({
               <div key={card.id} className="table-related-card">
                 <button onClick={() => setDetail(card.id)}>《{label(card.id)}》を見る</button>
                 <button
+                  hidden={!table.resolution}
                   disabled={disabled || (!!attachment && attachment.source !== card.id)}
                   onClick={() => chooseAttachment(card.id)}
                 >
                   《{label(card.id)}》を付け替える
                 </button>
                 <button
+                  hidden={!table.resolution}
                   disabled={disabled}
                   onClick={() => void send({ type: 'attach', cardId: card.id, targetId: null })}
                 >
@@ -1350,7 +1389,7 @@ export function CockpitSessionScreen({
             send={send}
           />
           <details>
-            <summary>カードを移動</summary>
+            <summary>ゲーム中にカードを移動（Manual Event）</summary>
             <div className="cockpit-session__bar">
               {(['battlefield', 'graveyard', 'exile', 'hand', 'library', 'command'] as const)
                 .filter(
@@ -1367,12 +1406,7 @@ export function CockpitSessionScreen({
                     key={target}
                     disabled={disabled}
                     onClick={() =>
-                      void send({
-                        type: 'move',
-                        ids: [detailCard.id],
-                        to: target,
-                        position: 'top',
-                      }).then((saved) => {
+                      void send(zoneMoveOperation([detailCard.id], target, 'top')).then((saved) => {
                         if (saved)
                           setDetail((current) => (current === detailCard.id ? null : current));
                       })
@@ -1418,6 +1452,7 @@ export function CockpitSessionScreen({
           </p>
           {detailCard.zone === 'battlefield' && (
             <button
+              hidden={!table.resolution}
               disabled={disabled || (!!attachment && attachment.source !== detailCard.id)}
               onClick={() => chooseAttachment(detailCard.id)}
             >
@@ -1429,18 +1464,36 @@ export function CockpitSessionScreen({
               取り付け先を見る
             </button>
           )}
-          <CockpitCardTools
-            key={detailCard.id}
-            table={table}
-            cardId={detailCard.id}
-            disabled={disabled}
-            send={send}
-          />
+          {!table.resolution &&
+            detailCard.zone === 'battlefield' &&
+            detailCard.faceDown && (
+              <button
+                disabled={disabled}
+                onClick={() =>
+                  void send({
+                    type: 'special.turnFaceUp',
+                    cardId: detailCard.id,
+                    faceIndex: detailCard.faceIndex,
+                  })
+                }
+              >
+                表向きにする
+              </button>
+            )}
+          <div hidden={!table.resolution}>
+            <CockpitCardTools
+              key={detailCard.id}
+              table={table}
+              cardId={detailCard.id}
+              disabled={disabled}
+              send={send}
+            />
+          </div>
 
           {detailCard.zone === 'battlefield' && (
             <>
-              <details>
-                <summary>キーワードを付与・解除</summary>
+              <details hidden={!table.resolution}>
+                <summary>キーワードを付与・解除（Resolution）</summary>
                 <label>
                   キーワード
                   <select value={keyword} onChange={(event) => setKeyword(event.target.value)}>

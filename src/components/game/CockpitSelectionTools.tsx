@@ -201,10 +201,10 @@ export function CockpitSelectionTools({
         )}
       </details>
       <details className="cockpit-session__tools">
-        <summary>山札・カウンター・ライフ</summary>
+        <summary>ゲーム中に今行う操作（Manual Event）</summary>
         <p>
           {seat.label}
-          の山札・手札・ライフを操作します。カードへの変更は、選択中のカードに適用します。
+          の効果・手動処理を今ゲーム上で行います。既に起きた現実へ盤面を合わせる場合は「盤面訂正」を使ってください。
         </p>
         <label>
           枚数{' '}
@@ -219,6 +219,7 @@ export function CockpitSelectionTools({
         {(['占術', '諜報'] as const).map((kind) => (
           <button
             key={kind}
+            hidden={!table.resolution}
             disabled={disabled || count < 1 || libraryStatus === 'loading'}
             onClick={() => void startArrange(kind)}
           >
@@ -243,19 +244,25 @@ export function CockpitSelectionTools({
         <button disabled={disabled} onClick={browseLibrary}>
           山札から探す
         </button>
+        {!table.resolution && (
+          <p>占術・諜報・シャッフル・ランダムDiscard・増殖は現在のResolution中だけ利用できます。</p>
+        )}
         <button
+          hidden={!table.resolution}
           disabled={disabled}
           onClick={() => void send({ type: 'shuffle', seatId, seed: randomSeed() })}
         >
           山札をシャッフル
         </button>
         <button
+          hidden={!table.resolution}
           disabled={disabled || count < 1 || count > seat.zones.hand.length}
           onClick={() => void send({ type: 'randomDiscard', seatId, count, seed: randomSeed() })}
         >
           ランダムに捨てる
         </button>
         <button
+          hidden={!table.resolution}
           disabled={disabled}
           onClick={() =>
             setProliferate({ ids: [], context: captureExpectedInteractionContext(table) })
@@ -297,12 +304,6 @@ export function CockpitSelectionTools({
           }
         >
           選んだカードのカウンターを増減
-        </button>
-        <button
-          disabled={disabled || !selected.length}
-          onClick={() => void send({ type: 'damage', ids: selected, delta })}
-        >
-          記録ダメージを訂正
         </button>
         <details>
           <summary>発生源を指定してダメージ</summary>
