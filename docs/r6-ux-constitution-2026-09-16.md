@@ -636,6 +636,8 @@ The player who performed an operation owns the normal Undo of that operation, at
 
 A current operator does not gain permission to Undo another player's earlier action merely by holding foreground authority.
 
+**HOLD ownership rule:** once A approves B's HOLD request, the granted response authority is treated as B's acquired interaction for Undo responsibility. If B decides to do nothing, B — not A — is the player who backs out that granted HOLD at the minimum supported Undo granularity. A's earlier Spell/action is not implicitly undone with it.
+
 ## Article 44 — Undo cannot erase knowledge
 
 Canonical state can sometimes be restored; information already observed cannot be made unknown again.
@@ -789,7 +791,9 @@ If B/C/D request HOLD simultaneously, the current operator approves one. Once st
 
 ## 8.4 HOLD but no response
 
-If B receives HOLD but performs an operation they then regret, B uses actor-owned Undo at normal minimal granularity. R6 does not add a broad “return HOLD and rewind everything” operation.
+If B receives HOLD and then decides to do nothing, **B** backs out the granted HOLD using the minimum supported actor-owned Undo. A does not undo A's original Spell/action merely to recover from B's abandoned response opportunity.
+
+If B already performed additional operations (for example mana generation) before changing their mind, those operations are undone only at the normal minimum granularity and only by their owning actor; v6 does not invent a broad “rewind the entire response scope” command.
 
 ---
 
@@ -1143,7 +1147,7 @@ Mitigation: shared selection metadata must be privacy-safe; identities remain vi
 
 ### Attack: Undo allows current operator to rewrite another player's history
 
-Rejected. Normal Undo is actor-owned and minimal.
+Rejected. Normal Undo is actor-owned and minimal. An approved HOLD grant belongs to the acquiring responder for Undo responsibility; the approver does not need to undo the original parent action to recover from an abandoned HOLD.
 
 ### Attack: Undo falsely claims secret knowledge was erased
 
@@ -1248,22 +1252,23 @@ If a proposed feature fails the paper-table translation test, requires a general
 11. Only one simultaneous HOLD requester is approved; remaining requests expire after state change.
 12. Parent Progress/Resolution ownership is suspended, not transferred, during HOLD response work.
 13. HOLD actor retains foreground ownership until their response work resolves or is removed.
-14. Nested response completion resumes the nearest valid parent; removed parents are skipped.
-15. The current operator may create nested Formal Actions without HOLD.
-16. Trigger detection/remembering never automatically transfers authority.
-17. Ready Trigger is ambient memory, not a progress gate.
-18. Trigger Stack mutation by a non-current player uses ordinary HOLD authority.
-19. Authorized viewing never expands secret authority.
-20. Shared selection may communicate count/state without exposing hidden identities.
-21. Context/Cause remain strict even under cooperative manipulation.
-22. Stale gestures, drafts and HOLD requests never silently rebind.
-23. Geometry never manufactures semantic meaning.
-24. Target Arrow means target, not generic association.
-25. Land play / immediate mana / special/automatic actions are not forced through Stack-shaped UI.
-26. Static/continuous/replacement complexity is Manual-first unless finite automation earns its cost.
-27. Undo is actor-owned and minimal.
-28. Undo cannot erase knowledge already revealed.
-29. Undo and Correction remain separate concepts.
-30. Unknown commit results reconcile before casual retry.
-31. Existing private-library and stale-choice safety patterns are preserved.
-32. Manual Resolution + voice is a product strategy, not a fallback embarrassment.
+14. An approved but unused HOLD is backed out by the acquiring responder at actor-owned minimal Undo granularity; it does not imply undoing the parent's action.
+15. Nested response completion resumes the nearest valid parent; removed parents are skipped.
+16. The current operator may create nested Formal Actions without HOLD.
+17. Trigger detection/remembering never automatically transfers authority.
+18. Ready Trigger is ambient memory, not a progress gate.
+19. Trigger Stack mutation by a non-current player uses ordinary HOLD authority.
+20. Authorized viewing never expands secret authority.
+21. Shared selection may communicate count/state without exposing hidden identities.
+22. Context/Cause remain strict even under cooperative manipulation.
+23. Stale gestures, drafts and HOLD requests never silently rebind.
+24. Geometry never manufactures semantic meaning.
+25. Target Arrow means target, not generic association.
+26. Land play / immediate mana / special/automatic actions are not forced through Stack-shaped UI.
+27. Static/continuous/replacement complexity is Manual-first unless finite automation earns its cost.
+28. Undo is actor-owned and minimal.
+29. Undo cannot erase knowledge already revealed.
+30. Undo and Correction remain separate concepts.
+31. Unknown commit results reconcile before casual retry.
+32. Existing private-library and stale-choice safety patterns are preserved.
+33. Manual Resolution + voice is a product strategy, not a fallback embarrassment.
