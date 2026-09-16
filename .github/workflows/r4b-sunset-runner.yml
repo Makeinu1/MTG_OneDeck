@@ -24,6 +24,7 @@ jobs:
           python3 .github/r4b-pregame-patch.py
           python3 .github/r4b-error-patch.py
           python3 .github/r4b-knowledge-patch.py
+          python3 .github/r4b-build-patch.py
       - name: Targeted R4b final regressions
         shell: bash
         run: |
