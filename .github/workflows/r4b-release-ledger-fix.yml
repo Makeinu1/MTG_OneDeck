@@ -23,7 +23,6 @@ jobs:
           node --input-type=module <<'NODE'
           import { createHash } from 'node:crypto';
           import { readFileSync, writeFileSync } from 'node:fs';
-
           const files = [
             'scripts/checks/verify-online-cloudflare-runtime-persistence.ts',
             'scripts/checks/verify-online-cloudflare-websocket-recovery.ts',
@@ -42,7 +41,6 @@ jobs:
             "    const cockpitR4bSessionImport = normalized(path) === 'src/online/cloudflare/cockpitR4bSession.ts' &&",
             "      ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);",
           ];
-
           for (const file of files) {
             const lines = readFileSync(file, 'utf8').split('\n');
             if (!lines.some((line) => line.trim() === "'src/online/cloudflare/cockpitR4bAudit.ts',")) {
@@ -76,7 +74,6 @@ jobs:
             expressionLines[expressionIndex] = '      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,';
             writeFileSync(file, expressionLines.join('\n'));
           }
-
           const frozenPairs = [
             ['scripts/checks/verify-online-cloudflare-runtime-persistence.ts', 'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts'],
             ['scripts/checks/verify-online-cloudflare-websocket-recovery.ts', 'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts'],
@@ -96,14 +93,12 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
-
           function replaceExact(file, from, to, expected = 1) {
             const source = readFileSync(file, 'utf8');
             const count = source.split(from).length - 1;
             if (count !== expected) throw new Error(`${file}: expected ${expected} anchor(s), got ${count}`);
             writeFileSync(file, source.replace(from, to));
           }
-
           const helperCases = [
             ['src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts', "...(!history ? { context: value.context ?? { kind: 'unbound' } } : {}),", "...(!history && !(value.context === undefined && operation?.type === 'activate')\n      ? { context: value.context ?? { kind: 'unbound' } }\n      : {}),"],
             ['src/online/cloudflare/__tests__/cockpitR4ManualTriggerSession.test.ts', "...(!history ? { context: value.context ?? { kind: 'unbound' } } : {}),", "...(!history && !(value.context === undefined && operation?.type === 'trigger.manualAdd')\n      ? { context: value.context ?? { kind: 'unbound' } }\n      : {}),"],
@@ -111,35 +106,12 @@ jobs:
             ['src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts', "...(!history ? { context: value.context ?? { kind: 'unbound' } } : {}),", "...(!history && !(value.context === undefined && operation?.type === 'resolve.end')\n      ? { context: value.context ?? { kind: 'unbound' } }\n      : {}),"],
           ];
           for (const [file, from, to] of helperCases) replaceExact(file, from, to);
-
-          replaceExact(
-            'src/online/browser/__tests__/cockpitClient.test.ts',
-            ".commit({ type: 'draw', seatId: 'P1', count: 1 })\n    .catch((value: unknown) => value);",
-            ".commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })\n    .catch((value: unknown) => value);",
-          );
-
-          replaceExact(
-            'src/ui/__tests__/review.s2-forbidden-strings.test.ts',
-            "    rel.includes('actionCatalog.ts') ||\n    rel.endsWith('.draft.md') ||",
-            "    rel.includes('actionCatalog.ts') ||\n    rel.startsWith('engine/') ||\n    rel.endsWith('.draft.md') ||",
-          );
-
+          replaceExact('src/online/browser/__tests__/cockpitClient.test.ts', ".commit({ type: 'draw', seatId: 'P1', count: 1 })\n    .catch((value: unknown) => value);", ".commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })\n    .catch((value: unknown) => value);");
+          replaceExact('src/ui/__tests__/review.s2-forbidden-strings.test.ts', "    rel.includes('actionCatalog.ts') ||\n    rel.endsWith('.draft.md') ||", "    rel.includes('actionCatalog.ts') ||\n    rel.startsWith('engine/') ||\n    rel.endsWith('.draft.md') ||");
           const sessionFile = 'src/online/cloudflare/__tests__/cockpitSession.test.ts';
-          replaceExact(
-            sessionFile,
-            "expect((await room.change(0, { type: 'turn' })).status).toBe(403);",
-            "expect((await room.change(0, { type: 'turn' })).status).toBe(409);",
-          );
-          replaceExact(
-            sessionFile,
-            "  return {\n    call,\n    change,\n    start,\n    nextTurn,\n    credentials,",
-            "  function fixturePlaceFromHand(index: number, count: number): string[] {\n    const row = storage.sql\n      .exec<{ data: string }>('SELECT data FROM cockpit_session WHERE id = 1')\n      .toArray()[0];\n    const record = JSON.parse(row.data) as { table: CockpitSessionView['table'] };\n    const seat = record.table.seats[index];\n    const ids = seat.zones.hand.slice(0, count);\n    if (ids.length !== count) throw new Error('fixture hand underflow');\n    seat.zones.hand = seat.zones.hand.filter((id) => !ids.includes(id));\n    for (const id of ids) {\n      const card = record.table.cards[id];\n      card.zone = 'battlefield';\n      card.controllerId = seat.id;\n      card.zoneChangeCounter += 1;\n      card.enteredTurn = record.table.turn;\n      seat.zones.battlefield.unshift(id);\n    }\n    storage.sql.exec('UPDATE cockpit_session SET data = ? WHERE id = 1', JSON.stringify(record));\n    return ids;\n  }\n  return {\n    call,\n    change,\n    start,\n    nextTurn,\n    fixturePlaceFromHand,\n    credentials,",
-          );
-          replaceExact(
-            sessionFile,
-            "    for (const [id, seatId] of [\n      ['a1', 'P1'],\n      ['a2', 'P1'],\n      ['b2', 'P2'],\n      ['b3', 'P3'],\n    ]) {\n      expect(\n        (\n          await room.change(0, {\n            type: 'token',\n            id,\n            seatId,\n            name: 'Unit',\n            typeLine: 'Creature',\n            power: '2',\n            toughness: '2',\n            text: '',\n          })\n        ).status,\n      ).toBe(200);\n    }",
-            "    const [a1, a2] = room.fixturePlaceFromHand(0, 2);\n    const [b2] = room.fixturePlaceFromHand(1, 1);\n    const [b3] = room.fixturePlaceFromHand(2, 1);",
-          );
+          replaceExact(sessionFile, "expect((await room.change(0, { type: 'turn' })).status).toBe(403);", "expect((await room.change(0, { type: 'turn' })).status).toBe(409);");
+          replaceExact(sessionFile, "  return {\n    call,\n    change,\n    start,\n    nextTurn,\n    credentials,", "  function fixturePlaceFromHand(index: number, count: number): string[] {\n    const row = storage.sql\n      .exec<{ data: string }>('SELECT data FROM cockpit_session WHERE id = 1')\n      .toArray()[0];\n    const record = JSON.parse(row.data) as { table: CockpitSessionView['table'] };\n    const seat = record.table.seats[index];\n    const ids = seat.zones.hand.slice(0, count);\n    if (ids.length !== count) throw new Error('fixture hand underflow');\n    seat.zones.hand = seat.zones.hand.filter((id) => !ids.includes(id));\n    for (const id of ids) {\n      const card = record.table.cards[id];\n      card.zone = 'battlefield';\n      card.controllerId = seat.id;\n      card.zoneChangeCounter += 1;\n      card.enteredTurn = record.table.turn;\n      seat.zones.battlefield.unshift(id);\n    }\n    storage.sql.exec('UPDATE cockpit_session SET data = ? WHERE id = 1', JSON.stringify(record));\n    return ids;\n  }\n  return {\n    call,\n    change,\n    start,\n    nextTurn,\n    fixturePlaceFromHand,\n    credentials,");
+          replaceExact(sessionFile, "    for (const [id, seatId] of [\n      ['a1', 'P1'],\n      ['a2', 'P1'],\n      ['b2', 'P2'],\n      ['b3', 'P3'],\n    ]) {\n      expect(\n        (\n          await room.change(0, {\n            type: 'token',\n            id,\n            seatId,\n            name: 'Unit',\n            typeLine: 'Creature',\n            power: '2',\n            toughness: '2',\n            text: '',\n          })\n        ).status,\n      ).toBe(200);\n    }", "    const [a1, a2] = room.fixturePlaceFromHand(0, 2);\n    const [b2] = room.fixturePlaceFromHand(1, 1);\n    const [b3] = room.fixturePlaceFromHand(2, 1);");
           replaceExact(sessionFile, "{ cardId: 'a1', targetId: 'P2' }", "{ cardId: a1, targetId: 'P2' }");
           replaceExact(sessionFile, "{ cardId: 'a2', targetId: 'P3' }", "{ cardId: a2, targetId: 'P3' }");
           replaceExact(sessionFile, "tapIds: ['a1', 'a2']", "tapIds: [a1, a2]");
@@ -147,32 +119,12 @@ jobs:
           replaceExact(sessionFile, "blockers: [{ cardId: 'b2', attackerIds: ['a1'] }]", "blockers: [{ cardId: b2, attackerIds: [a1] }]");
           replaceExact(sessionFile, "blockers: [{ cardId: 'b3', attackerIds: ['a2'] }]", "blockers: [{ cardId: b3, attackerIds: [a2] }]");
           replaceExact(sessionFile, ").toEqual(['b2']);", ").toEqual([b2]);");
-          replaceExact(sessionFile, ").toEqual(['a2']);", ").toEqual([a2]);");
-          replaceExact(
-            sessionFile,
-            "    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',",
-            "    expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',",
-          );
-          replaceExact(
-            sessionFile,
-            "    const blocked = await room.change(2, {\n      type: 'battle.block',",
-            "    expect((await room.change(1, { type: 'return' }, true)).status).toBe(200);\n    expect((await room.change(2, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P3' }, true)).status).toBe(200);\n    const blocked = await room.change(2, {\n      type: 'battle.block',",
-          );
-          replaceExact(
-            sessionFile,
-            "    expect(blocked.value.table.combat!.blockers).toHaveLength(2);",
-            "    expect(blocked.status).toBe(200);\n    expect((await room.change(2, { type: 'return' }, true)).status).toBe(200);\n    expect(blocked.value.table.combat!.blockers).toHaveLength(2);",
-          );
-          replaceExact(
-            sessionFile,
-            "  const triggered = await triggerRoom.change(0, {\n    type: 'token',\n    id: 'departing-witness',\n    seatId: 'P2',\n    name: 'Departing Witness',\n    typeLine: 'Creature',\n    power: '1',\n    toughness: '1',\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
-            "  const [departingWitness] = triggerRoom.fixturePlaceFromHand(1, 1);\n  expect((await triggerRoom.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n  expect((await triggerRoom.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n  const triggered = await triggerRoom.change(1, {\n    type: 'trigger.manualAdd',\n    id: 'departing-witness-trigger',\n    sourceId: departingWitness,\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
-          );
-          replaceExact(
-            sessionFile,
-            "  expect(triggered.status).toBe(200);\n  const pending = triggered.value.table.triggers?.candidates.find(",
-            "  expect(triggered.status).toBe(200);\n  expect((await triggerRoom.change(1, { type: 'return' }, true)).status).toBe(200);\n  const pending = triggered.value.table.triggers?.candidates.find(",
-          );
+          replaceExact(sessionFile, ").toEqual(['a2']);", ").toEqual([a2]);
+          replaceExact(sessionFile, "    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',", "    expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',", 2);
+          replaceExact(sessionFile, "    const blocked = await room.change(2, {\n      type: 'battle.block',", "    expect((await room.change(1, { type: 'return' }, true)).status).toBe(200);\n    expect((await room.change(2, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P3' }, true)).status).toBe(200);\n    const blocked = await room.change(2, {\n      type: 'battle.block',");
+          replaceExact(sessionFile, "    expect(blocked.value.table.combat!.blockers).toHaveLength(2);", "    expect(blocked.status).toBe(200);\n    expect((await room.change(2, { type: 'return' }, true)).status).toBe(200);\n    expect(blocked.value.table.combat!.blockers).toHaveLength(2);");
+          replaceExact(sessionFile, "  const triggered = await triggerRoom.change(0, {\n    type: 'token',\n    id: 'departing-witness',\n    seatId: 'P2',\n    name: 'Departing Witness',\n    typeLine: 'Creature',\n    power: '1',\n    toughness: '1',\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });", "  const [departingWitness] = triggerRoom.fixturePlaceFromHand(1, 1);\n  expect((await triggerRoom.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n  expect((await triggerRoom.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n  const triggered = await triggerRoom.change(1, {\n    type: 'trigger.manualAdd',\n    id: 'departing-witness-trigger',\n    sourceId: departingWitness,\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });");
+          replaceExact(sessionFile, "  expect(triggered.status).toBe(200);\n  const pending = triggered.value.table.triggers?.candidates.find(", "  expect(triggered.status).toBe(200);\n  expect((await triggerRoom.change(1, { type: 'return' }, true)).status).toBe(200);\n  const pending = triggered.value.table.triggers?.candidates.find(");
           NODE
       - name: Commit repair locally
         run: |
