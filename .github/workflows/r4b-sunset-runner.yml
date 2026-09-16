@@ -19,19 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Apply audited patch
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          source = Path('.github/workflows/r4b-sunset-finalize.yml').read_text()
-          start = source.index('          from pathlib import Path\n')
-          end = source.index('          PY\n      - name: Targeted R4b final regressions', start)
-          code = '\n'.join(
-              line[10:] if line.startswith('          ') else line
-              for line in source[start:end].splitlines()
-          )
-          exec(compile(code, 'r4b-sunset-finalizer.py', 'exec'), {})
-          PY
+        run: python3 .github/r4b-sunset-patch.py
       - name: Targeted R4b final regressions
         shell: bash
         run: |
