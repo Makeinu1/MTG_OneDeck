@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   migrate:
-    if: github.event.head_commit.message == 'chore(r4b): run normal mutation ui migration'
+    if: "${{ github.event.head_commit.message == 'chore(r4b): run normal mutation ui migration' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
