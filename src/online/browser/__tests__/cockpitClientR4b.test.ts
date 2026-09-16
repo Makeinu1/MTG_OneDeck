@@ -28,19 +28,21 @@ it('sends explicit captured context and declared cause as protocol v2 receipt id
   let revision = 0;
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (_url: string, init: RequestInit) => {
+    vi.fn((_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string) as Record<string, unknown>;
       requests.push(body);
       if (body.type === 'commit') revision += 1;
-      return Response.json({
-        table: { seats: [] },
-        revision,
-        receipt: 'committed',
-        canUndo: false,
-        canRedo: false,
-        expiresAt: 0,
-        recentActions: [],
-      });
+      return Promise.resolve(
+        Response.json({
+          table: { seats: [] },
+          revision,
+          receipt: 'committed',
+          canUndo: false,
+          canRedo: false,
+          expiresAt: 0,
+          recentActions: [],
+        }),
+      );
     }),
   );
 
@@ -68,18 +70,20 @@ it('keeps context-less legacy commit compatible until its UI journey is migrated
   let revision = 0;
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (_url: string, init: RequestInit) => {
+    vi.fn((_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string) as Record<string, unknown>;
       requests.push(body);
       if (body.type === 'commit') revision += 1;
-      return Response.json({
-        table: { seats: [] },
-        revision,
-        receipt: 'committed',
-        canUndo: false,
-        canRedo: false,
-        expiresAt: 0,
-      });
+      return Promise.resolve(
+        Response.json({
+          table: { seats: [] },
+          revision,
+          receipt: 'committed',
+          canUndo: false,
+          canRedo: false,
+          expiresAt: 0,
+        }),
+      );
     }),
   );
 
@@ -98,18 +102,20 @@ it('treats v2 gate/update responses as definite unsaved rejections', async () =>
   let reject = false;
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (_url: string, init: RequestInit) => {
+    vi.fn((_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string) as Record<string, unknown>;
       if (body.type === 'commit' && reject)
-        return Response.json({ error: 'CLIENT_UPDATE_REQUIRED' }, { status: 409 });
-      return Response.json({
-        table: { seats: [] },
-        revision: 0,
-        receipt: 'committed',
-        canUndo: false,
-        canRedo: false,
-        expiresAt: 0,
-      });
+        return Promise.resolve(Response.json({ error: 'CLIENT_UPDATE_REQUIRED' }, { status: 409 }));
+      return Promise.resolve(
+        Response.json({
+          table: { seats: [] },
+          revision: 0,
+          receipt: 'committed',
+          canUndo: false,
+          canRedo: false,
+          expiresAt: 0,
+        }),
+      );
     }),
   );
 
@@ -129,5 +135,6 @@ it('treats v2 gate/update responses as definite unsaved rejections', async () =>
   }
   expect(isCockpitOperationRejection(caught)).toBe(true);
   expect((caught as Error).message).toContain('再読み込み');
-  expect(JSON.parse(localStorage.getItem(key)!).pending).toBeNull();
+  const persisted = JSON.parse(localStorage.getItem(key)!) as { pending: unknown };
+  expect(persisted.pending).toBeNull();
 });
