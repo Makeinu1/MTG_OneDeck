@@ -64,7 +64,47 @@ it('sends explicit captured context and declared cause as protocol v2 receipt id
   });
 });
 
-it('keeps context-less legacy commit compatible until its UI journey is migrated', async () => {
+it('automatically upgrades context-aware R4 formal commits to protocol v2', async () => {
+  connectState();
+  const requests: Record<string, unknown>[] = [];
+  let revision = 0;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as Record<string, unknown>;
+      requests.push(body);
+      if (body.type === 'commit') revision += 1;
+      return Promise.resolve(
+        Response.json({
+          table: { seats: [] },
+          revision,
+          receipt: 'committed',
+          canUndo: false,
+          canRedo: false,
+          expiresAt: 0,
+        }),
+      );
+    }),
+  );
+
+  const client = new CockpitClient(vi.fn());
+  clients.push(client);
+  await client.reconnect();
+  await client.commit(
+    { type: 'playLand', cardId: 'c1' },
+    { kind: 'unbound' },
+  );
+
+  const commit = requests.find((body) => body.type === 'commit')!;
+  expect(commit).toMatchObject({
+    protocolVersion: 2,
+    context: { kind: 'unbound' },
+    operation: { type: 'playLand', cardId: 'c1' },
+  });
+  expect(commit).not.toHaveProperty('declaredCause');
+});
+
+it('keeps context-less raw effect commits compatible until their UI journey is migrated', async () => {
   connectState();
   const requests: Record<string, unknown>[] = [];
   let revision = 0;
