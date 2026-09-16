@@ -63,12 +63,18 @@ update('src/components/game/CockpitSelectionToolsLibrary.test.tsx', (source) =>
   ),
 );
 
+update('src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts', (source) =>
+  source.replace(
+    "      './remote-priority-journey-evidence.ts',\n    ]);",
+    "      './remote-priority-journey-evidence.ts',\n      './r4-ui-browser-evidence.ts',\n      './r4-ui-evidence-harness.tsx',\n    ]);",
+  ),
+);
+
 const architectureFiles = [
   'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts',
   'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
   'src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts',
-  'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts',
   'src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts',
 ];
 
@@ -81,20 +87,21 @@ for (const path of architectureFiles) {
         "      'src/online/cloudflare/cockpitMultiplayer.ts',\n      'src/online/cloudflare/cockpitR4Authority.ts',\n      'src/online/cloudflare/cockpitR4bAudit.ts',\n      'src/online/cloudflare/cockpitR4bSession.ts',\n",
       );
     }
-    if (!next.includes("'../../engine/cockpitR4b',\n            '../../engine/init'")) {
-      next = next.replace(
-        "            '../../engine/cockpitMigration',\n            '../../engine/init',",
-        "            '../../engine/cockpitMigration',\n            '../../engine/cockpitR31',\n            '../../engine/cockpitR4',\n            '../../engine/cockpitR4b',\n            '../../engine/init',",
-      );
-    }
+    next = next.replace(
+      "            '../../engine/cockpitMigration',\n            '../../engine/init',",
+      "            '../../engine/cockpitMigration',\n            '../../engine/cockpitR31',\n            '../../engine/cockpitR4',\n            '../../engine/cockpitR4b',\n            '../../engine/init',",
+    );
     if (!next.includes('const cockpitR4AuthorityImport =')) {
       const cockpitImportIndex = next.indexOf('        const cockpitImport =');
       if (cockpitImportIndex < 0) throw new Error(`cockpitImport missing: ${path}`);
       const expectIndex = next.indexOf('        expect(', cockpitImportIndex);
       if (expectIndex < 0) throw new Error(`import assertion missing: ${path}`);
-      const iterator = next.slice(0, cockpitImportIndex).includes('for (const filePath of productionFiles')
+      const prefix = next.slice(0, cockpitImportIndex);
+      const iterator = prefix.includes('for (const filePath of productionFiles')
         ? 'filePath'
-        : 'file';
+        : prefix.includes('for (const path of productionFiles')
+          ? 'path'
+          : 'file';
       const predicates = `        const cockpitR4AuthorityImport =\n          normalized(${iterator}) === 'src/online/cloudflare/cockpitR4Authority.ts' &&\n          ['../../engine/cockpitTable', '../../engine/commands', '../../engine/cockpitR4'].includes(specifier);\n        const cockpitR4bAuditImport =\n          normalized(${iterator}) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&\n          ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);\n        const cockpitR4bSessionImport =\n          normalized(${iterator}) === 'src/online/cloudflare/cockpitR4bSession.ts' &&\n          ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);\n`;
       next = next.slice(0, expectIndex) + predicates + next.slice(expectIndex);
     }
