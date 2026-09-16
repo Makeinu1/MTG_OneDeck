@@ -21,6 +21,7 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add src/components/game/CockpitPrimaryAction.test.tsx \
             src/components/game/CockpitSelectionToolsLibrary.test.tsx \
+            src/online/browser/__tests__/cockpitClient.test.ts \
             src/online/cloudflare/__tests__/cockpitSession.test.ts \
             src/online/cloudflare/__tests__/cockpitTtlPolicy.test.ts \
             src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts \
