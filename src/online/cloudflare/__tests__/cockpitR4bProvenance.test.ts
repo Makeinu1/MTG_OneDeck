@@ -78,7 +78,7 @@ describe('R4b semantic audit projection', () => {
     expect(publicView[0]).not.toHaveProperty('processId');
   });
 
-  it('keeps private Correction audit actor-scoped and bounded', () => {
+  it('shares private Correction occurrence while keeping details actor-scoped and history bounded', () => {
     const table = createCockpitTable(makeDeck(30), 43);
     const cardId = table.seats[0].zones.hand[0];
     const prepared = prepareR4bCommit(
@@ -100,7 +100,10 @@ describe('R4b semantic audit projection', () => {
     );
     const internal = semanticActionForR4bCommit(table, prepared, 'P1', 8);
 
-    expect(projectR4bSemanticActions([internal], 'P2')).toEqual([]);
+    expect(internal.audience).toEqual(['P1']);
+    expect(projectR4bSemanticActions([internal], 'P2')).toEqual([
+      { kind: 'correction', actorId: 'P1', revision: 8 },
+    ]);
     expect(projectR4bSemanticActions([internal], 'P1')).toEqual([
       { kind: 'correction', actorId: 'P1', revision: 8 },
     ]);
