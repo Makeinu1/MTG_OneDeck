@@ -150,8 +150,28 @@ jobs:
           replaceExact(sessionFile, ").toEqual(['a2']);", ").toEqual([a2]);");
           replaceExact(
             sessionFile,
+            "    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',",
+            "    expect((await room.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n    expect(\n      (\n        await room.change(1, {\n          type: 'battle.block',",
+          );
+          replaceExact(
+            sessionFile,
+            "    const blocked = await room.change(2, {\n      type: 'battle.block',",
+            "    expect((await room.change(1, { type: 'return' }, true)).status).toBe(200);\n    expect((await room.change(2, { type: 'hold', held: true }, true)).status).toBe(200);\n    expect((await room.change(0, { type: 'grant', seatId: 'P3' }, true)).status).toBe(200);\n    const blocked = await room.change(2, {\n      type: 'battle.block',",
+          );
+          replaceExact(
+            sessionFile,
+            "    expect(blocked.value.table.combat!.blockers).toHaveLength(2);",
+            "    expect(blocked.status).toBe(200);\n    expect((await room.change(2, { type: 'return' }, true)).status).toBe(200);\n    expect(blocked.value.table.combat!.blockers).toHaveLength(2);",
+          );
+          replaceExact(
+            sessionFile,
             "  const triggered = await triggerRoom.change(0, {\n    type: 'token',\n    id: 'departing-witness',\n    seatId: 'P2',\n    name: 'Departing Witness',\n    typeLine: 'Creature',\n    power: '1',\n    toughness: '1',\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
-            "  const [departingWitness] = triggerRoom.fixturePlaceFromHand(1, 1);\n  const triggered = await triggerRoom.change(0, {\n    type: 'trigger.manualAdd',\n    id: 'departing-witness-trigger',\n    sourceId: departingWitness,\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
+            "  const [departingWitness] = triggerRoom.fixturePlaceFromHand(1, 1);\n  expect((await triggerRoom.change(1, { type: 'hold', held: true }, true)).status).toBe(200);\n  expect((await triggerRoom.change(0, { type: 'grant', seatId: 'P2' }, true)).status).toBe(200);\n  const triggered = await triggerRoom.change(1, {\n    type: 'trigger.manualAdd',\n    id: 'departing-witness-trigger',\n    sourceId: departingWitness,\n    text: 'When Departing Witness enters the battlefield, draw a card.',\n  });",
+          );
+          replaceExact(
+            sessionFile,
+            "  expect(triggered.status).toBe(200);\n  const pending = triggered.value.table.triggers?.candidates.find(",
+            "  expect(triggered.status).toBe(200);\n  expect((await triggerRoom.change(1, { type: 'return' }, true)).status).toBe(200);\n  const pending = triggered.value.table.triggers?.candidates.find(",
           );
           NODE
       - name: Commit repair locally
