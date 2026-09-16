@@ -19,4 +19,5 @@ The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md
 
 - [`solo-ui-sep05-integration-design.md`](solo-ui-sep05-integration-design.md) — current table layout and interaction design; the September 5 reference is commit `e0c98b4`.
 - [`trigger-feed-manual-integration-design.md`](trigger-feed-manual-integration-design.md) — trigger detection, Feed and manual operations; implementation, QA evidence and shipment records are in section 12.
+- [`r6-ux-constitution-2026-09-16.md`](r6-ux-constitution-2026-09-16.md) — R6 UX constitution and core interaction specification: Magic-first Manual Resolution, Current Work continuity, Stack/target spatial causality, Single Operator, nested formal actions, and Growth Spiral / Emergent Ultimatum stress journeys. This is an R6 design baseline and does not implement or replace R4b/R5.
 - [`cockpit-ui-restoration-2026-09-13.md`](cockpit-ui-restoration-2026-09-13.md) — historical initial restoration record, superseded by the designs above.
