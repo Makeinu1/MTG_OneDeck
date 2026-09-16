@@ -35,11 +35,14 @@ jobs:
           src/online/cloudflare/__tests__/cockpitSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/browser/__tests__/cockpitClientR4b.test.ts
+          src/online/browser/__tests__/cockpitClient.test.ts
       - name: Types and build
         run: npm run build
       - name: R4b lint
         run: >-
           node node_modules/eslint/bin/eslint.js
+          src/engine/types.ts
           src/engine/cockpitR4b.ts
           src/engine/__tests__/cockpitR4b.test.ts
           src/online/cloudflare/cockpitR4bSession.ts
@@ -48,3 +51,5 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
           src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts
+          src/online/browser/cockpitClient.ts
+          src/online/browser/__tests__/cockpitClientR4b.test.ts
