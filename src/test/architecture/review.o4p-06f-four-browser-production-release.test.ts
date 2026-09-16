@@ -98,6 +98,8 @@ describe('review O4P-06F four-browser production release', () => {
       './o4p-06f-four-browser-evidence.ts',
       './o4p-09i-full-match-evidence.ts',
       './remote-priority-journey-evidence.ts',
+      './r4-ui-browser-evidence.ts',
+      './r4-ui-evidence-harness.tsx',
     ]);
   });
 

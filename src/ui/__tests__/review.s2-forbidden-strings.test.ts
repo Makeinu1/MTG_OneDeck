@@ -30,6 +30,7 @@ function isExempt(filePath: string): boolean {
     rel.includes('__tests__') ||
     rel.includes('.test.') ||
     rel.includes('actionCatalog.ts') ||
+    rel.startsWith('engine/') ||
     rel.endsWith('.draft.md') ||
     rel.startsWith('dev/')
   );

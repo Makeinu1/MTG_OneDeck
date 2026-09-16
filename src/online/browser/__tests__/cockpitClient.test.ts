@@ -48,7 +48,7 @@ it('serializes polling with commits and discards late replies after disposal wit
   await client.reconnect();
   delayRead = true;
   await vi.advanceTimersByTimeAsync(1500);
-  const committing = client.commit({ type: 'draw', seatId: 'P1', count: 1 });
+  const committing = client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' });
   await Promise.resolve();
   expect(requests.filter((body) => body.type === 'commit')).toHaveLength(0);
   delayRead = false;
@@ -136,15 +136,15 @@ it('clears definite rejections but retains an unknown commit until receipt recon
     'ELIMINATION_REQUIRES_CONTROL_REVIEW',
   ]) {
     code = refusal;
-    await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 })).rejects.toMatchObject({
+    await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })).rejects.toMatchObject({
       code,
     });
     expect(storedConnection().pending).toBeNull();
     code = null;
-    await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 })).resolves.toBeUndefined();
+    await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })).resolves.toBeUndefined();
   }
   loseResponse = true;
-  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 })).rejects.toThrow();
+  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })).rejects.toThrow();
   expect(storedConnection().pending?.type).toBe('commit');
   const sent = commits;
   await vi.advanceTimersByTimeAsync(30000);
@@ -276,7 +276,7 @@ it('distinguishes terminal refusal from unknown HTTP outcomes and preserves the 
   );
   const client = testClient();
   await client.reconnect();
-  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 })).rejects.toMatchObject({
+  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })).rejects.toMatchObject({
     retryable: true,
   });
   expect(storedConnection().pending?.type).toBe('commit');
@@ -284,14 +284,14 @@ it('distinguishes terminal refusal from unknown HTTP outcomes and preserves the 
   status = 410;
   refusal = 'SESSION_EXPIRED';
   const error = await client
-    .commit({ type: 'draw', seatId: 'P1', count: 1 })
+    .commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })
     .catch((value: unknown) => value);
   expect(error).toMatchObject({ code: 'SESSION_EXPIRED' });
   expect(isCockpitTerminalFailure(error)).toBe(true);
   expect(storedConnection().pending).toBeNull();
   const count = vi.mocked(fetch).mock.calls.length;
   await vi.advanceTimersByTimeAsync(60000);
-  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 })).rejects.toThrow();
+  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 }, { kind: 'unbound' })).rejects.toThrow();
   expect(fetch).toHaveBeenCalledTimes(count);
 });
 

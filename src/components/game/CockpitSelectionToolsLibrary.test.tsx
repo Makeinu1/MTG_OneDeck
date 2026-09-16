@@ -98,7 +98,8 @@ it('acquires only requested top cards before milling and commits those confirmed
       ids: bounded.seats[0].zones.library.slice(0, 2),
       to: 'graveyard',
       position: 'top',
-    });
+      reason: 'mill',
+    }, { kind: 'unbound' });
     expect(release).toHaveBeenCalledTimes(1);
   } finally {
     screen.close();

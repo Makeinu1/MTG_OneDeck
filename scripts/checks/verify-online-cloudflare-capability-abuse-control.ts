@@ -29,7 +29,7 @@ const frozenHashes = Object.freeze({
   'src/online/cloudflare/__tests__/reviewSqliteStorage.ts':
     '40a8a37f7348ed8bc553df3db9823b8b31ef190a36beb90604d3766b7c466d16',
   'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts':
-    '35a27d0e01ad7db251518faa7c8fb2729a1d8acbe587302ce6af5ec0ea7db1a8',
+    'cbfc074b17fff422038e261d50e54b39a578ffcd707f997e1713e721ec733beb',
   'wrangler.jsonc':
     'c5584e703673895c3f69fc5e7b4658ecbff80145f6f8a35ee795d81d2517f9c7',
 });
@@ -135,6 +135,8 @@ const production = sourceFiles(resolve(repositoryRoot, 'src/online/cloudflare'))
 assert.deepEqual(production.map(normalized), [
   'src/online/cloudflare/cockpitMultiplayer.ts',
   'src/online/cloudflare/cockpitR4Authority.ts',
+    'src/online/cloudflare/cockpitR4bAudit.ts',
+    'src/online/cloudflare/cockpitR4bSession.ts',
   'src/online/cloudflare/cockpitSession.ts',
   'src/online/cloudflare/codec.ts',
   'src/online/cloudflare/facts.ts',
@@ -178,9 +180,13 @@ for (const path of production) {
     const cockpitR4AuthorityImport = normalized(path) === 'src/online/cloudflare/cockpitR4Authority.ts' &&
       ['../../engine/cockpitR4', '../../engine/cockpitTable', '../../engine/commands'].includes(specifier);
     const cockpitImport = normalized(path) === 'src/online/cloudflare/cockpitSession.ts' &&
-      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+      ['../../engine/cockpitTable', '../../engine/cockpitMigration', '../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/init', '../../data/gameSnapshot'].includes(specifier);
+    const cockpitR4bAuditImport = normalized(path) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&
+      ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);
+    const cockpitR4bSessionImport = normalized(path) === 'src/online/cloudflare/cockpitR4bSession.ts' &&
+      ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);
     assert.equal(
-      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport,
+      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,
       true,
       `${normalized(path)} -> ${specifier}`,
     );
