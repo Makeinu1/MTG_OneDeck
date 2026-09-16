@@ -1,0 +1,40 @@
+name: R4b stale test migration
+on:
+  push:
+    branches: [fix/r4b-release-ledgers]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node .github/scripts/r4b-release-test-migrate.mjs
+      - name: Commit migrated tests
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/components/game/CockpitPrimaryAction.test.tsx \
+            src/components/game/CockpitSelectionToolsLibrary.test.tsx \
+            src/online/cloudflare/__tests__/cockpitSession.test.ts \
+            src/online/cloudflare/__tests__/cockpitTtlPolicy.test.ts \
+            src/online/cloudflare/__tests__/cockpitLibraryPeekSession.test.ts \
+            src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts \
+            src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts \
+            src/online/cloudflare/__tests__/cockpitR4ManualTriggerSession.test.ts \
+            src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts \
+            src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts \
+            src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts \
+            src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts \
+            src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts \
+            src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: sync R4b architecture and protocol ledgers'
+            git push
+          fi
