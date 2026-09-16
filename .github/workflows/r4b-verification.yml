@@ -37,6 +37,7 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
           src/online/browser/__tests__/cockpitClientR4b.test.ts
           src/online/browser/__tests__/cockpitClient.test.ts
+          src/components/game/CockpitManaBatch.r4b.test.tsx
       - name: Types and build
         run: npm run build
       - name: R4b lint
@@ -53,3 +54,5 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts
           src/online/browser/cockpitClient.ts
           src/online/browser/__tests__/cockpitClientR4b.test.ts
+          src/components/game/CockpitManaBatch.tsx
+          src/components/game/CockpitManaBatch.r4b.test.tsx
