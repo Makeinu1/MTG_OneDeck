@@ -9,6 +9,7 @@ import { expandSavedDeck, listSavedDecks } from '../../data/savedDecks';
 import type { TableOperation } from '../../engine/cockpitTable';
 import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
 import type { R4TableOperation } from '../../engine/cockpitR4';
+import type { R4bDeclaredCause, R4bOperation } from '../../engine/cockpitR4b';
 import type {
   CockpitCheckpoint,
   CockpitSessionRequest,
@@ -19,6 +20,7 @@ const COCKPIT_ORIGIN = import.meta.env.PROD
   ? 'https://mtg-onedeck-online.makeinu1.workers.dev'
   : '';
 const CONNECTION_KEY = 'mtg-onedeck:cockpit-connection-v1';
+const R4B_PROTOCOL_VERSION = 2 as const;
 interface CheckpointSchema extends DBSchema {
   checkpoint: { key: string; value: CockpitCheckpoint };
 }
@@ -84,9 +86,18 @@ const OPERATION_REJECTIONS = new Set([
   'TURN_HISTORY_LIMIT',
   'NO_UNDO',
   'NO_REDO',
+  'CLIENT_UPDATE_REQUIRED',
+  'STALE_INTERACTION_CONTEXT',
+  'STALE_R4B_OBJECT',
 ]);
 export function isCockpitOperationRejection(error: unknown): boolean {
-  return error instanceof CockpitConnectionError && OPERATION_REJECTIONS.has(error.code ?? '');
+  if (!(error instanceof CockpitConnectionError)) return false;
+  const code = error.code ?? '';
+  return (
+    OPERATION_REJECTIONS.has(code) ||
+    code.startsWith('R4B_') ||
+    code.startsWith('INVALID_R4B_')
+  );
 }
 const TERMINAL_FAILURES = new Set([
   'SESSION_EXPIRED',
@@ -210,6 +221,26 @@ export class CockpitClient {
           CONNECTION_REPLACED: '別の画面で再接続しました。この画面からの操作は停止しています。',
           NOT_AUTHORIZED:
             '現在の操作権では確定できません。HOLDを要求し、操作権を受け取ってください。',
+          R4B_NOT_AUTHORIZED:
+            '現在の操作権・閲覧権ではこの変更を確定できません。対象と操作権を確認してください。',
+          R4B_CORRECTION_REQUIRES_HOLD:
+            '共有卓の盤面訂正はHOLD中だけ確定できます。先に卓を停止してください。',
+          R4B_HOLD_BLOCKS_OPERATION:
+            'HOLD中は通常のゲーム進行を確定できません。HOLDを解消してから続けてください。',
+          R4B_BLOCKING_TRIGGER:
+            '未処理の誘発があります。誘発を確認してからこのManual Eventを確定してください。',
+          R4B_STACK_EFFECT_REQUIRES_RESOLUTION:
+            'Stackのコピー・除去は現在の解決処理に結び付けて実行してください。',
+          R4B_MANUAL_EVENT_REQUIRED:
+            'この操作は通常盤面変更としては確定できません。Manual Eventとして明示してください。',
+          R4B_CORRECTION_REQUIRED:
+            'この盤面訂正はCorrectionとして明示してください。',
+          STALE_INTERACTION_CONTEXT:
+            '操作を始めた処理は既に変わっています。最新の盤面から選び直してください。',
+          STALE_R4B_OBJECT:
+            '選択したカードは既に別のオブジェクトになっています。最新の盤面から選び直してください。',
+          CLIENT_UPDATE_REQUIRED:
+            'OneDeckが更新されました。ページを再読み込みしてから続けてください。確定済みの盤面は保存されています。',
           OWNER_ABSENT: '部屋主の接続を待っています。盤面は保存されています。',
           REVISION_CONFLICT:
             '別の操作が先に確定しました。最新の盤面に更新しました。内容を確認してもう一度操作してください。',
@@ -222,6 +253,11 @@ export class CockpitClient {
         };
         if (error.error && messages[error.error])
           throw new CockpitConnectionError(messages[error.error], error.error);
+        if (error.error?.startsWith('R4B_OPERATION_RETIRED:'))
+          throw new CockpitConnectionError(
+            'この旧操作経路は廃止されました。最新の操作UIから選び直してください。',
+            error.error,
+          );
         if (error.error === 'SESSION_STILL_ACTIVE')
           throw new CockpitConnectionError(
             '稼働セッションがあります。通常の再接続で続きを開いてください。',
@@ -531,16 +567,41 @@ export class CockpitClient {
   ): Promise<void> {
     await this.submit(operation, false, context);
   }
+  async commitV2(
+    operation: R4bOperation,
+    context: ExpectedInteractionContext,
+    declaredCause?: R4bDeclaredCause,
+  ): Promise<void> {
+    await this.submit(operation, false, context, {
+      protocolVersion: R4B_PROTOCOL_VERSION,
+      ...(declaredCause ? { declaredCause } : {}),
+    });
+  }
   private async submit(
-    operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' } | CockpitControl,
+    operation:
+      | TableOperation
+      | R4TableOperation
+      | R4bOperation
+      | { type: 'undo' }
+      | { type: 'redo' }
+      | CockpitControl,
     control: boolean,
     context?: ExpectedInteractionContext,
+    r4b?: { protocolVersion: typeof R4B_PROTOCOL_VERSION; declaredCause?: R4bDeclaredCause },
   ): Promise<void> {
     await this.polling;
     if (!this.connection || !this.view || this.connection.pending || this.busy || this.disposed)
       throw new Error('送信結果の確認が必要です。再接続してください。');
     this.busy = true;
     const { token } = this.connection;
+    const commitIdentity = control
+      ? operation
+      : {
+          ...(r4b ? { protocolVersion: r4b.protocolVersion } : {}),
+          operation,
+          ...(context ? { context } : {}),
+          ...(r4b?.declaredCause ? { declaredCause: r4b.declaredCause } : {}),
+        };
     const body: CockpitSessionRequest & { requestId: string } = {
       type: control ? 'control' : 'commit',
       token,
@@ -548,13 +609,18 @@ export class CockpitClient {
       revision: this.view.revision,
       ...(control
         ? { control: operation }
-        : { operation, ...(context ? { context } : {}) }),
+        : {
+            operation,
+            ...(context ? { context } : {}),
+            ...(r4b ? { protocolVersion: r4b.protocolVersion } : {}),
+            ...(r4b?.declaredCause ? { declaredCause: r4b.declaredCause } : {}),
+          }),
     } as CockpitSessionRequest & { requestId: string };
     try {
       this.connection.pending = {
         type: 'commit',
         requestId: body.requestId,
-        digest: await inputDigest({ operation, ...(context ? { context } : {}) }),
+        digest: await inputDigest(commitIdentity),
       };
       if (this.disposed) throw new CockpitConnectionError('画面を閉じました。');
       this.persist();
