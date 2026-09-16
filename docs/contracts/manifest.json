@@ -6,12 +6,23 @@
   "activeAllowlist": [],
   "contracts": [
     {
+      "id": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "path": "docs/contracts/ux-constitution.md",
+      "authorityFor": ["interaction-semantics", "human-authority", "automation-boundary", "game-lifecycle", "hold", "undo-correction", "room-administration"],
+      "owner": "judge",
+      "dependsOn": [],
+      "supersedes": [],
+      "verifiedBy": ["scripts/checks/check-docs.mjs"],
+      "lastVerifiedCommit": "566b38ce920b527574e937bd886985ae4c592a15"
+    },
+    {
       "id": "CONTRACT-ENGINE-STATE",
       "status": "active",
       "path": "docs/contracts/engine/state-and-invariants.md",
       "authorityFor": ["engine-state", "immutability", "state-invariants"],
       "owner": "judge",
-      "dependsOn": [],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION"],
       "supersedes": ["legacy:docs/engine-spec.md#1"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/init.test.ts"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -22,7 +33,7 @@
       "path": "docs/contracts/engine/commands-and-transactions.md",
       "authorityFor": ["engine-commands", "transactions", "undo-boundary"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-ENGINE-STATE"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-ENGINE-STATE"],
       "supersedes": ["legacy:docs/engine-spec.md#2"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/commands.test.ts"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -44,7 +55,7 @@
       "path": "docs/contracts/engine/turn-priority-and-stack.md",
       "authorityFor": ["turn", "priority", "stack"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#turn-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/priority.test.ts"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -55,7 +66,7 @@
       "path": "docs/contracts/engine/mana-costs-and-payment.md",
       "authorityFor": ["mana", "costs", "payment"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#mana-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/mana.test.ts"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -66,7 +77,7 @@
       "path": "docs/contracts/engine/multiplayer.md",
       "authorityFor": ["multiplayer", "players", "player-zones"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-ZONES"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-ZONES"],
       "supersedes": ["legacy:docs/engine-spec.md#multiplayer-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/test/architecture/soloOnlineBoundary.test.ts"],
       "lastVerifiedCommit": "8f053dbb26ed83fea3d5aba7708b9fa830904cad"
@@ -77,7 +88,7 @@
       "path": "docs/contracts/engine/oracle-compiler.md",
       "authorityFor": ["oracle-compiler", "oracle-text", "guided-manual-boundary"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
       "supersedes": ["legacy:docs/engine-spec.md#compiler-sections"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/engine/__tests__/cr701DiscardCompiler.test.ts"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -88,7 +99,7 @@
       "path": "docs/acceptance/scenarios.json",
       "authorityFor": ["acceptance-scenarios", "scenario-traceability"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-ENGINE-COMPILER"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-ENGINE-COMPILER"],
       "supersedes": ["legacy:docs/acceptance.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -99,7 +110,7 @@
       "path": "docs/contracts/ui/design-principles.md",
       "authorityFor": ["ui-why", "design-principles"],
       "owner": "judge",
-      "dependsOn": [],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION"],
       "supersedes": ["legacy:docs/design-vision.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
       "lastVerifiedCommit": "f2ba4db8bd90513ce1eb37085a1945551058e141"
@@ -121,7 +132,7 @@
       "path": "docs/contracts/ui/architecture.md",
       "authorityFor": ["ui-how", "ui-architecture"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-VISUAL"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-UI-DESIGN", "CONTRACT-UI-VISUAL"],
       "supersedes": ["legacy:docs/ui-architecture-v2.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
@@ -143,7 +154,7 @@
       "path": "docs/contracts/ui/audio-visual.md",
       "authorityFor": ["audio-visual", "semantic-audio", "motion-parity"],
       "owner": "judge",
-      "dependsOn": ["CONTRACT-UI-DESIGN", "CONTRACT-UI-ARCHITECTURE"],
+      "dependsOn": ["CONTRACT-UX-CONSTITUTION", "CONTRACT-UI-DESIGN", "CONTRACT-UI-ARCHITECTURE"],
       "supersedes": ["legacy:docs/audio-visual-contract.md"],
       "verifiedBy": ["scripts/checks/check-docs.mjs", "src/components/game/presentation/__tests__/av0-presentation.test.ts"],
       "lastVerifiedCommit": "a1f227cd2d369ed5a448b12fd748213c7e1c1e8b"
