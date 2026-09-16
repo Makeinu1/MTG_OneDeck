@@ -14,6 +14,13 @@ import {
   r4OperationCreatesKnowledgeBarrier,
   r4OperationRequiresContext,
 } from './cockpitR4Authority';
+import {
+  R4B_PROTOCOL_VERSION,
+  applyPreparedR4bCommit,
+  prepareR4bCommit,
+  type PreparedR4bCommit,
+  type R4bCommitEnvelope,
+} from './cockpitR4bSession';
 import { migrateCockpitSnapshot, backfillCockpitTable } from '../../engine/cockpitMigration';
 import type { GameSnapshot } from '../../data/gameSnapshot';
 import {
@@ -24,6 +31,7 @@ import {
 } from '../../engine/cockpitTable';
 import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
 import { applyR4TableOperation, type R4TableOperation } from '../../engine/cockpitR4';
+import type { R4bDeclaredCause, R4bOperation } from '../../engine/cockpitR4b';
 import type { InitDeckCard } from '../../engine/init';
 import type { OnlineCloudflareSqlStorage } from './types';
 
@@ -80,8 +88,15 @@ export type CockpitSessionRequest = (
       token: string;
       requestId: string;
       revision: number;
-      operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' };
+      operation:
+        | TableOperation
+        | R4TableOperation
+        | R4bOperation
+        | { type: 'undo' }
+        | { type: 'redo' };
       context?: ExpectedInteractionContext;
+      protocolVersion?: typeof R4B_PROTOCOL_VERSION;
+      declaredCause?: R4bDeclaredCause;
     }
 ) & { connectionId?: string };
 
@@ -269,6 +284,26 @@ async function checkpointSignature(
     new TextEncoder().encode(JSON.stringify(payload)),
   );
   return [...new Uint8Array(signed)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function r4bFailure(error: unknown): Response | null {
+  const code = error instanceof Error ? error.message : '';
+  if (code === 'R4B_NOT_AUTHORIZED') return response({ error: code }, 403);
+  if (
+    code === 'R4B_CORRECTION_REQUIRES_HOLD' ||
+    code === 'R4B_HOLD_BLOCKS_OPERATION' ||
+    code === 'R4B_BLOCKING_TRIGGER' ||
+    code === 'R4B_STACK_EFFECT_REQUIRES_RESOLUTION' ||
+    code === 'STALE_INTERACTION_CONTEXT'
+  )
+    return response({ error: code }, 409);
+  if (
+    code.startsWith('R4B_') ||
+    code.startsWith('INVALID_R4B_') ||
+    code === 'STALE_R4B_OBJECT'
+  )
+    return response({ error: code }, 422);
+  return null;
 }
 
 /** One SQLite transaction owns board, history, revision and receipt. No client apply. */
@@ -483,7 +518,14 @@ export async function handleCockpitSession(
           return response({ error: 'INVALID_REQUEST' }, 400);
         const encodedOperation = JSON.stringify(
           body.type === 'commit'
-            ? { operation: body.operation, ...(body.context ? { context: body.context } : {}) }
+            ? {
+                ...(body.protocolVersion !== undefined
+                  ? { protocolVersion: body.protocolVersion }
+                  : {}),
+                operation: body.operation,
+                ...(body.context ? { context: body.context } : {}),
+                ...(body.declaredCause ? { declaredCause: body.declaredCause } : {}),
+              }
             : body.control,
         );
         const existing = storage.sql
@@ -499,6 +541,12 @@ export async function handleCockpitSession(
             return response({ error: 'REQUEST_ID_CONFLICT' }, 409);
           receipt = 'committed';
         } else {
+          if (
+            body.type === 'commit' &&
+            body.protocolVersion !== undefined &&
+            body.protocolVersion !== R4B_PROTOCOL_VERSION
+          )
+            return response({ error: 'CLIENT_UPDATE_REQUIRED' }, 409);
           if (body.revision !== record.revision)
             return response({ error: 'REVISION_CONFLICT' }, 409);
           const before = record.table;
@@ -647,33 +695,63 @@ export async function handleCockpitSession(
             for (const [id, member] of Object.entries(multi.members))
               if (id !== multi.masterId) member.peek = null;
           } else {
-            if (
-              !body.context &&
-              ((body.operation.type === 'move' && body.operation.reason !== undefined) ||
-                r4OperationRequiresContext(body.operation as R4TableOperation))
-            )
-              return response({ error: 'INVALID_REQUEST' }, 400);
-            if (record.multiplayer) {
-              const multi = record.multiplayer;
-              const r4Authorization = authorizeR4FormalOperation(
-                before,
-                multi,
-                actor,
-                body.operation as R4TableOperation,
-                now,
-              );
-              const authorized =
-                r4Authorization ??
-                authorizeCockpitOperation(
+            const useR4bV2 =
+              body.protocolVersion === R4B_PROTOCOL_VERSION &&
+              body.operation.type !== 'undo' &&
+              body.operation.type !== 'redo';
+            let preparedR4b: PreparedR4bCommit | undefined;
+
+            if (useR4bV2) {
+              if (!body.context) return response({ error: 'INVALID_REQUEST' }, 400);
+              try {
+                preparedR4b = prepareR4bCommit(
+                  before,
+                  record.multiplayer,
+                  actor,
+                  {
+                    protocolVersion: R4B_PROTOCOL_VERSION,
+                    operation: body.operation as R4bOperation,
+                    context: body.context,
+                    ...(body.declaredCause ? { declaredCause: body.declaredCause } : {}),
+                  } satisfies R4bCommitEnvelope,
+                  body.requestId,
+                  now,
+                );
+              } catch (error) {
+                const mapped = r4bFailure(error);
+                if (mapped) return mapped;
+                throw error;
+              }
+            } else {
+              if (
+                !body.context &&
+                ((body.operation.type === 'move' && body.operation.reason !== undefined) ||
+                  r4OperationRequiresContext(body.operation as R4TableOperation))
+              )
+                return response({ error: 'INVALID_REQUEST' }, 400);
+              if (record.multiplayer) {
+                const multi = record.multiplayer;
+                const r4Authorization = authorizeR4FormalOperation(
                   before,
                   multi,
                   actor,
-                  body.operation as TableOperation | { type: 'undo' } | { type: 'redo' },
+                  body.operation as R4TableOperation,
                   now,
                 );
-              if (!authorized || body.operation.type === 'eliminate')
-                return response({ error: 'NOT_AUTHORIZED' }, 403);
+                const authorized =
+                  r4Authorization ??
+                  authorizeCockpitOperation(
+                    before,
+                    multi,
+                    actor,
+                    body.operation as TableOperation | { type: 'undo' } | { type: 'redo' },
+                    now,
+                  );
+                if (!authorized || body.operation.type === 'eliminate')
+                  return response({ error: 'NOT_AUTHORIZED' }, 403);
+              }
             }
+
             if (body.operation.type === 'undo') {
               ensureKnowledgeHistory(record);
               const previous = record.undo.at(-1);
@@ -700,9 +778,20 @@ export async function handleCockpitSession(
             } else {
               const knowledgeEpochBefore = record.knowledgeEpoch ?? 0;
               const crossesKnowledgeBarrier = Boolean(
-                record.multiplayer && operationCreatesKnowledgeBarrier(before, body.operation),
+                record.multiplayer &&
+                  (preparedR4b
+                    ? preparedR4b.crossesKnowledgeBarrier
+                    : operationCreatesKnowledgeBarrier(before, body.operation as TableOperation | R4TableOperation)),
               );
-              if (body.context) {
+              if (preparedR4b) {
+                try {
+                  record.table = applyPreparedR4bCommit(before, preparedR4b, body.requestId);
+                } catch (error) {
+                  const mapped = r4bFailure(error);
+                  if (mapped) return mapped;
+                  throw error;
+                }
+              } else if (body.context) {
                 record.table = applyR4TableOperation(
                   before,
                   { operation: body.operation as R4TableOperation, context: body.context },
