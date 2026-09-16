@@ -1,7 +1,12 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import { applyTableOperation, createCockpitTable } from '../../engine/cockpitTable';
+import {
+  applyTableOperation,
+  createCockpitTable,
+  type TableOperation,
+} from '../../engine/cockpitTable';
+import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
 import { makeDeck } from '../../engine/__tests__/helpers';
 import { CockpitManaBatch } from './CockpitManaBatch';
 
@@ -19,7 +24,9 @@ it('commits generateBatch with the interaction context captured when the draft o
     position: 'top',
   });
 
-  const send = vi.fn(() => Promise.resolve(true));
+  const send = vi.fn<
+    (operation: TableOperation, context?: ExpectedInteractionContext) => Promise<boolean>
+  >(() => Promise.resolve(true));
   const host = document.createElement('div');
   document.body.append(host);
   const root = createRoot(host);
