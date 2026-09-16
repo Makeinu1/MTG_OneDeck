@@ -3,8 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 function update(path, transform) {
   const before = readFileSync(path, 'utf8');
   const after = transform(before);
-  if (after === before) throw new Error(`no migration applied: ${path}`);
-  writeFileSync(path, after);
+  if (after !== before) writeFileSync(path, after);
 }
 
 const requestHelper = `
@@ -46,8 +45,7 @@ for (const path of [
     let next = source.slice(0, index) + requestHelper + '\n' + source.slice(index);
     const old = 'body: JSON.stringify(body),';
     if (!next.includes(old)) throw new Error(`JSON body anchor missing: ${path}`);
-    next = next.replace(old, 'body: JSON.stringify(r4bTestRequestBody(body)),');
-    return next;
+    return next.replace(old, 'body: JSON.stringify(r4bTestRequestBody(body)),');
   });
 }
 
@@ -64,3 +62,46 @@ update('src/components/game/CockpitSelectionToolsLibrary.test.tsx', (source) =>
     "      to: 'graveyard',\n      position: 'top',\n      reason: 'mill',\n    }, { kind: 'unbound' });",
   ),
 );
+
+const architectureFiles = [
+  'src/test/architecture/review.o4p-03a-cloudflare-runtime-persistence-boundary.test.ts',
+  'src/test/architecture/review.o4p-03b-websocket-recovery-boundary.test.ts',
+  'src/test/architecture/review.o4p-03c-capability-abuse-control-boundary.test.ts',
+  'src/test/architecture/review.o4p-06d-browser-websocket-recovery-boundary.test.ts',
+  'src/test/architecture/review.o4p-06f-four-browser-production-release.test.ts',
+  'src/test/architecture/review.o4p-07a-dynamic-card-resolution-boundary.test.ts',
+];
+
+for (const path of architectureFiles) {
+  update(path, (source) => {
+    let next = source;
+    if (!next.includes("'src/online/cloudflare/cockpitR4bAudit.ts'")) {
+      next = next.replace(
+        "      'src/online/cloudflare/cockpitMultiplayer.ts',\n",
+        "      'src/online/cloudflare/cockpitMultiplayer.ts',\n      'src/online/cloudflare/cockpitR4Authority.ts',\n      'src/online/cloudflare/cockpitR4bAudit.ts',\n      'src/online/cloudflare/cockpitR4bSession.ts',\n",
+      );
+    }
+    if (!next.includes("'../../engine/cockpitR4b',\n            '../../engine/init'")) {
+      next = next.replace(
+        "            '../../engine/cockpitMigration',\n            '../../engine/init',",
+        "            '../../engine/cockpitMigration',\n            '../../engine/cockpitR31',\n            '../../engine/cockpitR4',\n            '../../engine/cockpitR4b',\n            '../../engine/init',",
+      );
+    }
+    if (!next.includes('const cockpitR4AuthorityImport =')) {
+      const cockpitImportIndex = next.indexOf('        const cockpitImport =');
+      if (cockpitImportIndex < 0) throw new Error(`cockpitImport missing: ${path}`);
+      const expectIndex = next.indexOf('        expect(', cockpitImportIndex);
+      if (expectIndex < 0) throw new Error(`import assertion missing: ${path}`);
+      const iterator = next.slice(0, cockpitImportIndex).includes('for (const filePath of productionFiles')
+        ? 'filePath'
+        : 'file';
+      const predicates = `        const cockpitR4AuthorityImport =\n          normalized(${iterator}) === 'src/online/cloudflare/cockpitR4Authority.ts' &&\n          ['../../engine/cockpitTable', '../../engine/commands', '../../engine/cockpitR4'].includes(specifier);\n        const cockpitR4bAuditImport =\n          normalized(${iterator}) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&\n          ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);\n        const cockpitR4bSessionImport =\n          normalized(${iterator}) === 'src/online/cloudflare/cockpitR4bSession.ts' &&\n          ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);\n`;
+      next = next.slice(0, expectIndex) + predicates + next.slice(expectIndex);
+    }
+    next = next.replace(
+      /local \|\| allowed(?:Imports)?\.has\(specifier\) \|\| cockpitImport \|\| cockpitMultiplayerImport/g,
+      (match) => `${match} || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport`,
+    );
+    return next;
+  });
+}
