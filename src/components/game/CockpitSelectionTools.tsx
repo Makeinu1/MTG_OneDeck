@@ -201,10 +201,10 @@ export function CockpitSelectionTools({
         )}
       </details>
       <details className="cockpit-session__tools">
-        <summary>山札・カウンター・ライフ</summary>
+        <summary>ゲーム中に今行う操作（Manual Event）</summary>
         <p>
           {seat.label}
-          の山札・手札・ライフを操作します。カードへの変更は、選択中のカードに適用します。
+          の効果・手動処理を今ゲーム上で行います。既に起きた現実へ盤面を合わせる場合は「盤面訂正」を使ってください。
         </p>
         <label>
           枚数{' '}
@@ -297,12 +297,6 @@ export function CockpitSelectionTools({
           }
         >
           選んだカードのカウンターを増減
-        </button>
-        <button
-          disabled={disabled || !selected.length}
-          onClick={() => void send({ type: 'damage', ids: selected, delta })}
-        >
-          記録ダメージを訂正
         </button>
         <details>
           <summary>発生源を指定してダメージ</summary>

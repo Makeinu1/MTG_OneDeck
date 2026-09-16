@@ -9,7 +9,11 @@ import { expandSavedDeck, listSavedDecks } from '../../data/savedDecks';
 import type { TableOperation } from '../../engine/cockpitTable';
 import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
 import type { R4TableOperation } from '../../engine/cockpitR4';
-import type { R4bDeclaredCause, R4bOperation } from '../../engine/cockpitR4b';
+import {
+  classifyR4bOperation,
+  type R4bDeclaredCause,
+  type R4bOperation,
+} from '../../engine/cockpitR4b';
 import type {
   CockpitCheckpoint,
   CockpitSessionRequest,
@@ -572,17 +576,36 @@ export class CockpitClient {
     }
   }
   async commit(
-    operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' },
+    operation:
+      | TableOperation
+      | R4TableOperation
+      | R4bOperation
+      | { type: 'undo' }
+      | { type: 'redo' },
     context?: ExpectedInteractionContext,
   ): Promise<void> {
-    if (
-      context &&
-      operation.type !== 'undo' &&
-      operation.type !== 'redo' &&
-      R4B_CONTEXTUAL_FORMAL_TYPES.has(operation.type)
-    ) {
-      await this.commitV2(operation as R4bOperation, context);
-      return;
+    if (context && operation.type !== 'undo' && operation.type !== 'redo') {
+      const r4bOperation = operation as R4bOperation;
+      const gate = classifyR4bOperation(r4bOperation);
+      if (gate.kind === 'repair') {
+        await this.commitV2(r4bOperation, context, {
+          kind: 'correction',
+          groupId: crypto.randomUUID(),
+        });
+        return;
+      }
+      if (R4B_CONTEXTUAL_FORMAL_TYPES.has(r4bOperation.type)) {
+        await this.commitV2(r4bOperation, context);
+        return;
+      }
+      if (gate.kind === 'effect' && gate.manualEventCapable) {
+        await this.commitV2(
+          r4bOperation,
+          context,
+          context.kind === 'unbound' ? { kind: 'manual-event' } : undefined,
+        );
+        return;
+      }
     }
     await this.submit(operation, false, context);
   }

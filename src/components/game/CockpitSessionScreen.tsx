@@ -28,6 +28,7 @@ import {
   type R4CastSourceZone,
   type R4TableOperation,
 } from '../../engine/cockpitR4';
+import type { R4bOperation } from '../../engine/cockpitR4b';
 import type { CockpitSessionView } from '../../online/browser/cockpitClient';
 import {
   CockpitClient,
@@ -38,6 +39,7 @@ import { CockpitTableSurface } from './CockpitTableSurface';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { CockpitSelectionTools } from './CockpitSelectionTools';
+import { CockpitCorrectionTools } from './CockpitCorrectionTools';
 import { CockpitCardTools, CockpitTokenTools } from './CockpitCardTools';
 import { CockpitAbilityTools } from './CockpitAbilityTools';
 import { cockpitCostText } from './cockpitCostText';
@@ -323,6 +325,7 @@ export function CockpitSessionScreen({
       | TableOperation
       | R31TableOperation
       | R4TableOperation
+      | R4bOperation
       | { type: 'undo' }
       | { type: 'redo' },
     expectedContext?: ExpectedInteractionContext,
@@ -633,6 +636,7 @@ export function CockpitSessionScreen({
           ))}
         </details>
       )}
+      <span>Manual Event（今ゲーム中に行う操作）</span>
       <span>選択 {selected.length}枚</span>
       <button onClick={() => setSelected([])}>選択を取り消す</button>
       <CockpitManaBatch table={table} selected={selected} disabled={disabled} send={send} />
@@ -865,6 +869,15 @@ export function CockpitSessionScreen({
                     }
                   : undefined
               }
+            />
+            <CockpitCorrectionTools
+              table={table}
+              seatId={seatId}
+              selected={selected}
+              disabled={disabled}
+              shared={Boolean(multi)}
+              holdActive={Boolean(multi?.holds.length)}
+              send={send}
             />
             <CockpitTokenTools
               table={table}
@@ -1350,7 +1363,7 @@ export function CockpitSessionScreen({
             send={send}
           />
           <details>
-            <summary>カードを移動</summary>
+            <summary>ゲーム中にカードを移動（Manual Event）</summary>
             <div className="cockpit-session__bar">
               {(['battlefield', 'graveyard', 'exile', 'hand', 'library', 'command'] as const)
                 .filter(
