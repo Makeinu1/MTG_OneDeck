@@ -4,7 +4,9 @@ import {
   type CockpitMultiplayer,
 } from './cockpitMultiplayer';
 import { authorizeR4FormalOperation } from './cockpitR4Authority';
-import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
+import {
+  type ExpectedInteractionContext,
+} from '../../engine/cockpitR31';
 import { applyR4TableOperation } from '../../engine/cockpitR4';
 import {
   applyR4bRepair,
@@ -19,9 +21,11 @@ import {
   type R4bRepairOperation,
 } from '../../engine/cockpitR4b';
 import {
+  applyTableOperation,
   type CockpitTable,
   type TableOperation,
 } from '../../engine/cockpitTable';
+import { blockingPublicTableTriggers, triggerTrace } from '../../engine/cockpitTriggers';
 import { objectIdOf } from '../../engine/types';
 
 export const R4B_PROTOCOL_VERSION = 2 as const;
@@ -206,6 +210,15 @@ function existingOperationAuthority(
   operation: R4bOperation,
   now: number,
 ): boolean {
+  if (operation.type === 'commander.moveToCommand') {
+    const card = table.cards[operation.cardId];
+    return Boolean(
+      card?.isCommander &&
+        objectIdOf(card) === operation.objectId &&
+        card.zone !== 'stack' &&
+        actorCanReadCard(table, multi, actor, card.id),
+    );
+  }
   const r4Formal = authorizeR4FormalOperation(table, multi, actor, operation as never, now);
   if (r4Formal !== undefined) return r4Formal;
   return authorizeCockpitOperation(table, multi, actor, operation as TableOperation, now);
@@ -273,6 +286,12 @@ export function prepareR4bCommit(
   const cause = resolveR4bCause(table, request, requestId);
   const gate = classifyR4bOperation(envelope.operation);
 
+  if (gate.kind === 'formal' && gate.family === 'stack-effect' && envelope.context.kind !== 'resolution')
+    throw new Error('R4B_STACK_EFFECT_REQUIRES_RESOLUTION');
+
+  if (cause.kind === 'manual-event' && blockingPublicTableTriggers(table).length)
+    throw new Error('R4B_BLOCKING_TRIGGER');
+
   if (multi) {
     if (!baseMultiplayerAuthority(table, multi, actor, now))
       throw new Error('R4B_NOT_AUTHORIZED');
@@ -308,8 +327,31 @@ export function applyPreparedR4bCommit(
   if (prepared.cause.kind === 'correction')
     return applyR4bRepair(before, prepared.request.operation as R4bRepairOperation);
 
-  if (prepared.request.operation.type === 'commander.moveToCommand')
-    throw new Error('R4B_COMMANDER_MOVE_NOT_IMPLEMENTED');
+  if (prepared.request.operation.type === 'commander.moveToCommand') {
+    const card = before.cards[prepared.request.operation.cardId];
+    if (
+      !card ||
+      !card.isCommander ||
+      objectIdOf(card) !== prepared.request.operation.objectId ||
+      card.zone === 'stack'
+    )
+      throw new Error('INVALID_R4B_COMMANDER_MOVE');
+    const process = {
+      kind: 'action' as const,
+      id: requestId,
+      actionType: 'other-formal' as const,
+      role: 'action' as const,
+      ...(prepared.request.context.kind === 'resolution'
+        ? { parentResolutionId: prepared.request.context.entryId }
+        : {}),
+    };
+    return applyTableOperation(
+      before,
+      { type: 'move', ids: [card.id], to: 'command', position: 'top' },
+      requestId,
+      triggerTrace(before, requestId, process),
+    );
+  }
 
   return applyR4TableOperation(
     before,
