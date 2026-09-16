@@ -50,6 +50,8 @@ jobs:
             echo 'Source-less damage correction must use repair.damageState.' >&2
             exit 1
           fi
+          git grep -qF "dragContextRef.current = captureExpectedInteractionContext(table)" -- src/components/game/CockpitTableSurface.tsx
+          test "$(git grep -cF "dragContext ?? captureExpectedInteractionContext(table)" -- src/components/game/CockpitTableSurface.tsx | cut -d: -f2)" -ge 2
       - name: Types and build
         run: npm run build
       - name: R4b lint
@@ -73,4 +75,5 @@ jobs:
           src/components/game/CockpitCorrectionTools.r4b.test.tsx
           src/components/game/CockpitSelectionTools.tsx
           src/components/game/CockpitSessionScreen.tsx
+          src/components/game/CockpitTableSurface.tsx
           src/components/game/cockpitPresentation.ts
