@@ -1,8 +1,8 @@
 # OneDeck R6 UX Constitution & Core Interaction Specification
 
 Updated: 2026-09-16
-Revision: v5
-Status: R6 design baseline. No R4b Gate/Correction implementation and no R5 Trigger Memory implementation are included here.
+Revision: v6
+Status: R6 design baseline. Documentation/design only. No R4b Gate/Correction implementation and no R5 Trigger Memory implementation are included here.
 Base audited: `3465e00cfb2c1bc76c22fc05b624b8a746b4061d`
 
 ## 0. Authority and scope
@@ -17,184 +17,258 @@ Priority when designs conflict:
 4. this R6 interaction specification
 5. current component/layout convenience
 
-R6 must not create a second game-state machine or silently redesign R4b/R5. It translates the existing Stack, Resolution, Context/Cause, Formal Action, Correction and future Trigger Memory semantics into a coherent human interaction model.
+R6 must not create a second game-state machine, a general Oracle parser, a full Magic rules engine, or a parallel authority model that silently replaces frozen engine contracts. It translates existing canonical semantics into a human interaction model.
 
-v5 is grounded in an audit of the current UI, including `CardActionSheet`, target recording, library access/search, `StackBand`, `CockpitFeed`, and the existing Scry/Surveil/Mill selection tools. Existing working safety properties are assets to consolidate, not prototypes to discard.
+v6 supersedes the interaction philosophy in v5 where they conflict. In particular:
+
+- HOLD is not a generic pause or a social escape hatch.
+- ready Triggers are ambient memory, not an automatic progress gate or forced foreground task.
+- one Current Work has a Primary Operator, but other players are not excluded from manipulating their own authorized Magic-world objects.
+- Participant Input is not a new canonical mode/state machine.
+- Magic lifecycle families are used primarily as negative constraints so R6 does not accidentally force every action into Cast → Stack → Resolution.
 
 ---
 
-## 1. Product experience goal
+# 1. Product thesis — reconstruct the paper Magic table
 
 OneDeck should feel like:
 
 > **Magicをしていたら、OneDeckが自然についてくる。**
 
-The player concentrates on cards, board state, conversation and decisions. OneDeck carries bookkeeping that software is good at:
+OneDeck is not primarily digitizing the Magic rules engine. It is digitizing the **shared paper table** on which people play Magic while talking to each other.
 
-- what process is currently in progress,
-- Stack ordering and response relations,
+A paper Magic game is sustained by three channels.
+
+## 1.1 Physical channel
+
+Players physically manipulate game objects:
+
+- play cards,
+- draw cards,
+- tap and untap,
+- move cards between zones,
+- place counters,
+- arrange Stack objects,
+- point at targets.
+
+OneDeck replaces this with direct manipulation of the **Magic World**.
+
+## 1.2 Verbal channel
+
+Players communicate:
+
+- 「これ唱えます」
+- 「対応あります？」
+- 「あります」
+- 「対象これ」
+- 「どれ選ぶ？」
+- 「これ」
+- 「この誘発積みます」
+- 「その処理でOK」
+
+OneDeck does not attempt to replace this channel. Voice/table conversation remains a first-class part of the product model.
+
+## 1.3 Bookkeeping channel
+
+Players otherwise have to remember:
+
+- what is currently being processed,
+- Stack order,
 - explicit targets,
-- why a mutation belongs to the current process,
-- pending triggers / later obligations,
-- operation authority,
-- persistence / reconnect state.
+- who interrupted whom,
+- pending triggers,
+- whether an operation was saved,
+- where play resumes after reconnect.
 
-OneDeck does **not** generally decide how a card effect should be resolved.
+This is where OneDeck should be strongest.
 
-### Keep with humans
-
-- what to cast,
-- what to target,
-- what optional choice to make,
-- how to interpret and execute unusual card text,
-- table negotiation and communication.
-
-### Offload to OneDeck
-
-- “what was I doing?”,
-- “what is on the Stack?”,
-- “what targets what?”,
-- “did a trigger occur?”,
-- “whose response are we waiting for?”,
-- “was that operation saved?”,
-- “where do we resume after reconnect?”.
-
-**OneDeck externalizes memory, causality and synchronization, not strategic judgment.**
+> **OneDeck externalizes memory, causality, shared state and synchronization — not human Magic judgment.**
 
 ---
 
-## 2. Social-play assumption
+# 2. Paper-table translation test
 
-OneDeck primarily serves cooperative players communicating over voice or equivalent real-time conversation.
+Every new R6 feature should first answer three questions.
 
-> **Conversation beats workflow.**
+1. **How is this handled naturally at a paper table?**
+2. **What is lost when the table becomes remote + digital?**
+3. **Can OneDeck restore only the lost part instead of replacing the whole interaction?**
 
-If a card asks another player to make a public-information choice, table conversation is normally sufficient. R6 must not introduce a general remote-decision state machine solely to encode that conversation.
+Examples:
 
-Players' Magic judgments are trusted. Software boundaries are not. OneDeck must still prevent or recover from stale Context, duplicate commit, wrong Resolution identity, unauthorized mutation, private-information leakage, lost-response ambiguity and reconnect ambiguity.
+| Paper table | What remote play loses | OneDeck replacement |
+| --- | --- | --- |
+| point at a target | shared physical pointing | target arrow / focus |
+| physically pile responses | common physical Stack | shared Stack visualization |
+| 「待って、対応ある」 | safe shared mutation authority | HOLD request + approval |
+| leave card visibly being resolved | shared physical continuation | Current Work / Continuation |
+| someone remembers a trigger | reliable shared memory | Trigger Memory badge/feed |
+| 「今の俺の操作なし」 | safe reversible shared state | actor-owned Undo |
+| fix a misplaced card | shared physical correction | Correction |
+| manipulate unusual card text manually | same physical objects available | Manual world operations + voice |
+
+This translation test is above individual screen patterns.
+
+---
+
+# 3. Social-play assumption
+
+OneDeck primarily serves cooperative players communicating through voice or equivalent real-time conversation.
+
+> **Conversation beats workflow when conversation already solves the human problem.**
+
+If a card asks an opponent to choose one of three public cards, the default interaction is still:
+
+```text
+P1: どれ？
+P2: B。
+P1: 了解。
+```
+
+R6 should not turn every such exchange into request → remote modal → submit → acknowledge.
+
+This is intentional scope control.
+
+### Human trust / software safety
+
+Players' Magic judgments are trusted. Software boundaries are not.
+
+OneDeck still protects against:
+
+- stale interaction context,
+- duplicate commit,
+- wrong Resolution identity,
+- unauthorized hidden-information access,
+- lost-response ambiguity,
+- reconnect ambiguity,
+- accidental rebinding of an old gesture/task/HOLD request to new work.
 
 > **Trust humans; make system boundaries strict.**
 
 ---
 
-## 3. Optimization target
+# 4. Five core interaction concepts
 
-R6 optimizes the loop repeated many times per game:
+R6 can be understood through five user-facing concepts.
 
-```text
-唱える / 起動する
-  ↓
-対象・コスト等を準備
-  ↓
-Stack / 応答
-  ↓
-解決へ
-  ↓
-盤面を使って処理
-  ↓
-誘発を覚える
-  ↓
-処理完了
-```
+## 4.1 Magic World — what exists where
 
-Rare card-specific procedures should normally be absorbed by Manual Resolution + reusable assistance + generic world operations + conversation.
+Battlefield, Hand, Library, Graveyard, Exile, Command, Stack, players and game objects.
 
----
+## 4.2 Spatial Causality — what relates to what
 
-## 4. Interaction Projection
+Targets, Stack response relationships, combat relationships and other explicit associations.
 
-R6 presentation is derived from canonical state. It is **not** a second persisted mode machine.
+## 4.3 Continuation — what remains unfinished
 
-Presentation has four independent axes:
+The process that still needs to continue after temporary viewing or nested work.
 
-1. **Continuation** — work that remains ongoing: none / Resolution / Correction where canonically representable.
-2. **Foreground Interaction** — Normal / Stack Response / Resolution / Trigger Review / HOLD-Await / Recovery.
-3. **View** — Battlefield / Hand / Graveyard / Exile / Library / Card Detail / Stack Detail / Trigger Detail.
-4. **Commit & Authority** — actor plus idle / sending / saved / unknown / reconnecting / rejected.
+## 4.4 Remembered Obligation — what should not be forgotten
 
-A single `mode` is insufficient. Example:
+Primarily Trigger Memory and other future obligations.
 
-```text
-Continuation: Resolution A
-Foreground:   response to B
-View:         Graveyard
-Actor:        P2
-```
+## 4.5 Boundary — when shared game work commits or changes lifecycle
 
-The UI may show:
+Examples: `唱える`, `起動する`, `解決へ`, `処理完了`.
 
-```text
-《B》への応答 — P2が操作中
-↳ 《A》の解決を継続中
-```
-
-After B completes, foreground returns to Resolution A without inventing a new local state transition.
+These concepts are more important than any single panel layout.
 
 ---
 
-# 5. UX Constitution
+# 5. Interaction Projection, not another state machine
+
+R6 presentation is derived from canonical state plus bounded local drafts. It is not a second persisted mode machine.
+
+Useful independent axes are:
+
+1. **Continuation** — unfinished parent work, such as Resolution A.
+2. **Foreground Work** — the work currently receiving table attention, such as response C.
+3. **View** — what the user is looking at.
+4. **Authority / Actor** — who may progress or perform the foreground operation.
+5. **Commit state** — idle / sending / saved / unknown / reconnecting / rejected.
+
+Example:
+
+```text
+Continuation:  《出現の根本原理》 Resolution — A
+Foreground:    Counterspell C — C
+View:          Graveyard
+```
+
+After C finishes, the UI resumes the nearest still-valid parent work. If an intermediate parent Stack entry was removed, it is skipped rather than resurrected.
+
+---
+
+# 6. UX Constitution
 
 ## Article 1 — Magic First
 
-Players play Magic, not OneDeck. With mastery, attention should move toward the Magic world and away from application chrome.
+Players play Magic, not OneDeck. Expertise should move attention toward the Magic world and away from application chrome.
 
 ## Article 2 — World is the Workspace
 
-Battlefield, Hand, Library, Graveyard, Exile, Stack, players and relevant game objects are the primary workspace. Effects should not normally become a form-based effect executor.
+The primary workspace is the Magic world. Effects should not normally become form-based effect executors.
 
 ## Article 3 — Projection, not Replacement
 
-Sheets, panels, viewers and popovers are projections of Magic-world objects for a bounded task, not a second copy of the game.
+Sheets, panels, viewers and popovers are bounded projections of Magic-world objects for a task, not a second copy of the game.
 
-Examples: private library viewer, multi-select surface, target picker, ordering surface and finite permanent-entry setup.
+Examples:
 
-## Article 4 — View ≠ Work
+- private library viewer,
+- Scry/Surveil ordering surface,
+- target picker,
+- multi-select,
+- finite entry-state setup.
 
-What the user is looking at is independent from what process is still in progress.
+## Article 4 — Authorized Viewing is Free
+
+Viewing information the user is authorized to see does not change Current Work.
 
 ```text
-Current Work: 《成長のらせん》を解決中
+Continuation: 《成長のらせん》解決中
 View: 墓地
 ```
 
-Opening another zone, Stack view or card detail must not implicitly finish Resolution.
+Viewing freedom never expands hidden-information authority.
 
 ## Article 5 — Continuity Before Guidance
 
-OneDeck's first job is not “tell me the next correct Magic play”. It is ensuring that the player never loses the process they are already in.
+OneDeck's first job is not to tell players the next correct Magic action. Its first job is to ensure they do not lose the process they are already in.
 
 ## Article 6 — Current Work Never Disappears
 
-If work is in progress, its identity remains visible or one semantic action away across all views.
+If work remains unfinished, its identity stays visible or one semantic action away.
 
 ```text
 《成長のらせん》解決中
 [処理に戻る]
 ```
 
-## Article 7 — Primary Step, not Mandatory Primary Button
+## Article 7 — Boundary, not Micro-step
 
-There should be one clear next **interaction boundary**, but it need not always be a large button.
+OneDeck strongly presents lifecycle boundaries, not generated card-text steps.
 
-- Normal: board is primary; `盤面から操作` rather than a dominant Next Phase CTA.
-- Stack response: `解決へ` only when this actor can progress it; otherwise show who is awaited.
-- Resolution: `処理完了`.
-- ready triggers: `誘発を確認`.
-- HOLD / other actor: status, not a fake clickable `待機中` button.
+Good boundaries:
 
-## Article 8 — Boundary, not Micro-step
+- `唱える`
+- `起動する`
+- `解決へ`
+- `処理完了`
 
-Strong calls to action are lifecycle boundaries: `唱える`, `起動する`, `解決へ`, `処理完了`, `誘発を確認`.
+General Oracle text should not become Step 1 / Step 2 / Step 3 unless a specifically supported interaction justifies it.
 
-General card text must not be translated into an app-generated Step 1 / Step 2 / Step 3 workflow.
+## Article 8 — Manual Resolution is Normal
 
-## Article 9 — Manual Resolution is Normal
+Manual Resolution is a normal resolution strategy, not a failure mode.
 
-Manual Resolution is a standard resolution model, not merely an unsupported-card fallback. Card text describes Current Work; it is not generally a completion checklist.
+Card text explains the current Magic work. The player manipulates actual Magic-world objects and declares `[処理完了]` when they judge the necessary effect work complete.
 
-## Article 10 — Context is a Semantic Lens
+OneDeck does not claim the effect was rules-correct merely because `[処理完了]` was pressed.
 
-The same geometry can mean different Magic actions by Context:
+## Article 9 — Context is a Semantic Lens
+
+The same geometry may have different Magic meaning.
 
 ```text
 hand land → battlefield
@@ -203,551 +277,766 @@ Resolution  = 戦場に出す
 Correction  = 盤面を訂正
 ```
 
-Users should not need to understand internal Cause/Context types.
+Context/Cause must remain semantically meaningful even when UI wording stays natural.
 
-## Article 11 — Semantic Before Geometry
+## Article 10 — Never Infer Meaning from Geometry
 
-When OneDeck knows the Magic meaning, present that meaning. `draw`, `mill`, `destroy`, `sacrifice`, `discard`, `cast` and generic zone movement are not interchangeable merely because their geometry is similar.
+`Library → Hand` is not automatically Draw.
 
-> **Never infer Magic meaning from geometry alone.**
+`Library → Graveyard` is not automatically Mill.
 
-Unknown meaning falls back honestly to finite Manual operations.
+`Battlefield → Graveyard` is not automatically Destroy or Sacrifice.
 
-## Article 12 — Semantic Capability is Explicit
+When meaning is known, preserve it. When unknown, remain honest and Manual.
 
-A visible action label does not by itself prove that the engine canonically understands the full Magic action.
+## Article 11 — Semantic Capability is Explicit
 
-R6 distinguishes:
+A visible action label does not imply full rules understanding.
 
-### A. Canonical Semantic Operation
-The system has a defined semantic operation and preserves its Cause/event meaning.
+### Managed
 
-### B. Assisted Manual Operation
-The system safely assists manipulation or selection, but does not claim to understand or adjudicate the entire card effect.
+OneDeck strongly supports a finite, reusable semantic path.
 
-### C. Pure Manual Operation
-The user resolves the Magic meaning; OneDeck only provides bounded generic mutations under the correct Context.
+### Assisted
 
-UI copy and Trigger semantics must not upgrade B/C into A by implication.
+OneDeck safely assists manipulation while humans retain card/effect judgment.
 
-## Article 13 — Direct Manipulation
+### Human/Table Resolved
+
+Voice + Manual world operations are the intended solution for expensive, rare or semantically uncertain effects.
+
+The product should not present Human/Table Resolved as failure.
+
+## Article 12 — Communication First
+
+Public card-specific choices normally remain table conversation. Software workflow is added only when the digital medium creates a real coordination, secrecy or persistence problem.
+
+## Article 13 — Primary Operator Principle
+
+A Current Work has one **Primary Operator** who owns its lifecycle boundary, such as `[処理完了]` for a Resolution.
+
+This does **not** mean other players are prohibited from manipulating their own authorized Magic-world objects during that work.
+
+## Article 14 — Cooperative World Manipulation
+
+During shared work, players may directly manipulate objects they are normally authorized to manipulate, based on cooperative play and voice communication.
+
+Example during A's Resolution:
+
+```text
+A: 「3枚捨てて」
+B: 自分の手札から3枚を選択して捨てる
+```
+
+OneDeck does not need a card-text-derived permission workflow for that operation.
+
+When the operation belongs to the Current Resolution, its Cause should bind to that Resolution according to canonical Context rules. An explicitly different Manual Event/Correction path is used when the operation means something else.
+
+## Article 15 — Participant Input is not a mode
+
+Blocker declaration, self-discard, secret choice and similar participation do not require a generic Participant Input state machine.
+
+The player simply manipulates the relevant objects they control/own/are authorized to view.
+
+The Current Work Primary Operator remains responsible for the parent lifecycle boundary.
+
+## Article 16 — Selection can be communication
+
+Selection state may be shared as lightweight visual communication when doing so does not reveal hidden information.
+
+Examples:
+
+- defender's selected blockers may be visibly highlighted,
+- opponent may see “B: 3 cards selected” while card identities remain hidden,
+- target selection may be spatially projected.
+
+Selection is not automatically canonical mutation.
+
+## Article 17 — HOLD bridges table conversation to digital authority
+
+At a paper table:
+
+```text
+A: 「対応あります？」
+B: 「あります」
+```
+
+is enough to shift attention and practical control to B.
+
+A digital shared state needs explicit authority. HOLD is that bridge.
+
+> **HOLD materializes “wait, I want to act now” as a safe operation-authority request.**
+
+## Article 18 — HOLD is not a generic pause
+
+HOLD is not used merely because:
+
+- the rule is difficult,
+- players want to discuss something,
+- APNAP ordering is complex,
+- a card is unusual.
+
+Those remain voice/table conversation and Manual processing.
+
+HOLD is used when a non-current operator wants to perform an operation at the current Magic priority/response opportunity.
+
+## Article 19 — HOLD does not implement full CR priority passing
+
+OneDeck does not require every player to press Pass at every priority window.
+
+The current table operator progresses naturally. A player who wants to interrupt requests HOLD.
+
+This intentionally models human paper-table priority practice rather than a full Arena-style priority engine.
+
+## Article 20 — HOLD requires approval and chooses one requester
+
+A HOLD press creates a request; it does not instantly steal authority.
+
+The current foreground operator may approve **one** requester.
+
+If multiple players request HOLD, only one is selected. Other requests do not carry across the resulting state change; they become stale and must be requested again if still relevant.
+
+## Article 21 — HOLD requests are identity-bound
+
+A HOLD request belongs to the ExpectedInteractionContext / foreground work that existed when it was requested.
+
+If that work changes or disappears before approval, the request becomes stale. It must never silently apply to a later Stack entry or later game boundary.
+
+## Article 22 — HOLD suspends parent progress; it does not transfer ownership
+
+If A owns a turn/Combat/Resolution and grants HOLD to B:
+
+- A's parent Progress/Resolution ownership is suspended,
+- B receives foreground operation authority for their response work,
+- B does not become turn owner or parent Resolution owner.
+
+## Article 23 — HOLD response work remains with its actor until it ends
+
+After B is granted HOLD and creates response work B, B remains foreground operator until that work resolves or is removed.
+
+B does not return authority immediately after merely putting the Spell/Ability on the Stack.
+
+## Article 24 — Nested HOLD unwinds to the nearest valid parent
+
+Example:
+
+```text
+A Spell
+└ B HOLD → Spell B
+  └ C HOLD → Spell C
+```
+
+If C resolves normally and B still exists, foreground returns to B.
+
+If C's effect removes/counters B, B's response work is no longer valid; the UI skips B and resumes the nearest valid parent, e.g. A.
+
+This is identity-based continuation, not a blind player-stack pop.
+
+## Article 25 — Nested Formal Action by the current operator needs no HOLD
+
+If A is resolving Emergent Ultimatum and its effect lets A cast B, A does not HOLD themselves.
+
+```text
+Continuation: Emergent Ultimatum — A
+Foreground:   Spell B — A
+```
+
+If C wants to respond to B, C requests HOLD. A's parent Resolution remains suspended Continuation.
+
+## Article 26 — Trigger Memory never steals authority
+
+A Trigger being detected or remembered does not automatically move operation authority to its controller.
+
+If a non-current operator wants to place/manage their Trigger on the Stack, they use the same HOLD request/approval grammar used for other voluntary priority actions.
+
+Trigger generation and Trigger operation authority are distinct.
+
+## Article 27 — Ready Trigger is ambient memory, not a progress gate
+
+Trigger Memory's job is to remember, not enforce.
+
+A ready Trigger may be shown prominently enough to be noticed:
+
+```text
+🔔 未処理 2
+```
+
+but it does not automatically:
+
+- disable phase progression,
+- force Trigger Review foreground,
+- steal Current Work,
+- transfer authority.
+
+Players use voice/table practice to decide when to act on it.
+
+## Article 28 — Trigger viewing is free; Trigger mutation needs authority
+
+Anyone may inspect trigger information they are authorized to see without HOLD.
+
+Actually registering/manipulating a Trigger on the shared Stack requires the appropriate current operation authority; a non-current player obtains it through HOLD.
+
+## Article 29 — Private information uses existing authority, not a new workflow by default
+
+A player may manipulate their own hidden-zone objects without exposing them to the Primary Operator.
+
+Example:
+
+```text
+A Resolution
+A: 「3枚捨てて」
+B selects three private Hand cards
+B discards them
+```
+
+No generic Private Input transfer mode is required.
+
+Hidden-information projection remains strict.
+
+## Article 30 — Direct Manipulation
 
 Frequent operations begin from Magic-world objects or meaningful destinations. Drag is an accelerator to the same semantic operation, not a separate rules path.
 
-## Article 14 — Single Click is Safe
+## Article 31 — Single click is safe
 
-Default click/tap = Inspect / Focus. It does not mutate shared state.
+Default click/tap = Inspect / Focus.
 
-During an explicit visible selection task only, click/tap = Select. Mutation-specific double-click is not required and should be removed as a privileged interaction path.
+During an explicit visible selection task, click/tap = Select.
 
-Right-click / `…` / long-press may accelerate access to the same semantic actions, but must not be the sole path.
+Shared-state mutation must not require double-click as its only path.
 
-## Article 15 — Assistance Surface Contract
+## Article 32 — Assistance Surface Contract
 
-Reusable task surfaces — target picking, Scry/Surveil arrangement, library search, multi-select, ordering, proliferate selection, entry setup — share one contract:
+Reusable bounded task surfaces — Scry/Surveil, search, target selection, ordering, multi-select, entry setup — follow one safety pattern:
 
-1. identify the parent Current Work or initiating action,
-2. say what the user is choosing/manipulating,
+1. identify parent/initiating work,
+2. explain the local task,
 3. show quantity/selection progress where meaningful,
-4. provide Cancel/Close without finishing the parent Resolution,
-5. keep local draft separate from canonical mutation until commit,
-6. bind to ExpectedInteractionContext at task start when mutation depends on Context,
-7. preserve relevant object identity while the draft is open,
-8. invalidate stale/private candidates rather than silently rebinding,
-9. never reveal unauthorized hidden information,
-10. close only after a confirmed successful commit when completion depends on persistence.
+4. Close/Cancel does not finish parent work,
+5. draft stays local until commit,
+6. ExpectedInteractionContext is captured when needed,
+7. relevant object identity is retained,
+8. stale/hidden candidates invalidate rather than rebind,
+9. secret authority is never widened,
+10. completion waits for confirmed commit when persistence matters.
 
-The current Scry/Surveil arrangement and private library search already implement several of these safety properties; R6 generalizes them instead of replacing them.
+Existing Scry/Surveil and private search flows are assets to reuse.
 
-## Article 16 — Quantity is a Common Interaction Primitive
+## Article 33 — Quantity and Ordering are reusable primitives
 
-Many actions are `Action + Quantity + Scope`:
+Many interactions are `Action + Quantity + Scope`.
 
-```text
-Draw 3
-Mill target player 5
-Select up to 3 cards
-Discard 2
-```
+Ordering is distinct from movement.
 
-Use one quantity grammar where the number is canonically known or explicitly supplied by the human. Do not build a general Oracle parser merely to derive N.
+Do not introduce a general Oracle parser merely to derive N or order rules.
 
-## Article 17 — Ordering ≠ Moving
+## Article 34 — Batch / simultaneous semantics survive UI
 
-Ordering is a distinct interaction primitive. It appears in Scry, library top/bottom manipulation, trigger ordering and similar tasks.
+If multiple changes are one semantic event, UI convenience should not fragment them into unrelated game events where the underlying engine contract can preserve simultaneity.
 
-A move operation must not implicitly claim an ordering decision that the human did not make.
+Animation may still be sequential.
 
-## Article 18 — Batch / Simultaneous Semantics Survive UI
+## Article 35 — Cost Work ≠ Effect Work
 
-When multiple changes are one simultaneous semantic event, UI convenience must not turn them into unrelated sequential game events.
-
-A board wipe may use multi-select + one semantic commit. Animation may be sequential, but semantic/event boundaries must preserve simultaneity where the underlying contract supports it.
-
-## Article 19 — Cost Work ≠ Effect Work
-
-The same verb can belong to different processes.
+The same verb may mean different things depending on parent process.
 
 ```text
-Cost:       生け贄に捧げる → then activate
-Resolution: 効果により生け贄に捧げる
+activation cost: sacrifice
+resolution effect: sacrifice
 ```
 
-UI must keep the parent process visible so Cause is not lost behind an identical button label.
+UI must preserve enough parent identity/Cause to distinguish them.
 
-## Article 20 — Authorized Viewing is Free
+## Article 36 — Spatial Causality is rule-honest
 
-“Viewing is free” means navigation among information the user is authorized to view does not change Current Work.
+Target Arrow is reserved for a recorded target relationship.
 
-It never means bypassing hidden-information authority. Secret projection remains strict.
+Do not use target arrows for:
 
-## Article 21 — Spatial Causality is Rule-Honest
+- “all” effects,
+- generic choices,
+- sacrifice decisions,
+- non-target attachment/combat/source association.
 
-Spatial projection is valuable, but visual language must not lie about Magic terminology.
+Use distinct association styling where useful.
 
-- **Target Arrow** is reserved for an actual recorded target relation.
-- non-target choices, attachments, combat relations, source relations or generic association use a different connector/highlight/grouping treatment unless the underlying relation really is a target.
-
-Do not use one arrow style for every “this affects that” relationship.
-
-## Article 22 — Stable Visual Grammar
+## Article 37 — Stable Visual Grammar
 
 ```text
 Glow                → actionable candidate
 Outline             → focus / selection
-Target Arrow         → explicit target only
+Target Arrow         → explicit target relation
 Association styling  → non-target relationship
 Stack overlap        → Stack ordering
-Current Work Anchor  → continuing work
-Badge                → remembered later work
-Motion               → lifecycle transition
+Current Work Anchor  → unfinished continuation
+Badge                → remembered obligation
+Motion               → semantic lifecycle transition
 ```
 
-The same visual cue must not mean unrelated things on different screens.
+The same cue should not mean unrelated things on different screens.
 
-## Article 23 — Focus Over Clutter
+## Article 38 — Unknown ≠ Invalid
 
-Do not draw every possible relationship continuously. Reveal causality primarily for the current/focused interaction.
+OneDeck is not a complete legality engine.
 
-## Article 24 — Unknown ≠ Invalid
+Where relevant, distinguish:
 
-OneDeck is not a complete rules engine. “Cannot prove legal” is not automatically “cannot select”. Distinguish known candidate, unknown/manual candidate and known impossible when the engine has enough information to do so honestly.
+- known candidate,
+- unknown/manual candidate,
+- known impossible.
 
-## Article 25 — Trigger is Memory Before Interruption
+Lack of proof must not automatically become prohibition.
 
-During active Resolution, detected triggers are remembered quietly. They do not steal Current Work through a popup or automatic Feed transition. After the appropriate boundary, ready triggers may become foreground work.
+## Article 39 — Stack Entry ≠ Cast
 
-R6 displays provenance supplied by R5; it does not reconstruct “why this triggered” from Oracle text.
+A Stack entry can represent:
 
-## Article 26 — Single Operator Principle
+- a cast spell,
+- activated ability,
+- triggered ability,
+- copy,
+- another supported Stack object.
 
-A Resolution has one Resolution Operator who normally performs OneDeck operations from `resolve.begin` until `処理完了`. Public choices made by another player may remain voice/table conversation.
+Visual language and history must preserve the real semantic source. Copies/triggers are not visually narrated as “cast”.
 
-## Article 27 — Private Information Exception
+## Article 40 — Not everything uses the Stack
 
-Single Operator does not bypass private-information authority. Another player supplies only the minimum private input required when the operator is not entitled to see it. This is a private-input exception, not transfer of Current Work ownership.
+R6 lifecycle taxonomy is primarily a set of negative constraints.
 
-## Article 28 — Nested Formal Actions Preserve Parent Work
+Do not accidentally force these into Cast → Stack → Resolution:
 
-A Resolution may create a new Formal Action. Stack growth must not erase the parent Resolution as Continuation.
+- land play,
+- mana abilities where rules define immediate resolution,
+- special actions,
+- turn-based actions,
+- state-based actions,
+- static/continuous effects.
+
+This taxonomy does **not** require OneDeck to fully implement every category.
+
+## Article 41 — Static / continuous / rule-changing effects are Manual-first
+
+OneDeck does not need a general layers/continuous-effect/rule-rewrite engine for R6.
+
+Human/Table Resolved is the default when automation would be expensive, brittle or low-value.
+
+Safe finite helpers may be added when frequency, reuse and semantic certainty justify them.
+
+## Article 42 — Replacement / prevention is not Correction
+
+If players judge an event is replaced/prevented, they should record the correct resulting semantic/manual mutation rather than first recording the wrong event and “fixing” it via Correction.
+
+OneDeck need not implement a general replacement engine to preserve this distinction.
+
+## Article 43 — Actor-owned minimal Undo
+
+Undo is not a global “rewind the whole response scope” command.
+
+The player who performed an operation owns the normal Undo of that operation, at the minimum supported operation granularity.
+
+A current operator does not gain permission to Undo another player's earlier action merely by holding foreground authority.
+
+## Article 44 — Undo cannot erase knowledge
+
+Canonical state can sometimes be restored; information already observed cannot be made unknown again.
+
+If Undo follows a reveal/peek/hidden-information exposure, UI must not imply the information leak was reversed.
+
+Where useful, warn:
 
 ```text
-Continuation = Resolution A
-Foreground   = response to B
-Stack        = [B, A-or-other waiting entries]
+状態は戻りましたが、公開された情報は取り消せません。
 ```
 
-`Stack top` and `Current Resolution` are distinct concepts.
+## Article 45 — Undo ≠ Correction
 
-## Article 29 — Return to Parent Work
+Undo means “my recent recorded operation should be reverted.”
 
-After a nested Cast/Activate interaction finishes, semantic navigation returns the user to the parent work:
+Correction means “the canonical shared state does not match the agreed real table and must be repaired.”
+
+Correction remains exceptional and explicitly labelled.
+
+## Article 46 — Search ≠ Shuffle
+
+Search and Shuffle are distinct semantic operations unless a supported canonical operation intentionally commits them atomically.
+
+Do not teach users that every search universally auto-shuffles.
+
+## Article 47 — Visual continuity ≠ object identity
+
+Animations may visually follow the same physical card through zone changes, but drafts/relations must not preserve stale canonical game-object identity across zone-change identity boundaries.
+
+## Article 48 — Quiet routine, loud danger
+
+Ambient:
+
+- trigger badge,
+- saved indicator.
+
+Boundary:
+
+- current actor / HOLD request,
+- `解決へ`,
+- `処理完了`.
+
+Safety:
+
+- stale context,
+- lost secret authority,
+- unknown commit result,
+- reconnect reconciliation.
+
+Routine Magic should not be dominated by modals.
+
+## Article 49 — Honest System
+
+Never claim OneDeck has proven Magic correctness when it has only recorded player action.
+
+Prefer:
 
 ```text
-[《A》の処理に戻る]
+処理完了が選択されました
 ```
 
-## Article 30 — Stack Entry ≠ Cast
-
-A Stack entry may be a cast spell, activated ability, triggered ability, copy, or other permitted entry. Motion and labels must preserve the actual source semantics. A copy must not be visually narrated as “cast”.
-
-Similarly, Stack is not the universal route for land play, mana abilities or special actions.
-
-## Article 31 — Visual Continuity ≠ Object Identity
-
-Animation may visually track “the same card” through a zone transition, but R6 must not preserve stale game-object identity across canonical zone-change identity boundaries.
-
-Draft surfaces that depend on an object must invalidate when the expected object identity no longer matches.
-
-## Article 32 — Search ≠ Shuffle
-
-Library Search and Shuffle are separate semantic operations unless a particular canonical operation intentionally commits them atomically.
-
-The UI must not teach “search always auto-shuffles” as a universal rule.
-
-## Article 33 — Assistance ≠ Prescription
-
-Reusable assistance shortens manipulation; it does not decide Magic for the user. Good examples include multi-select, select-all then exclude, quantity entry, ordering, private library projection and finite entry-state setup.
-
-## Article 34 — Quiet Routine, Loud Danger
-
-Ambient: `🔔 2`, `保存済み`.
-
-Boundary: `P2の応答待ち`, `誘発を確認`.
-
-Safety: stale Context, unknown commit result, hidden-information authority loss.
-
-Routine gameplay avoids modal interruption; safety may demand it.
-
-## Article 35 — Honest System
-
-Do not claim to know what OneDeck has not established.
-
-Prefer `処理完了が選択されました` over `効果を正しく処理しました`.
-
----
-
-# 6. Core interaction grammar
-
-## Click / tap
-Default: Inspect / Focus.
-
-## Explicit selection
-Visible task state:
+over:
 
 ```text
-対象を選択中
-0 / 1
-[キャンセル]
-```
-
-## Semantic Action Menu
-Semantic Magic actions first; Manual Event below them; Correction deeper and explicitly exceptional. These are not flat peers.
-
-## Drag
-Shortcut to the same semantic operation. Capture Context at gesture start; stale gesture fails closed.
-
-## Double click
-Must not be required for shared-state mutation.
-
-## Keyboard
-Keyboard shortcuts mirror the current Primary Step. A repeated keypress must not finish A, observe a changed state, and accidentally finish B as one held-key gesture.
-
----
-
-# 7. Current UI implementation audit (v5)
-
-This section records what exists **as UI**, not merely as a type or planned semantic candidate.
-
-## 7.1 CardActionSheet — implemented presentation primitive
-
-**Implemented:** mobile bottom sheet / desktop popover, card identity/details, ranked primary actions, secondary `その他`, focus management, Escape close and focus restoration.
-
-**Boundary:** `CardActionSheet` itself is presentation only; the caller supplies `onSelect` actions. It does not own ExpectedInteractionContext, Current Work or commit semantics.
-
-**R6 reuse:** keep the component family as a semantic action surface, but feed it one action hierarchy derived from Context. Do not let every caller invent a different meaning hierarchy.
-
-**Gap:** Current Work identity and operation provenance are not inherent to the sheet.
-
-## 7.2 Target system — partially implemented, with two different meanings
-
-Current `ManualTargetDialog` is a real modal UI. It can select multiple cards across Stack/Battlefield/own Hand/Graveyard/Exile/Command plus players, then records manual target selections. It explicitly states that the record is for board understanding/target lines and **not** rules adjudication.
-
-Current `StackBand` renders recorded target chips and SVG target arrows and provides `… → 対象を手動設定/変更`.
-
-**Strength:** manual relation recording is honest about legality; Stack visual causality already exists.
-
-**Gap:** the dialog is not the same thing as formal target preparation for casting/activation. R6 must not flatten “record a manual target relation” and “choose required targets for a Formal Action” into one semantic operation merely because both select objects.
-
-**v5 rule:** Target Arrow only means an actual recorded target relation. Non-target choices require another visual treatment.
-
-## 7.3 Scry / Surveil — implemented assisted private arrangement
-
-Current `CockpitSelectionTools` already provides a Resolution-only Scry/Surveil flow:
-
-1. user supplies quantity,
-2. ExpectedInteractionContext is captured at task start,
-3. required private library range is requested when not already authorized,
-4. top N cards are displayed privately,
-5. each card is assigned to top/bottom for Scry or top/graveyard for Surveil,
-6. rows can be reordered,
-7. one `arrange` operation confirms the draft,
-8. temporary library access is released after close/save,
-9. changed library order, lost access or changed object identity invalidates the draft instead of reviving it.
-
-**Classification:** Assisted Manual Operation backed by a real canonical arrangement operation. It is not evidence that OneDeck generally parses Scry/Surveil from Oracle text.
-
-**R6 reuse:** this is the strongest existing template for Assistance Surface Contract.
-
-**Gap:** currently hidden under generic Manual Event tools and visually disconnected from Current Work.
-
-## 7.4 Mill — implemented quantity action, current presentation is utility-like
-
-Current `CockpitSelectionTools` has a quantity field and `切削` action. It captures Context, obtains enough private library projection when required, selects the top N IDs and commits one move with `reason: 'mill'`, then releases temporary access.
-
-**Classification:** semantic intent is materially stronger than a generic `library → graveyard` drag.
-
-**R6 reuse:** preserve one quantity operation and one semantic commit.
-
-**Gap:** target player/scope and parent effect are not expressed as one polished task surface; the action lives among many manual utility controls.
-
-## 7.5 Library browse / generic search — implemented but split by purpose
-
-There are two relevant interaction families:
-
-### Private library access substrate
-`CockpitLibraryAccess` explicitly models request/release and bounded top-N vs full-library visibility.
-
-### Fetch search work panel
-`CockpitFetchSearch` is a specialized, real WorkPanel for supported fetch-style land search. It:
-
-- shows the source,
-- requests private full-library access,
-- filters/searches visible candidates,
-- keeps the choice local until confirmation,
-- preserves object identity for the selected card,
-- offers tapped-entry state,
-- commits movement + shuffle + resolution-specific completion as one server operation,
-- supports “find nothing” explicitly,
-- releases private access on completion/close.
-
-**Strength:** excellent example of projection, private authority and atomic completion.
-
-**Gap:** this is deliberately specialized to the supported fetch semantic; R6 must not present it as a universal library-search rules engine.
-
-**v5 consequence:** Search and Shuffle stay conceptually separate even when a specialized canonical operation intentionally combines them atomically.
-
-## 7.6 StackBand — strongly implemented visual substrate, not yet R6 hierarchy
-
-Current StackBand already provides:
-
-- compact stacked-card pile,
-- expandable list,
-- board-peek and semantic return,
-- source/ability/X information,
-- target chips,
-- target arrows,
-- target legality marked `未検証` where appropriate,
-- manual target edit,
-- exceptional stack removal,
-- Manual Resolution task,
-- drag disabled from Stack so generic movement cannot bypass resolution semantics.
-
-**Strength:** it already protects Stack semantics and projects spatial causality.
-
-**Gap:** current visual hierarchy is still primarily “pile/list”. It does not consistently answer foreground actor / who is awaited / parent Continuation. Current Resolution must never be visually inferred merely from top-of-stack position.
-
-## 7.7 Trigger Feed — implemented lifecycle management, incomplete causal UX
-
-Current `CockpitFeed` provides:
-
-- pending trigger records,
-- controller/status display,
-- `解決後に登録` while Resolution is active,
-- detail text and source snapshot zone,
-- editing through `CockpitAbilityTools`,
-- placement onto Stack,
-- linking to manually registered trigger entries,
-- dismissal with a recorded reason,
-- historical timeline/status.
-
-It blocks progression under active Resolution/HOLD or when another trigger controller has ordering priority.
-
-**Strength:** substantial management UI already exists.
-
-**Gap:** it does not yet provide durable human causal provenance such as “which canonical GameEvent caused this trigger” in the form R6 wants. That remains an R5 dependency. R6 must not synthesize a causal explanation from Oracle text or current zone.
-
-**R6 change:** during active Resolution, Feed becomes secondary read-only/quiet memory; after the correct boundary, ready trigger work becomes foreground.
-
-## 7.8 Selection / state / proliferate utilities — implemented reusable mechanics
-
-The current selection tools also include:
-
-- simultaneous state-based graveyard application for selected physical cards,
-- counter changes,
-- damage with explicit source identity,
-- life changes,
-- random discard,
-- shuffle,
-- proliferate candidate selection.
-
-These confirm that R6 should consolidate an interaction grammar instead of creating more isolated card-specific widgets.
-
----
-
-# 8. Semantic capability matrix
-
-| Capability | Current UI maturity | v5 treatment |
-| --- | --- | --- |
-| Cast / play land / activate | implemented semantic paths | Canonical Semantic Operation |
-| Manual target record | implemented | Assisted/manual relation record; not legality engine |
-| Stack target arrows | implemented | Keep, restrict arrow meaning to target |
-| Scry / Surveil arrangement | implemented with private/stale protection | Reuse as Assistance Surface exemplar |
-| Mill N | implemented | Preserve semantic quantity operation |
-| Fetch-style land search | implemented specialized WorkPanel | Preserve specialization; do not generalize rules claims |
-| Generic private library browse | implemented access substrate | Authorized-view projection |
-| Shuffle / random discard | implemented utility actions in Resolution | Re-house under Current Work/semantic hierarchy |
-| Proliferate selection | implemented modal assistance | Reuse selection contract |
-| Trigger Feed | implemented lifecycle UI | R6 presentation refresh depends on R5 provenance |
-| Correction | implemented R4b tools | Keep exceptional; durable workspace resume depends on R4b contract |
-| General Oracle→workflow parsing | not implemented, not desired | Non-goal |
-
----
-
-# 9. Target and relationship visual language
-
-Formal target preparation should remain on the Magic world when practical:
-
-```text
-対象を選択
-0 / 1
-```
-
-Recorded target:
-
-```text
-《Doom Blade》 ─────────→ 《Creature A》
-```
-
-Do **not** draw a target arrow for “all creatures”, sacrifice choices, opponent public choices, or other non-target relationships merely because one object affects another.
-
-Stack should read as a conversation among actions and actors, while preserving actual ordering:
-
-```text
-P1 Growth Spiral
-P2 └ Counterspell → Growth Spiral
-P1 └ Negate → Counterspell
-```
-
-The Stack surface also shows Continuation when different from foreground:
-
-```text
-《B》への応答
-↳ 《A》解決中
+効果を正しく処理しました
 ```
 
 ---
 
-# 10. Generic semantic world operations
+# 7. Authority model
 
-Prefer excellent reusable operations before card-specific workflows:
+The UX needs a small conceptual authority vocabulary. These concepts need not each become new persisted canonical fields if existing state can derive them.
 
-- draw,
-- discard,
-- sacrifice,
-- destroy,
-- exile,
-- return,
-- battlefield entry,
-- mill,
-- tap / untap,
-- life +/- N,
-- counter +/- N,
-- damage with source,
-- shuffle,
-- arrange/order,
-- single / multi-select,
-- private-zone browse/search,
-- finite entry-state setup.
+## 7.1 Turn / Progress ownership
 
-This list is a UX vocabulary, not a claim that every listed verb already has identical canonical engine maturity.
+The turn owner normally controls normal progression: phase/turn/combat progression and their own normal game actions.
 
----
+## 7.2 Primary Operator
 
-# 11. Representative journeys
+The player who owns the current Current Work lifecycle boundary.
 
-## J1 Cast → Stack → Resolution
+For Manual Resolution, this is normally the player resolving that Spell/Ability.
 
-Select card → semantic action → formal preparation if needed → Stack response → `解決へ` → Current Work → world manipulation → `処理完了`.
+## 7.3 Foreground response operator
 
-## J2 Resolution browse and return
+A player granted HOLD temporarily becomes foreground operator for the response work they create.
 
-Resolution A → open Graveyard/Card Detail/Library authorized view → Current Work anchor remains → `[《A》の処理に戻る]`.
+Parent ownership remains suspended, not transferred.
 
-## J3 Resolution + remembered triggers
+## 7.4 Cooperative participant
 
-Resolution A → trigger count increments quietly → complete A → stabilization → `誘発を確認` → ordering/Stack registration.
+Other players may still manipulate their own authorized objects as part of the parent's requested processing without acquiring HOLD.
 
-## J4 Nested Formal Action
+## 7.5 Hidden-information authority
 
-Resolution A → cast B → foreground response to B while Continuation remains A → nested interaction returns to A.
-
-## J5 Scry / Surveil
-
-Resolution → quantity → authorized top-N projection → partition/order local draft → one confirmed arrangement commit → return to parent Current Work.
-
-## J6 Mill
-
-Resolution/manual event → choose/supply N and proper player scope → one semantic Mill operation → Current Work remains until human completes Resolution.
-
-## J7 Library search
-
-Current Work → request authorized library projection → search/select local draft → commit the exact supported semantic operation → release private projection → return to Current Work.
-
-## J8 Correction
-
-Enter explicitly from exceptional tools → visible `盤面訂正中` meaning → finite absolute repair → end. R6 must not fake reload continuity if R4b does not expose durable correction-work identity.
-
-## J9 Reconnect / unknown commit
-
-Commit result unknown → block casual retry → reconcile receipt/canonical state → show saved or not saved → derive Current Work/Primary Step anew.
-
-## J10 Multiplayer waiting
-
-If canonical flow waits for P2, P1 sees `P2の応答待ち`; P1 does not see a misleading progress button.
-
-## J11 Mobile
-
-The same session must remain understandable at 375×812, 812×375 and 1440×900. Mobile uses a compact persistent Current Work bar/sheet architecture rather than a shrunken desktop rail.
+Visibility remains independent from Progress/Foreground authority. HOLD does not grant access to another player's secrets.
 
 ---
 
-# 12. Current-work presentation
+# 8. HOLD reference journey
 
-Current Work is persistent but compact.
-
-Desktop:
+## 8.1 A → B → C normal unwind
 
 ```text
-解決中 — 《成長のらせん》
-🔔 2
-[処理完了]
+A casts Spell A
+A: 「対応あります？」
+
+B HOLD request
+A approves B
+B casts Spell B
+B: 「対応あります？」
+
+C HOLD request
+B approves C
+C casts Spell C
 ```
 
-While browsing:
+Stack:
 
 ```text
-墓地を閲覧中
-現在: 《成長のらせん》を解決中
-[処理に戻る]
+[C] C — foreground
+[B] B — suspended parent response
+[A] A — suspended root work
 ```
 
-Mobile: sticky compact Current Work bar; Stack/Trigger/detail open as sheets while board remains the dominant surface.
+If C resolves and B still exists:
+
+```text
+C finishes
+→ B resumes
+B resolves
+→ A resumes
+```
+
+## 8.2 C removes B
+
+```text
+[C → B]
+[B → A]
+[A]
+```
+
+C resolves and removes B.
+
+B is no longer a valid parent work, so B's foreground scope is cancelled and the system resumes A.
+
+## 8.3 multiple HOLD requests
+
+If B/C/D request HOLD simultaneously, the current operator approves one. Once state changes, the other requests expire rather than silently carrying forward.
+
+## 8.4 HOLD but no response
+
+If B receives HOLD but performs an operation they then regret, B uses actor-owned Undo at normal minimal granularity. R6 does not add a broad “return HOLD and rewind everything” operation.
 
 ---
 
-# 13. Trigger presentation and R5 dependency
+# 9. Trigger model
 
-During Resolution, trigger memory is ambient. After the correct boundary, it becomes foreground.
+Trigger Memory is deliberately weaker than a rules-enforcement system.
 
-R6 requires from R5, when available, a durable display-facing record including at minimum:
+## Trigger lifecycle principle
 
-- stable pending trigger identity,
-- controller,
-- source snapshot,
-- originating canonical GameEvent/provenance,
-- remembered / ready / ordered / stacked / dismissed lifecycle,
-- whether processing was deferred by current Resolution,
-- ordering actor/group where applicable,
-- Stack-entry correspondence when registered.
+```text
+Game event
+→ Trigger remembered
+→ badge/feed available
+→ table conversation
+→ non-current trigger controller uses HOLD if they want shared Stack authority
+→ Trigger Stack registration
+```
 
-R6 displays this record. It does not re-evaluate trigger rules.
+A ready Trigger remains ambient until a player chooses to act on it.
+
+OneDeck may visually distinguish remembered/ready/stacked/dismissed states if R5 supplies those canonical semantics, but R6 does not block unrelated progression merely because a ready Trigger exists.
+
+R6 consumes R5 provenance when available. It does not invent causal explanations from Oracle text.
+
+---
+
+# 10. Cooperative processing examples
+
+## 10.1 Cruel-Ultimatum-style discard
+
+A is Primary Operator for Resolution A.
+
+Voice:
+
+```text
+A: 「クリーチャー1体サクって、3枚捨てて」
+```
+
+B may directly:
+
+- sacrifice B's own permanent,
+- select B's own hidden Hand cards,
+- discard them.
+
+No HOLD is needed because B is participating in the requested parent processing rather than voluntarily interrupting it.
+
+A still owns `[処理完了]` for Resolution A.
+
+Selection may be visible to A only as privacy-safe metadata such as “B: 3 cards selected.”
+
+## 10.2 Combat blocker declaration
+
+A owns the turn/combat progress.
+
+Defender B directly declares blockers using B's creatures. This is cooperative/rule-defined participation, not HOLD.
+
+If B wants to cast a spell/activate an ability at a priority opportunity, that voluntary interruption uses HOLD.
+
+---
+
+# 11. Representative Golden/Stress journeys
+
+## J1 — Land play: no Stack
+
+```text
+A turn
+Forest in Hand
+→ [土地をプレイ]
+→ Battlefield
+```
+
+No Response/Resolution journey is fabricated around ordinary land play.
+
+## J2 — Cast + target + HOLD
+
+```text
+A casts Doom Blade
+→ target arrow to Creature X
+A asks for responses
+B HOLD
+A approves
+B casts Counterspell
+```
+
+HOLD is identity-bound to the relevant current interaction.
+
+## J3 — Activated ability
+
+```text
+A activates Sakura-Tribe-Elder-like ability
+→ pay sacrifice cost
+→ ability Stack entry
+→ response grammar as usual
+```
+
+Cost and effect remain semantically distinct.
+
+## J4 — Mana ability
+
+Known supported mana generation is an embedded immediate action rather than a fake Stack journey.
+
+R6 must not classify “produces mana” using naive UI inference when engine/rules semantics are uncertain.
+
+## J5 — Growth Spiral
+
+```text
+Cast
+→ Stack
+→ Resolution
+→ draw using library operation
+→ hand land [戦場に出す] under Resolution Context
+→ Trigger Memory may increment quietly
+→ A [処理完了]
+```
+
+No Growth-Spiral effect wizard.
+
+## J6 — Emergent Ultimatum
+
+```text
+Continuation: Ultimatum Resolution — A
+A searches/selects/exiles using authorized projection
+Voice: opponent publicly chooses which card returns
+A performs return/shuffle
+A casts B by current effect — no HOLD
+
+C wants to respond to B
+C HOLD → A approves
+C casts C
+```
+
+If C ends and B remains, B/A's foreground nested work resumes. If C removes B, B is skipped and Ultimatum Continuation resumes.
+
+No Emergent-Ultimatum-specific state machine is required.
+
+## J7 — Trigger
+
+```text
+B Trigger remembered
+🔔1
+```
+
+It does not gate A's phase progression.
+
+If B wants to put/manage it on the Stack while B is not current operator:
+
+```text
+B voice: 「誘発積みます」
+B HOLD
+current operator approves
+B registers Trigger
+```
+
+## J8 — Board wipe
+
+Use reusable multi-select/batch semantics where safe. Do not require one unrelated event commit per permanent merely because the UI processes many objects.
+
+## J9 — Scry/Surveil
+
+Use the existing private top-N projection, partition/order local draft, stale/object-id validation and one confirmed arrangement commit.
+
+## J10 — Undo after hidden information
+
+Undo may restore zones/state but cannot restore ignorance. UI must not represent information exposure as fully reversible.
+
+---
+
+# 12. Existing UI implementation audit to preserve
+
+v6 retains the v5 implementation inventory.
+
+## 12.1 CardActionSheet
+
+Implemented mobile sheet / desktop popover with ranked actions and secondary actions. Reuse as an action presentation primitive; Context/authority/commit semantics remain caller/canonical concerns.
+
+## 12.2 Manual target recording + StackBand
+
+ManualTargetDialog records target relations for board understanding without pretending to be a complete legality engine. StackBand already renders target chips/arrows, compact/expanded Stack views and protects Stack movement from generic D&D bypass.
+
+Formal target preparation and manual target recording remain semantically distinct even if presentation is later unified.
+
+## 12.3 Scry / Surveil
+
+Existing CockpitSelectionTools already provides:
+
+- quantity,
+- ExpectedInteractionContext capture,
+- bounded private library access,
+- top-N projection,
+- partition to top/bottom or top/graveyard,
+- ordering,
+- local draft,
+- object identity validation,
+- stale/private invalidation,
+- one arrangement commit,
+- access release.
+
+This is a strong Assistance Surface exemplar.
+
+## 12.4 Mill
+
+Existing quantity-based Mill captures Context, obtains necessary private projection, moves top N with semantic `mill` reason and releases temporary access.
+
+## 12.5 Library Search
+
+CockpitLibraryAccess provides request/release and bounded/full private projection.
+
+CockpitFetchSearch demonstrates a specialized supported search WorkPanel with local draft, object-id validation, explicit “find nothing”, optional tapped entry and atomic supported commit.
+
+Do not generalize this specialized support into a universal search rules engine.
+
+## 12.6 Trigger Feed
+
+Existing Feed already provides candidate review, Stack placement, manual-linking, dismissal reason and history. R6 changes its attention policy: Feed remains available, but ready Triggers do not automatically become forced foreground work.
+
+Human causal explanation remains an R5 provenance dependency.
+
+## 12.7 Selection/state/proliferate/mana utilities
+
+Existing reusable mechanics confirm the R6 direction: consolidate a coherent grammar rather than proliferating card-specific widgets.
+
+---
+
+# 13. Lifecycle taxonomy as negative constraints
+
+R6 should know enough Magic structure to avoid false UI semantics, without turning the taxonomy into an implementation mandate.
+
+| Family | UX constraint |
+| --- | --- |
+| Cast Spell | may require prepare/cost/target, then Stack |
+| Activated Ability | may share prepare/cost/target/Stack skeleton; not called Cast |
+| Triggered Ability | event-driven memory/registration; not Cast |
+| Land Play | immediate game action; do not fabricate Stack |
+| Mana Ability | immediate where canonically supported; do not fabricate Stack |
+| Special Action | no fabricated Stack when rules say immediate |
+| Turn-based Action | not user Cast/Activate work |
+| State-based Action | stabilization semantics, not voluntary Cast |
+| Static/Continuous | no fake Resolution session |
+| Replacement/Prevention | correct resulting event/manual action; not post-hoc Correction |
+
+This table is primarily a protection against semantic drift.
 
 ---
 
 # 14. Feedback and recovery
 
-Operation lifecycle must be understandable:
+Operation lifecycle should be understandable:
 
 ```text
 ○ 保存済み
@@ -757,135 +1046,224 @@ Operation lifecycle must be understandable:
 ! 保存されていません
 ```
 
-When result is unknown, do not encourage immediate retry. Reconcile first, then derive interaction state from canonical data.
+Unknown commit result suppresses casual retry until reconciliation.
 
-Stale task drafts show why they became invalid and return the user to a safe re-selection point; they never silently bind to a newer Resolution/object.
-
----
-
-# 15. Current-main gap summary
-
-Existing strengths to preserve:
-
-- canonical `table.resolution` and exact entry-bound lifecycle,
-- R4b strict mutation gate / Context-Cause substrate,
-- gesture-start Context capture,
-- semantic Formal actions,
-- `CardActionSheet` presentation pattern,
-- real Scry/Surveil arrangement with stale/private protection,
-- semantic Mill quantity operation,
-- private library request/release substrate,
-- specialized fetch search WorkPanel,
-- StackBand + target arrows + manual target recording,
-- substantial Trigger Feed lifecycle UI,
-- state/bulk/proliferate selection tools,
-- Manual Event / Correction separation,
-- reconnect/stale-operation handling.
-
-Main R6 gaps:
-
-1. Current Work is distributed rather than a global anchor.
-2. Existing tools look like separate utilities rather than one Assistance Surface grammar.
-3. Primary/progression controls compete with board actions, especially multiplayer.
-4. target, non-target association and manual target recording need clearer semantic separation.
-5. Stack needs foreground actor/waiting/Continuation hierarchy on top of the existing pile.
-6. Trigger Feed needs quiet-during-Resolution presentation and R5 causal provenance.
-7. Scry/Surveil/Mill/Search need parent Current Work visibly retained rather than living under a generic Manual Event toolbox.
-8. semantic capability level is currently implicit; labels can overstate what the engine understands.
-9. double-click/quick mutation remains inconsistent with touch-safe interaction grammar.
-10. multiplayer mobile still has explicit wide-screen limitations.
-11. Correction cannot promise reload-resumable workspace identity unless R4b exposes it canonically.
+Stale task/HOLD drafts explain that their initiating work changed and require re-selection/re-request rather than silently rebinding.
 
 ---
 
-# 16. R6 implementation priority
+# 15. R6 implementation direction
 
-## P0 — unify the interaction shell
+## P0 — interaction shell and authority clarity
 
 1. pure derived Interaction Projection,
-2. persistent Current Work Anchor,
-3. Primary Step hierarchy,
-4. Resolution Workspace integration,
-5. Stack foreground/Continuation presentation,
-6. card interaction cleanup: inspect/select/action/drag converge.
+2. persistent Continuation / Current Work anchor,
+3. clear foreground actor / HOLD request / approval state,
+4. Stack foreground vs suspended parent presentation,
+5. semantic action grammar across click/menu/drag/keyboard,
+6. actor-owned Undo visibility where supported.
 
 ## P1 — consolidate existing assistance
 
-1. common Assistance Surface shell around existing Scry/Surveil/search/target/multi-select patterns,
+1. common Assistance Surface shell,
 2. quantity + ordering grammar,
-3. semantic action hierarchy in CardActionSheet,
-4. authorized private-zone projection UX,
-5. feedback/recovery states,
-6. mobile-native Current Work and sheets.
+3. authorized private-zone UX,
+4. selection-as-communication without secret leakage,
+5. cooperative participant interaction such as blocker declaration,
+6. mobile-native Current Work/HOLD/Stack treatment.
 
-## P2 — R5-backed trigger UX and further accelerators
+## P2 — R5-backed Trigger presentation and further safe acceleration
 
-1. human causal Trigger presentation once R5 provenance exists,
-2. ordering presentation,
-3. further bulk semantic actions only where event semantics are preserved,
-4. common entry-state setup.
+1. human causal Trigger provenance when R5 provides it,
+2. improved ambient trigger memory,
+3. further bulk semantic actions where event meaning is preserved,
+4. common finite entry-state helpers.
 
 ## Non-goals
 
-- card-specific effect wizards by default,
-- general opponent-decision workflow,
+- full priority-pass UI,
+- generic APNAP workflow,
 - general Oracle parser,
 - full legality engine,
-- automatic effect-resolution checklist,
-- a second canonical R6 context/mode machine,
-- inferring trigger cause from UI text,
-- pretending a candidate button implies canonical semantic support.
+- general continuous/layer engine,
+- general replacement/prevention engine,
+- card-specific effect wizards by default,
+- generic remote-decision workflow for public conversation,
+- generic Participant Input state machine,
+- Trigger-as-progress-gate,
+- second canonical R6 mode/context state machine.
 
 ---
 
-# 17. R6 design review questions
+# 16. Adversarial review — attack v6 from both directions
 
-Every R6 design change should answer:
+v6 was reviewed from two opposing failure modes.
 
-1. Does this keep Magic judgment with players?
-2. Does it reduce bookkeeping rather than replace gameplay?
-3. Does Current Work survive every View change?
-4. Does the Magic world remain the primary workspace?
-5. Is this a lifecycle boundary or unnecessary micro-step?
-6. Is the interaction state derived from canonical state rather than a second local mode machine?
-7. Is the operation's semantic capability level honest?
-8. Does an Assistance Surface identify parent work, task, quantity, cancel, draft/commit boundary and stale behavior?
-9. Is hidden information limited to authorized projection?
-10. Does Target Arrow mean actual target rather than generic association?
-11. Is meaning preserved rather than inferred from zone geometry?
-12. Are Cost and Effect work distinguishable?
-13. Are simultaneous changes kept semantically simultaneous where required?
-14. Are ordering and movement separate when the player must choose order?
-15. Does visual continuity avoid fabricating object identity?
-16. Does Stack-entry presentation distinguish cast / ability / trigger / copy?
-17. Does Trigger remain peripheral until the correct boundary?
-18. Does nested Stack growth preserve parent Continuation?
-19. If commit result is unknown, does the UI reconcile before retry?
-20. Does the same interaction remain understandable at 375×812, 812×375 and 1440×900?
-21. Are existing safe components being reused rather than replaced without reason?
-22. Is any new complexity justified by repeated in-game value?
+## 16.1 Failure mode A — becoming Arena / a rules engine
 
-If a common journey requires a card-specific state machine, a general Oracle parser, or a second R6 canonical mode store, re-audit the interaction model before adding one.
+### Attack: HOLD becomes a full priority engine
+
+Rejected. HOLD only materializes a voluntary interruption when a non-current player wants shared operation authority. There is no mandatory all-player Pass loop.
+
+### Attack: Trigger Memory enforces rules progression
+
+Rejected. Ready Trigger remains ambient/soft reminder. R6 does not block normal progression merely because a Trigger is ready.
+
+### Attack: participant choices become distributed workflow
+
+Rejected. Public choices remain voice; players directly manipulate their authorized world objects. There is no generic Decision Actor/Participant Input state machine.
+
+### Attack: static/replacement effects require engine automation
+
+Rejected. These are Human/Table Resolved by default unless finite automation has clear value and semantic certainty.
+
+### Attack: Scry/Search existing helpers imply Oracle execution
+
+Rejected. They are Assistance Surfaces, not evidence of general card-text understanding.
+
+**Result:** v6 does not require a full rules engine to be coherent.
+
+## 16.2 Failure mode B — becoming an unsafe free-form sandbox
+
+### Attack: cooperative manipulation destroys Context/Cause
+
+Mitigation: mutations still travel through canonical semantic/Manual Event/Correction paths and ExpectedInteractionContext. Cooperative freedom does not mean raw unbound mutation.
+
+### Attack: HOLD requests accidentally apply to later work
+
+Mitigation: request is identity/Context-bound and becomes stale on work change.
+
+### Attack: a child response disappears but authority returns to a dead parent
+
+Mitigation: resume nearest still-valid parent work, then Continuation.
+
+### Attack: hidden information leaks through shared selection
+
+Mitigation: shared selection metadata must be privacy-safe; identities remain visible only to authorized viewers.
+
+### Attack: Undo allows current operator to rewrite another player's history
+
+Rejected. Normal Undo is actor-owned and minimal.
+
+### Attack: Undo falsely claims secret knowledge was erased
+
+Rejected. Knowledge is irreversible and UI must say so where relevant.
+
+### Attack: Human/Table Resolved means every mutation is arbitrary
+
+Rejected. Context/Cause, semantic operations, hidden-information projection, stale safety, commit/recovery and Correction boundaries remain strict.
+
+**Result:** v6 preserves a controlled shared table rather than a raw sandbox.
 
 ---
 
-# 18. v5 architecture invariants
+# 17. Cross-principle contradiction audit
 
-1. R6 introduces no new canonical game state machine.
-2. Interaction Projection is pure presentation derived from canonical state and bounded local task drafts.
-3. View changes do not change Continuation.
-4. Current Resolution is never inferred from Stack top.
-5. Foreground and Continuation remain separate.
-6. Normal does not require a dominant progress button; board interaction is primary.
-7. Single click/tap normally does not mutate shared state.
-8. No shared mutation depends on double-click-only interaction.
-9. Menu, drag and shortcuts converge on the same semantic operation.
-10. Multi-step tasks bind Context/object identity at their start and invalidate stale drafts.
-11. Trigger cause is consumed from R5 provenance, not inferred by R6.
-12. Manual Event and Correction are not flat alternatives to ordinary semantic actions.
-13. Unknown commit result suppresses casual retry until reconciliation.
-14. Disabled controls alone are insufficient; explain who/what/why blocks progress.
-15. Authorized viewing may be freely navigated without expanding secret authority.
-16. Geometry never manufactures semantic meaning.
-17. UI animation never manufactures simultaneity, object identity or “cast” semantics.
-18. Existing private-library safety and stale-choice invalidation are preserved as R6 general patterns.
+## HOLD vs Cooperative World Manipulation
+
+No contradiction.
+
+- cooperative manipulation = responding to the parent work by manipulating one's own authorized objects,
+- HOLD = voluntarily interrupting foreground progression to perform a priority/response action.
+
+## Primary Operator vs other-player actions
+
+No contradiction.
+
+Primary Operator owns the parent lifecycle boundary; it is not exclusive ownership of all objects touched during the work.
+
+## Trigger Memory vs HOLD
+
+No contradiction.
+
+Trigger detection/remembering does not transfer authority. HOLD is used only when a non-current player chooses to perform shared Stack work.
+
+## Trigger Memory vs progress
+
+No contradiction after v6: Trigger is soft memory, not gate.
+
+## Voice-first vs target/selection visualization
+
+No contradiction. Voice communicates intent; spatial/selection UI restores physical pointing and shared object reference lost in remote play.
+
+## Manual-first vs semantic operations
+
+No contradiction. Semantic helpers are used where finite and reliable; unknown card meaning remains Human/Table Resolved.
+
+## Undo vs Correction
+
+Explicitly distinct.
+
+## R6 vs R4b/R5
+
+R6 consumes existing/future canonical semantics but does not redefine Gate/Correction or implement Trigger provenance itself.
+
+---
+
+# 18. Final v6 design tests
+
+Every future R6 design change should answer:
+
+1. How would players naturally do this at a paper table?
+2. What specifically is lost by remote/digital play?
+3. Is OneDeck restoring only that lost capability?
+4. Is this human Magic judgment or bookkeeping/synchronization?
+5. Can voice solve the human choice without software workflow?
+6. Does Current Work survive every authorized View change?
+7. Is Primary Operator being confused with exclusive object ownership?
+8. Is HOLD being used only for voluntary foreground interruption?
+9. Is the HOLD request bound to the exact initiating interaction identity/context?
+10. Does a nested response unwind to the nearest still-valid parent?
+11. Is a Trigger remembering something without stealing authority or blocking progress?
+12. Can another player manipulate their own authorized object without unnecessary permission ceremony?
+13. Does shared selection avoid leaking private identities?
+14. Is the operation's semantic capability level honest?
+15. Does geometry avoid inventing Magic meaning?
+16. Are target arrows reserved for actual targets?
+17. Are non-Stack actions protected from Stack-shaped UI assumptions?
+18. Does Manual/Human-Table-Resolved remain a first-class success path?
+19. Is Undo actor-owned and honest about irreversible information?
+20. Is Correction still visibly exceptional?
+21. Is reconnect/recovery derived from canonical state rather than local fiction?
+22. Are existing safe UI primitives being consolidated rather than discarded?
+23. Does the design still work on mobile without replacing the Magic world with chrome?
+24. Does the implementation add enough repeated-game value to justify its complexity?
+
+If a proposed feature fails the paper-table translation test, requires a general rules engine merely for convenience, or creates a second canonical R6 state machine, stop and re-audit before implementing it.
+
+---
+
+# 19. v6 architecture invariants
+
+1. OneDeck reconstructs a remote paper Magic table; it does not attempt to become Arena.
+2. Voice is a first-class interaction channel.
+3. Magic judgment remains with humans by default.
+4. R6 creates no second canonical game-state/mode machine.
+5. View changes do not change Continuation.
+6. Primary Operator owns the parent lifecycle boundary, not every object operation.
+7. Cooperative participants may manipulate their own authorized Magic-world objects during shared work.
+8. Participant Input is not a generic state machine.
+9. HOLD is an approved, identity-bound request for voluntary foreground operation authority.
+10. HOLD is not generic pause, APNAP workflow or rules-discussion mode.
+11. Only one simultaneous HOLD requester is approved; remaining requests expire after state change.
+12. Parent Progress/Resolution ownership is suspended, not transferred, during HOLD response work.
+13. HOLD actor retains foreground ownership until their response work resolves or is removed.
+14. Nested response completion resumes the nearest valid parent; removed parents are skipped.
+15. The current operator may create nested Formal Actions without HOLD.
+16. Trigger detection/remembering never automatically transfers authority.
+17. Ready Trigger is ambient memory, not a progress gate.
+18. Trigger Stack mutation by a non-current player uses ordinary HOLD authority.
+19. Authorized viewing never expands secret authority.
+20. Shared selection may communicate count/state without exposing hidden identities.
+21. Context/Cause remain strict even under cooperative manipulation.
+22. Stale gestures, drafts and HOLD requests never silently rebind.
+23. Geometry never manufactures semantic meaning.
+24. Target Arrow means target, not generic association.
+25. Land play / immediate mana / special/automatic actions are not forced through Stack-shaped UI.
+26. Static/continuous/replacement complexity is Manual-first unless finite automation earns its cost.
+27. Undo is actor-owned and minimal.
+28. Undo cannot erase knowledge already revealed.
+29. Undo and Correction remain separate concepts.
+30. Unknown commit results reconcile before casual retry.
+31. Existing private-library and stale-choice safety patterns are preserved.
+32. Manual Resolution + voice is a product strategy, not a fallback embarrassment.
