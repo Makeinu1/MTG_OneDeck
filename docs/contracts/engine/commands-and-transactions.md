@@ -11,3 +11,6 @@ Command batches are applied in order and return one transaction result. A store 
 
 <!-- clause: ENG-CMD-004 -->
 Resolution uses the same command path as direct actions. A guided choice produces the next command only after the user supplies the choice. An unsupported compound clause is represented as guided or manual rather than as a guessed command sequence.
+
+<!-- clause: ENG-CMD-R6-001 -->
+R6 defines one normal Undo invocation as one actor-owned committed user-visible transaction unit. `処理完了` closes a Resolution lifecycle but does not retroactively batch every preceding committed operation into one mega-transaction. Existing atomic compound actions remain one undo unit when they were committed as one transaction; farther rewind requires repeated Undo. Correction is a distinct explicit repair path, not an expanded Undo scope.
