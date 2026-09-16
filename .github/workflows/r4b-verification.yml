@@ -26,9 +26,10 @@ jobs:
           src/engine/__tests__/cockpitR31.test.ts
           src/engine/__tests__/cockpitR31Lifecycle.test.ts
           src/engine/__tests__/cockpitTriggers.test.ts
-      - name: Existing R4 session regressions
+      - name: R4b and existing R4 session regressions
         run: >-
           node node_modules/vitest/vitest.mjs run --project dom
+          src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
           src/online/cloudflare/__tests__/cockpitSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
@@ -39,3 +40,6 @@ jobs:
           node node_modules/eslint/bin/eslint.js
           src/engine/cockpitR4b.ts
           src/engine/__tests__/cockpitR4b.test.ts
+          src/online/cloudflare/cockpitR4bSession.ts
+          src/online/cloudflare/cockpitSession.ts
+          src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
