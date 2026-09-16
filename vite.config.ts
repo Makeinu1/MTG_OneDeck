@@ -15,6 +15,11 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      thresholds: {
+        branches: 75,
+      },
+    },
     // Worktree checkouts under .claude/ would otherwise be collected as duplicate test files.
     exclude: [...configDefaults.exclude, '.claude/**'],
     projects: [
