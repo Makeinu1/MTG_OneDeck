@@ -34,7 +34,6 @@ jobs:
             "    'src/online/cloudflare/cockpitR4bAudit.ts',",
             "    'src/online/cloudflare/cockpitR4bSession.ts',",
           ];
-
           const auditImportLines = [
             "    const cockpitR4bAuditImport = normalized(path) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&",
             "      ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);",
@@ -48,7 +47,7 @@ jobs:
             const original = readFileSync(file, 'utf8');
             const lines = original.split('\n');
 
-            if (!original.includes("'src/online/cloudflare/cockpitR4bAudit.ts'")) {
+            if (!lines.some((line) => line.trim() === "'src/online/cloudflare/cockpitR4bAudit.ts',")) {
               const authorityIndex = lines.findIndex((line) =>
                 line.trim() === "'src/online/cloudflare/cockpitR4Authority.ts',"
               );
@@ -73,12 +72,7 @@ jobs:
               if (cockpitImportIndex < 0 || assertionIndex < 0) {
                 throw new Error(`import allowlist insertion point missing: ${file}`);
               }
-              importLines.splice(
-                assertionIndex,
-                0,
-                ...auditImportLines,
-                ...sessionImportLines,
-              );
+              importLines.splice(assertionIndex, 0, ...auditImportLines, ...sessionImportLines);
               source = importLines.join('\n');
             }
 
@@ -91,13 +85,10 @@ jobs:
             }
             expressionLines[expressionIndex] =
               '      local || allowedImports.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,';
-
             writeFileSync(file, expressionLines.join('\n'));
           }
           NODE
-      - name: Verify release gate
-        run: npm run check:release -- --base 3465e00cfb2c1bc76c22fc05b624b8a746b4061d --head HEAD --build-base=/MTG_OneDeck/
-      - name: Commit generated ledger repair
+      - name: Commit generated ledger repair locally
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
@@ -106,6 +97,10 @@ jobs:
             scripts/checks/verify-online-cloudflare-websocket-recovery.ts \
             scripts/checks/verify-online-cloudflare-capability-abuse-control.ts \
             scripts/checks/verify-online-cloudflare-production-gate.ts
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'fix(ci): sync R4b release ledgers'
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(ci): sync R4b release ledgers'
+          fi
+      - name: Verify release gate
+        run: npm run check:release -- --base 3465e00cfb2c1bc76c22fc05b624b8a746b4061d --head HEAD --build-base=/MTG_OneDeck/
+      - name: Push verified ledger repair
+        run: git push
