@@ -9,12 +9,6 @@ import {
   type CockpitMultiplayerView,
 } from './cockpitMultiplayer';
 import {
-  authorizeR4FormalOperation,
-  isR4FormalOperation,
-  r4OperationCreatesKnowledgeBarrier,
-  r4OperationRequiresContext,
-} from './cockpitR4Authority';
-import {
   R4B_PROTOCOL_VERSION,
   applyPreparedR4bCommit,
   prepareR4bCommit,
@@ -38,8 +32,8 @@ import {
   type TableOperation,
 } from '../../engine/cockpitTable';
 import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
-import { applyR4TableOperation, type R4TableOperation } from '../../engine/cockpitR4';
 import type { R4bDeclaredCause, R4bOperation } from '../../engine/cockpitR4b';
+import type { R4TableOperation } from '../../engine/cockpitR4';
 import type { InitDeckCard } from '../../engine/init';
 import type { OnlineCloudflareSqlStorage } from './types';
 
@@ -158,57 +152,6 @@ function knowledgeSafeUndo(record: SessionRecord): boolean {
     record.undoKnowledgeEpochs!.at(-1) === (record.knowledgeEpoch ?? 0)
   );
 }
-function operationCreatesKnowledgeBarrier(
-  table: CockpitTable,
-  operation: TableOperation | R4TableOperation,
-): boolean {
-  const r4Operation = operation as R4TableOperation;
-  if (
-    isR4FormalOperation(r4Operation) &&
-    r4OperationCreatesKnowledgeBarrier(table, r4Operation)
-  )
-    return true;
-  switch (operation.type) {
-    case 'draw':
-    case 'shuffle':
-    case 'randomDiscard':
-    case 'mulligan':
-    case 'arrange':
-    case 'resolve.fetch':
-    case 'shortcut':
-    case 'turn.ready':
-      return true;
-    case 'phase':
-      return table.phase === 'upkeep';
-    case 'visibility':
-      return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
-    case 'move':
-      return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
-    case 'playLand':
-      return table.cards[operation.cardId]?.zone === 'hand';
-    case 'cast':
-      return (
-        table.cards[operation.cardId]?.zone === 'hand' ||
-        operation.paymentPlan.some(
-          (command) =>
-            command.type === 'discard' ||
-            (command.type === 'moveCard' &&
-              ['hand', 'library'].includes(table.cards[command.cardId]?.zone ?? '')),
-        )
-      );
-    case 'activate':
-      return operation.paymentPlan.some(
-        (command) =>
-          command.type === 'discard' ||
-          (command.type === 'moveCard' &&
-            ['hand', 'library'].includes(table.cards[command.cardId]?.zone ?? '')),
-      );
-    case 'cleanup':
-      return operation.discardIds.length > 0;
-    default:
-      return false;
-  }
-}
 function view(
   record: SessionRecord,
   receipt: CockpitSessionView['receipt'],
@@ -302,7 +245,7 @@ async function checkpointSignature(
 
 function r4bFailure(error: unknown): Response | null {
   const code = error instanceof Error ? error.message : '';
-  if (code === 'R4B_NOT_AUTHORIZED') return response({ error: code }, 403);
+  if (code === 'R4B_NOT_AUTHORIZED') return response({ error: 'NOT_AUTHORIZED' }, 403);
   if (
     code === 'R4B_CORRECTION_REQUIRES_HOLD' ||
     code === 'R4B_HOLD_BLOCKS_OPERATION' ||
@@ -557,11 +500,7 @@ export async function handleCockpitSession(
             return response({ error: 'REQUEST_ID_CONFLICT' }, 409);
           receipt = 'committed';
         } else {
-          if (
-            body.type === 'commit' &&
-            body.protocolVersion !== undefined &&
-            body.protocolVersion !== R4B_PROTOCOL_VERSION
-          )
+          if (body.type === 'commit' && body.protocolVersion !== R4B_PROTOCOL_VERSION)
             return response({ error: 'CLIENT_UPDATE_REQUIRED' }, 409);
           if (body.revision !== record.revision)
             return response({ error: 'REVISION_CONFLICT' }, 409);
@@ -711,13 +650,11 @@ export async function handleCockpitSession(
             for (const [id, member] of Object.entries(multi.members))
               if (id !== multi.masterId) member.peek = null;
           } else {
-            const useR4bV2 =
-              body.protocolVersion === R4B_PROTOCOL_VERSION &&
-              body.operation.type !== 'undo' &&
-              body.operation.type !== 'redo';
+            const isHistoryOperation =
+              body.operation.type === 'undo' || body.operation.type === 'redo';
             let preparedR4b: PreparedR4bCommit | undefined;
 
-            if (useR4bV2) {
+            if (!isHistoryOperation) {
               if (!body.context) return response({ error: 'INVALID_REQUEST' }, 400);
               try {
                 preparedR4b = prepareR4bCommit(
@@ -738,34 +675,15 @@ export async function handleCockpitSession(
                 if (mapped) return mapped;
                 throw error;
               }
-            } else {
-              if (
-                !body.context &&
-                ((body.operation.type === 'move' && body.operation.reason !== undefined) ||
-                  r4OperationRequiresContext(body.operation as R4TableOperation))
-              )
-                return response({ error: 'INVALID_REQUEST' }, 400);
-              if (record.multiplayer) {
-                const multi = record.multiplayer;
-                const r4Authorization = authorizeR4FormalOperation(
-                  before,
-                  multi,
-                  actor,
-                  body.operation as R4TableOperation,
-                  now,
-                );
-                const authorized =
-                  r4Authorization ??
-                  authorizeCockpitOperation(
-                    before,
-                    multi,
-                    actor,
-                    body.operation as TableOperation | { type: 'undo' } | { type: 'redo' },
-                    now,
-                  );
-                if (!authorized || body.operation.type === 'eliminate')
-                  return response({ error: 'NOT_AUTHORIZED' }, 403);
-              }
+            } else if (record.multiplayer) {
+              const authorized = authorizeCockpitOperation(
+                before,
+                record.multiplayer,
+                actor,
+                body.operation as { type: 'undo' } | { type: 'redo' },
+                now,
+              );
+              if (!authorized) return response({ error: 'NOT_AUTHORIZED' }, 403);
             }
 
             if (body.operation.type === 'undo') {
@@ -801,42 +719,21 @@ export async function handleCockpitSession(
               );
             } else {
               const knowledgeEpochBefore = record.knowledgeEpoch ?? 0;
+              if (!preparedR4b) return response({ error: 'INVALID_REQUEST' }, 400);
               const crossesKnowledgeBarrier = Boolean(
-                record.multiplayer &&
-                  (preparedR4b
-                    ? preparedR4b.crossesKnowledgeBarrier
-                    : operationCreatesKnowledgeBarrier(
-                        before,
-                        body.operation as TableOperation | R4TableOperation,
-                      )),
+                record.multiplayer && preparedR4b.crossesKnowledgeBarrier,
               );
-              if (preparedR4b) {
-                try {
-                  record.table = applyPreparedR4bCommit(before, preparedR4b, body.requestId);
-                } catch (error) {
-                  const mapped = r4bFailure(error);
-                  if (mapped) return mapped;
-                  throw error;
-                }
-                record.recentActions = appendR4bSemanticAction(
-                  record.recentActions,
-                  semanticActionForR4bCommit(before, preparedR4b, actor, record.revision + 1),
-                );
-              } else if (body.context) {
-                record.table = applyR4TableOperation(
-                  before,
-                  { operation: body.operation as R4TableOperation, context: body.context },
-                  body.requestId,
-                );
-              } else {
-                if (r4OperationRequiresContext(body.operation as R4TableOperation))
-                  return response({ error: 'INVALID_REQUEST' }, 400);
-                record.table = applyTableOperation(
-                  before,
-                  body.operation as TableOperation,
-                  body.requestId,
-                );
+              try {
+                record.table = applyPreparedR4bCommit(before, preparedR4b, body.requestId);
+              } catch (error) {
+                const mapped = r4bFailure(error);
+                if (mapped) return mapped;
+                throw error;
               }
+              record.recentActions = appendR4bSemanticAction(
+                record.recentActions,
+                semanticActionForR4bCommit(before, preparedR4b, actor, record.revision + 1),
+              );
               const operation = body.operation;
               if (crossesKnowledgeBarrier)
                 record.knowledgeEpoch = knowledgeEpochBefore + 1;

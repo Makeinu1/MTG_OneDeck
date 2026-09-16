@@ -200,12 +200,18 @@ describe('R4b protocol v2 shared Correction', () => {
       if (response.ok) revision = value.revision;
       return { status: response.status, value };
     };
-    const legacyCommit = async (index: number, operation: Record<string, unknown>) =>
+    const v2Commit = async (
+      index: number,
+      operation: Record<string, unknown>,
+      context?: { kind: 'unbound' } | { kind: 'resolution'; entryId: string },
+    ) =>
       call(index, {
         type: 'commit',
+        protocolVersion: 2,
         requestId: crypto.randomUUID(),
         revision,
         operation,
+        ...(context ? { context } : {}),
       });
     const control = async (index: number, value: Record<string, unknown>) =>
       call(index, {
@@ -219,8 +225,8 @@ describe('R4b protocol v2 shared Correction', () => {
     expect(created.status).toBe(200);
     const invitation = created.value.multiplayer!.invitation!;
     expect((await call(1, { type: 'join', invitation, deck: makeDeck(30) })).status).toBe(200);
-    expect((await legacyCommit(0, { type: 'keep', seatId: 'P1' })).status).toBe(200);
-    expect((await legacyCommit(1, { type: 'keep', seatId: 'P2' })).status).toBe(200);
+    expect((await v2Commit(0, { type: 'keep', seatId: 'P1' }, { kind: 'unbound' })).status).toBe(200);
+    expect((await v2Commit(1, { type: 'keep', seatId: 'P2' }, { kind: 'unbound' })).status).toBe(200);
     expect((await control(0, { type: 'start' })).status).toBe(200);
 
     const before = await call(0, { type: 'read' });
@@ -267,7 +273,7 @@ describe('R4b protocol v2 shared Correction', () => {
     expect(p2.value.table.cards[privateId]).toBeDefined();
 
     expect((await control(1, { type: 'hold', held: false })).status).toBe(200);
-    const undo = await legacyCommit(0, { type: 'undo' });
+    const undo = await v2Commit(0, { type: 'undo' });
     expect(undo.status).toBe(409);
     expect(undo.value.error).toBe('NO_UNDO');
   });

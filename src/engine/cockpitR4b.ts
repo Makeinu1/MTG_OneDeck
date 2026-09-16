@@ -238,10 +238,7 @@ export function classifyR4bOperation(operation: R4bOperation): R4bGateClass {
     case 'commanderCount':
       return { kind: 'retired', replacement: 'repair.commanderCount' };
     case 'visibility':
-      return {
-        kind: 'retired',
-        replacement: 'formal publication / repair.visibility / dedicated reveal',
-      };
+      return { kind: 'effect', manualEventCapable: false };
     case 'hold':
       return { kind: 'retired', replacement: 'CockpitControl.hold' };
     case 'eliminate':

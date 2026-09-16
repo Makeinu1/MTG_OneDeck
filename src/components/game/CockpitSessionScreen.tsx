@@ -15,7 +15,7 @@ import {
   type TableOperation,
 } from '../../engine/cockpitTable';
 import type { GameCommand } from '../../engine/commands';
-import type { ZoneId } from '../../engine/types';
+import { objectIdOf, type ZoneId } from '../../engine/types';
 import {
   captureExpectedInteractionContext,
   type ExpectedInteractionContext,
@@ -624,6 +624,26 @@ export function CockpitSessionScreen({
     table.ended ||
     Boolean(multi && !multi.canOperate) ||
     !table.seats.find((entry) => entry.id === (multi?.ownSeatId ?? table.seats[0].id))?.kept;
+  function zoneMoveOperation(
+    ids: string[],
+    target: ZoneId,
+    position: 'top' | 'bottom',
+  ): R4bOperation {
+    if (target === 'command' && ids.length === 1) {
+      const card = table.cards[ids[0]];
+      if (card?.isCommander)
+        return {
+          type: 'commander.moveToCommand',
+          cardId: card.id,
+          objectId: objectIdOf(card),
+        };
+    }
+    return { type: 'move', ids, to: target, position };
+  }
+  const mixedCommanderCommandMove =
+    to === 'command' &&
+    selected.some((id) => table.cards[id]?.isCommander) &&
+    !(selected.length === 1 && table.cards[selected[0]]?.isCommander);
   const selectionActions = (
     <div className="cockpit-session__bar" hidden={!selected.length}>
       {selected.length > 0 && (
@@ -662,8 +682,8 @@ export function CockpitSessionScreen({
         <option value="bottom">下へ・選択順</option>
       </select>
       <button
-        disabled={disabled || !selected.length}
-        onClick={() => void send({ type: 'move', ids: selected, to, position })}
+        disabled={disabled || !selected.length || mixedCommanderCommandMove}
+        onClick={() => void send(zoneMoveOperation(selected, to, position))}
       >
         {zoneLabels[to]}へ移す
       </button>
@@ -1386,12 +1406,7 @@ export function CockpitSessionScreen({
                     key={target}
                     disabled={disabled}
                     onClick={() =>
-                      void send({
-                        type: 'move',
-                        ids: [detailCard.id],
-                        to: target,
-                        position: 'top',
-                      }).then((saved) => {
+                      void send(zoneMoveOperation([detailCard.id], target, 'top')).then((saved) => {
                         if (saved)
                           setDetail((current) => (current === detailCard.id ? null : current));
                       })

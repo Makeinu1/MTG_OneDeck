@@ -25,16 +25,6 @@ const COCKPIT_ORIGIN = import.meta.env.PROD
   : '';
 const CONNECTION_KEY = 'mtg-onedeck:cockpit-connection-v1';
 const R4B_PROTOCOL_VERSION = 2 as const;
-const R4B_CONTEXTUAL_FORMAL_TYPES = new Set<R4bOperation['type']>([
-  'playLand',
-  'cast',
-  'activate',
-  'generate',
-  'generateBatch',
-  'special.turnFaceUp',
-  'trigger.manualAdd',
-  'state.apply',
-]);
 interface CheckpointSchema extends DBSchema {
   checkpoint: { key: string; value: CockpitCheckpoint };
 }
@@ -584,41 +574,56 @@ export class CockpitClient {
       | { type: 'redo' },
     context?: ExpectedInteractionContext,
   ): Promise<void> {
-    if (context && operation.type !== 'undo' && operation.type !== 'redo') {
-      const r4bOperation = operation as R4bOperation;
-      const gate = classifyR4bOperation(r4bOperation);
-      if (gate.kind === 'retired')
+    if (operation.type === 'undo' || operation.type === 'redo') {
+      await this.submit(operation, false, undefined, { protocolVersion: R4B_PROTOCOL_VERSION });
+      return;
+    }
+    if (!context)
+      throw new CockpitConnectionError(
+        'この操作には開始時のContextが必要です。画面を更新して操作をやり直してください。',
+        'R4B_CONTEXT_REQUIRED',
+      );
+    const r4bOperation = operation as R4bOperation;
+    const gate = classifyR4bOperation(r4bOperation);
+    if (gate.kind === 'retired')
+      throw new CockpitConnectionError(
+        'この旧操作経路は廃止されました。Manual Event、Correction、またはFormal操作を選んでください。',
+        `R4B_OPERATION_RETIRED:${gate.replacement}`,
+      );
+    if (gate.kind === 'repair') {
+      await this.commitV2(r4bOperation, context, {
+        kind: 'correction',
+        groupId: crypto.randomUUID(),
+      });
+      return;
+    }
+    if (gate.kind === 'formal') {
+      if (gate.family === 'stack-effect' && context.kind !== 'resolution')
         throw new CockpitConnectionError(
-          'この旧操作経路は廃止されました。Manual Event、Correction、またはFormal操作を選んでください。',
-          `R4B_OPERATION_RETIRED:${gate.replacement}`,
+          'このStack操作は現在のResolution中だけ利用できます。',
+          'R4B_STACK_EFFECT_REQUIRES_RESOLUTION',
         );
-      if (gate.kind === 'repair') {
-        await this.commitV2(r4bOperation, context, {
-          kind: 'correction',
-          groupId: crypto.randomUUID(),
-        });
-        return;
-      }
-      if (R4B_CONTEXTUAL_FORMAL_TYPES.has(r4bOperation.type)) {
+      await this.commitV2(r4bOperation, context);
+      return;
+    }
+    if (gate.kind === 'effect') {
+      if (context.kind === 'resolution') {
         await this.commitV2(r4bOperation, context);
         return;
       }
-      if (gate.kind === 'effect') {
-        if (context.kind === 'resolution') {
-          await this.commitV2(r4bOperation, context);
-          return;
-        }
-        if (gate.manualEventCapable) {
-          await this.commitV2(r4bOperation, context, { kind: 'manual-event' });
-          return;
-        }
-        throw new CockpitConnectionError(
-          'この操作は解決処理中だけ利用できます。通常盤面ではManual EventまたはCorrectionを選んでください。',
-          'R4B_RESOLUTION_REQUIRED',
-        );
+      if (gate.manualEventCapable) {
+        await this.commitV2(r4bOperation, context, { kind: 'manual-event' });
+        return;
       }
+      throw new CockpitConnectionError(
+        'この操作は解決処理中だけ利用できます。通常盤面ではManual EventまたはCorrectionを選んでください。',
+        'R4B_RESOLUTION_REQUIRED',
+      );
     }
-    await this.submit(operation, false, context);
+    throw new CockpitConnectionError(
+      'この操作はControl経路から実行してください。',
+      'R4B_META_REQUIRES_CONTROL',
+    );
   }
   async commitV2(
     operation: R4bOperation,

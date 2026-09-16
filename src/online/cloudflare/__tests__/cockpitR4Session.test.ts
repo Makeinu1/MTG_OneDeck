@@ -86,6 +86,7 @@ describe('R4 playLand server commit boundary', () => {
     ) =>
       call(index, {
         type: 'commit',
+        protocolVersion: 2,
         requestId: crypto.randomUUID(),
         revision,
         operation,
@@ -103,8 +104,8 @@ describe('R4 playLand server commit boundary', () => {
     expect(created.status).toBe(200);
     const invitation = created.value.multiplayer!.invitation!;
     expect((await call(1, { type: 'join', invitation, deck: landDeck(20) })).status).toBe(200);
-    expect((await commit(0, { type: 'keep', seatId: 'P1' })).status).toBe(200);
-    expect((await commit(1, { type: 'keep', seatId: 'P2' })).status).toBe(200);
+    expect((await commit(0, { type: 'keep', seatId: 'P1' }, { kind: 'unbound' })).status).toBe(200);
+    expect((await commit(1, { type: 'keep', seatId: 'P2' }, { kind: 'unbound' })).status).toBe(200);
     expect((await control(0, { type: 'start' })).status).toBe(200);
 
     // This test isolates the R4 commit gate; phase progression is covered elsewhere.
@@ -146,8 +147,8 @@ describe('R4 playLand server commit boundary', () => {
       { type: 'playLand', cardId: landId },
       { kind: 'unbound' },
     );
-    expect(held.status).toBe(403);
-    expect(held.value.error).toBe('NOT_AUTHORIZED');
+    expect(held.status).toBe(409);
+    expect(held.value.error).toBe('R4B_HOLD_BLOCKS_OPERATION');
     expect((await call(0, { type: 'read' })).value.table.seats[0].zones.hand).toContain(landId);
 
     expect((await control(1, { type: 'hold', held: false })).status).toBe(200);

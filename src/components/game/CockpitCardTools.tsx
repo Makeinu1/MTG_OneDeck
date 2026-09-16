@@ -40,9 +40,6 @@ export function CockpitCardTools({
   return (
     <details open={Boolean(card.attachedTo)}>
       <summary>状態・修整・取り付け</summary>
-      {card.isToken && (
-        <CockpitTokenEditor table={table} cardId={cardId} disabled={disabled} send={send} />
-      )}
       {card.isCommander && (
         <fieldset>
           <legend>統率者</legend>
@@ -50,30 +47,7 @@ export function CockpitCardTools({
             統率領域から唱えた回数 {table.commanderCasts[cardId] ?? 0} / 次回の統率者税{' '}
             {2 * (table.commanderCasts[cardId] ?? 0)}
           </p>
-          <button
-            disabled={disabled || !(table.commanderCasts[cardId] ?? 0)}
-            onClick={() =>
-              void send({
-                type: 'commanderCount',
-                cardId,
-                count: (table.commanderCasts[cardId] ?? 0) - 1,
-              })
-            }
-          >
-            唱えた回数を1減らす
-          </button>
-          <button
-            disabled={disabled}
-            onClick={() =>
-              void send({
-                type: 'commanderCount',
-                cardId,
-                count: (table.commanderCasts[cardId] ?? 0) + 1,
-              })
-            }
-          >
-            唱えた回数を1増やす
-          </button>
+          <p>唱えた回数の訂正は「盤面訂正（Correction）」から行います。</p>
           <p>移動先は領域操作で明示してください。統率領域へ自動では置き換えません。</p>
         </fieldset>
       )}
@@ -475,74 +449,5 @@ function TokenCharacteristicsFields({
         ))}
       </fieldset>
     </>
-  );
-}
-
-function CockpitTokenEditor({
-  table,
-  cardId,
-  disabled,
-  send,
-}: {
-  table: CockpitTable;
-  cardId: string;
-  disabled: boolean;
-  send: (operation: TableOperation) => Promise<boolean>;
-}) {
-  const [draft, setDraft] = useState<TableTokenCharacteristics | null>(null);
-  const card = table.cards[cardId];
-  const face = table.defs[card.defId].faces[card.faceIndex];
-  return (
-    <fieldset>
-      <legend>トークン・コピーの特徴</legend>
-      <p>
-        {face.typeLine} / {face.power ?? '—'}/{face.toughness ?? '—'} / 色:{' '}
-        {face.colors?.join('・') || (face.colors ? '無色' : '本文を確認')}
-      </p>
-      <p>
-        コピー元、所有者、カウンター、取り付け、期間付き修整はこの変更でも保持します。ここではコピー可能な基本の特徴を指定します。
-      </p>
-      {!draft ? (
-        <button
-          disabled={disabled || card.zone !== 'battlefield' || card.faceDown}
-          onClick={() =>
-            setDraft({
-              name: face.printedName ?? face.name,
-              typeLine: face.typeLine,
-              power: face.power ?? '',
-              toughness: face.toughness ?? '',
-              text: face.oracleText ?? '',
-              colors:
-                face.colors ??
-                (['W', 'U', 'B', 'R', 'G'] as const).filter((color) =>
-                  face.manaCost?.includes(color),
-                ),
-            })
-          }
-        >
-          特徴・コピーの例外を編集
-        </button>
-      ) : (
-        <>
-          <TokenCharacteristicsFields value={draft} onChange={setDraft} />
-          <button
-            disabled={disabled}
-            onClick={() =>
-              void send({
-                type: 'token.edit',
-                cardId,
-                definitionId: crypto.randomUUID(),
-                value: draft,
-              }).then((saved) => {
-                if (saved) setDraft(null);
-              })
-            }
-          >
-            この特徴へ変更
-          </button>
-          <button onClick={() => setDraft(null)}>特徴の編集を取消</button>
-        </>
-      )}
-    </fieldset>
   );
 }

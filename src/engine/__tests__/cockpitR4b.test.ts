@@ -48,7 +48,7 @@ describe('R4b exhaustive gate classification', () => {
     expect(classifyR4bOperation({ type: 'shuffle', seatId: 'P1', seed: 1 }))
       .toEqual({ kind: 'effect', manualEventCapable: false });
     expect(classifyR4bOperation({ type: 'visibility', ids: ['c1'], seatIds: ['P1'] }))
-      .toMatchObject({ kind: 'retired' });
+      .toEqual({ kind: 'effect', manualEventCapable: false });
     expect(classifyR4bOperation({ type: 'repair.lifeTotal', seatId: 'P1', value: 17 }))
       .toEqual({ kind: 'repair' });
     expect(

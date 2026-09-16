@@ -104,20 +104,18 @@ it('automatically upgrades context-aware R4 formal commits to protocol v2', asyn
   expect(commit).not.toHaveProperty('declaredCause');
 });
 
-it('keeps context-less raw effect commits compatible until their UI journey is migrated', async () => {
+it('rejects context-less gameplay commits instead of falling back to legacy protocol', async () => {
   connectState();
   const requests: Record<string, unknown>[] = [];
-  let revision = 0;
   vi.stubGlobal(
     'fetch',
     vi.fn((_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string) as Record<string, unknown>;
       requests.push(body);
-      if (body.type === 'commit') revision += 1;
       return Promise.resolve(
         Response.json({
           table: { seats: [] },
-          revision,
+          revision: 0,
           receipt: 'committed',
           canUndo: false,
           canRedo: false,
@@ -126,15 +124,11 @@ it('keeps context-less raw effect commits compatible until their UI journey is m
       );
     }),
   );
-
   const client = new CockpitClient(vi.fn());
   clients.push(client);
   await client.reconnect();
-  await client.commit({ type: 'draw', seatId: 'P1', count: 1 });
-
-  const commit = requests.find((body) => body.type === 'commit')!;
-  expect(commit).not.toHaveProperty('protocolVersion');
-  expect(commit).not.toHaveProperty('declaredCause');
+  await expect(client.commit({ type: 'draw', seatId: 'P1', count: 1 })).rejects.toThrow('Context');
+  expect(requests.filter((body) => body.type === 'commit')).toHaveLength(0);
 });
 
 it('treats v2 gate/update responses as definite unsaved rejections', async () => {

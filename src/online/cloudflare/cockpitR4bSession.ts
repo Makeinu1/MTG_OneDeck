@@ -3,7 +3,11 @@ import {
   cockpitOwnerPresent,
   type CockpitMultiplayer,
 } from './cockpitMultiplayer';
-import { authorizeR4FormalOperation } from './cockpitR4Authority';
+import {
+  authorizeR4FormalOperation,
+  isR4FormalOperation,
+  r4OperationCreatesKnowledgeBarrier,
+} from './cockpitR4Authority';
 import {
   validateManualZoneMeaning,
   type ExpectedInteractionContext,
@@ -184,6 +188,8 @@ function authorizeEffectObjects(
     case 'face':
       return actorCanReadCard(table, multi, actor, operation.cardId) &&
         actorCanReadFace(table, actor, operation.cardId);
+    case 'visibility':
+      return operation.ids.every((id) => actorCanReadCard(table, multi, actor, id));
     default:
       return true;
   }
@@ -229,6 +235,8 @@ function operationCreatesKnowledgeBarrier(
   table: CockpitTable,
   operation: R4bOperation,
 ): boolean {
+  if (isR4FormalOperation(operation as never))
+    return r4OperationCreatesKnowledgeBarrier(table, operation as never);
   switch (operation.type) {
     case 'draw':
     case 'shuffle':
@@ -241,6 +249,14 @@ function operationCreatesKnowledgeBarrier(
       return true;
     case 'phase':
       return table.phase === 'upkeep';
+    case 'visibility':
+      return operation.ids.some((id) => {
+        const card = table.cards[id];
+        if (!card) return false;
+        const before = new Set(table.visibility[id] ?? []);
+        const addsAudience = operation.seatIds.some((seatId) => !before.has(seatId));
+        return addsAudience && (['hand', 'library'].includes(card.zone) || card.faceDown);
+      });
     case 'move':
       return operation.ids.some((id) => ['hand', 'library'].includes(table.cards[id]?.zone ?? ''));
     case 'playLand':
@@ -294,19 +310,36 @@ export function prepareR4bCommit(
     throw new Error('R4B_BLOCKING_TRIGGER');
 
   if (multi) {
-    if (!baseMultiplayerAuthority(table, multi, actor, now))
-      throw new Error('R4B_NOT_AUTHORIZED');
-
-    if (cause.kind === 'correction') {
-      if (!multi.holds.length) throw new Error('R4B_CORRECTION_REQUIRES_HOLD');
-      if (gate.kind !== 'repair' || !authorizeRepair(table, multi, actor, envelope.operation as R4bRepairOperation))
+    const pregameFormal =
+      !multi.started &&
+      gate.kind === 'formal' &&
+      (envelope.operation.type === 'keep' || envelope.operation.type === 'mulligan');
+    if (pregameFormal) {
+      if (!existingOperationAuthority(table, multi, actor, envelope.operation, now))
         throw new Error('R4B_NOT_AUTHORIZED');
     } else {
-      if (multi.holds.length) throw new Error('R4B_HOLD_BLOCKS_OPERATION');
-      if (gate.kind === 'effect' && !authorizeEffectObjects(table, multi, actor, envelope.operation))
+      if (!baseMultiplayerAuthority(table, multi, actor, now))
         throw new Error('R4B_NOT_AUTHORIZED');
-      if (gate.kind === 'formal' && !existingOperationAuthority(table, multi, actor, envelope.operation, now))
-        throw new Error('R4B_NOT_AUTHORIZED');
+      if (cause.kind === 'correction') {
+        if (!multi.holds.length) throw new Error('R4B_CORRECTION_REQUIRES_HOLD');
+        if (
+          gate.kind !== 'repair' ||
+          !authorizeRepair(table, multi, actor, envelope.operation as R4bRepairOperation)
+        )
+          throw new Error('R4B_NOT_AUTHORIZED');
+      } else {
+        if (multi.holds.length) throw new Error('R4B_HOLD_BLOCKS_OPERATION');
+        if (
+          gate.kind === 'effect' &&
+          !authorizeEffectObjects(table, multi, actor, envelope.operation)
+        )
+          throw new Error('R4B_NOT_AUTHORIZED');
+        if (
+          gate.kind === 'formal' &&
+          !existingOperationAuthority(table, multi, actor, envelope.operation, now)
+        )
+          throw new Error('R4B_NOT_AUTHORIZED');
+      }
     }
   }
 
