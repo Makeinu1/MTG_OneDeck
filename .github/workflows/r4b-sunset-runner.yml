@@ -1,0 +1,47 @@
+name: R4b strict sunset runner
+on:
+  push:
+    branches: [r4b-mutation-gate-correction]
+permissions:
+  contents: write
+jobs:
+  finalize:
+    if: contains(github.event.head_commit.message, 'run r4b strict sunset')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply audited patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/r4b-sunset-finalize.yml').read_text()
+          start = source.index('          from pathlib import Path\n')
+          end = source.index('          PY\n      - name: Targeted R4b final regressions', start)
+          code = '\n'.join(line[10:] for line in source[start:end].splitlines())
+          exec(compile(code, 'r4b-sunset-finalizer.py', 'exec'), {})
+          PY
+      - name: Targeted R4b final regressions
+        shell: bash
+        run: |
+          node node_modules/vitest/vitest.mjs run --project core src/engine/__tests__/cockpitR4b.test.ts
+          node node_modules/vitest/vitest.mjs run --project dom src/online/cloudflare/__tests__/cockpitR4bSession.test.ts src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts src/online/cloudflare/__tests__/cockpitR4Session.test.ts src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts src/online/browser/__tests__/cockpitClientR4b.test.ts src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts src/online/browser/__tests__/cockpitClientR4bSunset.test.ts src/components/game/CockpitFormalJourney.r4b.test.ts
+      - run: npm run build
+      - name: Lint touched files
+        run: node node_modules/eslint/bin/eslint.js src/engine/cockpitR4b.ts src/engine/__tests__/cockpitR4b.test.ts src/online/cloudflare/cockpitSession.ts src/online/cloudflare/cockpitR4bSession.ts src/online/cloudflare/__tests__/cockpitR4bSession.test.ts src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts src/online/cloudflare/__tests__/cockpitR4Session.test.ts src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts src/online/browser/cockpitClient.ts src/online/browser/__tests__/cockpitClientR4b.test.ts src/online/browser/__tests__/cockpitClientR4bSunset.test.ts src/components/game/CockpitSessionScreen.tsx src/components/game/CockpitCardTools.tsx src/components/game/CockpitFormalJourney.r4b.test.ts
+      - name: Commit finalization
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git commit -m 'fix(r4b): sunset legacy commits and finish Formal journeys'
+          git push origin HEAD:r4b-mutation-gate-correction
