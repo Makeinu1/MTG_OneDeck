@@ -123,7 +123,7 @@ describe('O4P-03A architecture boundary', () => {
           normalized(filePath) === 'src/online/cloudflare/cockpitR4bSession.ts' &&
           ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);
         expect(
-          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,
+          local || allowed.has(specifier) || cockpitImport || cockpitMultiplayerImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport || cockpitR4AuthorityImport || cockpitR4bAuditImport || cockpitR4bSessionImport,
           `${normalized(filePath)} -> ${specifier}`,
         ).toBe(true);
       }
