@@ -21,6 +21,14 @@ import {
   type PreparedR4bCommit,
   type R4bCommitEnvelope,
 } from './cockpitR4bSession';
+import {
+  appendR4bSemanticAction,
+  projectR4bSemanticActions,
+  semanticActionForR4bCommit,
+  semanticHistoryAction,
+  type R4bInternalSemanticAction,
+  type R4bPublicSemanticAction,
+} from './cockpitR4bAudit';
 import { migrateCockpitSnapshot, backfillCockpitTable } from '../../engine/cockpitMigration';
 import type { GameSnapshot } from '../../data/gameSnapshot';
 import {
@@ -49,6 +57,8 @@ interface SessionRecord {
   knowledgeEpoch?: number;
   undoKnowledgeEpochs?: number[];
   redoKnowledgeEpochs?: number[];
+  /** Bounded semantic audit. Raw operation/card payloads are never stored here. */
+  recentActions?: R4bInternalSemanticAction[];
 }
 export interface CockpitSessionView {
   multiplayer?: CockpitMultiplayerView;
@@ -58,6 +68,7 @@ export interface CockpitSessionView {
   canUndo: boolean;
   canRedo: boolean;
   receipt: 'committed' | 'unseen' | null;
+  recentActions: R4bPublicSemanticAction[];
 }
 export interface CockpitCheckpoint {
   version: 1;
@@ -222,6 +233,7 @@ function view(
       !record.multiplayer &&
       sameHistoryBoundary(record.table, record.redo.at(-1), Boolean(record.multiplayer)),
     receipt,
+    recentActions: projectR4bSemanticActions(record.recentActions, actor),
   };
 }
 
@@ -244,6 +256,7 @@ function loadRecord(storage: OnlineCloudflareSqlStorage): SessionRecord | null {
   const record = JSON.parse(row.data) as SessionRecord;
   for (const table of [record.table, ...record.undo, ...record.redo]) backfillCockpitTable(table);
   ensureKnowledgeHistory(record);
+  record.recentActions ??= [];
   return record;
 }
 function receiptKey(record: SessionRecord, requestId: string, actor = 'P1'): string {
@@ -387,6 +400,7 @@ export async function handleCockpitSession(
           ownerToken: body.token,
           undo: [],
           redo: [],
+          recentActions: [],
         };
         storage.sql.exec(
           'INSERT INTO cockpit_session (id, data) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data',
@@ -494,6 +508,7 @@ export async function handleCockpitSession(
             ownerToken: body.token,
             undo: [],
             redo: [],
+            recentActions: [],
           };
         }
       } else if (!record) return response({ error: 'SESSION_NOT_FOUND' }, 404);
@@ -766,6 +781,10 @@ export async function handleCockpitSession(
               record.undoKnowledgeEpochs!.pop();
               pushRedoSnapshot(record, before);
               record.table = previous;
+              record.recentActions = appendR4bSemanticAction(
+                record.recentActions,
+                semanticHistoryAction('undo', actor, record.revision + 1),
+              );
             } else if (body.operation.type === 'redo') {
               ensureKnowledgeHistory(record);
               const next = record.redo.at(-1);
@@ -775,13 +794,20 @@ export async function handleCockpitSession(
               record.redoKnowledgeEpochs!.pop();
               pushUndoSnapshot(record, before);
               record.table = next;
+              record.recentActions = appendR4bSemanticAction(
+                record.recentActions,
+                semanticHistoryAction('redo', actor, record.revision + 1),
+              );
             } else {
               const knowledgeEpochBefore = record.knowledgeEpoch ?? 0;
               const crossesKnowledgeBarrier = Boolean(
                 record.multiplayer &&
                   (preparedR4b
                     ? preparedR4b.crossesKnowledgeBarrier
-                    : operationCreatesKnowledgeBarrier(before, body.operation as TableOperation | R4TableOperation)),
+                    : operationCreatesKnowledgeBarrier(
+                        before,
+                        body.operation as TableOperation | R4TableOperation,
+                      )),
               );
               if (preparedR4b) {
                 try {
@@ -791,6 +817,10 @@ export async function handleCockpitSession(
                   if (mapped) return mapped;
                   throw error;
                 }
+                record.recentActions = appendR4bSemanticAction(
+                  record.recentActions,
+                  semanticActionForR4bCommit(before, preparedR4b, actor, record.revision + 1),
+                );
               } else if (body.context) {
                 record.table = applyR4TableOperation(
                   before,
