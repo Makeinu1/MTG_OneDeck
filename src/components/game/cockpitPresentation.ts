@@ -1,13 +1,23 @@
 import type { CockpitTable, TableOperation } from '../../engine/cockpitTable';
+import type { R4TableOperation } from '../../engine/cockpitR4';
 import { presentationRuntime } from './presentation/presentationRuntime';
 /** Only a successful forward server commit emits transient feedback. */
 export function publishCockpitOperation(
-  operation: TableOperation | { type: 'undo' | 'redo' },
+  operation: TableOperation | R4TableOperation | { type: 'undo' | 'redo' },
   before: CockpitTable,
   after: CockpitTable,
 ): void {
   const status = 'committed' as const;
   switch (operation.type) {
+    case 'playLand':
+      presentationRuntime.publish({
+        action: 'play-land',
+        status,
+        cardId: operation.cardId,
+        sourceZone: 'hand',
+        destinationZone: 'battlefield',
+      });
+      break;
     case 'cast': {
       const card = before.cards[operation.cardId];
       presentationRuntime.publish({

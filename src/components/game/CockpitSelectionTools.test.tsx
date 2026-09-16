@@ -91,7 +91,10 @@ it('invalidates changed or hidden library choices without rendering private cand
       screen.button('整理を確定').click();
       await screen.send.mock.results[0].value;
     });
-    expect(screen.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'arrange' }));
+    expect(screen.send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'arrange' }),
+      { kind: 'unbound' },
+    );
     screen.send.mockClear();
     act(() => screen.button('諜報').click());
     multi.members.P1.peek = null;

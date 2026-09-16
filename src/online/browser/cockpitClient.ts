@@ -7,10 +7,8 @@ import { openDB, type DBSchema } from 'idb';
 import type { InitDeckCard } from '../../engine/init';
 import { expandSavedDeck, listSavedDecks } from '../../data/savedDecks';
 import type { TableOperation } from '../../engine/cockpitTable';
-import type {
-  ExpectedInteractionContext,
-  R31TableOperation,
-} from '../../engine/cockpitR31';
+import type { ExpectedInteractionContext } from '../../engine/cockpitR31';
+import type { R4TableOperation } from '../../engine/cockpitR4';
 import type {
   CockpitCheckpoint,
   CockpitSessionRequest,
@@ -528,13 +526,13 @@ export class CockpitClient {
     }
   }
   async commit(
-    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+    operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' },
     context?: ExpectedInteractionContext,
   ): Promise<void> {
     await this.submit(operation, false, context);
   }
   private async submit(
-    operation: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' } | CockpitControl,
+    operation: TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' } | CockpitControl,
     control: boolean,
     context?: ExpectedInteractionContext,
   ): Promise<void> {

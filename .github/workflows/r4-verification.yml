@@ -1,0 +1,96 @@
+name: R4 verification
+on:
+  push:
+    branches: [r4a-formal-manual-inventory]
+  pull_request:
+    branches: [r3-1-manual-resolution]
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: R4 core and R3.1 engine regression tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR4State.test.ts
+          src/engine/__tests__/cockpitR4Entry.test.ts
+          src/engine/__tests__/cockpitR4ManualTrigger.test.ts
+          src/engine/__tests__/cockpitR31.test.ts
+          src/engine/__tests__/cockpitR31Lifecycle.test.ts
+          src/engine/__tests__/cockpitTriggers.test.ts
+          src/engine/__tests__/manaTransaction.test.ts
+      - name: R4 and R3.1 SQLite session tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+          src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ManualTriggerSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts
+      - name: R3.1 browser client regression tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/online/browser/__tests__/cockpitClient.test.ts
+      - name: R4 UI migration regression tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project dom
+          src/components/game/CockpitTableSurface.test.tsx
+          src/components/game/CockpitTableSurface.entrySetup.test.tsx
+          src/components/game/CockpitPermanentEntrySetup.test.tsx
+          src/components/game/CockpitCardTools.test.tsx
+          src/components/game/CockpitCastAdditionalCosts.test.tsx
+          src/components/game/CockpitAbilityTools.test.tsx
+          src/components/game/CockpitAbilityTools.manualTrigger.test.tsx
+          src/components/game/CockpitSelectionTools.test.tsx
+          src/components/game/CockpitSelectionTools.state.test.tsx
+          src/components/game/cockpitPresentation.test.ts
+      - name: Types and build
+        run: npm run build
+      - name: Changed-file lint
+        run: >-
+          node node_modules/eslint/bin/eslint.js
+          src/engine/cockpitTable.ts
+          src/engine/cockpitR4.ts
+          src/engine/cockpitTriggers.ts
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR4State.test.ts
+          src/engine/__tests__/cockpitR4Entry.test.ts
+          src/engine/__tests__/cockpitR4ManualTrigger.test.ts
+          src/online/cloudflare/cockpitSession.ts
+          src/online/cloudflare/cockpitR4Authority.ts
+          src/online/cloudflare/__tests__/cockpitR4Session.test.ts
+          src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ActivateSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4ManualTriggerSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4StateSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4EntrySession.test.ts
+          src/online/browser/cockpitClient.ts
+          src/components/game/CockpitSessionScreen.tsx
+          src/components/game/CockpitTableSurface.tsx
+          src/components/game/CockpitTableSurface.entrySetup.test.tsx
+          src/components/game/cockpitPermanentEntrySetup.ts
+          src/components/game/CockpitPermanentEntrySetup.tsx
+          src/components/game/CockpitPermanentEntrySetup.test.tsx
+          src/components/game/CockpitCardTools.tsx
+          src/components/game/CockpitCastAdditionalCosts.tsx
+          src/components/game/CockpitCastAdditionalCosts.test.tsx
+          src/components/game/CockpitAbilityTools.tsx
+          src/components/game/CockpitAbilityTools.test.tsx
+          src/components/game/CockpitAbilityTools.manualTrigger.test.tsx
+          src/components/game/CockpitSelectionTools.tsx
+          src/components/game/CockpitSelectionTools.test.tsx
+          src/components/game/CockpitSelectionTools.state.test.tsx
+          src/components/game/CockpitBattleTools.tsx
+          src/components/game/cockpitPresentation.ts

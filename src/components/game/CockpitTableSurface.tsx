@@ -18,8 +18,16 @@ import type { ZoneId } from '../../engine/types';
 import {
   canLifecycleResolveWithoutManual,
   defaultResolutionDestination,
+  type ExpectedInteractionContext,
   type R31TableOperation,
 } from '../../engine/cockpitR31';
+import type { R4TableOperation } from '../../engine/cockpitR4';
+import { CockpitPermanentEntrySetup } from './CockpitPermanentEntrySetup';
+import {
+  emptyPermanentEntrySetupDraft,
+  permanentEntrySetupFromDraft,
+  type PermanentEntrySetupDraft,
+} from './cockpitPermanentEntrySetup';
 import { CardView } from '../CardView';
 import { Modal } from '../Modal';
 import { ContextMenu } from '../ContextMenu';
@@ -109,7 +117,8 @@ export function CockpitTableSurface({
   cast: (id: string) => void;
   activate?: (id: string, choice?: string) => void;
   send: (
-    op: TableOperation | R31TableOperation | { type: 'undo' } | { type: 'redo' },
+    op: TableOperation | R31TableOperation | R4TableOperation | { type: 'undo' } | { type: 'redo' },
+    expectedContext?: ExpectedInteractionContext,
   ) => Promise<boolean>;
   openMenu: () => void;
   children:
@@ -163,6 +172,10 @@ export function CockpitTableSurface({
   const [expandedBundles, setExpandedBundles] = useState<string[]>([]);
   const [hover, setHover] = useState<{ id: string; left: number; top: number } | null>(null);
   const [destination, setDestination] = useState<ZoneId>('graveyard');
+  const [entrySetupState, setEntrySetupState] = useState<{
+    entryId: string | null;
+    draft: PermanentEntrySetupDraft;
+  }>({ entryId: null, draft: emptyPermanentEntrySetupDraft() });
   const [zoneLibraryStatus, setZoneLibraryStatus] = useState<'idle' | 'loading' | 'rejected'>(
     'idle',
   );
@@ -336,8 +349,10 @@ export function CockpitTableSurface({
       activate(id);
     else if (card.zone === 'battlefield')
       void send({ type: 'tap', ids: [id], tapped: !card.tapped });
-    else if (isLand(id)) void send({ type: 'move', ids: [id], to: 'battlefield', position: 'top' });
-    else cast(id);
+    else if (isLand(id)) {
+      if (card.zone === 'hand') void send({ type: 'playLand', cardId: id });
+      else inspect(id);
+    } else cast(id);
   }
   function card(id: string, index = 0, handCount = 0, inZone = false) {
     const instance = table.cards[id];
@@ -436,7 +451,9 @@ export function CockpitTableSurface({
                     ? '能力を起動'
                     : 'タップ'
               : isLand(id)
-                ? '土地を置く'
+                ? table.cards[id].zone === 'hand'
+                  ? '土地を置く'
+                  : '詳細'
                 : '唱える'}
           </button>
         )}
@@ -571,6 +588,16 @@ export function CockpitTableSurface({
     );
   }
   const resolution = table.resolution;
+  const entrySetupCardId =
+    resolution?.kind === 'spell' && defaultResolutionDestination(table, resolution) === 'battlefield'
+      ? (resolution.stackCardId ?? resolution.source.id)
+      : null;
+  const entrySetupDraft =
+    entrySetupState.entryId === (resolution?.id ?? null)
+      ? entrySetupState.draft
+      : emptyPermanentEntrySetupDraft();
+  const updateEntrySetup = (draft: PermanentEntrySetupDraft) =>
+    setEntrySetupState({ entryId: resolution?.id ?? null, draft });
   const zoneLibraryAccess =
     zone === 'library' && zoneSeat !== 'all' ? libraryAccessFor(zoneSeat) : undefined;
   const zoneLibraryReady = hasCockpitLibraryAccess(zoneLibraryAccess);
@@ -765,7 +792,9 @@ export function CockpitTableSurface({
           if (!isLand(id)) cast(id);
           return;
         }
-        if (
+        if (to === 'battlefield' && instance.zone === 'hand' && isLand(id))
+          void send({ type: 'playLand', cardId: id });
+        else if (
           to === 'battlefield' &&
           (instance.zone === 'hand' || instance.zone === 'command') &&
           !isLand(id)
@@ -1307,7 +1336,9 @@ export function CockpitTableSurface({
                       ? 'アンタップ'
                       : 'タップ／起動'
                   : isLand(cardMenu.id)
-                    ? '土地を置く'
+                    ? table.cards[cardMenu.id]?.zone === 'hand'
+                      ? '土地を置く'
+                      : '詳細'
                     : '唱える',
               disabled: disabled || opening,
               onSelect: () => quick(cardMenu.id),
@@ -1748,6 +1779,14 @@ export function CockpitTableSurface({
           )}
           {resolution ? (
             <>
+              {entrySetupCardId && table.cards[entrySetupCardId]?.zone === 'stack' && (
+                <CockpitPermanentEntrySetup
+                  table={table}
+                  cardId={entrySetupCardId}
+                  value={entrySetupDraft}
+                  onChange={updateEntrySetup}
+                />
+              )}
               <button
                 onClick={() => {
                   setStack(false);
@@ -1758,16 +1797,25 @@ export function CockpitTableSurface({
               </button>
               <button
                 disabled={disabled}
-                onClick={() =>
-                  table.resolution &&
-                  void send({
-                    type: 'resolve.end',
-                    entryId: table.resolution.id,
-                    to: defaultResolutionDestination(table, table.resolution),
-                  }).then((saved) => {
+                onClick={() => {
+                  const active = table.resolution;
+                  if (!active) return;
+                  const entrySetup =
+                    entrySetupCardId && entrySetupState.entryId === active.id
+                      ? permanentEntrySetupFromDraft(entrySetupDraft)
+                      : undefined;
+                  void send(
+                    {
+                      type: 'resolve.end',
+                      entryId: active.id,
+                      to: defaultResolutionDestination(table, active),
+                      ...(entrySetup ? { entrySetup } : {}),
+                    },
+                    { kind: 'resolution', entryId: active.id },
+                  ).then((saved) => {
                     if (saved) setStack(false);
-                  })
-                }
+                  });
+                }}
               >
                 処理完了
               </button>
@@ -1790,16 +1838,27 @@ export function CockpitTableSurface({
                 </label>
                 <button
                   disabled={disabled}
-                  onClick={() =>
-                    table.resolution &&
-                    void send({
-                      type: 'resolve.end',
-                      entryId: table.resolution.id,
-                      to: destination,
-                    }).then((saved) => {
+                  onClick={() => {
+                    const active = table.resolution;
+                    if (!active) return;
+                    const entrySetup =
+                      destination === 'battlefield' &&
+                      entrySetupCardId &&
+                      entrySetupState.entryId === active.id
+                        ? permanentEntrySetupFromDraft(entrySetupDraft)
+                        : undefined;
+                    void send(
+                      {
+                        type: 'resolve.end',
+                        entryId: active.id,
+                        to: destination,
+                        ...(entrySetup ? { entrySetup } : {}),
+                      },
+                      { kind: 'resolution', entryId: active.id },
+                    ).then((saved) => {
                       if (saved) setStack(false);
-                    })
-                  }
+                    });
+                  }}
                 >
                   指定した領域で処理完了
                 </button>

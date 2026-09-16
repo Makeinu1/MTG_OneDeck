@@ -5,6 +5,7 @@ import type {
   TableOperation,
   TableTokenCharacteristics,
 } from '../../engine/cockpitTable';
+import type { R4TableOperation } from '../../engine/cockpitR4';
 
 export function CockpitCardTools({
   table,
@@ -15,10 +16,11 @@ export function CockpitCardTools({
   table: CockpitTable;
   cardId: string;
   disabled: boolean;
-  send: (operation: TableOperation) => Promise<boolean>;
+  send: (operation: TableOperation | R4TableOperation) => Promise<boolean>;
 }) {
   const card = table.cards[cardId];
   const [target, setTarget] = useState<{ id: string; version: number } | null>(null);
+  const [faceIndex, setFaceIndex] = useState(card.faceIndex);
   const [source, setSource] = useState(table.resolution?.source.id ?? '');
   const [duration, setDuration] = useState('ターン終了まで');
   const [power, setPower] = useState(0);
@@ -86,16 +88,19 @@ export function CockpitCardTools({
       <label>
         表示する面{' '}
         <select
-          value={card.faceIndex}
+          value={card.zone === 'battlefield' && card.faceDown ? faceIndex : card.faceIndex}
           disabled={disabled}
-          onChange={(event) =>
-            void send({
-              type: 'face',
-              cardId,
-              faceIndex: Number(event.target.value),
-              faceDown: card.faceDown,
-            })
-          }
+          onChange={(event) => {
+            const nextFaceIndex = Number(event.target.value);
+            setFaceIndex(nextFaceIndex);
+            if (!(card.zone === 'battlefield' && card.faceDown))
+              void send({
+                type: 'face',
+                cardId,
+                faceIndex: nextFaceIndex,
+                faceDown: card.faceDown,
+              });
+          }}
         >
           {table.defs[card.defId].faces.map((face, index) => (
             <option key={index} value={index}>
@@ -107,7 +112,14 @@ export function CockpitCardTools({
       <button
         disabled={disabled}
         onClick={() =>
-          void send({ type: 'face', cardId, faceIndex: card.faceIndex, faceDown: !card.faceDown })
+          card.zone === 'battlefield' && card.faceDown
+            ? void send({ type: 'special.turnFaceUp', cardId, faceIndex })
+            : void send({
+                type: 'face',
+                cardId,
+                faceIndex: card.faceIndex,
+                faceDown: !card.faceDown,
+              })
         }
       >
         {card.faceDown ? '表向きにする' : '裏向きにする'}
