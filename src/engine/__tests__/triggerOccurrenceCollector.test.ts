@@ -1,21 +1,20 @@
 import { expect, it } from 'vitest';
 import { initGame } from '../init';
 import { collectPendingTriggerUpdate } from '../triggers';
-import type { CardDef } from '../../types/card';
+import { makeDef } from './helpers';
 import type { CardInstance, DrawEvent } from '../types';
 
 function watcher(text: string) {
   const state = initGame([], 0);
-  const def: CardDef = {
-    id: 'watcher-def',
+  const def = makeDef({
+    scryfallId: 'watcher-def',
     name: 'Watcher',
     typeLine: 'Creature',
-    oracleText: text,
     faces: [{ name: 'Watcher', typeLine: 'Creature', oracleText: text }],
-  } as CardDef;
+  });
   const card: CardInstance = {
     id: 'watcher',
-    defId: def.id,
+    defId: def.scryfallId,
     ownerId: 'P1',
     controllerId: 'P1',
     zone: 'battlefield',
@@ -26,7 +25,7 @@ function watcher(text: string) {
     isToken: false,
     isCommander: false,
   } as CardInstance;
-  state.defs[def.id] = def;
+  state.defs[def.scryfallId] = def;
   state.cards[card.id] = card;
   state.zones.battlefield = [card.id];
   return state;
