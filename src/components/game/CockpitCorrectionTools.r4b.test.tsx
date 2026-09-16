@@ -86,3 +86,44 @@ it('requires HOLD before shared Correction can start', () => {
     host.remove();
   }
 });
+
+
+it('disables an open shared Correction if HOLD is released', () => {
+  const table = createCockpitTable(makeDeck(20), 47);
+  const send = vi.fn(() => Promise.resolve(true));
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  const render = (holdActive: boolean) =>
+    root.render(
+      <CockpitCorrectionTools
+        table={table}
+        seatId="P1"
+        selected={[]}
+        disabled={false}
+        shared
+        holdActive={holdActive}
+        send={send}
+      />,
+    );
+
+  act(() => render(true));
+  try {
+    const begin = [...host.querySelectorAll('button')].find(
+      (button) => button.textContent === '盤面訂正を始める',
+    );
+    expect(begin).toBeTruthy();
+    act(() => begin!.click());
+    act(() => render(false));
+
+    const repair = [...host.querySelectorAll('button')].find(
+      (button) => button.textContent === 'ライフ値を訂正',
+    );
+    expect(repair?.disabled).toBe(true);
+    expect(host.textContent).toContain('HOLD中だけ開始');
+    expect(send).not.toHaveBeenCalled();
+  } finally {
+    act(() => root.unmount());
+    host.remove();
+  }
+});

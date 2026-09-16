@@ -82,7 +82,7 @@ export function CockpitCorrectionTools({
   }
 
   async function repair(operation: R4bRepairOperation) {
-    if (!draft) return false;
+    if (!draft || correctionUnavailable) return false;
     return send(operation, draft.context);
   }
 
@@ -112,7 +112,7 @@ export function CockpitCorrectionTools({
             />
           </label>
           <button
-            disabled={disabled}
+            disabled={correctionUnavailable}
             onClick={() => void repair({ type: 'repair.lifeTotal', seatId, value: draft.lifeValue })}
           >
             ライフ値を訂正
@@ -146,7 +146,7 @@ export function CockpitCorrectionTools({
             <option value="bottom">下へ</option>
           </select>
           <button
-            disabled={disabled || !movable}
+            disabled={correctionUnavailable || !movable}
             onClick={() =>
               void repair({
                 type: 'repair.location',
@@ -160,7 +160,7 @@ export function CockpitCorrectionTools({
           </button>
 
           <button
-            disabled={disabled || !battlefieldOnly}
+            disabled={correctionUnavailable || !battlefieldOnly}
             onClick={() =>
               void repair({
                 type: 'repair.tapState',
@@ -171,7 +171,7 @@ export function CockpitCorrectionTools({
             選択カードを「タップ状態」に訂正
           </button>
           <button
-            disabled={disabled || !battlefieldOnly}
+            disabled={correctionUnavailable || !battlefieldOnly}
             onClick={() =>
               void repair({
                 type: 'repair.tapState',
@@ -199,7 +199,7 @@ export function CockpitCorrectionTools({
             />
           </label>
           <button
-            disabled={disabled || !oneBattlefield || !draft.counterName.trim()}
+            disabled={correctionUnavailable || !oneBattlefield || !draft.counterName.trim()}
             onClick={() =>
               oneBattlefield &&
               void repair({
@@ -233,7 +233,7 @@ export function CockpitCorrectionTools({
             接死ダメージを受けた記録
           </label>
           <button
-            disabled={disabled || !oneBattlefield}
+            disabled={correctionUnavailable || !oneBattlefield}
             onClick={() =>
               oneBattlefield &&
               void repair({

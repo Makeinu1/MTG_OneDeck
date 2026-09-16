@@ -3,7 +3,7 @@ import { tableCleanupNeedsReview } from '../../engine/cockpitTable';
 import { CockpitFeed } from './CockpitFeed';
 import { blockingPublicTableTriggers } from '../../engine/cockpitTriggers';
 import { CockpitWorkPanel as TableWorkPanel } from './CockpitWorkPanel';
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import {
   tableManaResources,
@@ -17,6 +17,7 @@ import { tableAbilityChoices } from '../../engine/cockpitAbilities';
 import type { ZoneId } from '../../engine/types';
 import {
   canLifecycleResolveWithoutManual,
+  captureExpectedInteractionContext,
   defaultResolutionDestination,
   type ExpectedInteractionContext,
   type R31TableOperation,
@@ -143,6 +144,7 @@ export function CockpitTableSurface({
   const triggersReady = blockingPublicTableTriggers(table).length > 0;
   const [handWorkspace, setHandWorkspace] = useState(false);
   const [activeDrag, setActiveDrag] = useState<ActiveDragVisual | null>(null);
+  const dragContextRef = useRef<ExpectedInteractionContext | null>(null);
   const activeDragId = activeDrag?.cardId ?? null;
   const [cardMenu, setCardMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const displayState = useMemo(() => cockpitGameState(table, ownId), [table, ownId]);
@@ -759,20 +761,25 @@ export function CockpitTableSurface({
     <DndContext
       sensors={sensors}
       onDragStart={(event) => {
+        dragContextRef.current = null;
         const id = String(event.active.id);
         const instance = displayState.cards[id];
         const def = instance && displayState.defs[instance.defId];
         if (!instance || !def || disabled || opening) return;
+        dragContextRef.current = captureExpectedInteractionContext(table);
         setHover(null);
         setCardMenu(null);
         setActiveDrag(captureDragVisual(event, id, instance, def));
         document.dispatchEvent(new Event(DRAG_UI_START_EVENT));
       }}
       onDragCancel={() => {
+        dragContextRef.current = null;
         setActiveDrag(null);
         document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
       }}
       onDragEnd={({ active, over }) => {
+        const dragContext = dragContextRef.current;
+        dragContextRef.current = null;
         setActiveDrag(null);
         document.dispatchEvent(new Event(DRAG_UI_END_EVENT));
         if (disabled || opening || !over) return;
@@ -793,14 +800,21 @@ export function CockpitTableSurface({
           return;
         }
         if (to === 'battlefield' && instance.zone === 'hand' && isLand(id))
-          void send({ type: 'playLand', cardId: id });
+          void send(
+            { type: 'playLand', cardId: id },
+            dragContext ?? captureExpectedInteractionContext(table),
+          );
         else if (
           to === 'battlefield' &&
           (instance.zone === 'hand' || instance.zone === 'command') &&
           !isLand(id)
         )
           cast(id);
-        else void send({ type: 'move', ids: [id], to, position: 'top' });
+        else
+          void send(
+            { type: 'move', ids: [id], to, position: 'top' },
+            dragContext ?? captureExpectedInteractionContext(table),
+          );
       }}
     >
       {multi && (
