@@ -68,7 +68,8 @@ export interface CockpitSessionView {
   canUndo: boolean;
   canRedo: boolean;
   receipt: 'committed' | 'unseen' | null;
-  recentActions: R4bPublicSemanticAction[];
+  /** Optional during the compatible rollout; R4b servers always populate it. */
+  recentActions?: R4bPublicSemanticAction[];
 }
 export interface CockpitCheckpoint {
   version: 1;
