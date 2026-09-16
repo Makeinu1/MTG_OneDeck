@@ -4,6 +4,10 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { makeDeck } from '../../../engine/__tests__/helpers';
 import {
+  projectR4bSemanticActions,
+  type R4bInternalSemanticAction,
+} from '../cockpitR4bAudit';
+import {
   handleCockpitSession,
   type CockpitSessionView,
 } from '../cockpitSession';
@@ -92,6 +96,23 @@ describe('R4b persisted semantic audit', () => {
     expect(undo.value.recentActions).toEqual([
       { revision: 1, actorId: 'P1', kind: 'manual-event' },
       { revision: 2, actorId: 'P1', kind: 'undo' },
+    ]);
+  });
+
+  it('shares the fact of a private correction while redacting internal process and group metadata', () => {
+    const internal: R4bInternalSemanticAction[] = [
+      {
+        revision: 7,
+        actorId: 'P1',
+        kind: 'correction',
+        audience: ['P1'],
+        processId: 'private-process-id',
+        groupId: 'private-group-id',
+      },
+    ];
+
+    expect(projectR4bSemanticActions(internal, 'P2')).toEqual([
+      { revision: 7, actorId: 'P1', kind: 'correction' },
     ]);
   });
 });
