@@ -131,7 +131,12 @@ export function projectR4bSemanticActions(
   actorId: string,
 ): R4bPublicSemanticAction[] {
   return (records ?? [])
-    .filter((record) => record.audience === 'public' || record.audience.includes(actorId))
+    .filter(
+      (record) =>
+        record.kind === 'correction' ||
+        record.audience === 'public' ||
+        record.audience.includes(actorId),
+    )
     .map(({ revision, actorId: recordActorId, kind }) => ({
       revision,
       actorId: recordActorId,
