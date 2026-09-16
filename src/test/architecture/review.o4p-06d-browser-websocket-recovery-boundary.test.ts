@@ -77,6 +77,9 @@ describe('O4P-06D browser WebSocket architecture boundary', () => {
           normalized(file) === 'src/online/browser/cockpitClient.ts' &&
           [
             '../../engine/cockpitMigration',
+            '../../engine/cockpitR31',
+            '../../engine/cockpitR4',
+            '../../engine/cockpitR4b',
             '../../engine/cockpitTable',
             '../../engine/init',
             '../../data/gameSnapshot',
@@ -85,15 +88,6 @@ describe('O4P-06D browser WebSocket architecture boundary', () => {
             '../cloudflare/cockpitMultiplayer',
             'idb',
           ].includes(specifier);
-        const cockpitR4AuthorityImport =
-          normalized(file) === 'src/online/cloudflare/cockpitR4Authority.ts' &&
-          ['../../engine/cockpitTable', '../../engine/commands', '../../engine/cockpitR4'].includes(specifier);
-        const cockpitR4bAuditImport =
-          normalized(file) === 'src/online/cloudflare/cockpitR4bAudit.ts' &&
-          ['../../engine/cockpitTable', '../../engine/cockpitR4b'].includes(specifier);
-        const cockpitR4bSessionImport =
-          normalized(file) === 'src/online/cloudflare/cockpitR4bSession.ts' &&
-          ['../../engine/cockpitR31', '../../engine/cockpitR4', '../../engine/cockpitR4b', '../../engine/cockpitTable', '../../engine/cockpitTriggers', '../../engine/types'].includes(specifier);
         expect(
           local || allowed.has(specifier) || cockpitImport,
           `${normalized(file)} -> ${specifier}`,
