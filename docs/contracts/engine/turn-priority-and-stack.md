@@ -11,3 +11,9 @@ Turn entry performs the existing untap, per-turn reset, draw-step, cleanup, and 
 
 <!-- clause: ENG-TURN-004 -->
 Unresolved choices remain visible as pending state. The user must resolve or cancel the choice before a transition that would violate the stack or priority boundary.
+
+<!-- clause: ENG-TURN-R6-001 -->
+The fixed phase list above describes the current engine implementation, not an R6 UX claim that every game has exactly one combat or that every boundary must stop. R6 Normal may skip safely empty low-value stops; Full Control exposes supported stops. Pregame provides a Manual-first turn-zero checkpoint before Turn 1. Additional combat phases/steps must remain representable as the engine evolves rather than being rejected by UI assumptions.
+
+<!-- clause: ENG-TURN-R6-002 -->
+R6 HOLD is an interaction-authority protocol layered over canonical turn/Stack legality: before the current operator commits phase or Stack-resolution progression, another participant may request an identity-bound HOLD that the current operator approves. HOLD does not transfer turn ownership, does not silently implement mandatory full CR priority passing, and a stale request never rebinds to later work.
