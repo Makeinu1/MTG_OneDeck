@@ -30,6 +30,7 @@ jobs:
         run: >-
           node node_modules/vitest/vitest.mjs run --project dom
           src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
           src/online/cloudflare/__tests__/cockpitSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
@@ -41,5 +42,7 @@ jobs:
           src/engine/cockpitR4b.ts
           src/engine/__tests__/cockpitR4b.test.ts
           src/online/cloudflare/cockpitR4bSession.ts
+          src/online/cloudflare/cockpitR4bAudit.ts
           src/online/cloudflare/cockpitSession.ts
           src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
+          src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
