@@ -5,6 +5,7 @@ import {
 } from './cockpitMultiplayer';
 import { authorizeR4FormalOperation } from './cockpitR4Authority';
 import {
+  validateManualZoneMeaning,
   type ExpectedInteractionContext,
 } from '../../engine/cockpitR31';
 import { applyR4TableOperation } from '../../engine/cockpitR4';
@@ -26,7 +27,7 @@ import {
   type TableOperation,
 } from '../../engine/cockpitTable';
 import { blockingPublicTableTriggers, triggerTrace } from '../../engine/cockpitTriggers';
-import { objectIdOf } from '../../engine/types';
+import { objectIdOf, type EventProcessRef } from '../../engine/types';
 
 export const R4B_PROTOCOL_VERSION = 2 as const;
 
@@ -41,6 +42,12 @@ export interface PreparedR4bCommit {
   request: R4bOperationRequest;
   cause: R4bEffectiveCause;
   crossesKnowledgeBarrier: boolean;
+}
+
+/** R4b extension until the core EventProcessRef union is widened in-place. */
+export interface R4bManualEventProcessRef {
+  kind: 'manual-event';
+  id: string;
 }
 
 function actorCanReadCard(
@@ -319,6 +326,29 @@ export function prepareR4bCommit(
   };
 }
 
+function manualEventProcessRef(id: string): EventProcessRef {
+  // The runtime provenance variant is deliberately opaque and contains no private data.
+  // It is cast through the pre-R4b core union until that union is widened in-place.
+  const process: R4bManualEventProcessRef = { kind: 'manual-event', id };
+  return process as unknown as EventProcessRef;
+}
+
+function applyR4bManualEvent(
+  before: CockpitTable,
+  prepared: PreparedR4bCommit,
+  requestId: string,
+): CockpitTable {
+  const operation = prepared.request.operation as TableOperation;
+  if (operation.type === 'move' && operation.reason)
+    validateManualZoneMeaning(before, operation.ids, operation.reason);
+  return applyTableOperation(
+    before,
+    operation,
+    requestId,
+    triggerTrace(before, requestId, manualEventProcessRef(prepared.cause.kind === 'manual-event' ? prepared.cause.processId : requestId)),
+  );
+}
+
 export function applyPreparedR4bCommit(
   before: CockpitTable,
   prepared: PreparedR4bCommit,
@@ -326,6 +356,9 @@ export function applyPreparedR4bCommit(
 ): CockpitTable {
   if (prepared.cause.kind === 'correction')
     return applyR4bRepair(before, prepared.request.operation as R4bRepairOperation);
+
+  if (prepared.cause.kind === 'manual-event')
+    return applyR4bManualEvent(before, prepared, requestId);
 
   if (prepared.request.operation.type === 'commander.moveToCommand') {
     const card = before.cards[prepared.request.operation.cardId];
