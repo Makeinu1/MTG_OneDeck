@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { initGame } from '../init';
-import { collectPendingTriggerUpdate } from '../triggers';
+import { collectPendingTriggers, collectPendingTriggerUpdate } from '../triggers';
 import { makeDef } from './helpers';
 import type { CardInstance, DrawEvent } from '../types';
 
@@ -71,4 +71,12 @@ it('materializes a deterministic once-per-turn occurrence and consumes its restr
   });
   expect(retry.pendingTriggers).toEqual([]);
   expect(retry.state.oncePerTurnTriggerLedger).toEqual(first.state.oncePerTurnTriggerLedger);
+});
+
+it('keeps the legacy public collector API on the same occurrence boundary', () => {
+  const prev = watcher('Whenever you draw a card, draw a card.');
+  const next = withDrawEvent(prev);
+  const pending = collectPendingTriggers(prev, next);
+  expect(pending).toHaveLength(1);
+  expect(pending[0]?.pendingTriggerId).toContain('draw-1');
 });
