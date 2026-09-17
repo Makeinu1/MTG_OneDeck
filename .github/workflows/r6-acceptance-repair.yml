@@ -1,0 +1,35 @@
+name: R6 acceptance repair
+on:
+  push:
+    branches: [r6-ux-constitution]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.head_commit.message != 'fix(r6): restore existing acceptance semantics'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Restore main scenarios and append R6 scenarios
+        run: |
+          git show origin/main:docs/acceptance/scenarios.json > /tmp/main.json
+          git show aeb6feb395982b6a480f12bf2c2735840becf6d4:docs/acceptance/scenarios.json > /tmp/r6.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const main=JSON.parse(fs.readFileSync('/tmp/main.json','utf8'));
+          const r6=JSON.parse(fs.readFileSync('/tmp/r6.json','utf8'));
+          main.scenarios.push(...r6.scenarios.filter(s=>s.id.startsWith('ACC-R6-')));
+          fs.writeFileSync('docs/acceptance/scenarios.json', JSON.stringify(main,null,2)+'\n');
+          NODE
+      - name: Commit repair
+        run: |
+          git config user.name Makeinu1
+          git config user.email kiue20002001@gmail.com
+          git add docs/acceptance/scenarios.json
+          git commit -m 'fix(r6): restore existing acceptance semantics'
+          git push
