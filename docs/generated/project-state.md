@@ -12,6 +12,7 @@ Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
 - Traceability: `docs/contracts/traceability.json`
 - Acceptance registry: `docs/acceptance/scenarios.json`
 - Production implementation roots: `src/engine`, `src/online`
+- Production routing map: `docs/project-state/production-map.json`
 - NOW authority: `docs/project-state/index.json`
 - Roadmap / provenance / history: `research/cr-grounding/cr-backbone-ledger.json`
 
