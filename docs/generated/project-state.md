@@ -15,6 +15,9 @@ Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
 - Production routing map: `docs/project-state/production-map.json`
 - NOW authority: `docs/project-state/index.json`
 - Roadmap / provenance / history: `research/cr-grounding/cr-backbone-ledger.json`
+- Roadmap authority policy: `research/cr-grounding/AUTHORITY.md`
+
+Historical `activeProgram`, `nextGate`, planned-sequence or "single source" wording inside CR-grounding material does not override Project State NOW.
 
 Issues, pull requests and CI are evidence/work surfaces. They are not canonical NOW and do not independently establish semantic correctness.
 
@@ -24,6 +27,16 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 - Active: `M2 — Contract Architecture`
 - Next gate: `M2-PLAN`
 - Next work: Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.
+
+## Coverage claim
+
+- Mode: `BOUNDED`
+- Scope: The indexed M1 capability audit plus current production routing and unresolved decisions that active traceability marks deferred-needs-decision.
+- Completeness sources: `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
+- Known limitations:
+  - The capability list is not a proof that every repository concern has been semantically audited.
+  - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
+  - Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1.
 
 ## Capability state
 
@@ -130,6 +143,6 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 ## Freshness
 
 Semantic watched roots: `src`, `docs/contracts`, `docs/acceptance`.
-Run `node scripts/checks/check-project-state.mjs`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.
+Run `npm run check:project-state`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.
 
 Cold Restart Acceptance: `docs/project-state/cold-restart-acceptance.md`
