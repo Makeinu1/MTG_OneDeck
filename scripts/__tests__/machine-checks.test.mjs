@@ -121,6 +121,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:cr']],
       ['npm', ['run', 'verify:versions']],
       ['npm', ['run', 'check:docs']],
+      ['npm', ['run', 'check:project-state']],
       ['npm', ['run', 'verify:online-state-architecture']],
       ['npm', ['run', 'verify:mode-neutral-core-identity-zone']],
       ['npm', ['run', 'verify:mode-neutral-core-card-runtime']],
