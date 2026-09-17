@@ -23,6 +23,16 @@
     "nextWork": "Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.",
     "prohibitedScope": ["R6 implementation", "gameplay semantic changes", "R4b/R5 redesign", "casual Constitution changes", "M3-M6 implementation"]
   },
+  "coverage": {
+    "mode": "BOUNDED",
+    "scope": "The indexed M1 capability audit plus current production routing and unresolved decisions that active traceability marks deferred-needs-decision.",
+    "completenessSources": ["docs/contracts/traceability.json", "docs/acceptance/scenarios.json", "docs/project-state/production-map.json"],
+    "knownLimitations": [
+      "The capability list is not a proof that every repository concern has been semantically audited.",
+      "UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.",
+      "Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1."
+    ]
+  },
   "capabilities": [
     {"id":"CR-01","path":"docs/project-state/capabilities/manual-resolution.json"},
     {"id":"CR-02","path":"docs/project-state/capabilities/correction.json"},
