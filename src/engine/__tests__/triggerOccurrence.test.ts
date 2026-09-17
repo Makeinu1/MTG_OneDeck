@@ -101,13 +101,22 @@ it('fails closed for ambiguous/unsupported detection and does not consume restri
 
 it('accepts supported structured conditions and schedules while failing closed for unsupported next clauses', () => {
   const supportedIf = classifyTriggerDetection(
-    pending({ condition: { kind: 'source-is-tapped' } }),
+    pending({ condition: { kind: 'source-is-tapped', sourceId: 'card-1' } }),
     'When this creature enters the battlefield, if it is tapped, draw a card.',
   );
   expect(supportedIf.kind).toBe('deterministic');
 
   const supportedNext = classifyTriggerDetection(
-    pending({ schedule: { kind: 'next-end-step', createdTurn: 1 } }),
+    pending({
+      schedule: {
+        kind: 'phase-begin',
+        turn: 2,
+        phase: 'end',
+        consumeOnTrigger: true,
+        createdAtTurn: 1,
+        createdAtPhase: 'main1',
+      },
+    }),
     'At the beginning of the next end step, draw a card.',
   );
   expect(supportedNext.kind).toBe('deterministic');
