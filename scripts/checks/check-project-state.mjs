@@ -10,9 +10,11 @@ const delivery = new Set(['UNKNOWN','UNPLANNED','PLANNED','ACTIVE_WORK','IMPLEME
 const lifecycle = new Set(['ACTIVE','DEPRECATED','RETIRED']);
 const requirement = new Set(['REQUIRED','OPTIONAL']);
 const pendingDecisionStatus = new Set(['PENDING_JUDGMENT','OWNER_REQUIRED']);
+const ownerDecisionStatus = new Set(['OPEN','RESOLVED']);
 const sha40 = /^[0-9a-f]{40}$/u;
 const crId = /^CR-[0-9]{2}$/u;
 const conflictId = /^CONFLICT-[A-Z0-9-]+$/u;
+const ownerDecisionId = /^OD-[0-9]{3}$/u;
 const locatorStopWords = new Set([
   'and','the','for','with','from','into','current','normal','exact','boundary','boundaries',
   'authority','constitutional','invariant','operation','operations','handling','path','section',
@@ -67,7 +69,7 @@ function checkLocator(path, locator, label) {
   const lower = content.toLowerCase();
   const meaningful = [...new Set(tokens.filter((token) => token.length >= 4 && !locatorStopWords.has(token.toLowerCase())))];
   if (meaningful.length === 0) {
-    err(`${label}: locator has no machine-checkable anchor: ${locator}`);
+    err(`${label}: locator has no checkable anchor: ${locator}`);
     return;
   }
   if (!meaningful.some((token) => lower.includes(token.toLowerCase()))) {
@@ -94,7 +96,7 @@ catch (error) {
 }
 const { index, capabilities } = state;
 
-if (index.schemaVersion !== 1) err('index: schemaVersion must be 1');
+if (index.schemaVersion !== 2) err('index: schemaVersion must be 2');
 if (index.status !== 'ACTIVE') err('index: status must be ACTIVE');
 if (!sha40.test(index.baseline?.commit ?? '')) err('index: invalid baseline commit');
 if (!nonEmpty(index.baseline?.repository) || !nonEmpty(index.baseline?.branch) || !nonEmpty(index.baseline?.auditedDate)) err('index: incomplete baseline');
@@ -120,6 +122,14 @@ if (!Array.isArray(index.coverage?.completenessSources) || index.coverage.comple
   err('index coverage: completenessSources must be non-empty');
 } else {
   for (const path of index.coverage.completenessSources) requirePath(path, 'index coverage completenessSources');
+  const requiredCompletenessSources = [
+    index.authorities?.traceabilityRegistry,
+    index.authorities?.acceptanceRegistry,
+    index.roles?.productionImplementationMap,
+  ].filter(nonEmpty);
+  for (const path of requiredCompletenessSources) {
+    if (!index.coverage.completenessSources.includes(path)) err(`index coverage: missing required completeness source ${path}`);
+  }
 }
 if (!Array.isArray(index.coverage?.knownLimitations) || index.coverage.knownLimitations.length === 0 || index.coverage.knownLimitations.some((item) => !nonEmpty(item))) {
   err('index coverage: knownLimitations must contain non-empty entries');
@@ -178,6 +188,7 @@ for (const [position, decision] of (index.pendingDecisions ?? []).entries()) {
   if (!Array.isArray(decision?.traceabilityRefs) || decision.traceabilityRefs.length === 0) err(`${label}: traceabilityRefs must be non-empty`);
   if (!Array.isArray(decision?.acceptanceRefs)) err(`${label}: acceptanceRefs must be an array`);
   if (!nonEmpty(decision?.summary) || !nonEmpty(decision?.nextAction)) err(`${label}: summary and nextAction are required`);
+  if (decision?.status === 'PENDING_JUDGMENT' && nonEmpty(decision?.ownerDecisionRef)) err(`${label}: PENDING_JUDGMENT must not claim an Owner escalation`);
   for (const clauseId of decision?.traceabilityRefs ?? []) {
     const clause = traceabilityClauses.get(clauseId);
     if (!clause) err(`${label}: unresolved traceability ref ${clauseId}`);
@@ -187,7 +198,18 @@ for (const [position, decision] of (index.pendingDecisions ?? []).entries()) {
       if (referencedId !== decision.id) err(`${label}: ${clauseId} points to ${referencedId ?? 'no conflict id'}`);
     }
   }
-  for (const scenarioId of decision?.acceptanceRefs ?? []) if (!acceptanceScenarios.has(scenarioId)) err(`${label}: unresolved acceptance ref ${scenarioId}`);
+  for (const scenarioId of decision?.acceptanceRefs ?? []) {
+    const scenario = acceptanceScenarios.get(scenarioId);
+    if (!scenario) {
+      err(`${label}: unresolved acceptance ref ${scenarioId}`);
+      continue;
+    }
+    if (scenario.status !== 'deferred') err(`${label}: acceptance ref ${scenarioId} is not deferred`);
+    const verifies = Array.isArray(scenario.verifies) ? scenario.verifies : [];
+    if (!verifies.some((clauseId) => decision.traceabilityRefs.includes(clauseId))) {
+      err(`${label}: acceptance ref ${scenarioId} does not verify a referenced deferred clause`);
+    }
+  }
 }
 for (const clause of traceabilityClauses.values()) {
   if (clause.status !== 'active' || clause.verificationDisposition !== 'deferred-needs-decision') continue;
@@ -202,7 +224,37 @@ for (const clause of traceabilityClauses.values()) {
   }
 }
 
-const decisions = new Map((index.ownerDecisions ?? []).map((item) => [item.id, item]));
+const decisions = new Map();
+if (!Array.isArray(index.ownerDecisions)) err('index: ownerDecisions must be an array');
+for (const [position, decision] of (index.ownerDecisions ?? []).entries()) {
+  const label = `owner decision ${decision?.id ?? `#${position}`}`;
+  if (!ownerDecisionId.test(decision?.id ?? '')) err(`${label}: invalid id`);
+  if (decisions.has(decision?.id)) err(`${label}: duplicate id`);
+  else decisions.set(decision?.id, decision);
+  if (!ownerDecisionStatus.has(decision?.status)) err(`${label}: invalid status`);
+  if (!nonEmpty(decision?.summary)) err(`${label}: summary is required`);
+  if (decision?.status === 'RESOLVED' && (!nonEmpty(decision?.decision) || !nonEmpty(decision?.decidedDate))) {
+    err(`${label}: RESOLVED requires decision and decidedDate`);
+  }
+  if (decision?.status === 'OPEN' && (nonEmpty(decision?.decision) || nonEmpty(decision?.decidedDate))) {
+    err(`${label}: OPEN must not contain a resolved decision/date`);
+  }
+}
+for (const decision of pendingDecisions.values()) {
+  if (decision.status !== 'OWNER_REQUIRED') continue;
+  if (!nonEmpty(decision.ownerDecisionRef)) {
+    err(`${decision.id}: OWNER_REQUIRED must link ownerDecisionRef`);
+    continue;
+  }
+  const ownerDecision = decisions.get(decision.ownerDecisionRef);
+  if (!ownerDecision) err(`${decision.id}: unresolved owner decision reference ${decision.ownerDecisionRef}`);
+  else if (ownerDecision.status !== 'OPEN') err(`${decision.id}: OWNER_REQUIRED must link an OPEN Owner Decision`);
+}
+for (const ownerDecision of decisions.values()) {
+  if (ownerDecision.status !== 'OPEN') continue;
+  const linked = [...pendingDecisions.values()].some((decision) => decision.status === 'OWNER_REQUIRED' && decision.ownerDecisionRef === ownerDecision.id);
+  if (!linked) err(`${ownerDecision.id}: OPEN Owner Decision is not linked from an OWNER_REQUIRED pending decision`);
+}
 for (const [id, expected] of [['OD-001','B'],['OD-002','2A']]) {
   const decision = decisions.get(id);
   if (decision?.status !== 'RESOLVED' || decision?.decision !== expected) err(`${id}: must remain RESOLVED as ${expected}`);
@@ -215,6 +267,11 @@ const productionMap = readRegistry(index.roles?.productionImplementationMap, 'pr
 if (productionMap?.schemaVersion !== 1) err('production implementation map: schemaVersion must be 1');
 if (productionMap?.status !== 'CURRENT_ROUTING_SNAPSHOT') err('production implementation map: invalid status');
 if (!sha40.test(productionMap?.observedAtCommit ?? '')) err('production implementation map: invalid observedAtCommit');
+if (!Array.isArray(productionMap?.freshness?.watchedPaths) || productionMap.freshness.watchedPaths.length === 0) {
+  err('production implementation map: freshness.watchedPaths must be non-empty');
+} else {
+  for (const path of productionMap.freshness.watchedPaths) requirePath(path, 'production implementation map freshness.watchedPaths');
+}
 if (!Array.isArray(productionMap?.surfaces) || productionMap.surfaces.length === 0) err('production implementation map: surfaces must be non-empty');
 for (const [position, surface] of (productionMap?.surfaces ?? []).entries()) {
   const label = `production surface ${surface?.id ?? `#${position}`}`;
@@ -236,11 +293,16 @@ try {
     assertAncestor(baseline, branch.sha, 'baseline provenance');
     const head = git(['rev-parse','HEAD']);
     if (head !== branch.sha) assertAncestor(branch.sha, head, 'candidate freshness against declared branch');
-    if (sha40.test(productionMap?.observedAtCommit ?? '')) assertAncestor(productionMap.observedAtCommit, branch.sha, 'production map provenance');
+    if (sha40.test(productionMap?.observedAtCommit ?? '')) assertAncestor(productionMap.observedAtCommit, head, 'production map provenance');
   }
   execFileSync('git', ['merge-base','--is-ancestor',baseline,'HEAD'], { cwd: repositoryRoot, stdio:'ignore' });
   const changed = execFileSync('git', ['diff','--name-only',`${baseline}..HEAD`,'--',...index.baseline.watchedRoots], { cwd: repositoryRoot, encoding:'utf8' }).trim();
   if (changed) err(`semantic audit stale after ${baseline}: ${changed.split(/\r?\n/u).join(', ')}`);
+  if (sha40.test(productionMap?.observedAtCommit ?? '') && Array.isArray(productionMap?.freshness?.watchedPaths) && productionMap.freshness.watchedPaths.length > 0) {
+    execFileSync('git', ['cat-file','-e',`${productionMap.observedAtCommit}^{commit}`], { cwd: repositoryRoot, stdio:'ignore' });
+    const routingChanged = execFileSync('git', ['diff','--name-only',`${productionMap.observedAtCommit}..HEAD`,'--',...productionMap.freshness.watchedPaths], { cwd: repositoryRoot, encoding:'utf8' }).trim();
+    if (routingChanged) err(`production implementation map stale after ${productionMap.observedAtCommit}: ${routingChanged.split(/\r?\n/u).join(', ')}`);
+  }
 } catch (error) {
   err(`baseline freshness check failed: ${error instanceof Error ? error.message : String(error)}`);
 }
