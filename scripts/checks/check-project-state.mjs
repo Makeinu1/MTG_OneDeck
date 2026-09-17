@@ -9,12 +9,18 @@ const semantic = new Set(['UNKNOWN','MATCH','GAP','CONFLICT']);
 const delivery = new Set(['UNKNOWN','UNPLANNED','PLANNED','ACTIVE_WORK','IMPLEMENTED','VERIFIED']);
 const lifecycle = new Set(['ACTIVE','DEPRECATED','RETIRED']);
 const requirement = new Set(['REQUIRED','OPTIONAL']);
+const pendingDecisionStatus = new Set(['PENDING_JUDGMENT','OWNER_REQUIRED']);
 const sha40 = /^[0-9a-f]{40}$/u;
 const crId = /^CR-[0-9]{2}$/u;
+const conflictId = /^CONFLICT-[A-Z0-9-]+$/u;
 function err(message) { errors.push(message); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() !== ''; }
 function requirePath(path, label) { if (!nonEmpty(path) || !existsSync(resolve(repositoryRoot, path))) err(`${label}: missing path ${path}`); }
 function validRef(ref, label) { if (ref === null || typeof ref !== 'object' || Array.isArray(ref) || !nonEmpty(ref.path)) { err(`${label}: invalid reference`); return; } requirePath(ref.path, label); if ('locator' in ref && !nonEmpty(ref.locator)) err(`${label}: locator must be non-empty`); }
+function readRegistry(path, label) {
+  try { return JSON.parse(readFileSync(resolve(repositoryRoot, path), 'utf8')); }
+  catch (error) { err(`${label}: cannot load ${path} (${error instanceof Error ? error.message : String(error)})`); return null; }
+}
 
 let state;
 try { state = loadProjectState(); } catch (error) { console.error(`project-state: cannot load JSON (${error instanceof Error ? error.message : String(error)})`); process.exit(1); }
@@ -57,6 +63,46 @@ capabilities.forEach((item, position) => {
   if (item.semanticVerdict === 'CONFLICT' && (item.authorityRefs.length === 0 || item.implementationRefs.length === 0)) err(`${label}: CONFLICT requires authority and implementation evidence`);
   if (item.semanticVerdict === 'GAP' && item.authorityRefs.length === 0) err(`${label}: GAP requires authority evidence`);
 });
+
+const traceability = readRegistry(index.authorities?.traceabilityRegistry, 'traceability registry');
+const acceptance = readRegistry(index.authorities?.acceptanceRegistry, 'acceptance registry');
+const traceabilityClauses = new Map((traceability?.clauses ?? []).filter((item) => item && typeof item === 'object').map((item) => [item.id, item]));
+const acceptanceScenarios = new Map((acceptance?.scenarios ?? []).filter((item) => item && typeof item === 'object').map((item) => [item.id, item]));
+const pendingDecisions = new Map();
+if (!Array.isArray(index.pendingDecisions)) err('index: pendingDecisions must be an array');
+for (const [position, decision] of (index.pendingDecisions ?? []).entries()) {
+  const label = `pending decision ${decision?.id ?? `#${position}`}`;
+  if (!conflictId.test(decision?.id ?? '')) err(`${label}: invalid id`);
+  if (pendingDecisions.has(decision?.id)) err(`${label}: duplicate id`);
+  else pendingDecisions.set(decision?.id, decision);
+  if (!pendingDecisionStatus.has(decision?.status)) err(`${label}: invalid status`);
+  if (!Array.isArray(decision?.traceabilityRefs) || decision.traceabilityRefs.length === 0) err(`${label}: traceabilityRefs must be non-empty`);
+  if (!Array.isArray(decision?.acceptanceRefs)) err(`${label}: acceptanceRefs must be an array`);
+  if (!nonEmpty(decision?.summary) || !nonEmpty(decision?.nextAction)) err(`${label}: summary and nextAction are required`);
+  for (const clauseId of decision?.traceabilityRefs ?? []) {
+    const clause = traceabilityClauses.get(clauseId);
+    if (!clause) err(`${label}: unresolved traceability ref ${clauseId}`);
+    else if (clause.status !== 'active' || clause.verificationDisposition !== 'deferred-needs-decision') err(`${label}: traceability ref ${clauseId} is not an active deferred-needs-decision clause`);
+    else {
+      const referencedId = typeof clause.needsDecision === 'string' ? clause.needsDecision.match(/\b(CONFLICT-[A-Z0-9-]+)\b/u)?.[1] : undefined;
+      if (referencedId !== decision.id) err(`${label}: ${clauseId} points to ${referencedId ?? 'no conflict id'}`);
+    }
+  }
+  for (const scenarioId of decision?.acceptanceRefs ?? []) if (!acceptanceScenarios.has(scenarioId)) err(`${label}: unresolved acceptance ref ${scenarioId}`);
+}
+for (const clause of traceabilityClauses.values()) {
+  if (clause.status !== 'active' || clause.verificationDisposition !== 'deferred-needs-decision') continue;
+  const decisionId = typeof clause.needsDecision === 'string' ? clause.needsDecision.match(/\b(CONFLICT-[A-Z0-9-]+)\b/u)?.[1] : undefined;
+  if (!decisionId) { err(`traceability ${clause.id}: deferred decision has no machine-readable CONFLICT id`); continue; }
+  const decision = pendingDecisions.get(decisionId);
+  if (!decision) { err(`traceability ${clause.id}: ${decisionId} is not surfaced in Project State pendingDecisions`); continue; }
+  if (!decision.traceabilityRefs.includes(clause.id)) err(`${decisionId}: missing traceability ref ${clause.id}`);
+  for (const scenarioId of clause.acceptedBy ?? []) {
+    const scenario = acceptanceScenarios.get(scenarioId);
+    if (scenario?.status === 'deferred' && !decision.acceptanceRefs.includes(scenarioId)) err(`${decisionId}: deferred acceptance ${scenarioId} is not surfaced`);
+  }
+}
+
 const decisions = new Map((index.ownerDecisions ?? []).map((item) => [item.id, item]));
 for (const [id, expected] of [['OD-001','B'],['OD-002','2A']]) { const decision = decisions.get(id); if (decision?.status !== 'RESOLVED' || decision?.decision !== expected) err(`${id}: must remain RESOLVED as ${expected}`); }
 for (const item of capabilities) for (const id of item.ownerDecisionRefs ?? []) if (!decisions.has(id)) err(`${item.id}: unresolved owner decision reference ${id}`);
@@ -74,4 +120,4 @@ try {
   if (actual !== expected) err(`${relative(repositoryRoot, generatedPath)} is stale; regenerate project state`);
 } catch (error) { err(`generated view check failed: ${error instanceof Error ? error.message : String(error)}`); }
 if (errors.length) { console.error('project-state integrity: FAIL'); for (const message of errors) console.error(`- ${message}`); process.exit(1); }
-console.log(`project-state integrity: PASS (${capabilities.length} capabilities, baseline ${index.baseline.commit})`);
+console.log(`project-state integrity: PASS (${capabilities.length} capabilities, ${pendingDecisions.size} pending decisions, baseline ${index.baseline.commit})`);
