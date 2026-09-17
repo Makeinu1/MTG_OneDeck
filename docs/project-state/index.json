@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "ACTIVE",
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
@@ -14,7 +14,7 @@
     "contractRegistry": "docs/contracts/manifest.json",
     "traceabilityRegistry": "docs/contracts/traceability.json",
     "acceptanceRegistry": "docs/acceptance/scenarios.json",
-    "productionImplementation": ["src/engine", "src/online"]
+    "productionImplementation": ["src"]
   },
   "program": {
     "completedMilestones": ["M0 — Constitution / Truth", "M1 — Canonical Project State"],
