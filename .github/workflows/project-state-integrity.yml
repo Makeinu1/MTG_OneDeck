@@ -19,4 +19,4 @@ jobs:
         with:
           node-version: 22
       - name: Check canonical Project State
-        run: node scripts/checks/check-project-state.mjs
+        run: npm run check:project-state
