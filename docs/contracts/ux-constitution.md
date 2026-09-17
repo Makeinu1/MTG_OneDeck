@@ -122,7 +122,7 @@ Normal mode may move through routine empty boundaries, but human HOLD/explicit a
 <!-- clause: UX-CONST-HOLD -->
 HOLD materializes “wait, I want to act now” as a safe request for foreground operation authority.
 
-The turn/current operator owns phase progression and Stack-resolution progression. Before that progression is committed, another player may request HOLD. The current operator approves one requester. HOLD does not instantly steal authority and is not a generic pause, discussion mode or full CR priority-pass implementation.
+The turn/current operator owns phase progression and Stack-resolution progression. Before that progression is committed, another player may request HOLD. The current operator approves one requester. HOLD does not instantly steal authority and is not a generic pause, discussion mode or full CR priority exchange implementation.
 
 A HOLD request is bound to the exact initiating interaction identity/context. If that context changes, the request becomes stale rather than rebinding to later work.
 
@@ -176,7 +176,7 @@ Temporary network disconnection is not itself elimination. Reconnect/reconciliat
 
 Viewing authorized information is free and does not change Current Work. Current Work/Continuation must remain visible or one semantic action away while browsing zones, cards or assistance surfaces.
 
-Unknown commit results reconcile before casual retry. Stale gestures, drafts, selections and HOLD requests never silently rebind. Secret authority is never widened by reconnect, HOLD or view changes.
+Unknown commit results reconcile before casual retry. Stale gestures, pending edits, selections and HOLD requests never silently rebind. Secret authority is never widened by reconnect, HOLD or view changes.
 
 ## 12. Trigger memory
 
@@ -195,7 +195,7 @@ Preserve the existing paper-table geometry where practical:
 - Stack as spatial conversation;
 - compact Orientation and Continuation around, not instead of, the table.
 
-Preserve density management, bundling, attachment clustering, large-hand workspace, searchable/paginated zones and board-peek/local-draft continuity.
+Preserve density management, bundling, attachment clustering, large-hand workspace, searchable/paginated zones and board-peek/local-edit continuity.
 
 Demote the single omnipotent Primary Action mental model, Trigger-as-next-task gating, geometry-first everyday menus, mutually exclusive Work/Stack/Zone meanings and hidden quick-mutation shortcuts.
 
@@ -205,7 +205,7 @@ R6 does not require:
 
 - a general Oracle parser;
 - a complete Magic legality/rules engine;
-- mandatory all-player priority passing;
+- mandatory all-player priority exchange;
 - generic APNAP workflow;
 - generic Participant Input state machine;
 - card-specific effect wizards by default;
@@ -227,7 +227,7 @@ R6 does not require:
 8. Geometry never invents semantic meaning.
 9. Primary Operator owns lifecycle boundaries, not every object operation.
 10. HOLD is approved, identity-bound foreground interruption before progression/resolution commit.
-11. HOLD does not implement mandatory full priority passing.
+11. HOLD does not implement mandatory full priority exchange.
 12. Trigger memory does not steal authority or gate progress.
 13. Supported Trigger occurrence may be auto-remembered; uncertain occurrence returns to humans.
 14. High-value bounded combat semantics are valid automation targets.
