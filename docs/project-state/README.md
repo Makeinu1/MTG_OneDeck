@@ -1,8 +1,10 @@
 # Canonical Project State
 
-This directory owns **project NOW**: the audited implementation/contract relationship, the active reconstruction milestone, the next gate, lifecycle state, and Owner decisions.
+This directory owns **project NOW** on `main`: the audited implementation/contract relationship, the active reconstruction milestone, the next gate, lifecycle state, and surfaced decisions.
 
-It does **not** restate product rules or contract clauses. It references their canonical sources.
+On a non-main branch, the files in this directory describe a **candidate Project State for that branch** until merged. A branch-local candidate must not be reported as already committed `main` reality.
+
+Project State does **not** restate product rules or contract clauses. It references their canonical sources.
 
 ## Read order
 
@@ -23,12 +25,15 @@ The generated Markdown is derived and must never be edited as an independent tru
 | How do clauses connect to verification? | `docs/contracts/traceability.json` |
 | Which acceptance scenarios exist? | `docs/acceptance/scenarios.json` |
 | What does implementation currently do? | `src/` and tests |
-| What is the current audited MATCH/GAP/CONFLICT and reconstruction gate? | **this Project State** |
+| What is the current audited MATCH/GAP/CONFLICT and reconstruction gate? | **this Project State on `main`** |
 | What is extended roadmap/provenance/history? | `research/cr-grounding/cr-backbone-ledger.json` |
 | What are Issues/PRs? | Work/history evidence, never current state by themselves |
 | What is CI? | Verification/deployment evidence, never semantic correctness by itself |
+| What is historical Cold Restart evidence? | `docs/project-state/evidence/` |
 
 Canonical Project State says **what the current verdict is**. Existing authorities say **what the rules are**. Source says **what implementation does**. Evidence says **what was checked**.
+
+Fields in other registries that resemble project lifecycle metadata, such as an older contract-manifest milestone or a roadmap active-program field, do not override Project State NOW unless Project State explicitly delegates that authority.
 
 ## Three independent axes
 
@@ -37,6 +42,8 @@ Every capability carries three independent state axes:
 - `semanticVerdict`: `UNKNOWN | MATCH | GAP | CONFLICT`
 - `deliveryState`: `UNKNOWN | UNPLANNED | PLANNED | ACTIVE_WORK | IMPLEMENTED | VERIFIED`
 - `lifecycle`: `ACTIVE | DEPRECATED | RETIRED`
+
+`requirementLevel` is separate from those axes. For example, `UNKNOWN + REQUIRED` is materially different from `UNKNOWN + OPTIONAL` and must remain visible to a restart reader.
 
 This permits states such as `CONFLICT + IMPLEMENTED + ACTIVE` without hiding the contradiction.
 
@@ -52,14 +59,20 @@ Semantic transitions require bounded audit judgment; CI, PR or merge status neve
 Delivery normally moves `UNPLANNED -> PLANNED -> ACTIVE_WORK -> IMPLEMENTED -> VERIFIED`.
 Lifecycle normally moves `ACTIVE -> DEPRECATED -> RETIRED`.
 
+## Coverage boundary
+
+Project State is a curated audited state model, not proof that every repository concern has already been enumerated. The capability index defines the currently audited capability set. Active registries may expose additional deferred decisions, lifecycle signals or implementation surfaces that must be surfaced before Project State can claim complete current-state coverage.
+
+The integrity checker must fail closed when a repository source that Project State declares as completeness-relevant contains an unresolved item that Project State is required to surface.
+
 ## Freshness policy
 
 `index.json.baseline.commit` is the commit against which the semantic snapshot was audited. `scripts/checks/check-project-state.mjs` fails when a descendant of that baseline changes any configured `watchedRoots` without refreshing Project State. It also checks reference integrity, IDs/enums and generated-view freshness.
 
-The checker intentionally **does not infer semantic verdicts from code**. That belongs to later verification/audit milestones, not M1.
+The checker intentionally **does not infer semantic verdicts from code**. That belongs to later verification/audit milestones, not Project State integrity.
 
 While a PR is open, the merge gate must still rebase/re-audit against the then-current `main`; a branch that has not incorporated a newer main cannot prove that newer main did not invalidate the audit.
 
-## M1 scope boundary
+## Current program boundary
 
-M1 records reality; it does not repair it. R6 implementation, gameplay semantic changes, R4b/R5 redesign, Constitution changes, and M2-M6 orchestration are explicitly out of scope.
+The current active milestone, next gate and prohibited scope live only in `docs/project-state/index.json` and the generated restart view. This README intentionally does not pin a specific milestone's prohibited list, so a completed milestone cannot leave stale scope instructions behind.
