@@ -6,252 +6,925 @@
       "id": "ACC-IMPORT-001",
       "status": "active",
       "risk": "R1",
-      "tags": ["import", "fixture", "offline"],
-      "preconditions": ["Use the committed test deck fixture."],
-      "steps": ["Import the fixed deck fixture.", "Wait for the deterministic parser result."],
+      "tags": [
+        "import",
+        "fixture",
+        "offline"
+      ],
+      "preconditions": [
+        "Use the committed test deck fixture."
+      ],
+      "steps": [
+        "Import the fixed deck fixture.",
+        "Wait for the deterministic parser result."
+      ],
       "oracle": "The resolved card set and parser diagnostics match the fixture snapshot.",
-      "automatedBy": ["src/data/__tests__/deckParser.test.ts"],
+      "automatedBy": [
+        "src/data/__tests__/deckParser.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-COMPILER"],
-      "verifies": ["ENG-COMP-001", "ACC-ACCEPT-001"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-COMPILER"
+      ],
+      "verifies": [
+        "ENG-COMP-001",
+        "ACC-ACCEPT-001"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-SETUP-001",
       "status": "active",
       "risk": "R2",
-      "tags": ["opening", "mulligan", "solo"],
-      "preconditions": ["A fixed deck and deterministic seed are loaded."],
-      "steps": ["Start a game.", "Inspect the opening hand.", "Exercise the existing mulligan transaction."],
+      "tags": [
+        "opening",
+        "mulligan",
+        "solo"
+      ],
+      "preconditions": [
+        "A fixed deck and deterministic seed are loaded."
+      ],
+      "steps": [
+        "Start a game.",
+        "Inspect the opening hand.",
+        "Exercise the existing mulligan transaction."
+      ],
       "oracle": "The opening transaction and mulligan choice preserve the documented card counts and one-transaction undo boundary.",
-      "automatedBy": ["src/components/game/MulliganStage.test.tsx"],
+      "automatedBy": [
+        "src/components/game/MulliganStage.test.tsx"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
-      "verifies": ["ENG-STATE-001", "ENG-CMD-003"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-STATE",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "ENG-STATE-001",
+        "ENG-CMD-003"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-TURN-001",
       "status": "deferred",
       "risk": "R3",
-      "tags": ["turn", "phase", "draw", "unresolved"],
-      "preconditions": ["The game is at a legal phase boundary with no unresolved stack item."],
-      "steps": ["Advance phases through the existing turn path.", "Observe untap, draw, counters, and mana-pool boundaries."],
+      "tags": [
+        "turn",
+        "phase",
+        "draw",
+        "unresolved"
+      ],
+      "preconditions": [
+        "The game is at a legal phase boundary with no unresolved stack item."
+      ],
+      "steps": [
+        "Advance phases through the existing turn path.",
+        "Observe untap, draw, counters, and mana-pool boundaries."
+      ],
       "oracle": "No acceptance pass/fail is claimed until CONFLICT-TURN-DRAW-001 receives an explicit ruling; preserve the existing turn path as evidence only.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": ["CONTRACT-ENGINE-TURN"],
-      "verifies": ["ENG-TURN-003"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "ENG-TURN-003"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-ZONE-001",
       "status": "active",
       "risk": "R3",
-      "tags": ["zone", "lki", "object-identity"],
-      "preconditions": ["A card or linked object has a deterministic zone-change path."],
-      "steps": ["Apply the zone transition.", "Inspect the resulting object identity and event record."],
+      "tags": [
+        "zone",
+        "lki",
+        "object-identity"
+      ],
+      "preconditions": [
+        "A card or linked object has a deterministic zone-change path."
+      ],
+      "steps": [
+        "Apply the zone transition.",
+        "Inspect the resulting object identity and event record."
+      ],
       "oracle": "Zone ownership, object identity, and last-known-information records obey the engine contract.",
-      "automatedBy": ["src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-ZONES"],
-      "verifies": ["ENG-ZONES-001", "ENG-ZONES-004"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-ZONES"
+      ],
+      "verifies": [
+        "ENG-ZONES-001",
+        "ENG-ZONES-004"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-STACK-001",
       "status": "active",
       "risk": "R3",
-      "tags": ["stack", "priority", "resolution"],
-      "preconditions": ["A legal stack object is available."],
-      "steps": ["Announce the stack object.", "Advance priority and resolve or keep it guided."],
+      "tags": [
+        "stack",
+        "priority",
+        "resolution"
+      ],
+      "preconditions": [
+        "A legal stack object is available."
+      ],
+      "steps": [
+        "Announce the stack object.",
+        "Advance priority and resolve or keep it guided."
+      ],
       "oracle": "The shared stack preserves order, priority boundaries, and deterministic resolution output.",
-      "automatedBy": ["src/engine/__tests__/m427.test.ts", "src/engine/__tests__/priority.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/m427.test.ts",
+        "src/engine/__tests__/priority.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-TURN"],
-      "verifies": ["ENG-TURN-001", "ENG-TURN-002"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "ENG-TURN-001",
+        "ENG-TURN-002"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-MANA-001",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "cost", "payment"],
-      "preconditions": ["A fixed mana pool and cost are supplied."],
-      "steps": ["Plan payment.", "Apply the transaction or receive its deterministic warning."],
+      "tags": [
+        "mana",
+        "cost",
+        "payment"
+      ],
+      "preconditions": [
+        "A fixed mana pool and cost are supplied."
+      ],
+      "steps": [
+        "Plan payment.",
+        "Apply the transaction or receive its deterministic warning."
+      ],
       "oracle": "Payment is deterministic, atomic, and leaves no partial state on failure.",
-      "automatedBy": ["src/engine/__tests__/mana.test.ts", "src/engine/__tests__/manaTransaction.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/mana.test.ts",
+        "src/engine/__tests__/manaTransaction.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA"],
-      "verifies": ["ENG-MANA-001", "ENG-MANA-002"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA"
+      ],
+      "verifies": [
+        "ENG-MANA-001",
+        "ENG-MANA-002"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-MANA-002",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "color-selection", "ux-mana-1"],
-      "preconditions": ["A fixed cost can be paid by a colored source and a five-color source."],
-      "steps": ["Plan payment with all sources untapped.", "Apply the plan."],
+      "tags": [
+        "mana",
+        "color-selection",
+        "ux-mana-1"
+      ],
+      "preconditions": [
+        "A fixed cost can be paid by a colored source and a five-color source."
+      ],
+      "steps": [
+        "Plan payment with all sources untapped.",
+        "Apply the plan."
+      ],
       "oracle": "The deterministic plan preserves the flexible source when a stricter source is sufficient.",
-      "automatedBy": ["src/engine/__tests__/mana.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/mana.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA"],
-      "verifies": ["ENG-MANA-002"],
-      "supersedes": ["UX-MANA-1"]
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA"
+      ],
+      "verifies": [
+        "ENG-MANA-002"
+      ],
+      "supersedes": [
+        "UX-MANA-1"
+      ]
     },
     {
       "id": "ACC-MANA-003",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "color-selection", "ux-mana-2"],
-      "preconditions": ["A required color is available only from a flexible source."],
-      "steps": ["Plan payment.", "Apply the selected source and cost."],
+      "tags": [
+        "mana",
+        "color-selection",
+        "ux-mana-2"
+      ],
+      "preconditions": [
+        "A required color is available only from a flexible source."
+      ],
+      "steps": [
+        "Plan payment.",
+        "Apply the selected source and cost."
+      ],
       "oracle": "The flexible source supplies the required color and the payment completes without surplus taps.",
-      "automatedBy": ["src/engine/__tests__/mana.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/mana.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA"],
-      "verifies": ["ENG-MANA-001"],
-      "supersedes": ["UX-MANA-2"]
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA"
+      ],
+      "verifies": [
+        "ENG-MANA-001"
+      ],
+      "supersedes": [
+        "UX-MANA-2"
+      ]
     },
     {
       "id": "ACC-MANA-004",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "risk-source", "ux-mana-3"],
-      "preconditions": ["A cost can be paid by ordinary sources or a source with an explicit drawback."],
-      "steps": ["Plan payment.", "Inspect the chosen source set and warning boundary."],
+      "tags": [
+        "mana",
+        "risk-source",
+        "ux-mana-3"
+      ],
+      "preconditions": [
+        "A cost can be paid by ordinary sources or a source with an explicit drawback."
+      ],
+      "steps": [
+        "Plan payment.",
+        "Inspect the chosen source set and warning boundary."
+      ],
       "oracle": "Ordinary sources are preferred; a drawback source is selected only when it is necessary for a complete plan.",
-      "automatedBy": ["src/engine/__tests__/manaTransaction.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/manaTransaction.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA"],
-      "verifies": ["ENG-MANA-002"],
-      "supersedes": ["UX-MANA-3"]
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA"
+      ],
+      "verifies": [
+        "ENG-MANA-002"
+      ],
+      "supersedes": [
+        "UX-MANA-3"
+      ]
     },
     {
       "id": "ACC-MANA-005",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "multi-output", "ux-mana-4"],
-      "preconditions": ["A source produces a fixed multi-mana output."],
-      "steps": ["Resolve the source transaction.", "Inspect the generated mana bundle and payment."],
+      "tags": [
+        "mana",
+        "multi-output",
+        "ux-mana-4"
+      ],
+      "preconditions": [
+        "A source produces a fixed multi-mana output."
+      ],
+      "steps": [
+        "Resolve the source transaction.",
+        "Inspect the generated mana bundle and payment."
+      ],
       "oracle": "The exact mana bundle is generated once and the command does not over-tap.",
-      "automatedBy": ["src/engine/__tests__/manaTransaction.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/manaTransaction.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA"],
-      "verifies": ["ENG-MANA-002"],
-      "supersedes": ["UX-MANA-4"]
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA"
+      ],
+      "verifies": [
+        "ENG-MANA-002"
+      ],
+      "supersedes": [
+        "UX-MANA-4"
+      ]
     },
     {
       "id": "ACC-MANA-006",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "activated-ability", "atomic", "ux-mana-5"],
-      "preconditions": ["A fixed-cost mana ability needs a payment source before the spell payment."],
-      "steps": ["Resolve the activation cost.", "Add the generated mana.", "Pay the spell."],
+      "tags": [
+        "mana",
+        "activated-ability",
+        "atomic",
+        "ux-mana-5"
+      ],
+      "preconditions": [
+        "A fixed-cost mana ability needs a payment source before the spell payment."
+      ],
+      "steps": [
+        "Resolve the activation cost.",
+        "Add the generated mana.",
+        "Pay the spell."
+      ],
       "oracle": "The activation and spell payment share one atomic transaction and one undo boundary.",
-      "automatedBy": ["src/engine/__tests__/manaTransaction.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/manaTransaction.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA", "CONTRACT-ENGINE-COMMANDS"],
-      "verifies": ["ENG-MANA-003", "ENG-CMD-003"],
-      "supersedes": ["UX-MANA-5"]
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "ENG-MANA-003",
+        "ENG-CMD-003"
+      ],
+      "supersedes": [
+        "UX-MANA-5"
+      ]
     },
     {
       "id": "ACC-MANA-007",
       "status": "active",
       "risk": "R3",
-      "tags": ["mana", "sacrifice", "guided", "ux-mana-6"],
-      "preconditions": ["A sacrifice-based mana ability is necessary for a complete payment."],
-      "steps": ["Select the legal sacrifice source.", "Resolve the ability and payment."],
+      "tags": [
+        "mana",
+        "sacrifice",
+        "guided",
+        "ux-mana-6"
+      ],
+      "preconditions": [
+        "A sacrifice-based mana ability is necessary for a complete payment."
+      ],
+      "steps": [
+        "Select the legal sacrifice source.",
+        "Resolve the ability and payment."
+      ],
       "oracle": "The sacrifice choice follows the existing guided boundary and does not choose a commander while an ordinary source is sufficient.",
-      "automatedBy": ["src/engine/__tests__/act4CostVocabulary.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/act4CostVocabulary.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-MANA", "CONTRACT-ENGINE-COMPILER"],
-      "verifies": ["ENG-MANA-003", "ENG-COMP-002"],
-      "supersedes": ["UX-MANA-6"]
+      "contractRefs": [
+        "CONTRACT-ENGINE-MANA",
+        "CONTRACT-ENGINE-COMPILER"
+      ],
+      "verifies": [
+        "ENG-MANA-003",
+        "ENG-COMP-002"
+      ],
+      "supersedes": [
+        "UX-MANA-6"
+      ]
     },
     {
       "id": "ACC-COMPILER-001",
       "status": "active",
       "risk": "R3",
-      "tags": ["oracle", "compiler", "guided", "manual"],
-      "preconditions": ["English Oracle text is pinned in a local fixture."],
-      "steps": ["Compile the supported clause.", "Inspect the command plan and unsupported boundary."],
+      "tags": [
+        "oracle",
+        "compiler",
+        "guided",
+        "manual"
+      ],
+      "preconditions": [
+        "English Oracle text is pinned in a local fixture."
+      ],
+      "steps": [
+        "Compile the supported clause.",
+        "Inspect the command plan and unsupported boundary."
+      ],
       "oracle": "Only a replay-proven command plan is automatic; unsupported choices remain guided or manual.",
-      "automatedBy": ["src/engine/__tests__/cr701DiscardCompiler.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/cr701DiscardCompiler.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-COMPILER"],
-      "verifies": ["ENG-COMP-001", "ENG-COMP-002", "ENG-COMP-003"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-COMPILER"
+      ],
+      "verifies": [
+        "ENG-COMP-001",
+        "ENG-COMP-002",
+        "ENG-COMP-003"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-UNDO-001",
       "status": "active",
       "risk": "R2",
-      "tags": ["undo", "redo", "snapshot"],
-      "preconditions": ["A committed command transaction exists."],
-      "steps": ["Undo the transaction.", "Redo it and compare the full snapshot."],
+      "tags": [
+        "undo",
+        "redo",
+        "snapshot"
+      ],
+      "preconditions": [
+        "A committed command transaction exists."
+      ],
+      "steps": [
+        "Undo the transaction.",
+        "Redo it and compare the full snapshot."
+      ],
       "oracle": "Undo and redo restore the exact prior and subsequent snapshots.",
-      "automatedBy": ["src/store/__tests__/snapshotPersistenceControl.test.ts"],
+      "automatedBy": [
+        "src/store/__tests__/snapshotPersistenceControl.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMMANDS"],
-      "verifies": ["ENG-STATE-004", "ENG-CMD-003"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-STATE",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "ENG-STATE-004",
+        "ENG-CMD-003"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-ONLINE-001",
       "status": "periodic",
       "risk": "R1",
-      "tags": ["online", "scryfall", "periodic"],
-      "preconditions": ["A network-enabled verification lane is explicitly selected."],
-      "steps": ["Query the live Scryfall endpoint.", "Compare the response with the online contract."],
+      "tags": [
+        "online",
+        "scryfall",
+        "periodic"
+      ],
+      "preconditions": [
+        "A network-enabled verification lane is explicitly selected."
+      ],
+      "steps": [
+        "Query the live Scryfall endpoint.",
+        "Compare the response with the online contract."
+      ],
       "oracle": "The live response is recorded only in the online lane and is not required by ordinary acceptance.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": ["CONTRACT-ACCEPTANCE"],
-      "verifies": ["ACC-ACCEPT-002"],
+      "contractRefs": [
+        "CONTRACT-ACCEPTANCE"
+      ],
+      "verifies": [
+        "ACC-ACCEPT-002"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-UI-RESP-001",
       "status": "active",
       "risk": "R2",
-      "tags": ["ui", "responsive", "viewport"],
-      "preconditions": ["Use one stable browser session and the fixed fixture route."],
-      "steps": ["Inspect 375x812.", "Inspect 812x375.", "Inspect 1440x900."],
+      "tags": [
+        "ui",
+        "responsive",
+        "viewport"
+      ],
+      "preconditions": [
+        "Use one stable browser session and the fixed fixture route."
+      ],
+      "steps": [
+        "Inspect 375x812.",
+        "Inspect 812x375.",
+        "Inspect 1440x900."
+      ],
       "oracle": "The current interaction surface remains legible and usable at all three contract viewports with no console errors.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": ["CONTRACT-UI-ARCHITECTURE", "CONTRACT-UI-RESPONSIVE"],
-      "verifies": ["UI-RESP-001", "UI-RESP-002", "UI-RESP-003"],
+      "contractRefs": [
+        "CONTRACT-UI-ARCHITECTURE",
+        "CONTRACT-UI-RESPONSIVE"
+      ],
+      "verifies": [
+        "UI-RESP-001",
+        "UI-RESP-002",
+        "UI-RESP-003"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-AV-MANUAL-001",
       "status": "active",
       "risk": "R2",
-      "tags": ["audio-visual", "manual", "comfort"],
-      "preconditions": ["An AV change is in scope and the browser audio policy permits playback."],
-      "steps": ["Exercise the semantic event.", "Check timing, audibility, reduced-motion behavior, and comfort."],
+      "tags": [
+        "audio-visual",
+        "manual",
+        "comfort"
+      ],
+      "preconditions": [
+        "An AV change is in scope and the browser audio policy permits playback."
+      ],
+      "steps": [
+        "Exercise the semantic event.",
+        "Check timing, audibility, reduced-motion behavior, and comfort."
+      ],
       "oracle": "Human comfort and audibility are recorded only when AV behavior is changed; semantic event boundaries remain deterministic.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": ["CONTRACT-AV"],
-      "verifies": ["AV-004"],
+      "contractRefs": [
+        "CONTRACT-AV"
+      ],
+      "verifies": [
+        "AV-004"
+      ],
       "supersedes": []
     },
     {
       "id": "ACC-CR-REPLAY-001",
       "status": "active",
       "risk": "R3",
-      "tags": ["cr", "replay", "golden"],
-      "preconditions": ["A pinned CR clause and executable replay are available."],
-      "steps": ["Run the replay.", "Compare the final GameState and event stream."],
+      "tags": [
+        "cr",
+        "replay",
+        "golden"
+      ],
+      "preconditions": [
+        "A pinned CR clause and executable replay are available."
+      ],
+      "steps": [
+        "Run the replay.",
+        "Compare the final GameState and event stream."
+      ],
       "oracle": "The final state and event sequence match the golden fixture; a partial effect is not reported as automatic.",
-      "automatedBy": ["src/engine/__tests__/eventEnvelope.test.ts"],
+      "automatedBy": [
+        "src/engine/__tests__/eventEnvelope.test.ts"
+      ],
       "manualOnly": false,
-      "contractRefs": ["CONTRACT-ENGINE-STATE", "CONTRACT-ENGINE-COMPILER"],
-      "verifies": ["ENG-STATE-005", "ENG-COMP-004", "ACC-ACCEPT-003"],
+      "contractRefs": [
+        "CONTRACT-ENGINE-STATE",
+        "CONTRACT-ENGINE-COMPILER"
+      ],
+      "verifies": [
+        "ENG-STATE-005",
+        "ENG-COMP-004",
+        "ACC-ACCEPT-003"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-REALITY-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "manual move"
+      ],
+      "steps": [
+        "move/inspect"
+      ],
+      "oracle": "geometry invents no meaning",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-STATE"
+      ],
+      "verifies": [
+        "UX-CONST-REALITY",
+        "ENG-STATE-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-CORRECTION-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "state disagrees with table"
+      ],
+      "steps": [
+        "correct/reconcile"
+      ],
+      "oracle": "human Correction wins",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-STATE",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "UX-CONST-CORRECTION",
+        "ENG-STATE-R6-001",
+        "ENG-CMD-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-AUTOMATION-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "bounded capability"
+      ],
+      "steps": [
+        "trigger/inspect/correct"
+      ],
+      "oracle": "automation observable and correctable",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-COMPILER",
+        "CONTRACT-ENGINE-MANA"
+      ],
+      "verifies": [
+        "UX-CONST-AUTOMATION",
+        "ENG-COMP-R6-001",
+        "ENG-MANA-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-PREGAME-001",
+      "status": "active",
+      "risk": "R2",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "opening complete"
+      ],
+      "steps": [
+        "turn-zero then Turn 1"
+      ],
+      "oracle": "solo first and turn-zero manual opportunity",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "UX-CONST-PREGAME",
+        "ENG-TURN-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-CONTROL-001",
+      "status": "active",
+      "risk": "R2",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "phase boundaries"
+      ],
+      "steps": [
+        "Normal then Full Control"
+      ],
+      "oracle": "stop behavior differs, authority does not",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "UX-CONST-CONTROL",
+        "ENG-TURN-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-HOLD-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "progress pending"
+      ],
+      "steps": [
+        "request/approve/work/return"
+      ],
+      "oracle": "HOLD identity-bound; ownership retained",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "UX-CONST-HOLD",
+        "ENG-TURN-R6-002"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-UNDO-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "two commits"
+      ],
+      "steps": [
+        "undo twice"
+      ],
+      "oracle": "one committed unit per Undo",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "UX-CONST-UNDO",
+        "ENG-CMD-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-ELIMINATION-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6"
+      ],
+      "preconditions": [
+        "owner plus participant"
+      ],
+      "steps": [
+        "disconnect/reconnect/remove"
+      ],
+      "oracle": "removal explicit; objects isolated, not Exile",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-MULTIPLAYER",
+        "CONTRACT-ENGINE-ZONES"
+      ],
+      "verifies": [
+        "UX-CONST-ELIMINATION",
+        "ENG-MP-004",
+        "ENG-MP-005",
+        "ENG-ZONES-005"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-CORRECTION-002",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6",
+        "negative",
+        "correction",
+        "automation"
+      ],
+      "preconditions": [
+        "A bounded automation capability has produced state that the table explicitly corrects."
+      ],
+      "steps": [
+        "Apply an explicit human Correction.",
+        "Allow the same automation source to evaluate again without a new human action that reverses the correction.",
+        "Inspect canonical state and provenance."
+      ],
+      "oracle": "The later automation evaluation does not silently overwrite the human-confirmed Correction; any conflicting reapplication requires a new explicit attributable operation rather than implicit reassertion.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-STATE",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "UX-CONST-CORRECTION",
+        "ENG-STATE-R6-001",
+        "ENG-CMD-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-HOLD-002",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6",
+        "negative",
+        "hold",
+        "stale-context"
+      ],
+      "preconditions": [
+        "Interaction context A is pending and a non-current player has requested HOLD for A."
+      ],
+      "steps": [
+        "End or replace interaction context A before approval.",
+        "Begin distinct interaction context B.",
+        "Attempt to approve or apply the old HOLD request."
+      ],
+      "oracle": "The HOLD request bound to A is stale and cannot rebind to B or grant foreground authority in B.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "UX-CONST-HOLD",
+        "ENG-TURN-R6-002"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-HOLD-003",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6",
+        "negative",
+        "hold",
+        "authority"
+      ],
+      "preconditions": [
+        "Another player requests HOLD while the current operator owns progression."
+      ],
+      "steps": [
+        "Submit HOLD request but do not approve it.",
+        "Inspect foreground operator, turn ownership, parent Resolution ownership and permitted progression controls."
+      ],
+      "oracle": "A request alone transfers no authority: the current operator retains foreground/progression authority and all parent ownership until explicit approval.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "UX-CONST-HOLD",
+        "ENG-TURN-R6-002"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-UNDO-002",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6",
+        "negative",
+        "undo",
+        "manual-resolution"
+      ],
+      "preconditions": [
+        "During one Manual Resolution, operation A and operation B were committed separately before 処理完了, then 処理完了 closed the lifecycle."
+      ],
+      "steps": [
+        "Invoke Undo once.",
+        "Inspect history and canonical state.",
+        "Invoke Undo again if a farther rewind is desired."
+      ],
+      "oracle": "One Undo reverts exactly one supported committed unit and does not collapse all pre-処理完了 operations into a mega-undo; farther rewind requires another invocation.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-COMMANDS"
+      ],
+      "verifies": [
+        "UX-CONST-UNDO",
+        "ENG-CMD-R6-001"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-R6-TRIGGER-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "r6",
+        "negative",
+        "trigger",
+        "progress"
+      ],
+      "preconditions": [
+        "A Ready Trigger is remembered while no canonical unresolved work otherwise forbids progression."
+      ],
+      "steps": [
+        "Leave the Trigger remembered and visible.",
+        "Attempt an otherwise legal ordinary progression action in Normal interaction."
+      ],
+      "oracle": "Trigger Memory remains an ambient obligation and does not by itself become a global progress gate or steal foreground authority; only independently canonical unresolved work may block progression.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "contractRefs": [
+        "CONTRACT-UX-CONSTITUTION",
+        "CONTRACT-ENGINE-TURN"
+      ],
+      "verifies": [
+        "UX-CONST-AUTOMATION",
+        "ENG-TURN-R6-001"
+      ],
       "supersedes": []
     }
   ]

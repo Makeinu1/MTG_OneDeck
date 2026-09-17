@@ -14,3 +14,6 @@ Snapshots are the boundary for undo and redo. Restoring an older snapshot backfi
 
 <!-- clause: ENG-STATE-005 -->
 The pinned Comprehensive Rules text is the authority for deterministic rules questions. A contract clause that lacks an executable replay remains guided or manual.
+
+<!-- clause: ENG-STATE-R6-001 -->
+For R6 interaction semantics, canonical state is evidence of what OneDeck has explicitly recorded, not permission to infer unrecorded Magic meaning from geometry or UI context. Human-confirmed Correction may repair canonical shared state when it disagrees with the table's agreed reality, subject to preserved identity, knowledge, persistence, and recovery invariants defined by lower engine contracts.

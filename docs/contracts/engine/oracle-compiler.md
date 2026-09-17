@@ -11,3 +11,6 @@ The compiler never mutates state, never invents a target, and never treats a war
 
 <!-- clause: ENG-COMP-004 -->
 The pinned CR file and local Oracle fixtures are the evidence sources. Live Scryfall access belongs to the online/periodic lane and is not an ordinary acceptance prerequisite.
+
+<!-- clause: ENG-COMP-R6-001 -->
+The Oracle compiler is one architecture choice for proving deterministic rules execution; it is not synonymous with R6 automation. OneDeck may also know a semantic fact through another explicit reviewed bounded capability, including deterministic event provenance or mechanic/card structure. Geometry, UI context, or incidental Oracle-string matching alone do not constitute knowledge. R6 does not require a general Oracle parser or card-specific effect wizard for arbitrary text.
