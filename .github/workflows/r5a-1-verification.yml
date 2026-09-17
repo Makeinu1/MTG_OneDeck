@@ -1,0 +1,44 @@
+name: R5a-1 verification
+
+on:
+  push:
+    branches:
+      - r5a-1-trigger-occurrence
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: R5a-1 targeted occurrence tests
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/triggerOccurrence.test.ts
+          src/engine/__tests__/triggerOccurrenceCollector.test.ts
+          src/engine/__tests__/cockpitTriggerOccurrence.test.ts
+          src/engine/__tests__/cockpitTriggerOccurrenceLifecycle.test.ts
+      - name: Existing Trigger and Cockpit regressions
+        run: >-
+          node node_modules/vitest/vitest.mjs run --project core
+          src/engine/__tests__/cockpitTriggers.test.ts
+          src/engine/__tests__/cockpitR31.test.ts
+          src/engine/__tests__/cockpitR31Lifecycle.test.ts
+          src/engine/__tests__/cockpitR4.test.ts
+          src/engine/__tests__/cockpitR4b.test.ts
+      - name: Types and build
+        run: npm run build
+      - name: Changed-file lint and broader domain checks
+        run: npm run check:fast -- --base origin/main --head HEAD
