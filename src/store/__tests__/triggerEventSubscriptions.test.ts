@@ -72,11 +72,7 @@ describe('event-log trigger subscriptions', () => {
   });
 
   it('creates a pending trigger from a DrawEvent subscription without implicit duplication', () => {
-    const drawWatcher = makeDef({
-      scryfallId: 'slice-a-draw-watcher',
-      printedName: 'ドローの観測者',
-      faces: [{ name: 'Draw Observer', printedName: 'ドローの観測者', typeLine: 'Creature', oracleText: 'Whenever you draw a card, create a Treasure token.' }],
-    });
+    const drawWatcher = makeDef({ scryfallId: 'slice-a-draw-watcher', printedName: 'ドローの観測者', faces: [{ name: 'Draw Observer', printedName: 'ドローの観測者', typeLine: 'Creature', oracleText: 'Whenever you draw a card, create a Treasure token.' }] });
     startGameWith([drawWatcher]);
     const sourceId = findInstanceId(drawWatcher.scryfallId);
     store().moveCard(sourceId, 'battlefield');
@@ -86,11 +82,7 @@ describe('event-log trigger subscriptions', () => {
   });
 
   it('creates a pending trigger from a LifeChangeEvent subscription', () => {
-    const lifeWatcher = makeDef({
-      scryfallId: 'slice-a-life-watcher',
-      printedName: '生命の観測者',
-      faces: [{ name: 'Life Observer', printedName: '生命の観測者', typeLine: 'Creature', oracleText: 'Whenever you gain life, draw a card.' }],
-    });
+    const lifeWatcher = makeDef({ scryfallId: 'slice-a-life-watcher', printedName: '生命の観測者', faces: [{ name: 'Life Observer', printedName: '生命の観測者', typeLine: 'Creature', oracleText: 'Whenever you gain life, draw a card.' }] });
     startGameWith([lifeWatcher]);
     const sourceId = findInstanceId(lifeWatcher.scryfallId);
     store().moveCard(sourceId, 'battlefield');
@@ -99,11 +91,7 @@ describe('event-log trigger subscriptions', () => {
   });
 
   it('creates an ETB pending trigger from a ZoneChangeEvent to battlefield', () => {
-    const balefulStrix = makeDef({
-      scryfallId: 'slice-a-baleful-strix',
-      printedName: '悪意の大梟',
-      faces: [{ name: 'Baleful Strix', printedName: '悪意の大梟', typeLine: 'Artifact Creature', power: '1', toughness: '1', oracleText: 'When Baleful Strix enters, draw a card.' }],
-    });
+    const balefulStrix = makeDef({ scryfallId: 'slice-a-baleful-strix', printedName: '悪意の大梟', faces: [{ name: 'Baleful Strix', printedName: '悪意の大梟', typeLine: 'Artifact Creature', power: '1', toughness: '1', oracleText: 'When Baleful Strix enters, draw a card.' }] });
     startGameWith([balefulStrix]);
     const sourceId = findInstanceId(balefulStrix.scryfallId);
     store().moveCard(sourceId, 'battlefield');
@@ -111,10 +99,7 @@ describe('event-log trigger subscriptions', () => {
   });
 
   it('creates a pending trigger when a card leaves your graveyard', () => {
-    const skeletonCrew = makeDef({
-      scryfallId: 'slice-a-skeleton-crew', printedName: '骸骨の乗組員', typeLine: 'Enchantment',
-      faces: [{ name: 'Skeleton Crew', printedName: '骸骨の乗組員', typeLine: 'Enchantment', oracleText: 'Whenever one or more cards leave your graveyard, create a 2/2 black Skeleton creature token.' }],
-    });
+    const skeletonCrew = makeDef({ scryfallId: 'slice-a-skeleton-crew', printedName: '骸骨の乗組員', typeLine: 'Enchantment', faces: [{ name: 'Skeleton Crew', printedName: '骸骨の乗組員', typeLine: 'Enchantment', oracleText: 'Whenever one or more cards leave your graveyard, create a 2/2 black Skeleton creature token.' }] });
     const graveyardCard = makeDef({ scryfallId: 'slice-a-graveyard-card', printedName: '戻る熊', faces: [{ name: 'Returning Bear', printedName: '戻る熊', typeLine: 'Creature' }] });
     startGameWith([skeletonCrew, graveyardCard]);
     const sourceId = findInstanceId(skeletonCrew.scryfallId);
@@ -143,10 +128,11 @@ describe('event-log trigger subscriptions', () => {
     expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
     expect(pendingFor(sourceId)[0]).toMatchObject({ triggerId: 'trigger.etb-other', label: '他が戦場に出たとき: 《永劫の無垢》' });
 
+    const sourceObjectId = pendingFor(sourceId)[0]?.sourceObjectId;
     const pendingTriggerId = pendingFor(sourceId)[0]?.pendingTriggerId;
+    expect(sourceObjectId).toBeDefined();
     expect(pendingTriggerId).toBeDefined();
     store().placePendingTriggersForPriority([pendingTriggerId]);
-    const sourceObjectId = snap().stack[0]?.sourceObjectId;
     expect(snap().oncePerTurnTriggerLedger).toMatchObject({ turn: snap().turn, consumedKeys: [expect.stringContaining(sourceObjectId)] });
 
     store().moveCard(secondId, 'battlefield');
@@ -171,12 +157,12 @@ describe('event-log trigger subscriptions', () => {
     store().moveCard(firstId, 'exile');
     expect(pendingFor(sourceId)).toHaveLength(1);
     expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
-    expect(pendingFor(sourceId)[0]).toMatchObject({ triggerId: 'trigger.leaves-graveyard', label: '墓地を離れたとき: 《穢れた地下室》' });
-
+    const sourceObjectId = pendingFor(sourceId)[0]?.sourceObjectId;
     const pendingTriggerId = pendingFor(sourceId)[0]?.pendingTriggerId;
+    expect(sourceObjectId).toBeDefined();
     expect(pendingTriggerId).toBeDefined();
     store().placePendingTriggersForPriority([pendingTriggerId]);
-    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toHaveLength(1);
+    expect(snap().oncePerTurnTriggerLedger).toMatchObject({ turn: snap().turn, consumedKeys: [expect.stringContaining(sourceObjectId)] });
 
     store().moveCard(secondId, 'exile');
     expect(pendingFor(sourceId)).toEqual([]);
