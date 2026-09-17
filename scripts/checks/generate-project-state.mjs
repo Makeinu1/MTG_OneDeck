@@ -73,13 +73,16 @@ export function renderProjectState({ index, capabilities }) {
           '',
           `Traceability: ${decision.traceabilityRefs.map(mdCode).join(', ') || '—'}`,
           `Acceptance: ${decision.acceptanceRefs.map(mdCode).join(', ') || '—'}`,
+          ...(decision.ownerDecisionRef ? [`Owner decision: ${mdCode(decision.ownerDecisionRef)}`] : []),
           '',
           `Next: ${decision.nextAction}`,
           '',
         ])
       : ['None.', '']),
     '## Owner decisions', '',
-    ...index.ownerDecisions.map((decision) => `- ${mdCode(decision.id)} — ${decision.status}: ${decision.decision} — ${decision.summary}`), '',
+    ...index.ownerDecisions.map((decision) => decision.status === 'RESOLVED'
+      ? `- ${mdCode(decision.id)} — ${decision.status}: ${decision.decision} — ${decision.summary}`
+      : `- ${mdCode(decision.id)} — ${decision.status}: ${decision.summary}`), '',
     '## Prohibited scope', '',
     ...index.program.prohibitedScope.map((item) => `- ${item}`), '',
     '## Freshness', '',
