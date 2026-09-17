@@ -9,7 +9,7 @@
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Trigger memory authority and constitutional invariant 12"}],
-  "implementationRefs": [{"path":"src/engine/cockpitTriggersCore.ts","locator":"blockingPublicTableTriggers"},{"path":"src/engine/cockpitTable.ts","locator":"progression guards"}],
+  "implementationRefs": [{"path":"src/engine/cockpitTriggersCore.ts","locator":"blockingPublicTableTriggers"},{"path":"src/engine/cockpitTable.ts","locator":"blockingPublicTableTriggers"}],
   "verificationRefs": [],
   "rationale": "Current code explicitly treats actionable and manual-ruling public trigger candidates as progression blockers, while the active upper contract says Trigger memory must not steal foreground authority or globally gate normal progress.",
   "nextAction": "Keep this conflict visible. Repair it only in selected product work under the active Constitution, not in M1.",
