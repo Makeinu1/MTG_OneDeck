@@ -17,11 +17,11 @@
     "productionImplementation": ["src/engine", "src/online"]
   },
   "program": {
-    "completedMilestones": ["M0 — Constitution / Truth"],
-    "activeMilestone": "M1 — Canonical Project State",
-    "nextGate": "M1-COLD-RESTART",
-    "nextWork": "Pass project-state integrity checks and the repo-only Cold Restart Acceptance, then merge M1 without gameplay behavior changes.",
-    "prohibitedScope": ["R6 implementation", "gameplay semantic changes", "R4b/R5 redesign", "Constitution changes", "M2-M6 implementation"]
+    "completedMilestones": ["M0 — Constitution / Truth", "M1 — Canonical Project State"],
+    "activeMilestone": "M2 — Contract Architecture",
+    "nextGate": "M2-PLAN",
+    "nextWork": "Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.",
+    "prohibitedScope": ["R6 implementation", "gameplay semantic changes", "R4b/R5 redesign", "casual Constitution changes", "M3-M6 implementation"]
   },
   "capabilities": [
     {"id":"CR-01","path":"docs/project-state/capabilities/manual-resolution.json"},

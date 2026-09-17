@@ -55,7 +55,7 @@ export function renderProjectState({ index, capabilities }) {
     ...(lifecycle.length ? lifecycle.map((item) => `- ${item.id}: ${item.lifecycle} — ${item.title}`) : ['- No DEPRECATED or RETIRED capability entries are recorded at this baseline.']), '',
     '## Owner decisions', '',
     ...index.ownerDecisions.map((decision) => `- ${mdCode(decision.id)} — ${decision.status}: ${decision.decision} — ${decision.summary}`), '',
-    '## M1 prohibited scope', '',
+    '## Prohibited scope', '',
     ...index.program.prohibitedScope.map((item) => `- ${item}`), '',
     '## Freshness', '',
     `Semantic watched roots: ${index.baseline.watchedRoots.map(mdCode).join(', ')}.`,
