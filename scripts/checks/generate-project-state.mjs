@@ -62,7 +62,7 @@ export function renderProjectState({ index, capabilities }) {
     'Run `node scripts/checks/check-project-state.mjs`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.', '',
     `Cold Restart Acceptance: ${mdCode(index.coldRestartAcceptance)}`, ''
   ];
-  return `${lines.join('\n')}\n`;
+  return lines.join('\n');
 }
 
 function cli() {
