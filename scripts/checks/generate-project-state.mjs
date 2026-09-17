@@ -36,6 +36,7 @@ export function renderProjectState({ index, capabilities }) {
     `- Traceability: ${mdCode(index.authorities.traceabilityRegistry)}`,
     `- Acceptance registry: ${mdCode(index.authorities.acceptanceRegistry)}`,
     `- Production implementation roots: ${index.authorities.productionImplementation.map(mdCode).join(', ')}`,
+    `- Production routing map: ${mdCode(index.roles.productionImplementationMap)}`,
     `- NOW authority: ${mdCode(index.roles.nowAuthority)}`,
     `- Roadmap / provenance / history: ${mdCode(index.roles.roadmapHistory)}`, '',
     'Issues, pull requests and CI are evidence/work surfaces. They are not canonical NOW and do not independently establish semantic correctness.', '',
