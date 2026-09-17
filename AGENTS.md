@@ -6,6 +6,11 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
 体験品質は [`docs/product-requirements.md`](docs/product-requirements.md) を正本とする。
 作業は文書の手続ではなく、そこに記された成果を安全に届けるために行う。
 
+現在の project NOW、監査済み MATCH/GAP/CONFLICT、active milestone、next gate、
+prohibited scope は [`docs/project-state/index.json`](docs/project-state/index.json) を正本とし、
+[`docs/generated/project-state.md`](docs/generated/project-state.md) を restart view とする。
+Issues、PR、CI、roadmap/history はそれ単独で NOW を決めない。
+
 ## 最小十分の原則
 
 - 現在の要求を満たす最小の方法で終える。必要性を説明できない設計、抽象化、設定層、
@@ -38,14 +43,18 @@ React + TypeScript + Vite の SPA である。プロダクトの WHY/WHAT、プ�
 1. codeへ触る前に、ユーザーが実際に欲しいもの、今回のscope、明示的な非目標、
    完了条件を数行で言い直す。表面的な症状を直してから意図を推測しない。
 2. 最小planに `Goal / Non-goals / Acceptance criteria / What stays untouched` を含める。
+   current milestone、既知 conflict/gap、next gate や禁止範囲が作業判断に関係する場合は、
+   まず `docs/generated/project-state.md` と必要な canonical Project State を読む。その上で
    `AGENTS.md`、最小の該当契約、関連code/testを読み、CR裁定や真の曖昧がある場合だけ
-   `docs/judge-protocol.md`や台帳を追加で読む。
+   `docs/judge-protocol.md`やroadmap/historyを追加で読む。roadmap/historyから NOW を逆算しない。
 3. 一つのroot causeへ一つの修正を優先する。patchの積み上げ、旧実装を残す第二実装、
    rare caseの先回り、将来用framework、多数の無関係file変更を始めたら停止し、planを縮める。
 4. UI変更は同じbrowser sessionで375×812、812×375、1440×900とconsole error 0を
    確認する。根拠のない自動化を表示せず、未対応の複合効果はguided/manualと明示する。
-5. 中断後は`git status`、`HEAD`、必要なCI状態から再構成する。過去の会話や一時fileを
-   状態の正本にしない。
+5. 中断後は `docs/generated/project-state.md` / `docs/project-state/index.json` で current NOW と
+   stale 条件を確認してから、`git status`、`HEAD`、必要なCI状態で作業候補を再構成する。
+   feature branch上の Project State は merge 前の candidate であり、mainへ入った確定NOWとして
+   扱わない。過去の会話や一時file、Issue、PR、CIだけを状態の正本にしない。
 
 ## テスト
 
