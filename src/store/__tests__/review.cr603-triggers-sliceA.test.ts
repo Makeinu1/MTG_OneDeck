@@ -1,7 +1,7 @@
 // Reviewer-owned adversarial tests for cr-603-triggers-apnap Slice A (batch3-1a):
 // event-driven trigger subscription leaf (Draw/LifeChange/Damage/ZoneChange) +
-// once-per-turn gate (CR 603.2h). 実装エージェント(Codex)は本ファイルを変更しない
-// こと。落ちたら実装側を直す。
+// once-per-turn gate (CR 603.2h). R5a-1 deliberately moves review-only
+// restriction consumption from candidate detection to occurrence materialization.
 //
 // CR grounding:
 // - CR 603.1/603.2: trigger condition + automatic trigger on matching event/game state.
@@ -61,7 +61,7 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     });
   });
 
-  it('once-per-turn gate resets after the pending trigger is handled and the next turn begins (CR 603.2h)', () => {
+  it('once-per-turn gate resets after a reviewed occurrence is placed and the next turn begins (CR 603.2h)', () => {
     const source = makeDef({
       scryfallId: 'r-cr603-once-reset',
       faces: [
@@ -89,26 +89,25 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     const filler2Id = findInstanceId(filler2.scryfallId);
     store().moveCard(sourceId, 'battlefield');
 
+    // Review-only detection is not yet an occurrence and must not consume the gate.
     store().moveCard(filler1Id, 'battlefield');
     expect(pendingFor(sourceId)).toHaveLength(1);
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
 
-    // Second qualifying ETB in the SAME turn: gate suppresses it.
-    store().moveCard(filler2Id, 'battlefield');
-    expect(pendingFor(sourceId)).toHaveLength(1);
-
-    // UX-TRIGGER (2026-07-18, unreviewed state②): ready pending triggers may no
-    // longer leak across a turn transition. Place and resolve the mandatory
-    // trigger before testing the once-per-turn ledger reset itself.
+    // Placement materializes the reviewed occurrence and consumes the restriction.
     const pendingTriggerId = pendingFor(sourceId)[0]?.pendingTriggerId;
     expect(pendingTriggerId).toBeDefined();
     store().placePendingTriggersForPriority([pendingTriggerId]);
-    store().resolveTop();
+    expect(pendingFor(sourceId)).toEqual([]);
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toHaveLength(1);
+
+    // A later qualifying event in the SAME turn is now suppressed by the occurrence gate.
+    store().moveCard(filler2Id, 'battlefield');
     expect(pendingFor(sourceId)).toEqual([]);
 
+    store().resolveTop();
     const turnBefore = snap().turn;
     store().nextTurn();
-    // nextTurn 是正(2026-07-21 判定者裁定): 手札超過時は cleanup で止まる(CR 514.1)。
-    // cleanup-discard を解決してからターン進行を検証する。
     if (snap().phase === 'cleanup') {
       const choice = snap().pendingRuleChoices.find((c) => c.kind === 'cleanup-discard');
       if (choice) {
@@ -120,14 +119,13 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     expect(snap().turn).toBeGreaterThan(turnBefore);
     expect(snap().oncePerTurnTriggerLedger).toEqual({ turn: snap().turn, consumedKeys: [] });
 
-    // Re-entry to trigger a fresh qualifying ETB in the new turn: must fire again,
-    // not stay suppressed by a stale ledger from the prior turn.
+    // A fresh event in the new turn can become a fresh review candidate again.
     store().moveCard(filler1Id, 'exile');
     store().moveCard(filler1Id, 'battlefield');
     expect(pendingFor(sourceId)).toHaveLength(1);
   });
 
-  it('CR 400.7: blinking the once-per-turn source resets its ledger key (new object identity, not a bug)', () => {
+  it('CR 400.7: blinking the once-per-turn source gives a fresh occurrence restriction key', () => {
     const source = makeDef({
       scryfallId: 'r-cr603-blink-source',
       faces: [
@@ -151,20 +149,27 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     store().moveCard(sourceId, 'battlefield');
     store().moveCard(fillerId, 'battlefield');
     expect(pendingFor(sourceId)).toHaveLength(1);
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
 
-    // Consume the once-per-turn gate again this turn: suppressed.
+    // Materialize the old incarnation's occurrence before testing suppression.
+    const firstPendingId = pendingFor(sourceId)[0]?.pendingTriggerId;
+    expect(firstPendingId).toBeDefined();
+    store().placePendingTriggersForPriority([firstPendingId]);
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toHaveLength(1);
+
     store().moveCard(fillerId, 'exile');
     store().moveCard(fillerId, 'battlefield');
-    expect(pendingFor(sourceId)).toHaveLength(1);
+    expect(pendingFor(sourceId)).toEqual([]);
 
-    // Blink the SOURCE within the same turn: new object identity (CR 400.7).
+    // Blink the SOURCE within the same turn: CR 400.7 gives a new sourceObjectId.
     store().moveCard(sourceId, 'exile');
     store().moveCard(sourceId, 'battlefield');
-
     store().moveCard(fillerId, 'exile');
     store().moveCard(fillerId, 'battlefield');
-    // The blinked incarnation's once-per-turn gate is fresh: it fires again this same turn.
-    expect(pendingFor(sourceId).length).toBeGreaterThan(1);
+
+    // The new incarnation is not suppressed by the old incarnation's consumed key.
+    expect(pendingFor(sourceId)).toHaveLength(1);
+    expect(pendingFor(sourceId)[0]?.sourceObjectId).toBeDefined();
   });
 
   it('ETB self-exclusion: a creature does not trigger its own "another creature enters" ability', () => {
@@ -180,9 +185,7 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     });
     startGameWith([source]);
     const sourceId = findInstanceId(source.scryfallId);
-
     store().moveCard(sourceId, 'battlefield');
-
     expect(pendingFor(sourceId)).toHaveLength(0);
   });
 
@@ -205,9 +208,7 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     const watcherId = findInstanceId(watcher.scryfallId);
     const otherId = findInstanceId(otherCreature.scryfallId);
     store().moveCard(watcherId, 'battlefield');
-
     store().moveCard(otherId, 'battlefield');
-
     expect(pendingFor(watcherId)).toHaveLength(1);
   });
 
@@ -231,9 +232,7 @@ describe('cr-603-triggers-apnap Slice A: event subscription leaf + once-per-turn
     const creatureId = findInstanceId(creature.scryfallId);
     store().moveCard(watcherId, 'battlefield');
     store().moveCard(creatureId, 'battlefield');
-
     store().dispatch({ type: 'markDamage', cardId: creatureId, amount: 1 });
-
     expect(pendingFor(watcherId)).toHaveLength(0);
   });
 });
