@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-06",
+  "slug": "pregame-turn-zero",
+  "title": "Pregame manual-first Turn Zero checkpoint",
+  "semanticVerdict": "GAP",
+  "deliveryState": "UNPLANNED",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Pregame / Turn Zero"}],
+  "implementationRefs": [{"path":"src/online/pregame/operations.ts"},{"path":"src/online/pregame/projection.ts"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"start control"}],
+  "verificationRefs": [{"path":"src/online/pregame/__tests__/pregameLifecycleV1.test.ts"}],
+  "rationale": "Pregame lifecycle and readiness exist, but the required visible manual-first checkpoint for game-start operations before Turn 1 was not identified.",
+  "nextAction": "Keep the gap explicit; add dedicated acceptance before future implementation.",
+  "ownerDecisionRefs": []
+}

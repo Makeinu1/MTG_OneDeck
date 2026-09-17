@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-10",
+  "slug": "disconnect-elimination",
+  "title": "Disconnect/presence loss is not elimination",
+  "semanticVerdict": "MATCH",
+  "deliveryState": "IMPLEMENTED",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Disconnection and elimination"}],
+  "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"presence / kicked"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"explicit eliminate control"}],
+  "verificationRefs": [],
+  "rationale": "Presence, kicked state and elimination are represented separately; disconnection does not itself eliminate a player.",
+  "nextAction": "Preserve the separation and keep regression evidence current.",
+  "ownerDecisionRefs": []
+}

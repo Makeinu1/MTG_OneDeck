@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-12",
+  "slug": "actor-owned-undo",
+  "title": "Normal Undo is actor-owned",
+  "semanticVerdict": "CONFLICT",
+  "deliveryState": "IMPLEMENTED",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Undo"}],
+  "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"authorizeCockpitOperation"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"snapshot undo"},{"path":"src/online/protocol/variableCommand.ts","locator":"handleOnlineVariableSharedUndoIntentV2 / checkpointFor"},{"path":"src/engine/core/closure/applyCommandV1.ts","locator":"coreUndoAuthorizedPlayerV1"}],
+  "verificationRefs": [{"path":"src/online/protocol/__tests__/sharedUndoV2.test.ts"}],
+  "rationale": "The legacy Cockpit path authorizes eligible Undo by current master, and the public online path authorizes shared Undo by current/checkpoint steward. Neither audited path binds the one-step rollback to the exact actor who performed the reverted operation as required by the active Constitution.",
+  "nextAction": "Keep this conflict visible. Future repair must bind rollback authority/history to the exact actor while retaining knowledge-safety.",
+  "ownerDecisionRefs": []
+}

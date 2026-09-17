@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-03",
+  "slug": "trigger-occurrence",
+  "title": "Trigger candidate-to-occurrence boundary",
+  "semanticVerdict": "MATCH",
+  "deliveryState": "IMPLEMENTED",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Trigger occurrence / Trigger memory"}],
+  "implementationRefs": [{"path":"src/engine/cockpitTriggerOccurrence.ts"},{"path":"src/engine/cockpitTriggers.ts"}],
+  "verificationRefs": [],
+  "rationale": "The current engine contains an explicit candidate-to-occurrence materialization boundary.",
+  "nextAction": "Preserve the boundary and add targeted verification when the trigger-memory lane is selected.",
+  "ownerDecisionRefs": []
+}

@@ -2,6 +2,7 @@
 
 Read only the authority that matches the change:
 
+- [`generated/project-state.md`](generated/project-state.md) — generated **NOW / restart** view. Its canonical machine source is [`project-state/index.json`](project-state/index.json) plus indexed capability files.
 - [`product-requirements.md`](product-requirements.md) — product WHY/WHAT, player outcomes, shared-table UX, and Display A/B roles.
 - [`contracts/ux-constitution.md`](contracts/ux-constitution.md) — active upper interaction contract: human authority, automation boundary, lifecycle, HOLD, Undo, room ownership and R6 UX invariants.
 - [`../AGENTS.md`](../AGENTS.md) and [`../.agents/skills/mtg-onedeck-development/SKILL.md`](../.agents/skills/mtg-onedeck-development/SKILL.md) — outcome-first development, testing, and review rules.
@@ -11,10 +12,10 @@ Read only the authority that matches the change:
 - [`acceptance/scenarios.json`](acceptance/scenarios.json) — executable and manual acceptance registry.
 - [`generated/engine-api.md`](generated/engine-api.md) — generated TypeScript export index.
 - [`decisions/`](decisions/) — rationale for a contract choice.
-- [`../research/cr-grounding/cr-backbone-ledger.json`](../research/cr-grounding/cr-backbone-ledger.json) — NOW and roadmap state.
+- [`../research/cr-grounding/cr-backbone-ledger.json`](../research/cr-grounding/cr-backbone-ledger.json) — extended roadmap, CR program provenance and historical planning; **not current NOW authority**.
 - [`../research/archive/document-reset-2026-08/conflict-register.json`](../research/archive/document-reset-2026-08/conflict-register.json) — unresolved and resolved reset findings.
 
-The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md`](decisions/DOC-GOV-RESET-2026-08.md); current meaning lives in the active contracts listed above.
+The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md`](decisions/DOC-GOV-RESET-2026-08.md); current meaning lives in the active contracts listed above. Current audited project reality and next reconstruction gate live in Project State.
 
 ## Current solo and shared-table UI
 

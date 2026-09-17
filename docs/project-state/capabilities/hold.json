@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-05",
+  "slug": "hold",
+  "title": "HOLD exact interaction-context identity, staleness and nesting",
+  "semanticVerdict": "GAP",
+  "deliveryState": "UNPLANNED",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"HOLD"}],
+  "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"holds / grant / return / reclaim"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"control handling"}],
+  "verificationRefs": [],
+  "rationale": "Seat-level hold and authority transfer exist, but exact initiating interaction identity, context-staleness binding, nested HOLD structure and nearest-valid-parent unwind were not found.",
+  "nextAction": "Record the gap only. Do not redesign HOLD during M1.",
+  "ownerDecisionRefs": []
+}
