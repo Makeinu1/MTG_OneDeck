@@ -1,10 +1,10 @@
 # Project Goal and Milestones
 
-> **[HISTORICAL・2026-07-20]** 本文書の「destination = CR 完全性(漸近線)・substrate-first の到達法」
-> (ユーザー裁定 2026-06-30)は現在も有効な理念の正本。ただし §以下のマイルストーンマップは
-> 2026-06-30 時点の snapshot であり、以後の実進捗(ACT トラック・多人数基盤 §34.42-45・UX 群)を
-> 反映していない。**現在値の正本 = 台帳 `cr-backbone-ledger.json`(plannedSequence)**。
-> ロードマップの直近レビュー = `research/strategy/strategic-review-2026-07-20.md` §5。
+> **[HISTORICAL・2026-07-20; authority updated 2026-09-17]** 本文書の「destination = CR 完全性(漸近線)・substrate-first の到達法」
+> (ユーザー裁定 2026-06-30)は理念・歴史的設計根拠として保持する。ただし以下のマイルストーンマップ、Current verdict、Immediate next action、Session rule は
+> 過去時点の snapshot であり、**現在の project NOW / active milestone / next gate / next work を選定しない**。
+> 現在値の正本は `docs/project-state/index.json`。`cr-backbone-ledger.json` は `research/cr-grounding/AUTHORITY.md` の下で roadmap/provenance/history としてのみ扱う。
+> ロードマップの歴史的レビュー = `research/strategy/strategic-review-2026-07-20.md` §5。
 
 最終更新: 2026-06-28
 固定CR: Magic: The Gathering Comprehensive Rules, effective 2026-06-19
@@ -26,7 +26,7 @@
 - **leaf/detection と per-deck patch は後回し**。個別カードの検出配線や4デッキ固有の穴埋めは、substrate が揃えば zero-rework で後から差し込める。完全性へ最短で近づくのは「再利用可能な土台 → 個別検出」の順。
 - **未実装領域は消さない**。`S-* carry` / `scope-boundary` / `manual` として見える場所に置く。`PASS` は「未実装がない」ではなく「その範囲と境界がCR根拠付きで検査できる」という意味でだけ使う。完全性は destination だが、各時点の scorecard は「どこまで来たか」を境界付きで正直に表示する。
 
-## Current verdict
+## Current verdict（歴史的snapshot）
 
 最終更新: 2026-06-30
 
@@ -38,7 +38,7 @@
 - **Q5 Phase 1 = S-CHOICE/S-TURN 完了**(commit c6dcb7c): 汎用 `pendingRuleChoices` substrate。903.9a commander choice と 704.5j legend rule が同一 choice substrate で説明できる。
 - CR 2026-06-19 固定、CR refs、golden cases、traceability、overlay は版管理下で生きている。
 
-現在地: **Q5 Phase 2 = S-EVENTS/PRIORITY 完了・shipped**(commit baa0b05・2026-06-30・CI 緑 Pages 200)。priority fixed-point loop と `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering をフル実装した(`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer)。**次 = S-EVENTS / MANA**(CR 605.1b triggered mana ability の no-stack transaction。設計正本 = `mana-ability-substrate.md` R-FREEZE-3)。
+当時の現在地: **Q5 Phase 2 = S-EVENTS/PRIORITY 完了・shipped**(commit baa0b05・2026-06-30・CI 緑 Pages 200)。priority fixed-point loop と `PendingTrigger.stackPlacementBucket` substrate + bucket-aware ordering をフル実装した(`AbilityTriggeredEvent` 検出 observer は C-GRAMMAR へ defer)。当時の次 = S-EVENTS / MANA(CR 605.1b triggered mana ability の no-stack transaction。設計正本 = `mana-ability-substrate.md` R-FREEZE-3)。
 
 ## Non-negotiable invariant
 
@@ -51,7 +51,7 @@
 
 この4点のどれかを欠く実装は、短期的に動いても正しいエンジンへ接続できないため差し戻す。
 
-## Milestone map
+## Milestone map（歴史的snapshot）
 
 | Milestone | Goal | Owner | Current status | Exit criteria |
 |---|---|---|---|---|
@@ -68,7 +68,9 @@
 | S-ZONES / S-LAYERS | 400.7例外群とeffective snapshotを境界から実装対象へ移す | Codex | Not started | public-zone exception / LKI / layer-applied snapshot が個別testで固定される |
 | C-GRAMMAR | Oracle compiler の対応構文を増やす | Codex | Not started | compiler誤訳がGameStateを直接書かず、command列とundoで閉じる |
 
-## Immediate next action
+## Immediate next action（歴史的snapshot）
+
+以下は当時の次工程の記録であり、現在のproject next workではない。現在のnext workは `docs/project-state/index.json` を読む。
 
 S-SBA defeat-state = CR 704.5a(life≤0)/704.5b(空ライブラリから draw 企図)/704.5c(poison≥10)の敗北判定 substrate。slice2(§34.14・bf2c21d)で combat が player life を減らせるようになった今、**敗北検出が closing the win/lose loop の次の高レバレッジ**(life-loss・poison・将来の commander damage CR903.10 が全部この「player が負ける」機構に集まる)。サンドボックス哲学=defeat は advisory(警告・続行可)。
 
@@ -106,6 +108,8 @@ CR全文をアプリに実装するのではなく、CRを検査器にする。
 - `remainingBoundary` が空のまま部分合格を承認できる。
 - 実装案にCR refs、state invariant、実行可能golden/testのいずれかがない。
 
-## Session rule
+## Session rule（歴史的snapshot）
 
-1セッションは1マイルストーンに閉じる。次のマイルストーンは **S-SBA defeat-state**(CR 704.5a/b/c 敗北判定 substrate)であり、commander damage 敗北(CR903.10)・敗北 game 終了処理へは広げない。**最大リスク = サンドボックス哲学(ルールを強制しない)を破ること。敗北は advisory(警告/フラグ)に留め、ユーザーは続行できる。**
+以下は当時のsession制約であり、現在のactive milestone/gateを上書きしない。
+
+1セッションは1マイルストーンに閉じる。当時の次のマイルストーンは **S-SBA defeat-state**(CR 704.5a/b/c 敗北判定 substrate)であり、commander damage 敗北(CR903.10)・敗北 game 終了処理へは広げない。**最大リスク = サンドボックス哲学(ルールを強制しない)を破ること。敗北は advisory(警告/フラグ)に留め、ユーザーは続行できる。**
