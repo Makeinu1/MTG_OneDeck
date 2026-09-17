@@ -67,7 +67,7 @@ Current code explicitly treats actionable and manual-ruling public trigger candi
 
 Authority: `docs/contracts/ux-constitution.md :: Trigger memory authority and constitutional invariant 12`
 
-Implementation: `src/engine/cockpitTriggersCore.ts :: blockingPublicTableTriggers`<br>`src/engine/cockpitTable.ts :: progression guards`
+Implementation: `src/engine/cockpitTriggersCore.ts :: blockingPublicTableTriggers`<br>`src/engine/cockpitTable.ts :: blockingPublicTableTriggers`
 
 Next: Keep this conflict visible. Repair it only in selected product work under the active Constitution, not in M1.
 
