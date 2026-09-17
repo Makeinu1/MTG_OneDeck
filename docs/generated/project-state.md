@@ -102,6 +102,17 @@ Next: Keep the gap explicit; choose a preservation design only in later product 
 
 - No DEPRECATED or RETIRED capability entries are recorded at this baseline.
 
+## Pending decisions
+
+### CONFLICT-TURN-DRAW-001 — PENDING_JUDGMENT
+
+Turn-entry draw acceptance remains explicitly deferred in the active traceability/acceptance registries.
+
+Traceability: `ENG-TURN-003`
+Acceptance: `ACC-TURN-001`
+
+Next: Judge the pinned CR, active turn contract, acceptance wording and runtime evidence first; escalate to the Owner only if an irreducible contract, architecture or value choice remains.
+
 ## Owner decisions
 
 - `OD-001` — RESOLVED: B — Canonical root index + capability state files + generated current-state view.
