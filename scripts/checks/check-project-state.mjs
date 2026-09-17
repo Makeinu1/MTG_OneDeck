@@ -34,6 +34,7 @@ for (const root of index.baseline?.watchedRoots ?? []) requirePath(root, 'index 
 for (const [key, value] of Object.entries(index.authorities ?? {})) { if (Array.isArray(value)) value.forEach((path) => requirePath(path, `authority ${key}`)); else requirePath(value, `authority ${key}`); }
 requirePath(index.roles?.nowAuthority, 'roles.nowAuthority');
 requirePath(index.roles?.generatedHumanView, 'roles.generatedHumanView');
+requirePath(index.roles?.productionImplementationMap, 'roles.productionImplementationMap');
 requirePath(index.roles?.roadmapHistory, 'roles.roadmapHistory');
 requirePath(index.coldRestartAcceptance, 'coldRestartAcceptance');
 if (!nonEmpty(index.program?.activeMilestone) || !nonEmpty(index.program?.nextGate) || !nonEmpty(index.program?.nextWork)) err('index: active milestone, next gate and next work are required');
