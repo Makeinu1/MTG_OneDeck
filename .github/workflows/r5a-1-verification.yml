@@ -40,5 +40,11 @@ jobs:
           src/engine/__tests__/cockpitR4b.test.ts
       - name: Types and build
         run: npm run build
+      - name: Generate engine API for synchronization
+        run: node scripts/checks/generate-engine-api.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r5a-1-generated-engine-api
+          path: docs/generated/engine-api.md
       - name: Changed-file lint and broader domain checks
         run: npm run check:fast -- --base origin/main --head HEAD
