@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   verify:
@@ -40,18 +40,5 @@ jobs:
           src/engine/__tests__/cockpitR4b.test.ts
       - name: Types and build
         run: npm run build
-      - name: Synchronize generated engine API
-        if: github.event_name == 'push'
-        run: |
-          node scripts/checks/generate-engine-api.mjs
-          if ! git diff --quiet -- docs/generated/engine-api.md; then
-            git config user.name github-actions[bot]
-            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git add docs/generated/engine-api.md
-            git commit -m "docs(r5a-1): sync generated engine API"
-            git push origin HEAD:r5a-1-trigger-occurrence
-            echo "Generated API synchronized; a new verification run will validate the committed head."
-            exit 0
-          fi
       - name: Changed-file lint and broader domain checks
         run: npm run check:fast -- --base origin/main --head HEAD
