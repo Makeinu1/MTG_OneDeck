@@ -26,23 +26,23 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Capability state
 
-| ID | Capability | Semantic | Delivery | Lifecycle |
-| --- | --- | --- | --- | --- |
-| CR-01 | Manual Resolution first-class substrate | MATCH | IMPLEMENTED | ACTIVE |
-| CR-02 | Correction is distinct from normal game effect and Undo | MATCH | IMPLEMENTED | ACTIVE |
-| CR-03 | Trigger candidate-to-occurrence boundary | MATCH | IMPLEMENTED | ACTIVE |
-| CR-04 | Trigger Memory does not globally gate normal progress | CONFLICT | IMPLEMENTED | ACTIVE |
-| CR-05 | HOLD exact interaction-context identity, staleness and nesting | GAP | UNPLANNED | ACTIVE |
-| CR-06 | Pregame manual-first Turn Zero checkpoint | GAP | UNPLANNED | ACTIVE |
-| CR-07 | Normal / Full Control modes | GAP | UNPLANNED | ACTIVE |
-| CR-08 | Multiple combat phases/steps represented in one turn | GAP | UNPLANNED | ACTIVE |
-| CR-09 | Room Owner, operation authority and turn ownership are distinct | MATCH | IMPLEMENTED | ACTIVE |
-| CR-10 | Disconnect/presence loss is not elimination | MATCH | IMPLEMENTED | ACTIVE |
-| CR-11 | Eliminated-player objects preserve identity/history for recovery/inspection | GAP | UNPLANNED | ACTIVE |
-| CR-12 | Normal Undo is actor-owned | CONFLICT | IMPLEMENTED | ACTIVE |
-| CR-13 | Undo cannot erase later-learned knowledge | MATCH | IMPLEMENTED | ACTIVE |
-| CR-14 | Memo remains non-canonical human memory | UNKNOWN | UNKNOWN | ACTIVE |
-| CR-15 | Automation acts only on reviewed semantic capabilities (known) | UNKNOWN | UNKNOWN | ACTIVE |
+| ID | Capability | Requirement | Semantic | Delivery | Lifecycle |
+| --- | --- | --- | --- | --- | --- |
+| CR-01 | Manual Resolution first-class substrate | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-02 | Correction is distinct from normal game effect and Undo | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-03 | Trigger candidate-to-occurrence boundary | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-04 | Trigger Memory does not globally gate normal progress | REQUIRED | CONFLICT | IMPLEMENTED | ACTIVE |
+| CR-05 | HOLD exact interaction-context identity, staleness and nesting | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-06 | Pregame manual-first Turn Zero checkpoint | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-07 | Normal / Full Control modes | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-08 | Multiple combat phases/steps represented in one turn | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-09 | Room Owner, operation authority and turn ownership are distinct | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-10 | Disconnect/presence loss is not elimination | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-11 | Eliminated-player objects preserve identity/history for recovery/inspection | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-12 | Normal Undo is actor-owned | REQUIRED | CONFLICT | IMPLEMENTED | ACTIVE |
+| CR-13 | Undo cannot erase later-learned knowledge | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-14 | Memo remains non-canonical human memory | OPTIONAL | UNKNOWN | UNKNOWN | ACTIVE |
+| CR-15 | Automation acts only on reviewed semantic capabilities (known) | REQUIRED | UNKNOWN | UNKNOWN | ACTIVE |
 
 ## Explicit conflicts
 
