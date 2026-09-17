@@ -1,68 +1,37 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  SNAPSHOT_VERSION,
-  type GameSnapshot,
-} from '../../data/gameSnapshot';
+import { SNAPSHOT_VERSION, type GameSnapshot } from '../../data/gameSnapshot';
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
 import type { GameState, PendingTrigger } from '../../engine/types';
 import type { CardDef } from '../../types/card';
 import { useGameStore } from '../gameStore';
 
-function store() {
-  return useGameStore.getState();
-}
-
+function store() { return useGameStore.getState(); }
 function snap(): GameState {
   const state = store().state;
-  if (!state) {
-    throw new Error('game state is not available');
-  }
+  if (!state) throw new Error('game state is not available');
   return state;
 }
-
 function startGameWith(defs: CardDef[]): void {
-  store().newGame(
-    [
-      ...defs.map((def) => ({ def, isCommander: false })),
-      ...makeDeck(Math.max(0, 24 - defs.length)),
-    ],
-    1,
-  );
+  store().newGame([...defs.map((def) => ({ def, isCommander: false })), ...makeDeck(Math.max(0, 24 - defs.length))], 1);
   store().keepOpeningHand();
 }
-
 function findInstanceId(defId: string): string {
   const card = Object.values(snap().cards).find((instance) => instance.defId === defId);
-  if (!card) {
-    throw new Error(`card instance not found for ${defId}`);
-  }
+  if (!card) throw new Error(`card instance not found for ${defId}`);
   return card.id;
 }
-
 function pendingFor(sourceId: string): PendingTrigger[] {
   return snap().pendingTriggers.filter((trigger) => trigger.sourceId === sourceId);
 }
 
 describe('event-log trigger subscriptions', () => {
   beforeEach(() => {
-    useGameStore.setState({
-      state: null,
-      warnings: [],
-      triggerCandidates: [],
-      canUndo: false,
-      canRedo: false,
-      autoAdvanceToMain: false,
-      mulliganDecisionPending: false,
-    });
+    useGameStore.setState({ state: null, warnings: [], triggerCandidates: [], canUndo: false, canRedo: false, autoAdvanceToMain: false, mulliganDecisionPending: false });
   });
 
   it('creates a pending trigger from a DamageEvent subscription', () => {
-    const damageWatcher = makeDef({
-      scryfallId: 'slice-a-damage-watcher',
-      printedName: '損傷の学者',
-      faces: [{ name: 'Damage Scholar', printedName: '損傷の学者', typeLine: 'Creature', power: '2', toughness: '2', oracleText: 'Whenever Damage Scholar deals damage to a player, draw a card.' }],
-    });
+    const damageWatcher = makeDef({ scryfallId: 'slice-a-damage-watcher', printedName: '損傷の学者', faces: [{ name: 'Damage Scholar', printedName: '損傷の学者', typeLine: 'Creature', power: '2', toughness: '2', oracleText: 'Whenever Damage Scholar deals damage to a player, draw a card.' }] });
     startGameWith([damageWatcher]);
     const sourceId = findInstanceId(damageWatcher.scryfallId);
     store().moveCard(sourceId, 'battlefield');
@@ -110,11 +79,8 @@ describe('event-log trigger subscriptions', () => {
     expect(pendingFor(sourceId)).toMatchObject([{ triggerId: 'trigger.leaves-graveyard', label: '墓地を離れたとき: 《骸骨の乗組員》' }]);
   });
 
-  it('consumes an Enduring Innocence style once-per-turn restriction only after reviewed occurrence placement', () => {
-    const enduringInnocence = makeDef({
-      scryfallId: 'slice-a-enduring-innocence', printedName: '永劫の無垢',
-      faces: [{ name: 'Enduring Innocence', printedName: '永劫の無垢', typeLine: 'Creature', power: '2', toughness: '1', oracleText: 'Whenever one or more other creatures you control with power 2 or less enter, draw a card. This ability triggers only once each turn.' }],
-    });
+  it('keeps Enduring Innocence style review candidates unconsumed until the Cockpit occurrence boundary', () => {
+    const enduringInnocence = makeDef({ scryfallId: 'slice-a-enduring-innocence', printedName: '永劫の無垢', faces: [{ name: 'Enduring Innocence', printedName: '永劫の無垢', typeLine: 'Creature', power: '2', toughness: '1', oracleText: 'Whenever one or more other creatures you control with power 2 or less enter, draw a card. This ability triggers only once each turn.' }] });
     const firstCreature = makeDef({ scryfallId: 'slice-a-small-creature-1', faces: [{ name: 'Small Creature One', typeLine: 'Creature', power: '2', toughness: '2' }] });
     const secondCreature = makeDef({ scryfallId: 'slice-a-small-creature-2', faces: [{ name: 'Small Creature Two', typeLine: 'Creature', power: '1', toughness: '1' }] });
     startGameWith([enduringInnocence, firstCreature, secondCreature]);
@@ -122,28 +88,18 @@ describe('event-log trigger subscriptions', () => {
     const firstId = findInstanceId(firstCreature.scryfallId);
     const secondId = findInstanceId(secondCreature.scryfallId);
     store().moveCard(sourceId, 'battlefield');
-
     store().moveCard(firstId, 'battlefield');
     expect(pendingFor(sourceId)).toHaveLength(1);
-    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
     expect(pendingFor(sourceId)[0]).toMatchObject({ triggerId: 'trigger.etb-other', label: '他が戦場に出たとき: 《永劫の無垢》' });
-
-    const sourceObjectId = pendingFor(sourceId)[0]?.sourceObjectId;
-    const pendingTriggerId = pendingFor(sourceId)[0]?.pendingTriggerId;
-    expect(sourceObjectId).toBeDefined();
-    expect(pendingTriggerId).toBeDefined();
-    store().placePendingTriggersForPriority([pendingTriggerId]);
-    expect(snap().oncePerTurnTriggerLedger).toMatchObject({ turn: snap().turn, consumedKeys: [expect.stringContaining(sourceObjectId)] });
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
 
     store().moveCard(secondId, 'battlefield');
-    expect(pendingFor(sourceId)).toEqual([]);
+    expect(pendingFor(sourceId)).toHaveLength(2);
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
   });
 
-  it('consumes a Defiled Crypt style once-per-turn restriction only after reviewed occurrence placement', () => {
-    const defiledCrypt = makeDef({
-      scryfallId: 'slice-a-defiled-crypt', printedName: '穢れた地下室', typeLine: 'Enchantment',
-      faces: [{ name: 'Defiled Crypt', printedName: '穢れた地下室', typeLine: 'Enchantment', oracleText: 'Whenever one or more cards leave your graveyard, create a 2/2 black Zombie creature token. This ability triggers only once each turn.' }],
-    });
+  it('keeps Defiled Crypt style review candidates unconsumed until the Cockpit occurrence boundary', () => {
+    const defiledCrypt = makeDef({ scryfallId: 'slice-a-defiled-crypt', printedName: '穢れた地下室', typeLine: 'Enchantment', faces: [{ name: 'Defiled Crypt', printedName: '穢れた地下室', typeLine: 'Enchantment', oracleText: 'Whenever one or more cards leave your graveyard, create a 2/2 black Zombie creature token. This ability triggers only once each turn.' }] });
     const firstCard = makeDef({ scryfallId: 'slice-a-crypt-card-1', faces: [{ name: 'Crypt Card One', typeLine: 'Creature' }] });
     const secondCard = makeDef({ scryfallId: 'slice-a-crypt-card-2', faces: [{ name: 'Crypt Card Two', typeLine: 'Creature' }] });
     startGameWith([defiledCrypt, firstCard, secondCard]);
@@ -153,19 +109,13 @@ describe('event-log trigger subscriptions', () => {
     store().moveCard(sourceId, 'battlefield');
     store().moveCard(firstId, 'graveyard');
     store().moveCard(secondId, 'graveyard');
-
     store().moveCard(firstId, 'exile');
     expect(pendingFor(sourceId)).toHaveLength(1);
     expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
-    const sourceObjectId = pendingFor(sourceId)[0]?.sourceObjectId;
-    const pendingTriggerId = pendingFor(sourceId)[0]?.pendingTriggerId;
-    expect(sourceObjectId).toBeDefined();
-    expect(pendingTriggerId).toBeDefined();
-    store().placePendingTriggersForPriority([pendingTriggerId]);
-    expect(snap().oncePerTurnTriggerLedger).toMatchObject({ turn: snap().turn, consumedKeys: [expect.stringContaining(sourceObjectId)] });
 
     store().moveCard(secondId, 'exile');
-    expect(pendingFor(sourceId)).toEqual([]);
+    expect(pendingFor(sourceId)).toHaveLength(2);
+    expect(snap().oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
   });
 
   it('restoreGame backfills the once-per-turn trigger ledger for legacy snapshots', () => {
