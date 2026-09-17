@@ -57,6 +57,7 @@
   "roles": {
     "nowAuthority": "docs/project-state/index.json",
     "generatedHumanView": "docs/generated/project-state.md",
+    "productionImplementationMap": "docs/project-state/production-map.json",
     "roadmapHistory": "research/cr-grounding/cr-backbone-ledger.json",
     "issuesAndPullRequests": "work-and-history-evidence-only",
     "ci": "verification-evidence-only"
