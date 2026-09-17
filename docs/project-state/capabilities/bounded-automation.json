@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-15",
+  "slug": "bounded-automation",
+  "title": "Automation acts only on reviewed semantic capabilities (known)",
+  "semanticVerdict": "UNKNOWN",
+  "deliveryState": "UNKNOWN",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Bounded automation / known capability"}],
+  "implementationRefs": [{"path":"src/engine/cockpitTriggers.ts"},{"path":"src/engine/cockpitR31.ts"}],
+  "verificationRefs": [],
+  "rationale": "Bounded detectors/materializers and manual fallback exist in subsystems, but complete current capability coverage has not been reconstructed well enough for a global MATCH/GAP/CONFLICT verdict.",
+  "nextAction": "Keep UNKNOWN until explicit capability scope and evidence are mapped.",
+  "ownerDecisionRefs": []
+}

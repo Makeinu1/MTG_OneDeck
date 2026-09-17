@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mtg-onedeck.local/project-state/capability.schema.json",
+  "title": "MTG OneDeck Capability Project State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion","id","slug","title","semanticVerdict","deliveryState","lifecycle","requirementLevel","auditedAtCommit","authorityRefs","implementationRefs","verificationRefs","rationale","nextAction","ownerDecisionRefs"],
+  "properties": {
+    "schemaVersion": {"const":1},
+    "id": {"type":"string","pattern":"^CR-[0-9]{2}$"},
+    "slug": {"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "title": {"type":"string","minLength":1},
+    "semanticVerdict": {"enum":["UNKNOWN","MATCH","GAP","CONFLICT"]},
+    "deliveryState": {"enum":["UNKNOWN","UNPLANNED","PLANNED","ACTIVE_WORK","IMPLEMENTED","VERIFIED"]},
+    "lifecycle": {"enum":["ACTIVE","DEPRECATED","RETIRED"]},
+    "requirementLevel": {"enum":["REQUIRED","OPTIONAL"]},
+    "auditedAtCommit": {"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "authorityRefs": {"type":"array","items":{"$ref":"#/$defs/ref"}},
+    "implementationRefs": {"type":"array","items":{"$ref":"#/$defs/ref"}},
+    "verificationRefs": {"type":"array","items":{"$ref":"#/$defs/ref"}},
+    "rationale": {"type":"string","minLength":1},
+    "nextAction": {"type":"string","minLength":1},
+    "ownerDecisionRefs": {"type":"array","items":{"type":"string"}}
+  },
+  "$defs": {"ref":{"type":"object","additionalProperties":false,"required":["path"],"properties":{"path":{"type":"string","minLength":1},"locator":{"type":"string","minLength":1}}}}
+}

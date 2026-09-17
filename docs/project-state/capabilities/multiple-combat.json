@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-08",
+  "slug": "multiple-combat",
+  "title": "Multiple combat phases/steps represented in one turn",
+  "semanticVerdict": "GAP",
+  "deliveryState": "UNPLANNED",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "REQUIRED",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Multiple combat phases and steps"}],
+  "implementationRefs": [{"path":"src/engine/types.ts","locator":"Phase"},{"path":"src/engine/cockpitTable.ts","locator":"phase/combat representation"}],
+  "verificationRefs": [],
+  "rationale": "The audited cockpit turn representation exposes a single combat slot and no canonical repeated-combat structure was identified.",
+  "nextAction": "Keep the gap explicit; resolve outside M1.",
+  "ownerDecisionRefs": []
+}

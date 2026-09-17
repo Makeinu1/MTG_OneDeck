@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "status": "ACTIVE",
+  "baseline": {
+    "repository": "Makeinu1/MTG_OneDeck",
+    "branch": "main",
+    "commit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+    "auditedDate": "2026-09-17",
+    "watchedRoots": ["src", "docs/contracts", "docs/acceptance"]
+  },
+  "authorities": {
+    "productGoal": "docs/product-requirements.md",
+    "constitution": "docs/contracts/ux-constitution.md",
+    "contractRegistry": "docs/contracts/manifest.json",
+    "traceabilityRegistry": "docs/contracts/traceability.json",
+    "acceptanceRegistry": "docs/acceptance/scenarios.json",
+    "productionImplementation": ["src/engine", "src/online"]
+  },
+  "program": {
+    "completedMilestones": ["M0 — Constitution / Truth"],
+    "activeMilestone": "M1 — Canonical Project State",
+    "nextGate": "M1-COLD-RESTART",
+    "nextWork": "Pass project-state integrity checks and the repo-only Cold Restart Acceptance, then merge M1 without gameplay behavior changes.",
+    "prohibitedScope": ["R6 implementation", "gameplay semantic changes", "R4b/R5 redesign", "Constitution changes", "M2-M6 implementation"]
+  },
+  "capabilities": [
+    {"id":"CR-01","path":"docs/project-state/capabilities/manual-resolution.json"},
+    {"id":"CR-02","path":"docs/project-state/capabilities/correction.json"},
+    {"id":"CR-03","path":"docs/project-state/capabilities/trigger-occurrence.json"},
+    {"id":"CR-04","path":"docs/project-state/capabilities/trigger-memory-progression.json"},
+    {"id":"CR-05","path":"docs/project-state/capabilities/hold.json"},
+    {"id":"CR-06","path":"docs/project-state/capabilities/pregame-turn-zero.json"},
+    {"id":"CR-07","path":"docs/project-state/capabilities/control-mode.json"},
+    {"id":"CR-08","path":"docs/project-state/capabilities/multiple-combat.json"},
+    {"id":"CR-09","path":"docs/project-state/capabilities/authority-separation.json"},
+    {"id":"CR-10","path":"docs/project-state/capabilities/disconnect-elimination.json"},
+    {"id":"CR-11","path":"docs/project-state/capabilities/eliminated-object-preservation.json"},
+    {"id":"CR-12","path":"docs/project-state/capabilities/actor-owned-undo.json"},
+    {"id":"CR-13","path":"docs/project-state/capabilities/knowledge-safe-undo.json"},
+    {"id":"CR-14","path":"docs/project-state/capabilities/memo.json"},
+    {"id":"CR-15","path":"docs/project-state/capabilities/bounded-automation.json"}
+  ],
+  "ownerDecisions": [
+    {"id":"OD-001","status":"RESOLVED","decision":"B","summary":"Canonical root index + capability state files + generated current-state view.","decidedDate":"2026-09-17"},
+    {"id":"OD-002","status":"RESOLVED","decision":"2A","summary":"Project State owns NOW and next gate; the CR backbone ledger is roadmap/provenance/history.","decidedDate":"2026-09-17"}
+  ],
+  "roles": {
+    "nowAuthority": "docs/project-state/index.json",
+    "generatedHumanView": "docs/generated/project-state.md",
+    "roadmapHistory": "research/cr-grounding/cr-backbone-ledger.json",
+    "issuesAndPullRequests": "work-and-history-evidence-only",
+    "ci": "verification-evidence-only"
+  },
+  "coldRestartAcceptance": "docs/project-state/cold-restart-acceptance.md"
+}

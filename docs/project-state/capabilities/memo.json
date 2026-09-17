@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "CR-14",
+  "slug": "memo",
+  "title": "Memo remains non-canonical human memory",
+  "semanticVerdict": "UNKNOWN",
+  "deliveryState": "UNKNOWN",
+  "lifecycle": "ACTIVE",
+  "requirementLevel": "OPTIONAL",
+  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Memo"}],
+  "implementationRefs": [],
+  "verificationRefs": [],
+  "rationale": "Memo is optional under the Constitution. Its current implementation coverage was not established, and absence alone is not a GAP.",
+  "nextAction": "If Memo work is selected later, verify that it cannot become canonical rules truth.",
+  "ownerDecisionRefs": []
+}
