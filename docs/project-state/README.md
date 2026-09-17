@@ -63,21 +63,25 @@ Lifecycle normally moves `ACTIVE -> DEPRECATED -> RETIRED`.
 
 Project State is a **bounded audited state model**, not proof that every repository concern has already been enumerated. `index.json.coverage` states the current coverage claim, completeness inputs and known limitations. The capability index defines the currently audited capability set.
 
-The integrity checker fails closed when an active traceability clause marked `deferred-needs-decision` is not surfaced as a Project State pending decision. It also validates the current production routing map. This does not replace the broader Contract Architecture completeness work in M2.
+The integrity checker fails closed when an active traceability clause marked `deferred-needs-decision` is not surfaced as a Project State pending decision. It also checks the reverse relationship: surfaced acceptance evidence must remain deferred and verify one of the referenced deferred clauses. `OWNER_REQUIRED` cannot exist without an explicitly linked open Owner Decision. This does not replace the broader Contract Architecture completeness work in M2.
 
 ## Integrity and freshness policy
 
 `index.json.baseline.commit` is the commit against which the semantic snapshot was audited. `npm run check:project-state` fails when a descendant of that baseline changes any configured `watchedRoots` without refreshing Project State.
 
+The production routing snapshot has a separate `observedAtCommit` and `freshness.watchedPaths`. A routing/deployment change after that observation makes the production map stale even when the semantic audit itself has not changed.
+
 The checker also verifies:
 
-- referenced paths and machine-checkable locator anchors;
+- referenced paths;
+- exact/case-sensitive symbol-like locator anchors, while prose locators receive only a best-effort sanity check rather than a semantic proof;
 - baseline provenance against the declared `main` branch;
 - non-main candidates have incorporated the currently fetched `main`;
-- production routing-map references and provenance;
-- bounded coverage metadata and generated-view freshness.
+- production routing-map references, provenance and routing-path freshness;
+- required bounded-coverage inputs and generated-view freshness;
+- pending-decision/acceptance linkage and Owner escalation linkage.
 
-The JSON schemas in `docs/project-state/schema/` document the machine shape; the executable integrity gate is `scripts/checks/check-project-state.mjs`. The checker intentionally **does not infer semantic verdicts from code**. That belongs to later verification/audit milestones, not Project State integrity.
+The JSON schemas in `docs/project-state/schema/` document the machine shape; the executable integrity gate is `scripts/checks/check-project-state.mjs`. `index.json` schema version 2 is the M1.1 hardening shape; capability state files remain on their independent version-1 schema. The checker intentionally **does not infer semantic verdicts from code**. That belongs to later verification/audit milestones, not Project State integrity.
 
 While a PR is open, the merge gate must still rebase/re-audit against the then-current `main`; a branch that has not incorporated a newer main cannot prove that newer main did not invalidate the audit.
 
