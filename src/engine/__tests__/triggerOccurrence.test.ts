@@ -98,3 +98,68 @@ it('fails closed for ambiguous/unsupported detection and does not consume restri
   expect(initial.pendingTriggers).toEqual([]);
   expect(initial.oncePerTurnTriggerLedger.consumedKeys).toEqual([]);
 });
+
+it('accepts supported structured conditions and schedules while failing closed for unsupported next clauses', () => {
+  const supportedIf = classifyTriggerDetection(
+    pending({ condition: { kind: 'source-is-tapped' } }),
+    'When this creature enters the battlefield, if it is tapped, draw a card.',
+  );
+  expect(supportedIf.kind).toBe('deterministic');
+
+  const supportedNext = classifyTriggerDetection(
+    pending({ schedule: { kind: 'next-end-step', createdTurn: 1 } }),
+    'At the beginning of the next end step, draw a card.',
+  );
+  expect(supportedNext.kind).toBe('deterministic');
+
+  const unsupportedNext = classifyTriggerDetection(
+    pending({ pendingTriggerId: 'event-next:trigger.etb:card-1:0:line-0' }),
+    'At the beginning of the next end step, draw a card.',
+  );
+  expect(unsupportedNext).toMatchObject({
+    kind: 'review',
+    reason: 'trigger-condition-unsupported',
+  });
+});
+
+it('rejects a second restricted occurrence but resets a stale prior-turn ledger', () => {
+  const decision = classifyTriggerDetection(
+    pending(),
+    'Whenever you draw a card, this ability triggers only once each turn.',
+    '1|card-1:0|line-0|P1',
+  );
+  const state = initGame([], 0);
+  state.turn = 1;
+  state.oncePerTurnTriggerLedger = { turn: 1, consumedKeys: ['1|card-1:0|line-0|P1'] };
+  expect(() => materializeTriggerOccurrence(state, decision)).toThrow(
+    'この誘発はこのターンすでに発生済みです。',
+  );
+
+  const staleLedgerState = initGame([], 0);
+  staleLedgerState.turn = 2;
+  staleLedgerState.oncePerTurnTriggerLedger = {
+    turn: 1,
+    consumedKeys: ['1|card-1:0|line-0|P1'],
+  };
+  const nextDecision = classifyTriggerDetection(
+    pending({ pendingTriggerId: 'event-turn-2:trigger.etb:card-1:0:line-0' }),
+    'Whenever you draw a card, this ability triggers only once each turn.',
+    '2|card-1:0|line-0|P1',
+  );
+  const materialized = materializeTriggerOccurrence(staleLedgerState, nextDecision);
+  expect(materialized.state.oncePerTurnTriggerLedger).toEqual({
+    turn: 2,
+    consumedKeys: ['2|card-1:0|line-0|P1'],
+  });
+});
+
+it('materializes unrestricted occurrences without inventing a ledger entry', () => {
+  const initial = initGame([], 0);
+  const decision = classifyTriggerDetection(
+    pending(),
+    'When this creature enters the battlefield, draw a card.',
+  );
+  const result = materializeTriggerOccurrence(initial, decision);
+  expect(result.created).toBe(true);
+  expect(result.state.oncePerTurnTriggerLedger).toEqual(initial.oncePerTurnTriggerLedger);
+});
