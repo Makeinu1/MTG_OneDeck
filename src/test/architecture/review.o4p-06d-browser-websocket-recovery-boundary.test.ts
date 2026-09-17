@@ -77,6 +77,9 @@ describe('O4P-06D browser WebSocket architecture boundary', () => {
           normalized(file) === 'src/online/browser/cockpitClient.ts' &&
           [
             '../../engine/cockpitMigration',
+            '../../engine/cockpitR31',
+            '../../engine/cockpitR4',
+            '../../engine/cockpitR4b',
             '../../engine/cockpitTable',
             '../../engine/init',
             '../../data/gameSnapshot',
