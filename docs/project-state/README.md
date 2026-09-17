@@ -26,14 +26,14 @@ The generated Markdown is derived and must never be edited as an independent tru
 | Which acceptance scenarios exist? | `docs/acceptance/scenarios.json` |
 | What does implementation currently do? | `src/` and tests |
 | What is the current audited MATCH/GAP/CONFLICT and reconstruction gate? | **this Project State on `main`** |
-| What is extended roadmap/provenance/history? | `research/cr-grounding/cr-backbone-ledger.json` |
+| What is extended roadmap/provenance/history? | `research/cr-grounding/cr-backbone-ledger.json` under `research/cr-grounding/AUTHORITY.md` |
 | What are Issues/PRs? | Work/history evidence, never current state by themselves |
 | What is CI? | Verification/deployment evidence, never semantic correctness by itself |
 | What is historical Cold Restart evidence? | `docs/project-state/evidence/` |
 
 Canonical Project State says **what the current verdict is**. Existing authorities say **what the rules are**. Source says **what implementation does**. Evidence says **what was checked**.
 
-Fields in other registries that resemble project lifecycle metadata, such as an older contract-manifest milestone or a roadmap active-program field, do not override Project State NOW unless Project State explicitly delegates that authority.
+Fields in other registries that resemble project lifecycle metadata, such as an older contract-manifest milestone or a roadmap `activeProgram` / `nextGate` / planned-sequence field, do not override Project State NOW. CR-grounding material may retain those names as historical provenance; `research/cr-grounding/AUTHORITY.md` explicitly removes their current-work authority.
 
 ## Three independent axes
 
@@ -61,17 +61,27 @@ Lifecycle normally moves `ACTIVE -> DEPRECATED -> RETIRED`.
 
 ## Coverage boundary
 
-Project State is a curated audited state model, not proof that every repository concern has already been enumerated. The capability index defines the currently audited capability set. Active registries may expose additional deferred decisions, lifecycle signals or implementation surfaces that must be surfaced before Project State can claim complete current-state coverage.
+Project State is a **bounded audited state model**, not proof that every repository concern has already been enumerated. `index.json.coverage` states the current coverage claim, completeness inputs and known limitations. The capability index defines the currently audited capability set.
 
-The integrity checker must fail closed when a repository source that Project State declares as completeness-relevant contains an unresolved item that Project State is required to surface.
+The integrity checker fails closed when an active traceability clause marked `deferred-needs-decision` is not surfaced as a Project State pending decision. It also validates the current production routing map. This does not replace the broader Contract Architecture completeness work in M2.
 
-## Freshness policy
+## Integrity and freshness policy
 
-`index.json.baseline.commit` is the commit against which the semantic snapshot was audited. `scripts/checks/check-project-state.mjs` fails when a descendant of that baseline changes any configured `watchedRoots` without refreshing Project State. It also checks reference integrity, IDs/enums and generated-view freshness.
+`index.json.baseline.commit` is the commit against which the semantic snapshot was audited. `npm run check:project-state` fails when a descendant of that baseline changes any configured `watchedRoots` without refreshing Project State.
 
-The checker intentionally **does not infer semantic verdicts from code**. That belongs to later verification/audit milestones, not Project State integrity.
+The checker also verifies:
+
+- referenced paths and machine-checkable locator anchors;
+- baseline provenance against the declared `main` branch;
+- non-main candidates have incorporated the currently fetched `main`;
+- production routing-map references and provenance;
+- bounded coverage metadata and generated-view freshness.
+
+The JSON schemas in `docs/project-state/schema/` document the machine shape; the executable integrity gate is `scripts/checks/check-project-state.mjs`. The checker intentionally **does not infer semantic verdicts from code**. That belongs to later verification/audit milestones, not Project State integrity.
 
 While a PR is open, the merge gate must still rebase/re-audit against the then-current `main`; a branch that has not incorporated a newer main cannot prove that newer main did not invalidate the audit.
+
+`npm run check` includes `check:project-state`, and `npm run check:release` invokes `npm run check`, so Project State integrity is part of the ordinary release chain rather than a separate green signal.
 
 ## Current program boundary
 
