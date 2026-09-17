@@ -139,7 +139,17 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 2197: `export function createCockpitTable(`
 - line 2303: `export function assertCockpitCardDef(def: CardDef): void {`
 
+## `src/engine/cockpitTriggerOccurrence.ts`
+
+- line 8: `export interface ReviewedTriggerOccurrence extends PendingTrigger {`
+- line 27: `export function materializeReviewedTriggerOccurrence(`
+
 ## `src/engine/cockpitTriggers.ts`
+
+- line 18: `export type {`
+- line 35: `export function checkpointTableTriggers(`
+
+## `src/engine/cockpitTriggersCore.ts`
 
 - line 20: `export interface TableTrigger extends PendingTrigger {`
 - line 29: `export interface TableTriggerState {`
@@ -1582,7 +1592,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 134: `export function parseTriggerConditionLine(`
 - line 215: `export function parseTriggerConditionLines(`
 
-## `src/engine/triggers.ts`
+## `src/engine/triggerDetectionCore.ts`
 
 - line 49: `export interface TriggerCandidate {`
 - line 223: `export function abilityLineIndexForKind(`
@@ -1600,6 +1610,20 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 1944: `export function collectPendingTriggers(prev: GameState, next: GameState): PendingTrigger[] {`
 - line 1948: `export function collectPendingTriggerUpdate(`
 - line 1969: `export function triggerCandidatesFromPendingTriggers(`
+
+## `src/engine/triggerOccurrence.ts`
+
+- line 3: `export type TriggerReviewReason =`
+- line 8: `export type TriggerDetectionDecision =`
+- line 23: `export interface TriggerOccurrenceMaterialization {`
+- line 34: `export function classifyTriggerDetection(`
+- line 68: `export function materializeTriggerOccurrence(`
+
+## `src/engine/triggers.ts`
+
+- line 16: `export type { TriggerCandidate };`
+- line 35: `export function collectPendingTriggers(prev: GameState, next: GameState): PendingTrigger[] {`
+- line 48: `export function collectPendingTriggerUpdate(`
 
 ## `src/engine/types.ts`
 
