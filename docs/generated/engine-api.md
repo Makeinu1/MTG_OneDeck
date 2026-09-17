@@ -94,6 +94,24 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 850: `export function isR4CastOperation(operation: R4TableOperation): operation is R4CastOperation {`
 - line 854: `export function applyR4TableOperation(`
 
+## `src/engine/cockpitR4b.ts`
+
+- line 18: `export interface R4bObjectRef {`
+- line 23: `export interface R4bRepairLocationStateAfter {`
+- line 30: `export interface R4bRepairLocationEntry extends R4bObjectRef {`
+- line 34: `export type R4bRepairOperation =`
+- line 118: `export interface R4bCommanderMoveToCommandOperation {`
+- line 124: `export type R4bOperation =`
+- line 129: `export type R4bDeclaredCause =`
+- line 133: `export interface R4bOperationRequest {`
+- line 139: `export type R4bFormalFamily =`
+- line 149: `export type R4bGateClass =`
+- line 156: `export type R4bEffectiveCause =`
+- line 167: `export function classifyR4bOperation(operation: R4bOperation): R4bGateClass {`
+- line 488: `export function applyR4bRepair(before: CockpitTable, operation: R4bRepairOperation): CockpitTable {`
+- line 835: `export function resolveR4bCause(`
+- line 883: `export function r4bRepairCreatesKnowledgeBarrier(`
+
 ## `src/engine/cockpitTable.ts`
 
 - line 38: `export const tableZones: readonly ZoneId[] = [`
@@ -1628,61 +1646,61 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 243: `export interface ActivationEnvelope {`
 - line 252: `export type ZoneChangeReason =`
 - line 266: `export type EventProcessRef =`
-- line 277: `export interface ProcessOriginSnapshot {`
-- line 287: `export interface ZoneChangeEvent {`
-- line 306: `export type KnownEventKind =`
-- line 313: `export type NewEnvelopeEventKind = 'damage' | 'lifeChange' | 'draw';`
-- line 315: `export type EventCause =`
-- line 320: `export type EventDeterminismRef =`
-- line 324: `export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeEventKind> {`
-- line 342: `export type EventSourceRef =`
-- line 353: `export type EventTargetRef =`
-- line 363: `export interface LifeChangeEvent extends EventEnvelopeBase<'lifeChange'> {`
-- line 380: `export interface DamageEvent extends EventEnvelopeBase<'damage'> {`
-- line 394: `export interface DrawEvent extends EventEnvelopeBase<'draw'> {`
-- line 410: `export interface AttackDeclarationEvent {`
-- line 435: `export interface CounterChangeEvent {`
-- line 457: `export interface AbilityTriggeredEvent {`
-- line 467: `export interface ActivatedManaAbilityEvent {`
-- line 479: `export interface ManaAddedEvent {`
-- line 491: `export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison' | 'commanderDamage';`
-- line 492: `export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';`
-- line 493: `export type DefeatPlayerRef = 'P1' | `opponent:${string}`;`
-- line 495: `export interface DefeatAdvisoryRecord {`
-- line 501: `export interface DefeatAdvisoryEvent {`
-- line 524: `export interface DungeonRoom {`
-- line 531: `export interface DungeonDef {`
-- line 539: `export interface DungeonState {`
-- line 546: `export interface VentureEvent {`
-- line 571: `export type GameEvent =`
-- line 581: `export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';`
-- line 583: `export interface PendingTriggerSchedule {`
-- line 592: `export type TriggerCondition =`
-- line 603: `export interface PendingTrigger {`
-- line 623: `export interface OncePerTurnTriggerLedger {`
-- line 628: `export interface PendingManaTrigger {`
-- line 640: `export interface CommanderZoneRuleChoice {`
-- line 652: `export interface LegendRuleChoice {`
-- line 661: `export interface CleanupDiscardRuleChoice {`
-- line 670: `export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice | CleanupDiscardRuleChoice;`
-- line 672: `export type PendingSbaChoice = CommanderZoneRuleChoice;`
-- line 674: `export type RuleChoiceSelection =`
-- line 679: `export interface CommanderInfo {`
-- line 684: `export interface LogEntry {`
-- line 691: `export interface PlayerState {`
-- line 706: `export interface GameState {`
-- line 746: `export function emptyPlayerPrivateZones(): PlayerPrivateZones {`
-- line 750: `export function clonePlayerPrivateZones(`
-- line 760: `export function cloneZonesByPlayer(`
-- line 772: `export function playerPrivateZonesFromFlatZones(`
-- line 782: `export function zonesByPlayerWithP1Mirror(`
-- line 792: `export function syncP1ZonesByPlayerFromFlatZones(state: GameState): GameState {`
-- line 802: `export function syncFlatPrivateZonesFromPlayers(state: GameState): GameState {`
-- line 815: `export function requirePlayer(state: GameState, id: PlayerId): PlayerState {`
-- line 823: `export function playerIdForLifeLabel(label: string): PlayerId {`
-- line 829: `export function defeatPlayerRefForLifeLabel(label: string): DefeatPlayerRef {`
-- line 855: `export function syncPlayersFromLegacyScalars(state: GameState): GameState {`
-- line 916: `export function syncDerivedViews(state: DerivedViewsInput): GameState {`
+- line 278: `export interface ProcessOriginSnapshot {`
+- line 288: `export interface ZoneChangeEvent {`
+- line 307: `export type KnownEventKind =`
+- line 314: `export type NewEnvelopeEventKind = 'damage' | 'lifeChange' | 'draw';`
+- line 316: `export type EventCause =`
+- line 321: `export type EventDeterminismRef =`
+- line 325: `export interface EventEnvelopeBase<T extends NewEnvelopeEventKind = NewEnvelopeEventKind> {`
+- line 343: `export type EventSourceRef =`
+- line 354: `export type EventTargetRef =`
+- line 364: `export interface LifeChangeEvent extends EventEnvelopeBase<'lifeChange'> {`
+- line 381: `export interface DamageEvent extends EventEnvelopeBase<'damage'> {`
+- line 395: `export interface DrawEvent extends EventEnvelopeBase<'draw'> {`
+- line 411: `export interface AttackDeclarationEvent {`
+- line 436: `export interface CounterChangeEvent {`
+- line 458: `export interface AbilityTriggeredEvent {`
+- line 468: `export interface ActivatedManaAbilityEvent {`
+- line 480: `export interface ManaAddedEvent {`
+- line 492: `export type DefeatReason = 'lifeZero' | 'emptyLibraryDraw' | 'poison' | 'commanderDamage';`
+- line 493: `export type DefeatRuleRef = '704.5a' | '704.5b' | '704.5c' | '903.10a';`
+- line 494: `export type DefeatPlayerRef = 'P1' | `opponent:${string}`;`
+- line 496: `export interface DefeatAdvisoryRecord {`
+- line 502: `export interface DefeatAdvisoryEvent {`
+- line 525: `export interface DungeonRoom {`
+- line 532: `export interface DungeonDef {`
+- line 540: `export interface DungeonState {`
+- line 547: `export interface VentureEvent {`
+- line 572: `export type GameEvent =`
+- line 582: `export type TriggerStackPlacementBucket = 'ordinary' | 'ability-triggered';`
+- line 584: `export interface PendingTriggerSchedule {`
+- line 593: `export type TriggerCondition =`
+- line 604: `export interface PendingTrigger {`
+- line 624: `export interface OncePerTurnTriggerLedger {`
+- line 629: `export interface PendingManaTrigger {`
+- line 641: `export interface CommanderZoneRuleChoice {`
+- line 653: `export interface LegendRuleChoice {`
+- line 662: `export interface CleanupDiscardRuleChoice {`
+- line 671: `export type PendingRuleChoice = CommanderZoneRuleChoice | LegendRuleChoice | CleanupDiscardRuleChoice;`
+- line 673: `export type PendingSbaChoice = CommanderZoneRuleChoice;`
+- line 675: `export type RuleChoiceSelection =`
+- line 680: `export interface CommanderInfo {`
+- line 685: `export interface LogEntry {`
+- line 692: `export interface PlayerState {`
+- line 707: `export interface GameState {`
+- line 747: `export function emptyPlayerPrivateZones(): PlayerPrivateZones {`
+- line 751: `export function clonePlayerPrivateZones(`
+- line 761: `export function cloneZonesByPlayer(`
+- line 773: `export function playerPrivateZonesFromFlatZones(`
+- line 783: `export function zonesByPlayerWithP1Mirror(`
+- line 793: `export function syncP1ZonesByPlayerFromFlatZones(state: GameState): GameState {`
+- line 803: `export function syncFlatPrivateZonesFromPlayers(state: GameState): GameState {`
+- line 816: `export function requirePlayer(state: GameState, id: PlayerId): PlayerState {`
+- line 824: `export function playerIdForLifeLabel(label: string): PlayerId {`
+- line 830: `export function defeatPlayerRefForLifeLabel(label: string): DefeatPlayerRef {`
+- line 856: `export function syncPlayersFromLegacyScalars(state: GameState): GameState {`
+- line 917: `export function syncDerivedViews(state: DerivedViewsInput): GameState {`
 
 ## `src/store/gameStore.ts`
 

@@ -13,4 +13,4 @@ Events are immutable records of successful semantic changes. Their source, subje
 When an effect needs information about an object that has left its zone, the applicable last-known information is taken from the recorded transition data. The contract does not infer a value from a later object with the same printed card name.
 
 <!-- clause: ENG-ZONES-005 -->
-A lifecycle/administrative isolation state used for an eliminated or explicitly removed player's objects is not a Magic zone and must not be semantically reported as exile, command, graveyard, or another Comprehensive Rules zone. Its purpose is to remove those objects from ordinary game participation while preserving enough attributable state for correction, audit, or supported undo/recovery semantics.
+A lifecycle/administrative isolation state used for an eliminated or explicitly removed player's objects is not a Magic zone and must not be semantically reported as exile, command, graveyard, or another Comprehensive Rules zone. Its purpose is to remove those objects from ordinary game participation while preserving enough attributable state for correction, inspection, or supported undo/recovery semantics.
