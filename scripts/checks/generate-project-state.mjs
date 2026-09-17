@@ -10,7 +10,9 @@ function readJson(path) { return JSON.parse(readFileSync(path, 'utf8')); }
 function mdCode(value) { return `\`${String(value).replaceAll('`', '\\`')}\``; }
 function refs(values) {
   if (!Array.isArray(values) || values.length === 0) return '—';
-  return values.map((entry) => mdCode(entry.locator ? `${entry.path} :: ${entry.locator}` : entry.path)).join('<br>');
+  return values
+    .map((entry) => mdCode(entry.locator ? `${entry.path} :: ${entry.locator}` : entry.path))
+    .join('<br>');
 }
 
 export function loadProjectState(root = repositoryRoot) {
