@@ -3,6 +3,18 @@
   "observedAtCommit": "cda6d4d785fd393a6c3df9b18a8f8199ac2d1ab5",
   "status": "CURRENT_ROUTING_SNAPSHOT",
   "scope": "Production entry and routing map only. Contract meaning and semantic verdicts remain owned by their canonical sources and Project State capability audits.",
+  "freshness": {
+    "watchedPaths": [
+      "wrangler.jsonc",
+      "src/App.tsx",
+      "src/components/game/CockpitSessionScreen.tsx",
+      "src/components/online/PublicOnlineApp.tsx",
+      "src/components/game/GameScreen.tsx",
+      "src/online/browser/cockpitClient.ts",
+      "src/online/publicApp",
+      "src/online/cloudflare/worker.ts"
+    ]
+  },
   "surfaces": [
     {
       "id": "cockpit-primary",
