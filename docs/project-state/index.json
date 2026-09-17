@@ -59,6 +59,7 @@
     "generatedHumanView": "docs/generated/project-state.md",
     "productionImplementationMap": "docs/project-state/production-map.json",
     "roadmapHistory": "research/cr-grounding/cr-backbone-ledger.json",
+    "roadmapHistoryPolicy": "research/cr-grounding/AUTHORITY.md",
     "issuesAndPullRequests": "work-and-history-evidence-only",
     "ci": "verification-evidence-only"
   },
