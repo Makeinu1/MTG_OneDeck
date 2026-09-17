@@ -38,13 +38,21 @@ export function renderProjectState({ index, capabilities }) {
     `- Production implementation roots: ${index.authorities.productionImplementation.map(mdCode).join(', ')}`,
     `- Production routing map: ${mdCode(index.roles.productionImplementationMap)}`,
     `- NOW authority: ${mdCode(index.roles.nowAuthority)}`,
-    `- Roadmap / provenance / history: ${mdCode(index.roles.roadmapHistory)}`, '',
+    `- Roadmap / provenance / history: ${mdCode(index.roles.roadmapHistory)}`,
+    `- Roadmap authority policy: ${mdCode(index.roles.roadmapHistoryPolicy)}`, '',
+    'Historical `activeProgram`, `nextGate`, planned-sequence or "single source" wording inside CR-grounding material does not override Project State NOW.', '',
     'Issues, pull requests and CI are evidence/work surfaces. They are not canonical NOW and do not independently establish semantic correctness.', '',
     '## Reconstruction program', '',
     `- Completed: ${index.program.completedMilestones.map(mdCode).join(', ') || '—'}`,
     `- Active: ${mdCode(index.program.activeMilestone)}`,
     `- Next gate: ${mdCode(index.program.nextGate)}`,
     `- Next work: ${index.program.nextWork}`, '',
+    '## Coverage claim', '',
+    `- Mode: ${mdCode(index.coverage.mode)}`,
+    `- Scope: ${index.coverage.scope}`,
+    `- Completeness sources: ${index.coverage.completenessSources.map(mdCode).join(', ')}`,
+    '- Known limitations:',
+    ...index.coverage.knownLimitations.map((item) => `  - ${item}`), '',
     '## Capability state', '',
     '| ID | Capability | Requirement | Semantic | Delivery | Lifecycle |',
     '| --- | --- | --- | --- | --- | --- |',
@@ -75,7 +83,7 @@ export function renderProjectState({ index, capabilities }) {
     ...index.program.prohibitedScope.map((item) => `- ${item}`), '',
     '## Freshness', '',
     `Semantic watched roots: ${index.baseline.watchedRoots.map(mdCode).join(', ')}.`,
-    'Run `node scripts/checks/check-project-state.mjs`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.', '',
+    'Run `npm run check:project-state`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.', '',
     `Cold Restart Acceptance: ${mdCode(index.coldRestartAcceptance)}`, ''
   ];
   return lines.join('\n');
@@ -83,12 +91,21 @@ export function renderProjectState({ index, capabilities }) {
 
 function cli() {
   const check = process.argv.slice(2).includes('--check');
-  if (process.argv.slice(2).some((arg) => arg !== '--check')) { console.error('Usage: node scripts/checks/generate-project-state.mjs [--check]'); process.exitCode = 2; return; }
+  if (process.argv.slice(2).some((arg) => arg !== '--check')) {
+    console.error('Usage: node scripts/checks/generate-project-state.mjs [--check]');
+    process.exitCode = 2;
+    return;
+  }
   const rendered = renderProjectState(loadProjectState());
   if (check) {
     const current = readFileSync(generatedPath, 'utf8');
-    if (current !== rendered) { console.error(`${relative(repositoryRoot, generatedPath)} is stale. Run node scripts/checks/generate-project-state.mjs`); process.exitCode = 1; return; }
-    console.log('project-state generated view: PASS'); return;
+    if (current !== rendered) {
+      console.error(`${relative(repositoryRoot, generatedPath)} is stale. Run node scripts/checks/generate-project-state.mjs`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log('project-state generated view: PASS');
+    return;
   }
   writeFileSync(generatedPath, rendered, 'utf8');
   console.log(`wrote ${relative(repositoryRoot, generatedPath)}`);
