@@ -8,3 +8,6 @@ An accepted payment produces a deterministic command sequence and consumes only 
 
 <!-- clause: ENG-MANA-003 -->
 Automatic tapping is limited to costs whose available choices can be represented by the existing plan. A choice-bearing or restriction-bearing cost remains guided or manual. Mana abilities that use the no-stack transaction path retain one atomic undo boundary.
+
+<!-- clause: ENG-MANA-R6-001 -->
+The current payment planner is one bounded automation capability, not the definition of OneDeck's maximum future automation level. R6 may add reviewed high-ROI mana/cost capabilities without requiring a general rules engine, while unsupported or ambiguous costs remain human-guided/manual and human-confirmed correction remains authoritative over conflicting automation.

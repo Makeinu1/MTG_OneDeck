@@ -14,8 +14,16 @@
       "failureBehavior": "No nondeterministic mutation is accepted.",
       "invariant": "The input snapshot remains unchanged.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/init.test.ts", "marker": "verifies: ENG-STATE-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-SETUP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/init.test.ts",
+          "marker": "verifies: ENG-STATE-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-SETUP-001"
+      ]
     },
     {
       "id": "ENG-STATE-002",
@@ -28,8 +36,16 @@
       "failureBehavior": "Input state branches are not mutated.",
       "invariant": "All existing state records remain represented.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/commands.test.ts", "marker": "verifies: ENG-STATE-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-SETUP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/commands.test.ts",
+          "marker": "verifies: ENG-STATE-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-SETUP-001"
+      ]
     },
     {
       "id": "ENG-STATE-003",
@@ -42,8 +58,16 @@
       "failureBehavior": "Invalid identity or duplicate placement is rejected.",
       "invariant": "Object identity is derived from the existing identity values.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/core/__tests__/identityZoneState.test.ts", "marker": "verifies: ENG-STATE-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-ZONE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/core/__tests__/identityZoneState.test.ts",
+          "marker": "verifies: ENG-STATE-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ZONE-001"
+      ]
     },
     {
       "id": "ENG-STATE-004",
@@ -56,8 +80,16 @@
       "failureBehavior": "History navigation does not mutate the engine directly.",
       "invariant": "Card and event order remains stable across restore.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/snapshotPersistenceControl.test.ts", "marker": "verifies: ENG-STATE-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-UNDO-001"]
+      "verifiedBy": [
+        {
+          "path": "src/store/__tests__/snapshotPersistenceControl.test.ts",
+          "marker": "verifies: ENG-STATE-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UNDO-001"
+      ]
     },
     {
       "id": "ENG-STATE-005",
@@ -69,8 +101,16 @@
       "resultingBehavior": "Without executable replay, a clause remains guided or manual.",
       "failureBehavior": "No unsupported behavior is claimed automatic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/eventEnvelope.test.ts", "marker": "verifies: ENG-STATE-005", "kind": "automated"}],
-      "acceptedBy": ["ACC-CR-REPLAY-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/eventEnvelope.test.ts",
+          "marker": "verifies: ENG-STATE-005",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-CR-REPLAY-001"
+      ]
     },
     {
       "id": "ENG-CMD-001",
@@ -83,8 +123,16 @@
       "failureBehavior": "Compiler does not write GameState directly.",
       "invariant": "State writes pass through command application.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/commands.test.ts", "marker": "verifies: ENG-CMD-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-COMPILER-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/commands.test.ts",
+          "marker": "verifies: ENG-CMD-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-COMPILER-001"
+      ]
     },
     {
       "id": "ENG-CMD-002",
@@ -97,8 +145,16 @@
       "failureBehavior": "Warnings do not hide incomplete state.",
       "invariant": "Forced sandbox state remains explicit and deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/commands.test.ts", "marker": "verifies: ENG-CMD-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-MANA-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/commands.test.ts",
+          "marker": "verifies: ENG-CMD-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-MANA-001"
+      ]
     },
     {
       "id": "ENG-CMD-003",
@@ -111,8 +167,17 @@
       "failureBehavior": "An incomplete batch does not publish a partial public result.",
       "invariant": "The store records one resulting snapshot per commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/interactionUndo.test.ts", "marker": "verifies: ENG-CMD-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-SETUP-001", "ACC-MANA-006"]
+      "verifiedBy": [
+        {
+          "path": "src/store/__tests__/interactionUndo.test.ts",
+          "marker": "verifies: ENG-CMD-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-SETUP-001",
+        "ACC-MANA-006"
+      ]
     },
     {
       "id": "ENG-CMD-004",
@@ -125,8 +190,16 @@
       "failureBehavior": "No guessed command sequence is emitted.",
       "invariant": "Clause boundaries remain visible.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/caseGrammar.test.ts", "marker": "verifies: ENG-CMD-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-COMPILER-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/caseGrammar.test.ts",
+          "marker": "verifies: ENG-CMD-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-COMPILER-001"
+      ]
     },
     {
       "id": "ENG-ZONES-001",
@@ -139,8 +212,16 @@
       "failureBehavior": "A zone is not silently reclassified by presentation.",
       "invariant": "Zone visibility follows the state model.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts", "marker": "verifies: ENG-ZONES-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-ZONE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts",
+          "marker": "verifies: ENG-ZONES-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ZONE-001"
+      ]
     },
     {
       "id": "ENG-ZONES-002",
@@ -153,8 +234,16 @@
       "failureBehavior": "No second transition path fabricates identity.",
       "invariant": "Transition identity is deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/zoneChangeIdentity.test.ts", "marker": "verifies: ENG-ZONES-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-ZONE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/zoneChangeIdentity.test.ts",
+          "marker": "verifies: ENG-ZONES-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ZONE-001"
+      ]
     },
     {
       "id": "ENG-ZONES-003",
@@ -167,8 +256,16 @@
       "failureBehavior": "Presentation cannot delay the state transition.",
       "invariant": "Cues consume events after commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/zoneChangeEvents.test.ts", "marker": "verifies: ENG-ZONES-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-ZONE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/zoneChangeEvents.test.ts",
+          "marker": "verifies: ENG-ZONES-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ZONE-001"
+      ]
     },
     {
       "id": "ENG-ZONES-004",
@@ -181,8 +278,16 @@
       "failureBehavior": "No later-name inference is used.",
       "invariant": "LKI is tied to the transition record.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts", "marker": "verifies: ENG-ZONES-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-ZONE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts",
+          "marker": "verifies: ENG-ZONES-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ZONE-001"
+      ]
     },
     {
       "id": "ENG-TURN-001",
@@ -195,8 +300,16 @@
       "failureBehavior": "A transition is rejected while the stack boundary forbids it.",
       "invariant": "Phase order remains deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/priority.test.ts", "marker": "verifies: ENG-TURN-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-STACK-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/priority.test.ts",
+          "marker": "verifies: ENG-TURN-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-STACK-001"
+      ]
     },
     {
       "id": "ENG-TURN-002",
@@ -209,8 +322,16 @@
       "failureBehavior": "Priority cannot be silently reordered by presentation.",
       "invariant": "The last announced shared-stack item is top.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/priority.test.ts", "marker": "verifies: ENG-TURN-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-STACK-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/priority.test.ts",
+          "marker": "verifies: ENG-TURN-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-STACK-001"
+      ]
     },
     {
       "id": "ENG-TURN-003",
@@ -224,8 +345,16 @@
       "invariant": "The unresolved turn-draw acceptance conflict remains explicit.",
       "verificationDisposition": "deferred-needs-decision",
       "needsDecision": "CONFLICT-TURN-DRAW-001 must resolve the acceptance interpretation of turn-entry draw.",
-      "verifiedBy": [{"path": "src/engine/__tests__/commands.test.ts", "marker": "verifies: ENG-TURN-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-TURN-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/commands.test.ts",
+          "marker": "verifies: ENG-TURN-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-TURN-001"
+      ]
     },
     {
       "id": "ENG-TURN-004",
@@ -238,8 +367,16 @@
       "failureBehavior": "The transition remains blocked at the stack or priority boundary.",
       "invariant": "Pending choice state is not discarded by navigation.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/core/turn/__tests__/pendingTriggerV1.test.ts", "marker": "verifies: ENG-TURN-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-TURN-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/core/turn/__tests__/pendingTriggerV1.test.ts",
+          "marker": "verifies: ENG-TURN-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-TURN-001"
+      ]
     },
     {
       "id": "ENG-MANA-001",
@@ -252,8 +389,16 @@
       "failureBehavior": "Unsupported choice-bearing costs remain guided or manual.",
       "invariant": "Planning does not mutate the source snapshot.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/mana.test.ts", "marker": "verifies: ENG-MANA-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-MANA-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/mana.test.ts",
+          "marker": "verifies: ENG-MANA-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-MANA-001"
+      ]
     },
     {
       "id": "ENG-MANA-002",
@@ -266,8 +411,16 @@
       "failureBehavior": "Warning or cancellation is returned for insufficient payment.",
       "invariant": "Forced sandbox payment remains explicit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/manaTransaction.test.ts", "marker": "verifies: ENG-MANA-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-MANA-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/manaTransaction.test.ts",
+          "marker": "verifies: ENG-MANA-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-MANA-001"
+      ]
     },
     {
       "id": "ENG-MANA-003",
@@ -280,8 +433,17 @@
       "failureBehavior": "The planner does not guess a source choice.",
       "invariant": "No-stack mana transactions are atomic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/activatedAbilityEnvelope.test.ts", "marker": "verifies: ENG-MANA-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-MANA-006", "ACC-MANA-007"]
+      "verifiedBy": [
+        {
+          "path": "src/store/__tests__/activatedAbilityEnvelope.test.ts",
+          "marker": "verifies: ENG-MANA-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-MANA-006",
+        "ACC-MANA-007"
+      ]
     },
     {
       "id": "ENG-MP-001",
@@ -294,8 +456,16 @@
       "failureBehavior": "No player record is silently dropped.",
       "invariant": "The state boundary remains additive.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/zonesByPlayer.test.ts", "marker": "verifies: ENG-MP-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-CR-REPLAY-001"]
+      "verifiedBy": [
+        {
+          "path": "src/store/__tests__/zonesByPlayer.test.ts",
+          "marker": "verifies: ENG-MP-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-CR-REPLAY-001"
+      ]
     },
     {
       "id": "ENG-MP-002",
@@ -308,8 +478,16 @@
       "failureBehavior": "The local player is not substituted silently.",
       "invariant": "Recipient identity is retained across the command path.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/store/__tests__/activatedAbilityEnvelope.test.ts", "marker": "verifies: ENG-MP-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-ZONE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/store/__tests__/activatedAbilityEnvelope.test.ts",
+          "marker": "verifies: ENG-MP-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ZONE-001"
+      ]
     },
     {
       "id": "ENG-MP-003",
@@ -322,8 +500,16 @@
       "failureBehavior": "Compiler and UI cannot invent an opponent.",
       "invariant": "Player order is the single APNAP order.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/priority.test.ts", "marker": "verifies: ENG-MP-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-STACK-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/priority.test.ts",
+          "marker": "verifies: ENG-MP-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-STACK-001"
+      ]
     },
     {
       "id": "ENG-MP-004",
@@ -336,8 +522,16 @@
       "failureBehavior": "Unsupported multiplayer surface remains outside the contract.",
       "invariant": "Solo/online boundary remains explicit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/test/architecture/soloOnlineBoundary.test.ts", "marker": "verifies: ENG-MP-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-ONLINE-001"]
+      "verifiedBy": [
+        {
+          "path": "src/test/architecture/soloOnlineBoundary.test.ts",
+          "marker": "verifies: ENG-MP-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ONLINE-001"
+      ]
     },
     {
       "id": "ENG-COMP-001",
@@ -350,8 +544,17 @@
       "failureBehavior": "Display text cannot change compilation eligibility.",
       "invariant": "Decision tier is declared per clause.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/cr701DiscardCompiler.test.ts", "marker": "verifies: ENG-COMP-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-IMPORT-001", "ACC-COMPILER-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/cr701DiscardCompiler.test.ts",
+          "marker": "verifies: ENG-COMP-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-IMPORT-001",
+        "ACC-COMPILER-001"
+      ]
     },
     {
       "id": "ENG-COMP-002",
@@ -364,8 +567,16 @@
       "failureBehavior": "Unsupported behavior is not labeled automatic.",
       "invariant": "Tier selection is deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/cr701DiscardCompiler.test.ts", "marker": "verifies: ENG-COMP-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-COMPILER-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/cr701DiscardCompiler.test.ts",
+          "marker": "verifies: ENG-COMP-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-COMPILER-001"
+      ]
     },
     {
       "id": "ENG-COMP-003",
@@ -378,8 +589,16 @@
       "failureBehavior": "Warning and unsupported boundaries remain visible.",
       "invariant": "Clause boundaries are preserved.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/caseGrammar.test.ts", "marker": "verifies: ENG-COMP-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-COMPILER-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/caseGrammar.test.ts",
+          "marker": "verifies: ENG-COMP-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-COMPILER-001"
+      ]
     },
     {
       "id": "ENG-COMP-004",
@@ -392,8 +611,17 @@
       "failureBehavior": "Network response cannot silently become ordinary evidence.",
       "invariant": "Online checks stay in the online lane.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/engine/__tests__/eventEnvelope.test.ts", "marker": "verifies: ENG-COMP-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-ONLINE-001", "ACC-CR-REPLAY-001"]
+      "verifiedBy": [
+        {
+          "path": "src/engine/__tests__/eventEnvelope.test.ts",
+          "marker": "verifies: ENG-COMP-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ONLINE-001",
+        "ACC-CR-REPLAY-001"
+      ]
     },
     {
       "id": "UI-DESIGN-001",
@@ -406,8 +634,16 @@
       "failureBehavior": "A semantic operation is not hidden behind a one-off gesture.",
       "invariant": "Equivalent operations remain equivalent in intent.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/HudInteractions.test.tsx", "marker": "verifies: UI-DESIGN-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/HudInteractions.test.tsx",
+          "marker": "verifies: UI-DESIGN-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-DESIGN-002",
@@ -420,8 +656,16 @@
       "failureBehavior": "A failed action does not emit success feedback.",
       "invariant": "Presentation remains downstream of commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/recentCueModel.test.ts", "marker": "verifies: UI-DESIGN-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/recentCueModel.test.ts",
+          "marker": "verifies: UI-DESIGN-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-DESIGN-003",
@@ -434,8 +678,16 @@
       "failureBehavior": "Pointer-only operation is not the sole route.",
       "invariant": "Action intent remains reachable.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/ContextMenu.test.tsx", "marker": "verifies: UI-DESIGN-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/ContextMenu.test.tsx",
+          "marker": "verifies: UI-DESIGN-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-VIS-001",
@@ -448,8 +700,16 @@
       "failureBehavior": "Visual role is not inferred from incidental color alone.",
       "invariant": "Semantic roles remain distinguishable.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/CardView.test.tsx", "marker": "verifies: UI-VIS-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/CardView.test.tsx",
+          "marker": "verifies: UI-VIS-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-VIS-002",
@@ -462,8 +722,16 @@
       "failureBehavior": "Unresolved state is not visually erased.",
       "invariant": "Focus and semantic state remain visible.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/HudInteractions.test.tsx", "marker": "verifies: UI-VIS-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/HudInteractions.test.tsx",
+          "marker": "verifies: UI-VIS-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-VIS-003",
@@ -476,8 +744,16 @@
       "failureBehavior": "A new token without ownership is not accepted.",
       "invariant": "Token ownership remains explicit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/ambientMacroProduction.test.ts", "marker": "verifies: UI-VIS-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/ambientMacroProduction.test.ts",
+          "marker": "verifies: UI-VIS-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-ARCH-001",
@@ -490,8 +766,16 @@
       "failureBehavior": "A component-side direct engine mutation is out of contract.",
       "invariant": "The engine remains browser-independent.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/GameScreenTabletop.test.tsx", "marker": "verifies: UI-ARCH-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/GameScreenTabletop.test.tsx",
+          "marker": "verifies: UI-ARCH-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-ARCH-002",
@@ -504,8 +788,16 @@
       "failureBehavior": "Browser APIs do not enter src/engine.",
       "invariant": "Semantic operation identity is shared across layouts.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/GameScreenTabletop.test.tsx", "marker": "verifies: UI-ARCH-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/GameScreenTabletop.test.tsx",
+          "marker": "verifies: UI-ARCH-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-ARCH-003",
@@ -518,8 +810,16 @@
       "failureBehavior": "Presentation cannot block state completion.",
       "invariant": "Event consumption is downstream of commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/TransitionCue.test.tsx", "marker": "verifies: UI-ARCH-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-AV-MANUAL-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/TransitionCue.test.tsx",
+          "marker": "verifies: UI-ARCH-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-AV-MANUAL-001"
+      ]
     },
     {
       "id": "UI-ARCH-004",
@@ -532,8 +832,16 @@
       "failureBehavior": "Unindexed architecture evidence is not considered complete.",
       "invariant": "Traceability is checked offline.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/presentation/presentationRuntime.test.ts", "marker": "verifies: UI-ARCH-004", "kind": "automated"}],
-      "acceptedBy": ["ACC-CR-REPLAY-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/presentation/presentationRuntime.test.ts",
+          "marker": "verifies: UI-ARCH-004",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-CR-REPLAY-001"
+      ]
     },
     {
       "id": "UI-RESP-001",
@@ -546,8 +854,16 @@
       "failureBehavior": "A fixed viewport does not hide the primary operation.",
       "invariant": "Viewport-specific layout does not change semantic operation.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/adaptiveLaneLayout.test.ts", "marker": "verifies: UI-RESP-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/adaptiveLaneLayout.test.ts",
+          "marker": "verifies: UI-RESP-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-RESP-002",
@@ -560,8 +876,16 @@
       "failureBehavior": "An active dialog cannot leak focus before resolution or cancellation.",
       "invariant": "Visible control or context action remains available.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/HudInteractions.test.tsx", "marker": "verifies: UI-RESP-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/HudInteractions.test.tsx",
+          "marker": "verifies: UI-RESP-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "UI-RESP-003",
@@ -575,8 +899,16 @@
       "invariant": "Scope determines browser evidence.",
       "verificationDisposition": "manual",
       "manualProcedure": "Run ACC-UI-RESP-001 in one stable browser session at 375x812, 812x375, and 1440x900; record console errors and reachability.",
-      "verifiedBy": [{"path": "docs/acceptance/scenarios.json", "marker": "scenario: ACC-UI-RESP-001", "kind": "acceptance"}],
-      "acceptedBy": ["ACC-UI-RESP-001"]
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-UI-RESP-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-UI-RESP-001"
+      ]
     },
     {
       "id": "AV-001",
@@ -589,8 +921,16 @@
       "failureBehavior": "Unsuccessful actions do not produce success cues.",
       "invariant": "Cue policy is downstream of semantic event commit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/recentCueModel.test.ts", "marker": "verifies: AV-001", "kind": "automated"}],
-      "acceptedBy": ["ACC-AV-MANUAL-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/recentCueModel.test.ts",
+          "marker": "verifies: AV-001",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-AV-MANUAL-001"
+      ]
     },
     {
       "id": "AV-002",
@@ -603,8 +943,16 @@
       "failureBehavior": "Audibility controls do not rewrite saved preferences.",
       "invariant": "Light-theme silence and non-blocking presentation remain explicit.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/presentation/__tests__/av0-presentation.test.ts", "marker": "verifies: AV-002", "kind": "automated"}],
-      "acceptedBy": ["ACC-AV-MANUAL-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/presentation/__tests__/av0-presentation.test.ts",
+          "marker": "verifies: AV-002",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-AV-MANUAL-001"
+      ]
     },
     {
       "id": "AV-003",
@@ -617,8 +965,16 @@
       "failureBehavior": "Presentation cannot split or delay the state transaction.",
       "invariant": "Event-to-cue cardinality remains deterministic.",
       "verificationDisposition": "automated",
-      "verifiedBy": [{"path": "src/components/game/recentCueModel.test.ts", "marker": "verifies: AV-003", "kind": "automated"}],
-      "acceptedBy": ["ACC-AV-MANUAL-001"]
+      "verifiedBy": [
+        {
+          "path": "src/components/game/recentCueModel.test.ts",
+          "marker": "verifies: AV-003",
+          "kind": "automated"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-AV-MANUAL-001"
+      ]
     },
     {
       "id": "AV-004",
@@ -632,8 +988,16 @@
       "invariant": "Manual comfort scope stays explicit.",
       "verificationDisposition": "manual",
       "manualProcedure": "Run ACC-AV-MANUAL-001 after an AV-impacting change and record audibility, timing, reduced motion, and comfort.",
-      "verifiedBy": [{"path": "docs/acceptance/scenarios.json", "marker": "scenario: ACC-AV-MANUAL-001", "kind": "acceptance"}],
-      "acceptedBy": ["ACC-AV-MANUAL-001"]
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-AV-MANUAL-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-AV-MANUAL-001"
+      ]
     },
     {
       "id": "ACC-ACCEPT-001",
@@ -646,8 +1010,16 @@
       "failureBehavior": "A scenario without an oracle or contract reference is invalid.",
       "invariant": "Scenario IDs remain globally unique.",
       "verificationDisposition": "acceptance",
-      "verifiedBy": [{"path": "docs/acceptance/scenarios.json", "marker": "scenario: ACC-IMPORT-001", "kind": "acceptance"}],
-      "acceptedBy": ["ACC-IMPORT-001"]
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-IMPORT-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-IMPORT-001"
+      ]
     },
     {
       "id": "ACC-ACCEPT-002",
@@ -660,8 +1032,16 @@
       "failureBehavior": "A periodic or deferred scenario cannot be represented as an ordinary pass.",
       "invariant": "Evidence lane and status are explicit.",
       "verificationDisposition": "acceptance",
-      "verifiedBy": [{"path": "docs/acceptance/scenarios.json", "marker": "scenario: ACC-ONLINE-001", "kind": "acceptance"}],
-      "acceptedBy": ["ACC-ONLINE-001"]
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-ONLINE-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-ONLINE-001"
+      ]
     },
     {
       "id": "ACC-ACCEPT-003",
@@ -674,8 +1054,304 @@
       "failureBehavior": "A partial effect cannot be reported automatic or released.",
       "invariant": "Candidate freeze precedes the release check.",
       "verificationDisposition": "acceptance",
-      "verifiedBy": [{"path": "docs/acceptance/scenarios.json", "marker": "scenario: ACC-CR-REPLAY-001", "kind": "acceptance"}],
-      "acceptedBy": ["ACC-CR-REPLAY-001"]
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-CR-REPLAY-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-CR-REPLAY-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-REALITY",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-REALITY",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-REALITY-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-REALITY-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-CORRECTION",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-CORRECTION",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-CORRECTION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-CORRECTION-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-AUTOMATION",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-AUTOMATION",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-AUTOMATION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-AUTOMATION-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-PREGAME",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-PREGAME",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-PREGAME-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-PREGAME-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-CONTROL",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-CONTROL",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-CONTROL-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-CONTROL-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-HOLD",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-HOLD",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-HOLD-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-HOLD-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-UNDO",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-UNDO",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-UNDO-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-UNDO-001"
+      ]
+    },
+    {
+      "id": "UX-CONST-ELIMINATION",
+      "contractId": "CONTRACT-UX-CONSTITUTION",
+      "status": "active",
+      "sourcePath": "docs/contracts/ux-constitution.md",
+      "sourceMarker": "clause: UX-CONST-ELIMINATION",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-ELIMINATION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-ELIMINATION-001"
+      ]
+    },
+    {
+      "id": "ENG-STATE-R6-001",
+      "contractId": "CONTRACT-ENGINE-STATE",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/state-and-invariants.md",
+      "sourceMarker": "clause: ENG-STATE-R6-001",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-REALITY-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-REALITY-001"
+      ]
+    },
+    {
+      "id": "ENG-CMD-R6-001",
+      "contractId": "CONTRACT-ENGINE-COMMANDS",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/commands-and-transactions.md",
+      "sourceMarker": "clause: ENG-CMD-R6-001",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-UNDO-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-UNDO-001"
+      ]
+    },
+    {
+      "id": "ENG-ZONES-005",
+      "contractId": "CONTRACT-ENGINE-ZONES",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
+      "sourceMarker": "clause: ENG-ZONES-005",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-ELIMINATION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-ELIMINATION-001"
+      ]
+    },
+    {
+      "id": "ENG-TURN-R6-001",
+      "contractId": "CONTRACT-ENGINE-TURN",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
+      "sourceMarker": "clause: ENG-TURN-R6-001",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-CONTROL-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-CONTROL-001"
+      ]
+    },
+    {
+      "id": "ENG-TURN-R6-002",
+      "contractId": "CONTRACT-ENGINE-TURN",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
+      "sourceMarker": "clause: ENG-TURN-R6-002",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-HOLD-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-HOLD-001"
+      ]
+    },
+    {
+      "id": "ENG-MANA-R6-001",
+      "contractId": "CONTRACT-ENGINE-MANA",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/mana-costs-and-payment.md",
+      "sourceMarker": "clause: ENG-MANA-R6-001",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-AUTOMATION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-AUTOMATION-001"
+      ]
+    },
+    {
+      "id": "ENG-MP-005",
+      "contractId": "CONTRACT-ENGINE-MULTIPLAYER",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/multiplayer.md",
+      "sourceMarker": "clause: ENG-MP-005",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-ELIMINATION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-ELIMINATION-001"
+      ]
+    },
+    {
+      "id": "ENG-COMP-R6-001",
+      "contractId": "CONTRACT-ENGINE-COMPILER",
+      "status": "active",
+      "sourcePath": "docs/contracts/engine/oracle-compiler.md",
+      "sourceMarker": "clause: ENG-COMP-R6-001",
+      "verificationDisposition": "acceptance",
+      "verifiedBy": [
+        {
+          "path": "docs/acceptance/scenarios.json",
+          "marker": "scenario: ACC-R6-AUTOMATION-001",
+          "kind": "acceptance"
+        }
+      ],
+      "acceptedBy": [
+        "ACC-R6-AUTOMATION-001"
+      ]
     }
   ]
 }
