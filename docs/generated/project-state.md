@@ -3,6 +3,7 @@
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
 Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
+Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
 
@@ -11,7 +12,7 @@ Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
 - Active contract registry: `docs/contracts/manifest.json`
 - Traceability: `docs/contracts/traceability.json`
 - Acceptance registry: `docs/acceptance/scenarios.json`
-- Production implementation roots: `src/engine`, `src/online`
+- Production implementation roots: `src`
 - Production routing map: `docs/project-state/production-map.json`
 - NOW authority: `docs/project-state/index.json`
 - Roadmap / provenance / history: `research/cr-grounding/cr-backbone-ledger.json`
