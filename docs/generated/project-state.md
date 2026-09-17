@@ -19,10 +19,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`
-- Active: `M1 — Canonical Project State`
-- Next gate: `M1-COLD-RESTART`
-- Next work: Pass project-state integrity checks and the repo-only Cold Restart Acceptance, then merge M1 without gameplay behavior changes.
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`
+- Active: `M2 — Contract Architecture`
+- Next gate: `M2-PLAN`
+- Next work: Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.
 
 ## Capability state
 
@@ -107,13 +107,13 @@ Next: Keep the gap explicit; choose a preservation design only in later product 
 - `OD-001` — RESOLVED: B — Canonical root index + capability state files + generated current-state view.
 - `OD-002` — RESOLVED: 2A — Project State owns NOW and next gate; the CR backbone ledger is roadmap/provenance/history.
 
-## M1 prohibited scope
+## Prohibited scope
 
 - R6 implementation
 - gameplay semantic changes
 - R4b/R5 redesign
-- Constitution changes
-- M2-M6 implementation
+- casual Constitution changes
+- M3-M6 implementation
 
 ## Freshness
 
