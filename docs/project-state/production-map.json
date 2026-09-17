@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "observedAtCommit": "cda6d4d785fd393a6c3df9b18a8f8199ac2d1ab5",
+  "status": "CURRENT_ROUTING_SNAPSHOT",
+  "scope": "Production entry and routing map only. Contract meaning and semantic verdicts remain owned by their canonical sources and Project State capability audits.",
+  "surfaces": [
+    {
+      "id": "cockpit-primary",
+      "role": "PRIMARY_PLAYER_SURFACE",
+      "entry": "src/App.tsx",
+      "route": [
+        "handleStart / setCockpit",
+        "src/components/game/CockpitSessionScreen.tsx",
+        "src/online/browser/cockpitClient.ts",
+        "/api/cockpit/:id",
+        "src/online/cloudflare/worker.ts"
+      ],
+      "note": "The visible solo play action and the 2/4-player create/join actions enter CockpitSessionScreen. In production CockpitClient targets the deployed Cloudflare Worker."
+    },
+    {
+      "id": "public-online-legacy-visible",
+      "role": "LEGACY_VISIBLE_SURFACE",
+      "entry": "src/App.tsx",
+      "route": [
+        "onlineMode=online",
+        "src/components/online/PublicOnlineApp.tsx",
+        "src/online/publicApp/",
+        "src/online/cloudflare/worker.ts"
+      ],
+      "note": "The App labels this entry '以前のオンライン対戦部屋'; it remains reachable but must not be mistaken for the primary current multiplayer surface."
+    },
+    {
+      "id": "gamescreen-compatibility-state",
+      "role": "COMPATIBILITY_STATE_SURFACE",
+      "entry": "src/App.tsx",
+      "route": [
+        "useGameStore state branch",
+        "src/components/game/GameScreen.tsx"
+      ],
+      "note": "GameScreen remains reachable when legacy/local store state already exists; it is not the default current play-choice route."
+    }
+  ],
+  "backend": {
+    "deploymentConfig": "wrangler.jsonc",
+    "workerEntry": "src/online/cloudflare/worker.ts",
+    "productionEndpointResolver": "src/online/publicApp/runtimeRealm.ts",
+    "productionEndpoint": "https://mtg-onedeck-online.makeinu1.workers.dev",
+    "notes": "The Worker serves both Cockpit /api/cockpit routes and the public-online room API surface."
+  }
+}
