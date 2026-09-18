@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { isTestLikePath, partitionVitestTestFiles, vitestProjectForPath } from './vitest-projects.mjs';
 
 const DEFAULT_ROOT = resolve(import.meta.dirname, '../..');
 const REGISTRY_PATH = resolve(import.meta.dirname, 'validation-domains.json');
@@ -107,32 +108,51 @@ export function resolveDomainSelection({ root = DEFAULT_ROOT, files = [] } = {})
     for (const domain of matches) if (!initialIds.includes(domain.id)) initialIds.push(domain.id);
   }
 
+  const changedTestLikeFiles = normalizedFiles.filter((file) => isTestLikePath(file));
+  const selfSelectedTestFiles = [];
+  const unrunnableChangedTestFiles = [];
+  for (const file of changedTestLikeFiles) {
+    const project = vitestProjectForPath(file);
+    if (project && existsSync(resolve(root, file))) selfSelectedTestFiles.push(file);
+    else unrunnableChangedTestFiles.push(file);
+  }
+
   const expandedIds = expandDomains(initialIds, domains);
   const fallback = unknownFiles.length > 0;
-  const escalation = fallback || expandedIds.some((id) => findDomain(domains, id).escalationLevel === 'full') ? 'full' : 'targeted';
+  const changedTestFallback = unrunnableChangedTestFiles.length > 0;
+  const escalation = fallback
+    || changedTestFallback
+    || expandedIds.some((id) => findDomain(domains, id).escalationLevel === 'full')
+      ? 'full'
+      : 'targeted';
   const selectedIds = fallback ? ['release'] : expandedIds;
   const selectedDomains = selectedIds.map((id) => (id === 'release' ? null : findDomain(domains, id))).filter(Boolean);
   const contractIds = [...new Set(selectedDomains.flatMap((domain) => domain.relatedContractIds))].sort();
-  const testFiles = selectedDomains.flatMap((domain) => testFilesForDomain({ root, domain }));
-  const uniqueTestFiles = [...new Set(testFiles)].sort();
+  const domainTestFiles = selectedDomains.flatMap((domain) => testFilesForDomain({ root, domain }));
+  const uniqueTestFiles = [...new Set([...domainTestFiles, ...selfSelectedTestFiles])].sort();
+  const reasons = [
+    ...(fallback
+      ? [`unknown path(s): ${unknownFiles.join(', ')}`, 'unknown changes require the full release check']
+      : selectedDomains.map((domain) => `${domain.id}: ${domain.reason}`)),
+    ...selfSelectedTestFiles.map((file) => `changed-test-self-selection:${file}`),
+    ...unrunnableChangedTestFiles.map((file) => `changed-test-unrunnable:${file}`),
+  ];
 
   return {
     files: normalizedFiles,
     matchedBy,
     unknownFiles,
+    changedTestLikeFiles,
+    selfSelectedTestFiles,
+    unrunnableChangedTestFiles,
     initialDomains: initialIds,
     expandedDomains: expandedIds,
     selectedDomains: selectedIds,
     contractIds,
     testFiles: uniqueTestFiles,
-    testFilesByProject: {
-      core: uniqueTestFiles.filter((file) => file.startsWith('src/engine/')),
-      dom: uniqueTestFiles.filter((file) => !file.startsWith('src/engine/')),
-    },
+    testFilesByProject: partitionVitestTestFiles(uniqueTestFiles),
     escalation,
-    reasons: fallback
-      ? [`unknown path(s): ${unknownFiles.join(', ')}`, 'unknown changes require the full release check']
-      : selectedDomains.map((domain) => `${domain.id}: ${domain.reason}`),
+    reasons,
   };
 }
 
@@ -148,10 +168,7 @@ export function resolveNamedDomain({ root = DEFAULT_ROOT, domainId }) {
     expandedDomains: expandedIds,
     contractIds: [...new Set(expandedDomains.flatMap((item) => item.relatedContractIds))].sort(),
     testFiles,
-    testFilesByProject: {
-      core: testFiles.filter((file) => file.startsWith('src/engine/')),
-      dom: testFiles.filter((file) => !file.startsWith('src/engine/')),
-    },
+    testFilesByProject: partitionVitestTestFiles(testFiles),
     reasons: expandedDomains.map((item) => `${item.id}: ${item.reason}`),
   };
 }

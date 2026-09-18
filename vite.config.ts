@@ -1,5 +1,6 @@
-import { defineConfig, configDefaults } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { CORE_TEST_INCLUDE, DEFAULT_TEST_INCLUDE, DOM_ENGINE_EXCLUDE, TEST_EXCLUDE } from './scripts/checks/vitest-projects.mjs';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,13 +22,13 @@ export default defineConfig({
       },
     },
     // Worktree checkouts under .claude/ would otherwise be collected as duplicate test files.
-    exclude: [...configDefaults.exclude, '.claude/**'],
+    exclude: TEST_EXCLUDE,
     projects: [
       {
         extends: true,
         test: {
           name: 'core',
-          include: ['src/engine/**/*.{test,spec}.?(c|m)[jt]s?(x)'],
+          include: CORE_TEST_INCLUDE,
           environment: 'node',
           fileParallelism: true,
         },
@@ -36,12 +37,12 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'dom',
-          include: configDefaults.include,
+          include: DEFAULT_TEST_INCLUDE,
           environment: 'jsdom',
           // Two jsdom workers retain parallelism without starving fixed-time architecture checks.
           fileParallelism: true,
           maxWorkers: 2,
-          exclude: [...configDefaults.exclude, '.claude/**', 'src/engine/**'],
+          exclude: [...TEST_EXCLUDE, DOM_ENGINE_EXCLUDE],
         },
       },
     ],

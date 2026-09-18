@@ -7,6 +7,7 @@ import { collectChangedFiles } from './change-detector.mjs';
 import { DEFAULT_ROOT, resolveDomainSelection } from './validation-domain-resolver.mjs';
 import { buildVerificationPlan } from './semantic-verification.mjs';
 import { runSemanticVerification } from './verify-semantic.mjs';
+import { partitionVitestTestFiles } from './vitest-projects.mjs';
 
 function parseArgs(argv) {
   const options = { head: 'HEAD', base: undefined, dryRun: false, json: false };
@@ -39,6 +40,9 @@ function reportFor(options) {
     contractIds: selection.contractIds,
     escalation: selection.escalation,
     unknownFiles: selection.unknownFiles,
+    changedTestLikeFiles: selection.changedTestLikeFiles,
+    selfSelectedTestFiles: selection.selfSelectedTestFiles,
+    unrunnableChangedTestFiles: selection.unrunnableChangedTestFiles,
     matchedBy: selection.matchedBy,
     reasons: selection.reasons,
     testFiles: selection.testFiles,
@@ -63,6 +67,12 @@ function printReport(report) {
   for (const reason of report.reasons) console.log(`REASON: ${reason}`);
   for (const [file, domains] of Object.entries(report.matchedBy)) {
     console.log(`MATCH: ${file} -> ${domains.join(', ')}`);
+  }
+  if (report.selfSelectedTestFiles.length > 0) {
+    console.log(`SELF-SELECTED TESTS: ${report.selfSelectedTestFiles.join(', ')}`);
+  }
+  if (report.unrunnableChangedTestFiles.length > 0) {
+    console.log(`UNRUNNABLE CHANGED TESTS: ${report.unrunnableChangedTestFiles.join(', ')}`);
   }
   if (report.unknownFiles.length > 0) {
     console.log(`UNKNOWN PATHS: ${report.unknownFiles.join(', ')}`);
@@ -115,10 +125,7 @@ function addSemanticTests(report, plan) {
     ...report,
     testFiles,
     testFileCount: testFiles.length,
-    testFilesByProject: {
-      core: testFiles.filter((file) => file.startsWith('src/engine/')),
-      dom: testFiles.filter((file) => !file.startsWith('src/engine/')),
-    },
+    testFilesByProject: partitionVitestTestFiles(testFiles),
     semanticVerification: {
       coverage: plan.coverage,
       impactedSemantics: Object.keys(plan.semanticImpact),
