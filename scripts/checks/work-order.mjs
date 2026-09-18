@@ -208,7 +208,9 @@ export function validateWorkOrderReferences(workOrder, { root = DEFAULT_ROOT } =
   if (!manifest || !projectState || !acceptance) return errors;
 
   const semanticIds = semanticInventoryAtRef(root, base, manifest, errors);
-  const capabilityIds = new Set((projectState.capabilities ?? []).map((entry) => entry?.id).filter(Boolean));
+  const capabilityEntries = new Map((projectState.capabilities ?? [])
+    .filter((entry) => entry?.id)
+    .map((entry) => [entry.id, entry]));
   const acceptanceIds = new Set((acceptance.scenarios ?? []).map((scenario) => scenario?.id).filter(Boolean));
   const authorityPaths = canonicalAuthorityPaths(manifest);
 
@@ -223,7 +225,20 @@ export function validateWorkOrderReferences(workOrder, { root = DEFAULT_ROOT } =
   }
 
   for (const id of workOrder.contextRefs?.capabilityRefs ?? []) {
-    if (!capabilityIds.has(id)) errors.push(`contextRefs.capabilityRefs: unresolved capability ${id} at planningBase`);
+    const entry = capabilityEntries.get(id);
+    if (!entry) {
+      errors.push(`contextRefs.capabilityRefs: unresolved capability ${id} at planningBase`);
+      continue;
+    }
+    if (typeof entry.path !== 'string' || readAtRef(root, base, entry.path) === null) {
+      errors.push(`contextRefs.capabilityRefs: capability state missing for ${id} at planningBase`);
+      continue;
+    }
+    try {
+      JSON.parse(readAtRef(root, base, entry.path));
+    } catch {
+      errors.push(`contextRefs.capabilityRefs: capability state invalid JSON for ${id} at planningBase`);
+    }
   }
   for (const id of workOrder.verificationIntent?.acceptanceRefs ?? []) {
     if (!acceptanceIds.has(id)) errors.push(`verificationIntent.acceptanceRefs: unresolved Acceptance ${id} at planningBase`);
