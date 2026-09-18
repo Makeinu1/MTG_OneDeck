@@ -5,7 +5,10 @@
   "scope": "Production entry and routing map only. Contract meaning and semantic verdicts remain owned by their canonical sources and Project State capability audits.",
   "freshness": {
     "watchedPaths": [
+      ".github/workflows/deploy-pages.yml",
+      ".github/workflows/deploy-worker.yml",
       "wrangler.jsonc",
+      "src/main.tsx",
       "src/App.tsx",
       "src/components/game/CockpitSessionScreen.tsx",
       "src/components/online/PublicOnlineApp.tsx",
