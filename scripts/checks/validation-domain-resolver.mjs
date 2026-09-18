@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { isTestLikePath, partitionVitestTestFiles, vitestProjectForPath } from './vitest-projects.mjs';
 
@@ -108,13 +108,12 @@ export function resolveDomainSelection({ root = DEFAULT_ROOT, files = [] } = {})
     for (const domain of matches) if (!initialIds.includes(domain.id)) initialIds.push(domain.id);
   }
 
-  const repositoryFiles = new Set(walkFiles(root));
   const changedTestLikeFiles = normalizedFiles.filter((file) => isTestLikePath(file));
   const selfSelectedTestFiles = [];
   const unrunnableChangedTestFiles = [];
   for (const file of changedTestLikeFiles) {
     const project = vitestProjectForPath(file);
-    if (project && repositoryFiles.has(file)) selfSelectedTestFiles.push(file);
+    if (project && existsSync(resolve(root, file))) selfSelectedTestFiles.push(file);
     else unrunnableChangedTestFiles.push(file);
   }
 
