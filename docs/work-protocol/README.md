@@ -158,6 +158,7 @@ For child Work Orders, pass `--parent <parent.json>` with `--head`. M4-3 checks:
 - target semantic scope is a subset of the parent;
 - expected change roots do not broaden beyond the parent;
 - parent protected path/semantic boundaries remain inherited;
+- parent Non-goals, task-local constraints and escalation triggers remain inherited;
 - review / verification policies are not weakened;
 - parent verification semantic / Acceptance obligations relevant to the child target are retained.
 
