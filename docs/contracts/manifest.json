@@ -23,7 +23,7 @@
       "verifiedBy": [
         "scripts/checks/check-docs.mjs"
       ],
-      "lastVerifiedCommit": "7556f5c13eb2608237a4536b55a9e9d819ea71d5"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-STATE",
@@ -45,7 +45,7 @@
         "scripts/checks/check-docs.mjs",
         "src/engine/__tests__/init.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-COMMANDS",
@@ -68,7 +68,7 @@
         "scripts/checks/check-docs.mjs",
         "src/engine/__tests__/commands.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-ZONES",
@@ -92,7 +92,7 @@
         "scripts/checks/check-docs.mjs",
         "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-TURN",
@@ -116,7 +116,7 @@
         "scripts/checks/check-docs.mjs",
         "src/engine/__tests__/priority.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-MANA",
@@ -140,7 +140,7 @@
         "scripts/checks/check-docs.mjs",
         "src/engine/__tests__/mana.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-MULTIPLAYER",
@@ -164,7 +164,7 @@
         "scripts/checks/check-docs.mjs",
         "src/test/architecture/soloOnlineBoundary.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ENGINE-COMPILER",
@@ -188,7 +188,7 @@
         "scripts/checks/check-docs.mjs",
         "src/engine/__tests__/cr701DiscardCompiler.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-ACCEPTANCE",
@@ -209,7 +209,7 @@
       "verifiedBy": [
         "scripts/checks/check-docs.mjs"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-UI-DESIGN",
@@ -229,7 +229,7 @@
       "verifiedBy": [
         "scripts/checks/check-docs.mjs"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-UI-VISUAL",
@@ -249,7 +249,7 @@
       "verifiedBy": [
         "scripts/checks/check-docs.mjs"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-UI-ARCHITECTURE",
@@ -271,7 +271,7 @@
       "verifiedBy": [
         "scripts/checks/check-docs.mjs"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-UI-RESPONSIVE",
@@ -292,7 +292,7 @@
         "scripts/checks/check-docs.mjs",
         "src/components/game/adaptiveLaneLayout.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "CONTRACT-AV",
@@ -316,7 +316,7 @@
         "scripts/checks/check-docs.mjs",
         "src/components/game/presentation/__tests__/av0-presentation.test.ts"
       ],
-      "lastVerifiedCommit": "1a529dd1445836ab2ee57308f5509addd782eba2"
+      "lastVerifiedCommit": "2ec656939719a4b603e24bf8f33bf4af76051b84"
     },
     {
       "id": "GENERATED-ENGINE-API",
