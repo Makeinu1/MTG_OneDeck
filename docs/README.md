@@ -3,7 +3,7 @@
 Read only the authority that matches the change:
 
 - [`generated/project-state.md`](generated/project-state.md) — generated **NOW / restart** view. Its canonical machine source is [`project-state/index.json`](project-state/index.json) plus indexed capability files.
-- [`product-requirements.md`](product-requirements.md) — product WHY/WHAT, player outcomes, shared-table UX, and Display A/B roles.
+- [`product-requirements.md`](product-requirements.md) — product WHY/WHAT, player outcomes, shared-table UX, durable product decisions, and convergence requirements.
 - [`contracts/ux-constitution.md`](contracts/ux-constitution.md) — active upper interaction contract: human authority, automation boundary, lifecycle, HOLD, Undo, room ownership and R6 UX invariants.
 - [`../AGENTS.md`](../AGENTS.md) and [`../.agents/skills/mtg-onedeck-development/SKILL.md`](../.agents/skills/mtg-onedeck-development/SKILL.md) — outcome-first development, testing, and review rules.
 - [`contracts/manifest.json`](contracts/manifest.json) — active contract ownership and verification metadata.
@@ -21,7 +21,7 @@ The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md
 
 - [`solo-ui-sep05-integration-design.md`](solo-ui-sep05-integration-design.md) — current table layout and interaction design; the September 5 reference is commit `e0c98b4`.
 - [`trigger-feed-manual-integration-design.md`](trigger-feed-manual-integration-design.md) — trigger detection, Feed and manual operations; implementation, QA evidence and shipment records are in section 12.
-- [`contracts/ux-constitution.md`](contracts/ux-constitution.md) — R6 UX Constitution v6.3 and active upper interaction authority.
-- [`r6-ux-constitution-2026-09-16.md`](r6-ux-constitution-2026-09-16.md) — detailed R6 v6.2 design rationale retained as supporting design guidance; where interaction intent conflicts, v6.3 governs.
+- [`contracts/ux-constitution.md`](contracts/ux-constitution.md) — R6 UX Constitution v6.4 and active upper interaction authority.
+- [`r6-ux-constitution-2026-09-16.md`](r6-ux-constitution-2026-09-16.md) — detailed R6 v6.2 design rationale retained as supporting design guidance; where interaction intent conflicts, the active v6.4 Constitution governs.
 - [`r6-existing-solo-layout-audit-2026-09-16.md`](r6-existing-solo-layout-audit-2026-09-16.md) — current solo/local layout audit: Preserve / Repair / Remove findings used as normative R6 design input.
 - [`cockpit-ui-restoration-2026-09-13.md`](cockpit-ui-restoration-2026-09-13.md) — historical initial restoration record, superseded by the designs above.
