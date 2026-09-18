@@ -1,9 +1,10 @@
-# M4 Work Protocol / SOW Plan — candidate
+# M4 Work Protocol / SOW Plan — implemented design record
 
-Status: CANDIDATE / design only  
-Baseline: `main@d316ad513c2a9a9d2fccc72039ab2bebc1c2b478`  
-Gate: M4-PLAN  
-Implementation authority: none
+Status: IMPLEMENTED / retained as design rationale  
+Planning baseline: `main@d316ad513c2a9a9d2fccc72039ab2bebc1c2b478`  
+Gate: M4-PLAN SATISFIED  
+Current process contract: `docs/work-protocol/README.md`  
+Authority note: this historical plan grants no runtime or external-write authority; current NOW remains Project State.
 
 ## 1. Goal
 
