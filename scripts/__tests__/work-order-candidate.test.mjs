@@ -283,6 +283,26 @@ describe('M4 monotonic delegation', () => {
     ]));
   });
 
+  test('rejects dropped parent non-goals, constraints, or escalation triggers', () => {
+    const base = currentHead();
+    const parent = parentPacket(base);
+    parent.nonGoals = ['Do not change Product Truth.'];
+    parent.constraints.local = ['No dependency additions.'];
+    parent.escalateWhen = ['Semantic authority change is required.'];
+
+    const child = childPacket(base);
+    child.nonGoals = [];
+    child.constraints.local = [];
+    child.escalateWhen = [];
+
+    const errors = validateDelegation(child, parent, { root: DEFAULT_ROOT });
+    expect(errors).toEqual(expect.arrayContaining([
+      'delegation: child drops parent non-goal: Do not change Product Truth.',
+      'delegation: child drops parent local constraint: No dependency additions.',
+      'delegation: child drops parent escalation trigger: Semantic authority change is required.',
+    ]));
+  });
+
   test('requires exact parent identity and planning snapshot', () => {
     const base = currentHead();
     const child = childPacket(base);
