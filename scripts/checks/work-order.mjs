@@ -314,17 +314,16 @@ export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) 
     return errors;
   }
 
-  const parentReferenceErrors = validateWorkOrderReferences(parent, { root });
-  if (parentReferenceErrors.length > 0) {
-    errors.push(...parentReferenceErrors.map((error) => `delegation parent ${error}`));
-    return errors;
-  }
-
   if (child.parentWorkId !== parent.workId) {
     errors.push(`delegation: child parentWorkId ${child.parentWorkId} does not match parent workId ${parent.workId}`);
   }
   if (child.planningBase !== parent.planningBase) {
     errors.push('delegation: child and parent must share planningBase; replan explicitly instead of silently rebasing a child');
+  } else {
+    const parentReferenceErrors = validateWorkOrderReferences(parent, { root });
+    const childReferenceErrors = validateWorkOrderReferences(child, { root });
+    errors.push(...parentReferenceErrors.map((error) => `delegation parent ${error}`));
+    errors.push(...childReferenceErrors.map((error) => `delegation child ${error}`));
   }
 
   const parentTargets = new Set(parent.scope?.targetSemanticRefs ?? []);
@@ -406,6 +405,12 @@ export function validateWorkOrderCandidate(workOrder, {
     authoritySemanticChanges: [],
     protectedPathChanges: [],
   };
+
+  const planningErrors = validateWorkOrderAtPlanningBase(workOrder, { root });
+  if (planningErrors.length > 0) {
+    errors.push(...planningErrors.map((error) => `candidate packet ${error}`));
+    return { errors, drift };
+  }
 
   if (typeof head !== 'string' || !/^[0-9a-f]{40}$/u.test(head)) {
     errors.push('candidate: explicit 40-char head commit SHA is required');
