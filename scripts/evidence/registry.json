@@ -13,7 +13,10 @@
         "runner": "node",
         "script": "scripts/online/r31-resolution-uat.mjs",
         "environmentBound": true,
-        "localOnly": true
+        "localOnly": true,
+        "workflow": ".github/workflows/cockpit-browser-evidence.yml",
+        "job": "session-browser",
+        "current": true
       },
       "requiredFacts": [
         "Two spells form canonical response stack B/A.",
@@ -35,7 +38,10 @@
         "script": "scripts/online/r4-ui-browser-evidence.ts",
         "harness": "scripts/online/r4-ui-evidence-harness.tsx",
         "environmentBound": true,
-        "localOnly": true
+        "localOnly": true,
+        "workflow": ".github/workflows/cockpit-browser-evidence.yml",
+        "job": "formal-browser",
+        "current": true
       },
       "requiredFacts": [
         "A legal graveyard card is selected through visible UI and the committed cast preserves sourceZone=graveyard.",
@@ -54,7 +60,10 @@
         "runner": "node",
         "script": "scripts/online/cockpit-turn-evidence.mjs",
         "environmentBound": true,
-        "localOnly": true
+        "localOnly": true,
+        "workflow": ".github/workflows/cockpit-browser-evidence.yml",
+        "job": "session-browser",
+        "current": true
       },
       "requiredFacts": [
         "The first player skips the first turn draw in the two-player start.",
