@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 const projects = ['core', 'dom'];
 
-export const CORE_TEST_INCLUDE = Object.freeze(['src/engine/**/*.{test,spec}.?(c|m)[jt]s?(x)']);
+export const CORE_TEST_INCLUDE = ['src/engine/**/*.{test,spec}.?(c|m)[jt]s?(x)'];
 export const DOM_ENGINE_EXCLUDE = 'src/engine/**';
 
 const TEST_LIKE_PATH = /(?:^|\/)[^/]+\.(?:test|spec)\.[^/]+$/u;
@@ -25,6 +25,15 @@ export function vitestProjectForPath(path) {
   if (!RUNNABLE_TEST_PATH.test(normalized)) return null;
   if (normalized.split('/').some((segment) => EXCLUDED_PATH_SEGMENTS.has(segment))) return null;
   return normalized.startsWith('src/engine/') ? 'core' : 'dom';
+}
+
+export function partitionVitestTestFiles(paths) {
+  const result = { core: [], dom: [] };
+  for (const path of paths) {
+    const project = vitestProjectForPath(path);
+    if (project) result[project].push(path);
+  }
+  return result;
 }
 
 export function runVitestProjects({
