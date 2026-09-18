@@ -3,6 +3,7 @@
 Read only the authority that matches the change:
 
 - [`generated/project-state.md`](generated/project-state.md) — generated **NOW / restart** view. Its canonical machine source is [`project-state/index.json`](project-state/index.json) plus indexed capability files.
+- [`work-protocol/README.md`](work-protocol/README.md) — M4 bounded Work Order / SOW process contract; references M0–M3.1 authority without becoming Product Truth or Project State NOW.
 - [`product-requirements.md`](product-requirements.md) — product WHY/WHAT, player outcomes, shared-table UX, durable product decisions, and convergence requirements.
 - [`contracts/ux-constitution.md`](contracts/ux-constitution.md) — active upper interaction contract: human authority, automation boundary, lifecycle, HOLD, Undo, room ownership and R6 UX invariants.
 - [`../AGENTS.md`](../AGENTS.md) and [`../.agents/skills/mtg-onedeck-development/SKILL.md`](../.agents/skills/mtg-onedeck-development/SKILL.md) — outcome-first development, testing, and review rules.

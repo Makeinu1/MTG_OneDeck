@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "docs/work-protocol/work-order.schema.json",
+  "title": "MTG OneDeck Work Order",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "workId",
+    "parentWorkId",
+    "title",
+    "planningBase",
+    "goal",
+    "authorityRefs",
+    "contextRefs",
+    "verificationIntent",
+    "scope",
+    "nonGoals",
+    "protected",
+    "constraints",
+    "doneWhen",
+    "escalateWhen",
+    "review"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "workId": {
+      "type": "string",
+      "pattern": "^WO-[0-9]{8}-[0-9]{3}$"
+    },
+    "parentWorkId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^WO-[0-9]{8}-[0-9]{3}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "planningBase": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authorityRefs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semanticRefs",
+        "paths"
+      ],
+      "properties": {
+        "semanticRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "contextRefs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilityRefs"
+      ],
+      "properties": {
+        "capabilityRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^CR-[0-9]{2}$"
+          }
+        }
+      }
+    },
+    "verificationIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semanticRefs",
+        "acceptanceRefs",
+        "policy"
+      ],
+      "properties": {
+        "semanticRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "acceptanceRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ACC-[A-Z0-9-]+$"
+          }
+        },
+        "policy": {
+          "const": "INHERIT_M3"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "targetSemanticRefs",
+        "inputPaths",
+        "expectedChangeRoots"
+      ],
+      "properties": {
+        "targetSemanticRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "inputPaths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expectedChangeRoots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "nonGoals": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "protected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paths",
+        "semanticRefs"
+      ],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "semanticRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local"
+      ],
+      "properties": {
+        "local": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "doneWhen": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "escalateWhen": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy"
+      ],
+      "properties": {
+        "policy": {
+          "const": "INHERIT_AGENTS"
+        }
+      }
+    }
+  }
+}

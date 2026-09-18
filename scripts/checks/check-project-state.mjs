@@ -114,6 +114,10 @@ requirePath(index.roles?.roadmapHistoryPolicy, 'roles.roadmapHistoryPolicy');
 requirePath(index.roles?.verificationIntegrity, 'roles.verificationIntegrity');
 requirePath(index.roles?.verificationImpactResolver, 'roles.verificationImpactResolver');
 requirePath(index.roles?.candidateVerificationGate, 'roles.candidateVerificationGate');
+requirePath(index.roles?.workProtocol, 'roles.workProtocol');
+requirePath(index.roles?.workOrderSchema, 'roles.workOrderSchema');
+requirePath(index.roles?.workOrderValidator, 'roles.workOrderValidator');
+requirePath(index.roles?.workProtocolIntegrity, 'roles.workProtocolIntegrity');
 requirePath(index.coldRestartAcceptance, 'coldRestartAcceptance');
 if (!nonEmpty(index.program?.activeMilestone) || !nonEmpty(index.program?.nextGate) || !nonEmpty(index.program?.nextWork)) {
   err('index: active milestone, next gate and next work are required');
