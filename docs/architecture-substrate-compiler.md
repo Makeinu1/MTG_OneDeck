@@ -1,5 +1,10 @@
 # MTGルール基盤(Substrate)+ 文法コンパイラ(Compiler)アーキテクチャ
 
+> **M5 lifecycle:** `PROVENANCE`（deprecated design record）  
+> **Authority:** `NONE`。現在のProduct/semantic authorityは `docs/product-requirements.md`、`docs/contracts/manifest.json` とそのactive contractsが所有する。  
+> 本書はsubstrate/compiler設計の発展経緯を説明するために保持する。以下のmilestone・進捗・「正本」表現をProject State NOWとして再生しない。
+
+
 > ステータス: **設計(design-only)**。本書はコード・契約(`engine-spec.md` 本体・`CLAUDE.md` 本体)を
 > まだ変更しない設計図である。実装は本書を背骨に、後述のマイルストーンを1つずつ起こす。
 > 最終更新: 2026-06-26。参照CR: 2026-06-19 版。
