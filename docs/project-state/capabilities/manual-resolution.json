@@ -7,11 +7,25 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
-  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Manual Resolution"}],
-  "implementationRefs": [{"path":"src/engine/cockpitR31.ts","locator":"ExpectedInteractionContext / resolutionProcess"},{"path":"src/engine/cockpitTable.ts","locator":"resolve.begin / resolve.end"}],
+  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
+  "authorityRefs": [
+    {
+      "path": "docs/contracts/ux-constitution.md",
+      "locator": "Manual Resolution"
+    }
+  ],
+  "implementationRefs": [
+    {
+      "path": "src/engine/cockpitR31.ts",
+      "locator": "ExpectedInteractionContext / resolutionProcess"
+    },
+    {
+      "path": "src/engine/cockpitTable.ts",
+      "locator": "resolve.begin / resolve.end"
+    }
+  ],
   "verificationRefs": [],
-  "rationale": "Identity/context-aware Manual Resolution substrate is present. This verdict does not claim that the later R6 UX presentation is complete.",
-  "nextAction": "Preserve the substrate; evaluate presentation only when R6 implementation work is selected.",
+  "rationale": "Identity/context-aware Manual Resolution substrate is present. MATCH is limited to the first-class Resolution substrate and does not claim that newly clarified Choice Authority, canonical effect-actor, privacy-preserving signal, or R6 presentation semantics are implemented.",
+  "nextAction": "Preserve the substrate. Treat Choice Authority / effect-application ownership as separate M2 mapping and later verification work rather than widening this MATCH.",
   "ownerDecisionRefs": []
 }
