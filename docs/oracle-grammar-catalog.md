@@ -1,5 +1,10 @@
 # オラクル文法 ⇄ 状態変異カタログ
 
+> **M5 lifecycle:** `PROVENANCE`  
+> **Authority:** `NONE`。本書はM0期のOracle文法→状態変異マッピングの設計 provenanceとして保持する。現在のcompiler semantic authorityは `docs/contracts/engine/oracle-compiler.md` などactive contractsが所有する。  
+> 本文中のESO・M0・旧`engine-spec §34`への写像はhistorical design dataとして保持し、current semantic mappingとして自動再利用しない。
+
+
 > M0 モデリング・サイクルの生きた成果物②。正本手法 = [`engine-design-method.md`](engine-design-method.md) §1。
 > ESO = [`engine-state-ontology.md`](engine-state-ontology.md)。
 >
