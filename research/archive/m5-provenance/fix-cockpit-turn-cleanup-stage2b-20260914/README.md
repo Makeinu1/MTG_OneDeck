@@ -1,9 +1,8 @@
 # fix/cockpit-turn-cleanup-stage2b-20260914 provenance archive
 
-Status: HISTORICAL / PROVENANCE ONLY  
-Current semantic authority: none  
-Current verification authority: none  
-External-write authority: none
+Lifecycle: HISTORICAL_PROVENANCE  
+AUTHORITY: NONE  
+EXECUTION AUTHORITY: NONE
 
 Archived branch: `fix/cockpit-turn-cleanup-stage2b-20260914`  
 Archived head: `ea02aaeec0bde73a1d378c3f9ecf666668f72791`
