@@ -53,7 +53,6 @@ High-frequency combat semantics such as first strike, double strike, trample, de
 
 ## 3. Manual Resolution and semantic honesty
 
-<!-- clause: UX-CONST-MANUAL -->
 Manual Resolution is a normal success path. OneDeck does not need to generate a card-specific effect wizard for arbitrary Oracle text.
 
 The current parent Resolution owner performs that Resolution's effect application, may manipulate real Magic-world objects, records targets/associations where useful, and owns the `処理完了` lifecycle boundary. Other players retain any Magic-required Choice Authority and communicate those choices primarily through voice or lightweight choice signals; their participation alone does not transfer the parent Resolution or mutate canonical GameState.
@@ -137,7 +136,6 @@ Stack presentation should make ordering, foreground work, suspended parents, act
 
 ## 8. Cooperative participation
 
-<!-- clause: UX-CONST-CHOICE -->
 Primary Operator owns the current parent Resolution lifecycle and its effect application. This does not give that player another participant's Magic-required decisions.
 
 When A's Resolution requires B to choose, B retains Choice Authority. Public choices normally remain voice/table conversation; lightweight highlight/selection may externalize the choice when useful. A choice signal is not itself a canonical zone move, Reveal, committed Magic operation, or transfer of parent Resolution ownership.
@@ -146,7 +144,6 @@ If a choice must remain secret from other participants, OneDeck may use the smal
 
 Rule-defined independent actions belong to the player whom the rules assign that action. For example, a defending player directly declares their own blockers; this is not merely a choice inside another player's parent Resolution.
 
-<!-- clause: UX-CONST-GRANTED-ACTION -->
 When a resolving effect explicitly instructs or permits another player to perform an independent Magic action such as casting a spell, that player performs the bounded action as its actor without requesting HOLD. Spell selection, modes, targets, costs and other choices belonging to that action remain with that actor. The original parent Resolution stays owned by its original operator and resumes after the granted action is committed.
 
 Hidden-information authority remains independent from parent Resolution, foreground and HOLD authority.
@@ -191,7 +188,6 @@ Temporary network disconnection is not itself elimination. Reconnect/reconciliat
 
 ## 11. Continuation, viewing and recovery
 
-<!-- clause: UX-CONST-INFORMATION -->
 Viewing authorized information is free and does not change Current Work. Current Work/Continuation must remain visible or one semantic action away while browsing zones, cards or assistance surfaces.
 
 Information has an intended audience. At minimum OneDeck must be able to distinguish self, specific participant(s), and the table/all players when Magic semantics require it. Primary Operator, foreground, HOLD or Room Owner status alone never widens hidden-information authority.
