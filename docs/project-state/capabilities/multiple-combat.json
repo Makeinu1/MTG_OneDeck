@@ -7,7 +7,7 @@
   "deliveryState": "UNPLANNED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Multiple combat phases and steps"}],
   "implementationRefs": [{"path":"src/engine/types.ts","locator":"Phase"},{"path":"src/engine/cockpitTable.ts","locator":"phase/combat representation"}],
   "verificationRefs": [],

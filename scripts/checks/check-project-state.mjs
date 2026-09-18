@@ -290,9 +290,12 @@ try {
   if (!branch) {
     err(`baseline provenance: cannot resolve declared branch ${index.baseline.branch}`);
   } else {
-    assertAncestor(baseline, branch.sha, 'baseline provenance');
     const head = git(['rev-parse','HEAD']);
-    if (head !== branch.sha) assertAncestor(branch.sha, head, 'candidate freshness against declared branch');
+    if (head === branch.sha) {
+      assertAncestor(baseline, branch.sha, 'baseline provenance');
+    } else {
+      assertAncestor(branch.sha, head, 'candidate freshness against declared branch');
+    }
     if (sha40.test(productionMap?.observedAtCommit ?? '')) assertAncestor(productionMap.observedAtCommit, head, 'production map provenance');
   }
   execFileSync('git', ['merge-base','--is-ancestor',baseline,'HEAD'], { cwd: repositoryRoot, stdio:'ignore' });

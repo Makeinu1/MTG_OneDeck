@@ -7,7 +7,7 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
+  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Trigger occurrence / Trigger memory"}],
   "implementationRefs": [{"path":"src/engine/cockpitTriggerOccurrence.ts"},{"path":"src/engine/cockpitTriggers.ts"}],
   "verificationRefs": [],

@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
+Audited baseline: `6d28fba39c548f0798856ddde5fdc3a54e1d7830` (main, 2026-09-18).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -37,6 +37,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
   - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
+  - The M0 reconciliation clarified Choice Authority, effect-granted actions, information Audience/Table Reveal and narrow Room Owner recovery. Those semantics do not yet have dedicated stable clause/acceptance ownership; M2 must map them before M3 verification is designed.
   - Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1.
 
 ## Capability state
@@ -54,7 +55,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 | CR-09 | Room Owner, operation authority and turn ownership are distinct | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
 | CR-10 | Disconnect/presence loss is not elimination | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
 | CR-11 | Eliminated-player objects preserve identity/history for recovery/inspection | REQUIRED | GAP | UNPLANNED | ACTIVE |
-| CR-12 | Normal Undo is actor-owned | REQUIRED | CONFLICT | IMPLEMENTED | ACTIVE |
+| CR-12 | Undo is actor-owned on one strict newest-first shared history | REQUIRED | CONFLICT | IMPLEMENTED | ACTIVE |
 | CR-13 | Undo cannot erase later-learned knowledge | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
 | CR-14 | Memo remains non-canonical human memory | OPTIONAL | UNKNOWN | UNKNOWN | ACTIVE |
 | CR-15 | Automation acts only on reviewed semantic capabilities (known) | REQUIRED | UNKNOWN | UNKNOWN | ACTIVE |
@@ -71,23 +72,23 @@ Implementation: `src/engine/cockpitTriggersCore.ts :: blockingPublicTableTrigger
 
 Next: Keep this conflict visible. Repair it only in selected product work under the active Constitution, not in M1.
 
-### CR-12 — Normal Undo is actor-owned
+### CR-12 — Undo is actor-owned on one strict newest-first shared history
 
-The legacy Cockpit path authorizes eligible Undo by current master, and the public online path authorizes shared Undo by current/checkpoint steward. Neither audited path binds the one-step rollback to the exact actor who performed the reverted operation as required by the active Constitution.
+The active Constitution now requires one shared strict newest-first history, actor-owned normal Undo, and only a narrow Room Owner proxy when the unavailable actor's operation is the current undoable top. The audited legacy Cockpit path authorizes eligible Undo by current master, while the public online path permits a trusted current/checkpoint steward to roll back the current shared checkpoint; existing tests explicitly show a different seat can perform that rollback. This is broader than the actor-owned / top-only recovery authority even where rollback itself is one-step newest-first.
 
 Authority: `docs/contracts/ux-constitution.md :: Undo`
 
 Implementation: `src/online/cloudflare/cockpitMultiplayer.ts :: authorizeCockpitOperation`<br>`src/online/cloudflare/cockpitSession.ts :: snapshot undo`<br>`src/online/protocol/variableCommand.ts :: handleOnlineVariableSharedUndoIntentV2 / checkpointFor`<br>`src/engine/core/closure/applyCommandV1.ts :: coreUndoAuthorizedPlayerV1`
 
-Next: Keep this conflict visible. Future repair must bind rollback authority/history to the exact actor while retaining knowledge-safety.
+Next: Keep this CONFLICT visible. Future repair must bind normal rollback to the exact operation actor and model the unavailable-actor Room Owner proxy explicitly without weakening newest-first or knowledge-safety.
 
 ## Implementation gaps
 
 ### CR-05 — HOLD exact interaction-context identity, staleness and nesting
 
-Seat-level hold and authority transfer exist, but exact initiating interaction identity, context-staleness binding, nested HOLD structure and nearest-valid-parent unwind were not found.
+Seat-level hold and authority transfer exist, but exact initiating interaction identity, context-staleness binding, nested HOLD structure and nearest-valid-parent unwind were not found. The revalidated Constitution also distinguishes effect-granted actions from HOLD; that boundary is not established by the audited HOLD implementation.
 
-Next: Record the gap only. Do not redesign HOLD during M1.
+Next: Keep the GAP visible. M2 must map HOLD versus effect-granted-action ownership before later implementation work.
 
 ### CR-06 — Pregame manual-first Turn Zero checkpoint
 
@@ -143,7 +144,7 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 
 ## Freshness
 
-Semantic watched roots: `src`, `docs/contracts`, `docs/acceptance`.
+Semantic watched roots: `src`, `docs/contracts`, `docs/acceptance`, `docs/product-requirements.md`.
 Run `npm run check:project-state`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.
 
 Cold Restart Acceptance: `docs/project-state/cold-restart-acceptance.md`

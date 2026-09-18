@@ -4,9 +4,9 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
-    "auditedDate": "2026-09-17",
-    "watchedRoots": ["src", "docs/contracts", "docs/acceptance"]
+    "commit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
+    "auditedDate": "2026-09-18",
+    "watchedRoots": ["src", "docs/contracts", "docs/acceptance", "docs/product-requirements.md"]
   },
   "authorities": {
     "productGoal": "docs/product-requirements.md",
@@ -30,6 +30,7 @@
     "knownLimitations": [
       "The capability list is not a proof that every repository concern has been semantically audited.",
       "UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.",
+      "The M0 reconciliation clarified Choice Authority, effect-granted actions, information Audience/Table Reveal and narrow Room Owner recovery. Those semantics do not yet have dedicated stable clause/acceptance ownership; M2 must map them before M3 verification is designed.",
       "Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1."
     ]
   },
