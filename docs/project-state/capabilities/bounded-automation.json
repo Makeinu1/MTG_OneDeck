@@ -8,20 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Bounded automation / known capability"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/engine/cockpitTriggers.ts"
-    },
-    {
-      "path": "src/engine/cockpitR31.ts"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Bounded automation / known capability"}],
+  "implementationRefs": [{"path":"src/engine/cockpitTriggers.ts"},{"path":"src/engine/cockpitR31.ts"}],
   "verificationRefs": [],
   "rationale": "Bounded detectors/materializers and manual fallback exist in subsystems, but complete current capability coverage has not been reconstructed well enough for a global MATCH/GAP/CONFLICT verdict.",
   "nextAction": "Keep UNKNOWN until explicit capability scope and evidence are mapped.",
