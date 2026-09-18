@@ -123,18 +123,29 @@ Run:
 npm run check:work-order -- path/to/work-order.json
 ```
 
-M4-1 structural validation checks schema shape only.
+The command now performs two layers:
+
+1. M4-1 structural validation against the recursively closed canonical schema.
+2. M4-2 planning-snapshot reference resolution against the exact `planningBase` commit.
+
+M4-2 validates:
+
+- `planningBase` exists as a commit;
+- semantic refs resolve from Product definition rows / active contract clause IDs at that snapshot;
+- capability refs resolve from Project State at that snapshot;
+- Acceptance refs resolve from the Acceptance registry at that snapshot;
+- authority paths belong to the canonical authority classes at that snapshot;
+- input/protected paths are safe repository-relative paths and exist at that snapshot;
+- expected change roots use safe repository-relative path syntax.
 
 It intentionally does **not** yet decide:
 
-- whether `planningBase` exists;
-- whether semantic/capability/Acceptance references resolve;
-- whether authority paths are canonical authority classes;
-- whether repository paths exist or are safe;
-- whether a child is a valid subset of its supplied parent;
-- whether an explicit candidate has drifted outside expected scope.
+- whether a child is a valid semantic/scope subset of its supplied parent;
+- whether the current candidate diverged from `planningBase`;
+- whether changed files exceeded expected change roots;
+- whether referenced/protected authority meaning changed since planning.
 
-Those are M4-2 / M4-3 responsibilities.
+Those are M4-3 responsibilities.
 
 ## Mandatory runtime principles
 
