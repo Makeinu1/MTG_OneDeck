@@ -9,7 +9,7 @@
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "2b83b95383b330a308b9d9f7247e0de626a814f7",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Manual Resolution"}],
-  "implementationRefs": [{"path":"src/engine/cockpitR31.ts","locator":"ExpectedInteractionContext / ResolutionProcess"},{"path":"src/engine/cockpitTable.ts","locator":"resolve.begin / resolve.end"}],
+  "implementationRefs": [{"path":"src/engine/cockpitR31.ts","locator":"ExpectedInteractionContext / resolutionProcess"},{"path":"src/engine/cockpitTable.ts","locator":"resolve.begin / resolve.end"}],
   "verificationRefs": [],
   "rationale": "Identity/context-aware Manual Resolution substrate is present. This verdict does not claim that the later R6 UX presentation is complete.",
   "nextAction": "Preserve the substrate; evaluate presentation only when R6 implementation work is selected.",

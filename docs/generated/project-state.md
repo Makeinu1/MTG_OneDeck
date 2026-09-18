@@ -3,6 +3,7 @@
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
 Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
+Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
 
@@ -11,9 +12,13 @@ Audited baseline: `2b83b95383b330a308b9d9f7247e0de626a814f7` (main, 2026-09-17).
 - Active contract registry: `docs/contracts/manifest.json`
 - Traceability: `docs/contracts/traceability.json`
 - Acceptance registry: `docs/acceptance/scenarios.json`
-- Production implementation roots: `src/engine`, `src/online`
+- Production implementation roots: `src`
+- Production routing map: `docs/project-state/production-map.json`
 - NOW authority: `docs/project-state/index.json`
 - Roadmap / provenance / history: `research/cr-grounding/cr-backbone-ledger.json`
+- Roadmap authority policy: `research/cr-grounding/AUTHORITY.md`
+
+Historical `activeProgram`, `nextGate`, planned-sequence or "single source" wording inside CR-grounding material does not override Project State NOW.
 
 Issues, pull requests and CI are evidence/work surfaces. They are not canonical NOW and do not independently establish semantic correctness.
 
@@ -24,25 +29,35 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 - Next gate: `M2-PLAN`
 - Next work: Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.
 
+## Coverage claim
+
+- Mode: `BOUNDED`
+- Scope: The indexed M1 capability audit plus current production routing and unresolved decisions that active traceability marks deferred-needs-decision.
+- Completeness sources: `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
+- Known limitations:
+  - The capability list is not a proof that every repository concern has been semantically audited.
+  - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
+  - Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1.
+
 ## Capability state
 
-| ID | Capability | Semantic | Delivery | Lifecycle |
-| --- | --- | --- | --- | --- |
-| CR-01 | Manual Resolution first-class substrate | MATCH | IMPLEMENTED | ACTIVE |
-| CR-02 | Correction is distinct from normal game effect and Undo | MATCH | IMPLEMENTED | ACTIVE |
-| CR-03 | Trigger candidate-to-occurrence boundary | MATCH | IMPLEMENTED | ACTIVE |
-| CR-04 | Trigger Memory does not globally gate normal progress | CONFLICT | IMPLEMENTED | ACTIVE |
-| CR-05 | HOLD exact interaction-context identity, staleness and nesting | GAP | UNPLANNED | ACTIVE |
-| CR-06 | Pregame manual-first Turn Zero checkpoint | GAP | UNPLANNED | ACTIVE |
-| CR-07 | Normal / Full Control modes | GAP | UNPLANNED | ACTIVE |
-| CR-08 | Multiple combat phases/steps represented in one turn | GAP | UNPLANNED | ACTIVE |
-| CR-09 | Room Owner, operation authority and turn ownership are distinct | MATCH | IMPLEMENTED | ACTIVE |
-| CR-10 | Disconnect/presence loss is not elimination | MATCH | IMPLEMENTED | ACTIVE |
-| CR-11 | Eliminated-player objects preserve identity/history for recovery/inspection | GAP | UNPLANNED | ACTIVE |
-| CR-12 | Normal Undo is actor-owned | CONFLICT | IMPLEMENTED | ACTIVE |
-| CR-13 | Undo cannot erase later-learned knowledge | MATCH | IMPLEMENTED | ACTIVE |
-| CR-14 | Memo remains non-canonical human memory | UNKNOWN | UNKNOWN | ACTIVE |
-| CR-15 | Automation acts only on reviewed semantic capabilities (known) | UNKNOWN | UNKNOWN | ACTIVE |
+| ID | Capability | Requirement | Semantic | Delivery | Lifecycle |
+| --- | --- | --- | --- | --- | --- |
+| CR-01 | Manual Resolution first-class substrate | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-02 | Correction is distinct from normal game effect and Undo | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-03 | Trigger candidate-to-occurrence boundary | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-04 | Trigger Memory does not globally gate normal progress | REQUIRED | CONFLICT | IMPLEMENTED | ACTIVE |
+| CR-05 | HOLD exact interaction-context identity, staleness and nesting | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-06 | Pregame manual-first Turn Zero checkpoint | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-07 | Normal / Full Control modes | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-08 | Multiple combat phases/steps represented in one turn | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-09 | Room Owner, operation authority and turn ownership are distinct | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-10 | Disconnect/presence loss is not elimination | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-11 | Eliminated-player objects preserve identity/history for recovery/inspection | REQUIRED | GAP | UNPLANNED | ACTIVE |
+| CR-12 | Normal Undo is actor-owned | REQUIRED | CONFLICT | IMPLEMENTED | ACTIVE |
+| CR-13 | Undo cannot erase later-learned knowledge | REQUIRED | MATCH | IMPLEMENTED | ACTIVE |
+| CR-14 | Memo remains non-canonical human memory | OPTIONAL | UNKNOWN | UNKNOWN | ACTIVE |
+| CR-15 | Automation acts only on reviewed semantic capabilities (known) | REQUIRED | UNKNOWN | UNKNOWN | ACTIVE |
 
 ## Explicit conflicts
 
@@ -52,7 +67,7 @@ Current code explicitly treats actionable and manual-ruling public trigger candi
 
 Authority: `docs/contracts/ux-constitution.md :: Trigger memory authority and constitutional invariant 12`
 
-Implementation: `src/engine/cockpitTriggersCore.ts :: blockingPublicTableTriggers`<br>`src/engine/cockpitTable.ts :: progression guards`
+Implementation: `src/engine/cockpitTriggersCore.ts :: blockingPublicTableTriggers`<br>`src/engine/cockpitTable.ts :: blockingPublicTableTriggers`
 
 Next: Keep this conflict visible. Repair it only in selected product work under the active Constitution, not in M1.
 
@@ -102,6 +117,17 @@ Next: Keep the gap explicit; choose a preservation design only in later product 
 
 - No DEPRECATED or RETIRED capability entries are recorded at this baseline.
 
+## Pending decisions
+
+### CONFLICT-TURN-DRAW-001 — PENDING_JUDGMENT
+
+Turn-entry draw acceptance remains explicitly deferred in the active traceability/acceptance registries.
+
+Traceability: `ENG-TURN-003`
+Acceptance: `ACC-TURN-001`
+
+Next: Judge the pinned CR, active turn contract, acceptance wording and runtime evidence first; escalate to the Owner only if an irreducible contract, architecture or value choice remains.
+
 ## Owner decisions
 
 - `OD-001` — RESOLVED: B — Canonical root index + capability state files + generated current-state view.
@@ -118,6 +144,6 @@ Next: Keep the gap explicit; choose a preservation design only in later product 
 ## Freshness
 
 Semantic watched roots: `src`, `docs/contracts`, `docs/acceptance`.
-Run `node scripts/checks/check-project-state.mjs`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.
+Run `npm run check:project-state`. If a descendant of the audited baseline changes a watched root, Project State is stale and must be re-audited; the checker never guesses replacement semantic verdicts.
 
 Cold Restart Acceptance: `docs/project-state/cold-restart-acceptance.md`

@@ -64,6 +64,7 @@
     "check": "node scripts/checks/machine-checks.mjs",
     "generate:docs-api": "node scripts/checks/generate-engine-api.mjs",
     "generate:docs-map": "node scripts/checks/generate-migration-map.mjs",
+    "check:project-state": "node scripts/checks/check-project-state.mjs",
     "check:docs": "node scripts/checks/check-docs.mjs",
     "check:fast": "node scripts/checks/fast-check.mjs",
     "check:domain": "node scripts/checks/domain-check.mjs",

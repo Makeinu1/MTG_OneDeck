@@ -2,6 +2,8 @@
 
 このディレクトリは、Comprehensive Rules を「参照資料」ではなく「検査器」として使うための成果物を置く。
 
+> **Authority note (2026-09-17):** project NOW（現在のmilestone / next gate / next work / pending judgment）の正本は `docs/project-state/index.json`。このREADMEや `project-goal-milestones.md` に残る過去の「current」「next」「単一正本」表現は歴史的snapshotであり、現在作業の選定には使わない。詳細は `research/cr-grounding/AUTHORITY.md`。
+
 - 固定CR: 2026-06-19 effective
 - 本文: `rule/Magic_The_Gathering_Comprehensive_Rules.txt`
 - メタデータ: `rule/Magic_The_Gathering_Comprehensive_Rules.metadata.json`
@@ -27,7 +29,7 @@
 - `m0-freeze-overlay.json` — M0-FREEZE レビュー用の機械可読 overlay。CRG-1〜8 の status / evidence / freezeTreatment と R-FREEZE-1〜4 の成果物を列挙する。Q2 配線以降 `scripts/m-contract-gate.ts` がこのJSONを機械入力として読む(ゆえにライブ直下に残す)。evidence 内のパスは凍結時点の記録であり、退蔵後の現在地は `archive/m0-freeze/` 等。
 - `archive/m0-freeze/m0-freeze-review-packet.md` — Fable / ユーザー向けの最短レビュー入口。読む順番、D1〜D6、Approve後の順序、Reject/Hold時の差戻し先を1枚にまとめる。
 - `archive/m0-freeze/m0-freeze-execution-queue.md` — M0-FREEZE を判断資料から実行工程へ落とすキュー。Fable/Codexの所有者、触ってよいファイル、コマンド、exit criteria、stop conditionを固定する。
-- `project-goal-milestones.md` — プロジェクトゴールから逆算したマイルストーン表。正しい定規、M0-FREEZE、post-freeze実装順、stop rulesを1枚にまとめる。
+- `project-goal-milestones.md` — プロジェクトゴールから逆算した歴史的マイルストーン表。CR-groundingの理念・定規・当時の実装順・stop rulesを保存するが、現在のproject NOW/next workは `docs/project-state/index.json` に従う。
 - `archive/m0-freeze/m0-freeze-q1-gap-audit.md` — 現物 `docs/` / scorecard が Q1 を満たしているかの差分監査。現状は overlay JSON 正本化・合成判定契約・acceptance required treatment が未反映。
 - `archive/m0-freeze/verify-q1-docs-contract.mjs` — Fable が Q1 docs 反映を行った後に、overlay正本化・scorecard合成判定・acceptance required treatment・evidence links が入ったかを検査する読み取り専用 verifier。
 - `archive/m0-freeze/verify-q1-patch-ready.mjs` — Q1 docs が未反映なら `archive/m0-freeze/q1-docs-contract.patch` が現行 docs に適用可能かを検査し、既に反映済みなら二重適用を止める読み取り専用 verifier。
@@ -57,7 +59,7 @@
 
 ## M0 CR Grounding Gate status
 
-> **参照移管(2026-07-01)**: 全CR章の 背骨/後期背骨/葉/剪定 レーン・5状態lifecycle・EDH価値・「次は何か」は **`cr-backbone-ledger.json`(単一正本)** に集約した。下表(CRG-1〜8)は既実装8領域の凍結ゲート**証跡**として残すが、レーン/次スライス選定は台帳を見る(autoloop step 0)。`m0-freeze-overlay.json` の重複役割も台帳へ subsume。
+> **歴史的参照移管(2026-07-01):** 当時は全CR章の 背骨/後期背骨/葉/剪定 レーン・5状態lifecycle・EDH価値・「次は何か」を `cr-backbone-ledger.json` に集約していた。現在、この「次は何か」「単一正本」という権限は失効しており、台帳は roadmap/provenance/history としてのみ扱う。現在のmilestone / next gate / next workは `docs/project-state/index.json` を読む。下表(CRG-1〜8)は既実装8領域の凍結ゲート**証跡**として残す。
 
 2026-06-27 時点の固定ゲート。以後の S-EVENTS/S-TURN/S-ZONES 実装は、この表の「残る境界」を完了条件として扱う。`PASS` は CR refs と実行可能テストで確認済み、`PARTIAL` は明示した境界までのみ合格。
 
@@ -80,7 +82,9 @@ M0 の凍結条件:
 - 機械チェック4点(`npm run lint` / `npx tsc --noEmit` / `npx vitest run` / `npm run build`)をゲートにする。
 - M0-FREEZE へ進む前に `archive/m0-freeze/m0-r-freeze-readiness.md` の R-FREEZE-1〜4 を解決する。R-FREEZE-1 は `archive/m0-freeze/rule-choice-substrate.md`、R-FREEZE-2 は `archive/m0-freeze/priority-event-loop.md`、R-FREEZE-3 は `archive/mana/mana-ability-substrate.md`、R-FREEZE-4 は `archive/m0-freeze/scope-partition.md` に草稿を置いた。M0-FREEZE 判定用の scorecard / 契約ハンドオフは `archive/m0-freeze/m0-freeze-handoff.md`、最短レビュー入口は `archive/m0-freeze/m0-freeze-review-packet.md`、実行順キューは `archive/m0-freeze/m0-freeze-execution-queue.md`、Fable判定票は `archive/m0-freeze/m0-freeze-review-sheet.md`、判定記録は `archive/m0-freeze/m0-freeze-decision-record.md`、traceability matrix は `archive/m0-freeze/m0-freeze-traceability-matrix.md`、契約文ドラフトは `archive/m0-freeze/m0-freeze-contract-draft.md`、承認後のCodex委譲案は `archive/m0-freeze/post-freeze-codex-brief.md`、scorecard配線仕様は `archive/m0-freeze/scorecard-overlay-wiring-spec.md` に置いた。次手は `704.5p` の追加実装ではなく、FableのM0-FREEZEレビュー。
 
-## 次にやること
+## 次にやること（歴史的snapshot）
+
+以下は当時のCR-grounding実行順の記録であり、現在のproject next workではない。現在のnext workは `docs/project-state/index.json` を読む。
 
 CRG-5 トークン死亡へ直行しない。先に `archive/m0-freeze/zone-change-study.md` の Z1〜Z4 を順に進める。Z1/Z2/Z3/Z4 の最小 substrate と Z5 の実行可能サブセットは完了済み。
 
@@ -90,7 +94,7 @@ CRG-5 トークン死亡へ直行しない。先に `archive/m0-freeze/zone-chan
 4. Z4: `stabilizeBeforePriority()` に token cease の最小SBAを載せる。実装済み(2026-06-27)。commander 903.9a は `pendingSbaChoices` substrate v1 を store transaction 内で生成・解決し、command への後続移動を `reason:'sba'` / `sbaApplied:'903.9a'` の event として残す。deferred choice UI と `stabilizeBeforePriority()` 本体への完全統合は後続。
 5. Z5: `golden-cases.json` の token / trigger-SBA-priority / zone-object-LKI を実行可能 test へ移す。サブセット実装済み(2026-06-27): `src/store/__tests__/crGroundingGoldenCases.test.ts`。pending trigger の explicit-order stack placement も `pendingTriggerId` 指定で実装済み。
 
-## M1/M2 実装状況
+## M1/M2 実装状況（歴史的snapshot）
 
 - M1 Priority Boundary v1: 実装済み。`placePendingTriggersForPriority(pendingTriggerIds)` は全pending指定を要求し、渡された順序を各 controller 内の選択順として扱う。controller 間は `activePlayerId` と `PendingTrigger.controllerId` を使って APNAP 順に正規化し、単一バッチで stack へ置く。
 - R1 APNAP ordering core v1: 実装済み。`src/engine/priority.ts` の `orderPendingTriggersApnap` が CR 603.3b/101.4 の controller 間順序を決める。現 substrate では 603.3b の「another ability triggering」bucket は未表現のため後続。
@@ -105,7 +109,9 @@ CRG-5 トークン死亡へ直行しない。先に `archive/m0-freeze/zone-chan
 - `cr-trigger-sba-priority-loop`: 部分実行可能。event直後に stack へ直積みせず pending trigger に置くこと、pending trigger が `eventId` / `simultaneousGroupId` / `controllerId` を持つこと、全pending明示順の priority boundary で複数 pending trigger を stack に置けること、混在 controller の pending trigger が APNAP 順で stack に置かれることを検査。card の `controllerId` は event/pending へ保存され、pending trigger 由来の ability object は `sourceSnapshot.controllerId` を優先する。同一controller内順序選択UI v1 は `Playmat.test.tsx` で検査。704.5f 由来 death trigger が priority boundary の deterministic fixed-point で stack へ置かれること、704.5e/704.5i/704.5q の deterministic SBA も検査。remaining full SBA suite は未実装。
 - `cr-zone-change-new-object-lki`: 実行可能。physical card id と object incarnation の分離、before snapshot/LKI を検査。
 
-## 実装移行条件
+## 実装移行条件（歴史的snapshot）
+
+以下は当時のS-EVENTS移行条件の記録であり、現在のreconstruction milestone/gateを選定しない。
 
 S-EVENTS に入る前に、少なくとも次を実行可能 replay/test へ移植する。現時点で unit test 化済みなのは 1、2 のうち「単純な起動型マナ能力」、3、4 のうち pending 化/no-direct-stack、controller/group 保持、activePlayer/card owner/controller substrate、complete explicit-order priority boundary、APNAP ordering core v1、同一controller内順序選択UI v1、704.5e/704.5f/704.5i/704.5q + deterministic fixed-point v1、5 の object incarnation/LKI 部分。誘発型マナ能力、remaining full SBA suite は未実装に残す。
 
