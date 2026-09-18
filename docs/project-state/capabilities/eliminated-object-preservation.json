@@ -8,18 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Eliminated player object handling"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/engine/cockpitTable.ts",
-      "locator": "eliminate"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Eliminated player object handling"}],
+  "implementationRefs": [{"path":"src/engine/cockpitTable.ts","locator":"eliminate"}],
   "verificationRefs": [],
   "rationale": "Elimination removes objects from ordinary participation without masquerading as Exile, but the audited path deletes owned card entries instead of retaining a recoverable/inspectable holding substrate.",
   "nextAction": "Keep the gap explicit; choose a preservation design only in later product work.",
