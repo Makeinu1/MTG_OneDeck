@@ -29,6 +29,10 @@ function validateManualEvidenceReceipt(receipt, plan) {
   if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt)) {
     throw new Error('manual evidence receipt must be an object');
   }
+  const receiptKeys = Object.keys(receipt).sort().join(',');
+  if (receiptKeys !== 'base,head,results,schemaVersion') {
+    throw new Error('manual evidence receipt allows only schemaVersion/base/head/results');
+  }
   if (receipt.schemaVersion !== 1) throw new Error('manual evidence receipt schemaVersion must be 1');
   if (receipt.base !== plan.base) throw new Error(`manual evidence base mismatch: expected ${plan.base}`);
   if (receipt.head !== plan.head) throw new Error(`manual evidence head mismatch: expected ${plan.head}`);
