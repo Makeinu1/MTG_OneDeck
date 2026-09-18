@@ -30,8 +30,8 @@ describe('legacy inventory disposition policy', () => {
       'active-acceptance',
       'deferred-needs-decision',
     ]));
-    expect(LEGACY_JUDGE_DISPOSITIONS).not.toContain('active-clause');
-    expect(LEGACY_JUDGE_DISPOSITIONS).not.toContain('active-acceptance');
+    expect(LEGACY_JUDGE_DISPOSITIONS.has('active-clause')).toBe(false);
+    expect(LEGACY_JUDGE_DISPOSITIONS.has('active-acceptance')).toBe(false);
     expect(isActiveLegacySuggestion({
       suggestedDisposition: 'active-clause',
       itemType: 'normative-statement',
