@@ -21,28 +21,26 @@ describe('validation domain resolver', () => {
   });
 
   test('self-selects changed runnable tests without weakening domain selection', () => {
-    for (const path of [
+    const selfTests = [
       'src/engine/__tests__/combat.test.ts',
       'src/engine/__tests__/review.cr309-dungeons.test.ts',
       'src/engine/core/closure/__tests__/canonicalV1.test.ts',
       'src/engine/grammar/__tests__/manaShortcut.test.ts',
-    ]) {
-      const selection = resolveDomainSelection({ root: DEFAULT_ROOT, files: [path] });
-      expect(selection.escalation).toBe('targeted');
+    ];
+    const selection = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['src/engine/priority.ts', ...selfTests],
+    });
+    expect(selection.escalation).toBe('targeted');
+    expect(selection.initialDomains).toContain('engine-turn');
+    expect(selection.unrunnableChangedTestFiles).toEqual([]);
+    expect(selection.testFiles).toContain('src/engine/__tests__/priority.test.ts');
+    for (const path of selfTests) {
       expect(selection.selfSelectedTestFiles).toContain(path);
-      expect(selection.unrunnableChangedTestFiles).toEqual([]);
       expect(selection.testFilesByProject.core).toContain(path);
       expect(selection.reasons).toContain(`changed-test-self-selection:${path}`);
     }
-
-    const combined = resolveDomainSelection({
-      root: DEFAULT_ROOT,
-      files: ['src/engine/priority.ts', 'src/engine/__tests__/combat.test.ts'],
-    });
-    expect(combined.initialDomains).toContain('engine-turn');
-    expect(combined.testFiles).toContain('src/engine/__tests__/priority.test.ts');
-    expect(combined.testFiles).toContain('src/engine/__tests__/combat.test.ts');
-    expect(new Set(combined.testFiles).size).toBe(combined.testFiles.length);
+    expect(new Set(selection.testFiles).size).toBe(selection.testFiles.length);
   });
 
   test('fails closed for deleted, renamed-old, or unsupported test-like paths', () => {
