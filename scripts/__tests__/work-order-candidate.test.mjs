@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
@@ -26,6 +26,11 @@ function candidateFixture() {
   git(root, ['config', 'user.email', 'm4@example.invalid']);
   git(root, ['config', 'user.name', 'M4 Test']);
 
+  write(
+    root,
+    'docs/work-protocol/work-order.schema.json',
+    readFileSync(join(DEFAULT_ROOT, 'docs/work-protocol/work-order.schema.json'), 'utf8'),
+  );
   write(root, 'docs/product-requirements.md', [
     '# Product',
     '| ID | requirement |',
