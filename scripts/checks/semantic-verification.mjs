@@ -221,24 +221,79 @@ function compareSemanticMap(baseMap, headMap, reasons) {
   }
 }
 
-function changedScenarioIds(baseScenarios, headScenarios) {
+function scenarioChangeDetails(baseScenarios, headScenarios) {
   const before = scenarioMap(baseScenarios);
   const after = scenarioMap(headScenarios);
-  const changed = [];
+  const details = [];
   for (const id of new Set([...before.keys(), ...after.keys()])) {
-    if (stableJson(before.get(id)) !== stableJson(after.get(id))) changed.push(id);
+    const prior = before.get(id);
+    const next = after.get(id);
+    if (stableJson(prior) === stableJson(next)) continue;
+
+    const semanticRefs = [...new Set([...(prior?.verifies ?? []), ...(next?.verifies ?? [])])].sort();
+    if (!prior) {
+      details.push({ id, kind: 'added', semanticRefs, requiresExecution: false, reasons: ['acceptance-added'] });
+      continue;
+    }
+    if (!next) {
+      details.push({ id, kind: 'removed', semanticRefs, requiresExecution: false, reasons: ['acceptance-removed'] });
+      continue;
+    }
+
+    const reasons = [];
+    if (stableJson(prior.verifies ?? []) !== stableJson(next.verifies ?? [])) reasons.push('verification-claim-changed');
+    const executionProjection = (scenario) => ({
+      status: scenario.status,
+      manualOnly: scenario.manualOnly,
+      automatedBy: scenario.automatedBy ?? [],
+      preconditions: scenario.preconditions ?? [],
+      steps: scenario.steps ?? [],
+      oracle: scenario.oracle,
+    });
+    if (stableJson(executionProjection(prior)) !== stableJson(executionProjection(next))) {
+      reasons.push('acceptance-execution-contract-changed');
+    }
+    if (reasons.length === 0) reasons.push('acceptance-metadata-changed');
+    details.push({
+      id,
+      kind: 'modified',
+      semanticRefs,
+      requiresExecution: reasons.some((reason) => reason !== 'acceptance-metadata-changed'),
+      reasons,
+    });
   }
-  return changed.sort();
+  return details.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-function changedBindingIds(baseTrace, headTrace) {
+function directBindingChangeDetails(baseTrace, headTrace) {
   const before = traceabilityMap(baseTrace);
   const after = traceabilityMap(headTrace);
-  const changed = [];
+  const details = [];
   for (const id of new Set([...before.keys(), ...after.keys()])) {
-    if (stableJson(before.get(id)) !== stableJson(after.get(id))) changed.push(id);
+    const prior = before.get(id);
+    const next = after.get(id);
+    if (stableJson(prior) === stableJson(next)) continue;
+    if (!prior) {
+      details.push({ id, kind: 'added', weakensOrInvalidates: false });
+      continue;
+    }
+    if (!next) {
+      details.push({ id, kind: 'removed', weakensOrInvalidates: true });
+      continue;
+    }
+    const projection = (clause) => ({
+      verificationDisposition: clause.verificationDisposition,
+      evidenceBindings: clause.evidenceBindings ?? [],
+      manualProcedure: clause.manualProcedure ?? null,
+      needsDecision: clause.needsDecision ?? null,
+    });
+    details.push({
+      id,
+      kind: 'modified',
+      weakensOrInvalidates: stableJson(projection(prior)) !== stableJson(projection(next)),
+    });
   }
-  return changed.sort();
+  return details.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 function sortedReasons(map) {
@@ -292,14 +347,24 @@ export function buildVerificationPlan({
   if (files.includes(MANIFEST_PATH)) compareManifest(baseManifest, headManifest, cwd, baseRef, headRef, directReasons);
   if (files.includes(SEMANTIC_MAP_PATH)) compareSemanticMap(baseMap, headMap, directReasons);
 
-  const specChangedScenarios = files.includes(SCENARIOS_PATH)
-    ? changedScenarioIds(baseScenarios, headScenarios)
+  const scenarioChanges = files.includes(SCENARIOS_PATH)
+    ? scenarioChangeDetails(baseScenarios, headScenarios)
     : [];
-  for (const id of specChangedScenarios) addScenarioReason(scenarioReasons, id, 'acceptance-spec-changed');
+  for (const change of scenarioChanges) {
+    for (const reason of change.reasons) addScenarioReason(scenarioReasons, change.id, reason);
+    if (change.kind === 'removed' || change.requiresExecution || change.reasons.includes('verification-claim-changed')) {
+      for (const semanticId of change.semanticRefs) {
+        addReason(directReasons, semanticId, `acceptance-spec:${change.id}:${change.reasons.join('+')}`);
+      }
+    }
+  }
 
-  const bindingChangedSemantics = files.includes(TRACEABILITY_PATH)
-    ? changedBindingIds(baseTrace, headTrace)
+  const directBindingChanges = files.includes(TRACEABILITY_PATH)
+    ? directBindingChangeDetails(baseTrace, headTrace)
     : [];
+  for (const change of directBindingChanges) {
+    if (change.weakensOrInvalidates) addReason(directReasons, change.id, `direct-binding:${change.kind}`);
+  }
 
   const maps = bindingMaps(headTrace, headScenarios);
   const baseMaps = bindingMaps(baseTrace, baseScenarios);
@@ -352,7 +417,8 @@ export function buildVerificationPlan({
   const impactedScenarios = [...scenarioReasons.keys()].filter((id) => headScenarioMap.has(id)).sort();
   const executionScenarios = impactedScenarios.filter((id) => {
     const reasons = scenarioReasons.get(id) ?? new Set();
-    return [...reasons].some((reason) => reason !== 'acceptance-spec-changed');
+    return [...reasons].some((reason) =>
+      reason !== 'acceptance-added' && reason !== 'acceptance-metadata-changed');
   });
 
   const directEvidence = [];
@@ -417,8 +483,8 @@ export function buildVerificationPlan({
     changedFiles: files,
     semanticImpact: sortedReasons(impactReasons),
     verificationSpecChanges: {
-      scenarios: specChangedScenarios,
-      directBindings: bindingChangedSemantics,
+      scenarios: scenarioChanges,
+      directBindings: directBindingChanges,
     },
     scenarioImpact: sortedReasons(scenarioReasons),
     executionScenarioImpact: executionScenarios,
@@ -437,7 +503,7 @@ export function buildVerificationPlan({
     testsByProject,
     blockers,
     coverage,
-    verificationSpecFreshness: specChangedScenarios.length > 0 || bindingChangedSemantics.length > 0 ? 'CHANGED' : 'UNCHANGED',
+    verificationSpecFreshness: scenarioChanges.length > 0 || directBindingChanges.length > 0 ? 'CHANGED' : 'UNCHANGED',
     semanticVerdict: 'NOT_COMPUTED',
   };
 }
