@@ -113,11 +113,11 @@ A passing answer must recover all of the following without past conversation.
 
 ### Current handoff
 
-55. M3.1 completion means the repository can answer “what needs verification for this explicit candidate and why?” without chat history.
-56. The next milestone is M4 Work Protocol / SOW.
-57. M4 owns bounded work delegation: Goal / Scope / Authority / Inputs / Constraints / Evidence / Definition of Done / Escalation.
-58. M4 must not move Product Truth, Project State NOW, semantic ownership or verification verdicts into task prompts.
-59. No M4 implementation begins before the revised M4 plan is independently re-audited and Owner-approved.
+55. M4 completion means the repository can hand one bounded work item to a fresh execution context, validate its planning snapshot and exact candidate, and bound child delegation without relying on chat history or creating a second authority system.
+56. The next milestone is M5 Audit / Hygiene / Recovery.
+57. M5 owns repository-wide reassessment and cleanup of stale/dead/duplicate authority surfaces, orphan Acceptance/evidence/tests, legacy implementation/document drift, and interrupted-work recovery beyond M4's basic resume envelope.
+58. M5 must preserve M0 Product/UX Truth, M1 semantic verdict ownership, M2 semantic identity, M3/M3.1 verification semantics, and M4 external-write/delegation boundaries unless an explicit separately-authorized authority change is the work itself.
+59. No M5 implementation begins before an independently audited Owner-approved M5 plan.
 
 ### M4 Work Protocol / SOW
 
@@ -142,7 +142,7 @@ A passing answer must recover all of the following without past conversation.
 74. M5 owns deeper stale/dead artifact audit, repository hygiene and interrupted-work recovery beyond this basic resume envelope.
 75. M6 owns orchestration. M4 does not auto-select work, recursively dispatch agents, retry failed work, merge competing outputs or advance milestones.
 76. Before M6 closed-loop orchestration is approved, M6-PLAN must require an independently bounded CR-15 audit for the automation surfaces it will invoke.
-77. On a non-main M4 implementation branch, Work Protocol changes are candidate process state until merged; they do not override main Project State NOW.
+77. On main, the M4 Work Protocol is committed process state subordinate to Project State NOW; on a non-main branch, Work Protocol changes are candidate process state until merged.
 
 ## Machine integrity gates
 
@@ -177,6 +177,6 @@ Cold Restart passes only when a repo-only reader can reconstruct:
 - the distinction between verification success and semantic MATCH;
 - active-manifest pin retirement and replacement protection;
 - M4 Work Order authority boundaries, planning-snapshot validation, candidate drift, monotonic delegation and external-write non-authority;
-- the M4/M5/M6 boundary and CR-15 gate before closed-loop orchestration;
+- the M4/M5/M6 boundary, the M5-PLAN handoff, and the CR-15 gate before closed-loop orchestration;
 
 and the machine gates agree with that model for the checked-out repository.
