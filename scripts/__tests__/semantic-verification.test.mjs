@@ -26,6 +26,23 @@ describe('semantic verification resolver', () => {
     expect(parsed.nonDefinition).toContain('prose outside machine-addressable definitions');
   });
 
+  test('separates process authority metadata from semantic product prose', () => {
+    const parsed = parseProduct([
+      '# Product',
+      '',
+      '## 権威と適用範囲',
+      'process owner changed',
+      '',
+      '## プレイヤー成果',
+      'semantic prose changed',
+      '| P-04 | choice authority |',
+    ].join('\n'));
+
+    expect(parsed.processMetadata).toContain('process owner changed');
+    expect(parsed.nonDefinition).not.toContain('process owner changed');
+    expect(parsed.nonDefinition).toContain('semantic prose changed');
+  });
+
   test('segments active contract clauses by inline semantic marker', () => {
     const parsed = parseClauses([
       '# Contract',
