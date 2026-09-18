@@ -7,8 +7,13 @@
   "deliveryState": "UNKNOWN",
   "lifecycle": "ACTIVE",
   "requirementLevel": "OPTIONAL",
-  "auditedAtCommit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
-  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Memo"}],
+  "auditedAtCommit": "a97cfd9435f48af69fcfb4dca498c0c3f04f79b5",
+  "authorityRefs": [
+    {
+      "path": "docs/contracts/ux-constitution.md",
+      "locator": "Memo"
+    }
+  ],
   "implementationRefs": [],
   "verificationRefs": [],
   "rationale": "Memo is optional under the Constitution. Its current implementation coverage was not established, and absence alone is not a GAP.",
