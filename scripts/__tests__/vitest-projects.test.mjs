@@ -6,9 +6,14 @@ describe('sequential Vitest projects', () => {
   it('shares the current core/dom path classification with Vite config', () => {
     expect(vitestProjectForPath('src/engine/__tests__/combat.test.ts')).toBe('core');
     expect(vitestProjectForPath('src/engine/core/closure/__tests__/canonicalV1.spec.mts')).toBe('core');
+    expect(vitestProjectForPath('src/engine/core/closure/__tests__/canonicalV1.spec.mtsx')).toBe('core');
+    expect(vitestProjectForPath('src/engine/core/closure/__tests__/canonicalV1.test.cjsx')).toBe('core');
     expect(vitestProjectForPath('src/online/publicApp/publicAppClientV1.test.ts')).toBe('dom');
     expect(vitestProjectForPath('scripts/__tests__/machine-checks.test.mjs')).toBe('dom');
     expect(vitestProjectForPath('.claude/worktree/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('dist/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('src/.cache/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('src/vite.config.test.ts')).toBeNull();
     expect(vitestProjectForPath('src/engine/__tests__/not-vitest.test.py')).toBeNull();
     expect(isTestLikePath('src/engine/__tests__/not-vitest.test.py')).toBe(true);
     expect(vitestProjectForPath('src\\engine\\__tests__\\combat.test.ts')).toBe('core');
