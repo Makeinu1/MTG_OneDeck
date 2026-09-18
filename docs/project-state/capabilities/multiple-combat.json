@@ -8,22 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Multiple combat phases and steps"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/engine/types.ts",
-      "locator": "Phase"
-    },
-    {
-      "path": "src/engine/cockpitTable.ts",
-      "locator": "phase/combat representation"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Multiple combat phases and steps"}],
+  "implementationRefs": [{"path":"src/engine/types.ts","locator":"Phase"},{"path":"src/engine/cockpitTable.ts","locator":"phase/combat representation"}],
   "verificationRefs": [],
   "rationale": "The audited cockpit turn representation exposes a single combat slot and no canonical repeated-combat structure was identified.",
   "nextAction": "Keep the gap explicit; resolve outside M1.",
