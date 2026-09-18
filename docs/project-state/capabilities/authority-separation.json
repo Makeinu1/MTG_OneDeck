@@ -8,21 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Room Owner and operation authority"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/online/cloudflare/cockpitMultiplayer.ts",
-      "locator": "ownerId / masterId"
-    },
-    {
-      "path": "src/online/cloudflare/cockpitSession.ts"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Room Owner and operation authority"}],
+  "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"ownerId / masterId"},{"path":"src/online/cloudflare/cockpitSession.ts"}],
   "verificationRefs": [],
   "rationale": "Session ownership, current operation authority and game turn state are structurally separate concepts in the audited implementation. MATCH is intentionally narrow: it does not claim compliance with the newly clarified hidden-information authority or Room Owner recovery-proxy limits.",
   "nextAction": "Preserve this structural separation. M2 now maps recovery and information authority separately; do not widen this MATCH without M3 verification.",
