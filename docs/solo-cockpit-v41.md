@@ -1,5 +1,8 @@
 # v0.41 Cockpit — playable solo migration
 
+> Lifecycle: **PROVENANCE / NON-CURRENT**  
+> External-write authority: **NON-REPLAYABLE**. Authorization recorded below applied only to the dated task. Current commit/push/merge/deploy/publish requires current explicit authority under `AGENTS.md` and the applicable repository Skill.
+
 User authorization: 2026-09-09, this task. Implement and publish the solo Cockpit before expanding to two/four-player play. Preserve the existing command, choice, history, deck and audiovisual capabilities, especially the commander ritual.
 
 - Goal: play an actual imported deck through the v0.41 composition using the existing GameScreen/controller.

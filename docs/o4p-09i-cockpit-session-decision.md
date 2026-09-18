@@ -1,5 +1,8 @@
 # Cockpit session implementation decision
 
+> Lifecycle: **PROVENANCE / NON-CURRENT**  
+> External-write authority: **NON-REPLAYABLE**. Authorization recorded below applied only to the dated task. Current commit/push/merge/deploy/publish requires current explicit authority under `AGENTS.md` and the applicable repository Skill.
+
 Date: 2026-09-09 JST. Owner: Astra. Status: local two-player completion and four-player continuity verified; publication pending.
 
 ## Scope and authority

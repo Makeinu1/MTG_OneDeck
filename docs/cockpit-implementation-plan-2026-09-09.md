@@ -1,5 +1,8 @@
 # MTG OneDeck：共通Cockpit開発計画・次タスクへの引継ぎ
 
+> Lifecycle: **HISTORICAL / NON-CURRENT**  
+> Execution authority: **NON-REPLAYABLE**. Current work selection comes from Project State and, where required, the current Work Protocol. Historical “source of truth”, “no reapproval”, implementation-order, or authorization wording below records the dated plan only and does not authorize current execution or external writes.
+
 更新: 2026-09-10。状態: 計画確定、実装未着手。ファイル名の日付は作成日を維持する。
 
 ## 1. 目的・権威・権限

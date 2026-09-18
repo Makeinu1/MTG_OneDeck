@@ -16,6 +16,8 @@ Read only the authority that matches the change:
 - [`../research/cr-grounding/cr-backbone-ledger.json`](../research/cr-grounding/cr-backbone-ledger.json) — extended roadmap, CR program provenance and historical planning; **not current NOW authority**.
 - [`../research/archive/document-reset-2026-08/conflict-register.json`](../research/archive/document-reset-2026-08/conflict-register.json) — unresolved and resolved reset findings.
 
+M5 supporting process policy (not Product, semantic, Project State, or external-write authority): [`repository-hygiene.md`](repository-hygiene.md).
+
 The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md`](decisions/DOC-GOV-RESET-2026-08.md); current meaning lives in the active contracts listed above. Current audited project reality and next reconstruction gate live in Project State.
 
 ## Current solo and shared-table UI
