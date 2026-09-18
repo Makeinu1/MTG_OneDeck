@@ -223,7 +223,7 @@ Scenario content remains here.
 
 `verifies` is the only authored scenario→semantic verification claim.
 
-`contractRefs` no longer duplicates contracts derivable from `verifies`. If a scenario genuinely needs a non-verifying contract for setup/context, that exception is stored as optional `contextRefs`.
+`contractRefs` is removed as an authored field because contract ownership is derivable from each `verifies` target. The current extra UI-architecture reference in `ACC-UI-RESP-001` has no demonstrated machine consumer and does not justify a new `contextRefs` relation. Context that is only explanatory remains in scenario preconditions/tags/prose.
 
 M2 does not add missing behavioral acceptance coverage. It only makes existing verification claims one-directional and structurally consistent.
 
@@ -261,7 +261,6 @@ High-confidence initial edges:
 - `UX-CONST-UNDO refines P-08`
 - `UX-CONST-INFORMATION refines P-06`
 - `UX-CONST-INFORMATION refines P-10`
-- `UX-CONST-RECOVERY refines P-09`
 - `UX-CONST-RECOVERY refines Q-01`
 
 Do **not** create an edge merely because the concepts are adjacent.
@@ -362,7 +361,7 @@ Exit: the M0-reconciled interaction semantics are addressable without pretending
 
 - make `scenario.verifies` the single authored scenario→semantic verification claim;
 - remove authored `acceptedBy` and derive reverse views;
-- replace non-verifying `contractRefs` exceptions with optional `contextRefs`;
+- remove authored `contractRefs`; derive related contract IDs from `verifies` when a view needs them;
 - remove duplicated normative prose from traceability;
 - remove `ACC-ACCEPT-00*` pseudo-semantic clauses and enforce those structural rules directly in `check-docs`;
 - remove stale `manifest.milestone`;
@@ -385,6 +384,7 @@ After M2-1 through M2-3 are complete:
 - re-audit all M1 capabilities against the final M2 semantic state;
 - preserve every MATCH/GAP/CONFLICT/UNKNOWN verdict unless independent evidence requires a change;
 - choose the post-compatibility contract commit as the new M1 baseline;
+- because that baseline is a feature-branch commit, merge the final M2 implementation PR with a normal merge commit (not squash/rebase) so the audited baseline remains in canonical main ancestry; alternatively perform a separate post-merge rebaseline before claiming M2 complete;
 - update capability `auditedAtCommit` and generated Project State;
 - verify there are no watched-root changes after the new baseline;
 - run repo-only cold restart.
@@ -444,6 +444,7 @@ The independent M2-PLAN audit identified and corrected these design risks:
 - **semantic identity coupled to verification** — inline contract markers now define semantic identity independently from traceability;
 - **M1 freshness omission** — all watched-root changes are now followed by one bounded final M1 re-audit/rebaseline before merge;
 - **verification-pin blast radius** — traceability migration now includes an explicit all-affected-contract compatibility rebaseline;
+- **baseline ancestry loss on squash** — the final implementation merge must preserve the audited feature-branch baseline in main ancestry or perform a post-merge rebaseline;
 - **unnecessary dependency churn** — `manifest.dependsOn` is retained as coarse non-semantic metadata instead of being deleted during M2;
 - **M2/M3 boundary leakage** — new semantic anchors receive no fabricated evidence; missing behavioral acceptance stays in M3.
 
