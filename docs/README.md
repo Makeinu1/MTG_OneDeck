@@ -13,9 +13,10 @@ Read only the authority that matches the change:
 - [`acceptance/scenarios.json`](acceptance/scenarios.json) — executable and manual acceptance registry.
 - [`generated/engine-api.md`](generated/engine-api.md) — generated TypeScript export index.
 - [`decisions/`](decisions/) — rationale for a contract choice.
-- [`repository-hygiene.md`](repository-hygiene.md) — M5 supporting lifecycle/retention/retirement policy; it classifies how assets are read and retired without becoming Product, semantic, Project State, or external-write authority.
 - [`../research/cr-grounding/cr-backbone-ledger.json`](../research/cr-grounding/cr-backbone-ledger.json) — extended roadmap, CR program provenance and historical planning; **not current NOW authority**.
 - [`../research/archive/document-reset-2026-08/conflict-register.json`](../research/archive/document-reset-2026-08/conflict-register.json) — unresolved and resolved reset findings.
+
+M5 supporting process policy (not Product, semantic, Project State, or external-write authority): [`repository-hygiene.md`](repository-hygiene.md).
 
 The document reset rationale is recorded in [`decisions/DOC-GOV-RESET-2026-08.md`](decisions/DOC-GOV-RESET-2026-08.md); current meaning lives in the active contracts listed above. Current audited project reality and next reconstruction gate live in Project State.
 
