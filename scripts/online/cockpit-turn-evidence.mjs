@@ -286,9 +286,15 @@ try {
     async () => (await read(host)).table.resolution?.source.id === manualCardId,
     'manual resolution active',
   );
-  const resolutionPanel = host.getByLabel(`《${manualName}》を解決`, { exact: true });
-  await resolutionPanel.waitFor();
-  await resolutionPanel.getByLabel('作業面を閉じる', { exact: true }).click();
+  const resolutionWork = host.getByLabel(`《${manualName}》の処理`, { exact: true });
+  await resolutionWork.waitFor();
+  await resolutionWork.getByLabel('作業面を閉じる', { exact: true }).click();
+  await host
+    .getByRole('button', { name: 'カードを動かす・数値を変える', exact: true })
+    .click();
+  const boardWork = host.getByLabel(`《${manualName}》の処理`, { exact: true });
+  await boardWork.waitFor();
+  await boardWork.getByLabel('作業面を閉じる', { exact: true }).click();
 
   stage = 'temporary-modifier';
   await board.click({ button: 'right' });
