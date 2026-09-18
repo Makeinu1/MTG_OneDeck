@@ -54,9 +54,21 @@ function stableJson(value) {
 
 function parseProduct(text) {
   const definitions = new Map();
-  if (text === null) return { definitions, nonDefinition: '' };
+  if (text === null) return { definitions, nonDefinition: '', processMetadata: '' };
   const kept = [];
+  const processMetadata = [];
+  let inProcessMetadata = false;
   for (const line of text.split(/\r?\n/u)) {
+    if (line === '## 権威と適用範囲') {
+      inProcessMetadata = true;
+      processMetadata.push(line);
+      continue;
+    }
+    if (inProcessMetadata && line.startsWith('## ')) inProcessMetadata = false;
+    if (inProcessMetadata) {
+      processMetadata.push(line);
+      continue;
+    }
     if (!line.startsWith('|')) {
       kept.push(line);
       continue;
@@ -69,7 +81,11 @@ function parseProduct(text) {
     if (id) definitions.set(id, line.trim());
     else kept.push(line);
   }
-  return { definitions, nonDefinition: kept.join('\n').trim() };
+  return {
+    definitions,
+    nonDefinition: kept.join('\n').trim(),
+    processMetadata: processMetadata.join('\n').trim(),
+  };
 }
 
 function parseClauses(text) {
