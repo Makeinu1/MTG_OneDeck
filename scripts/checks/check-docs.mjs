@@ -12,6 +12,8 @@ const scenarioPath = join(root, 'docs/acceptance/scenarios.json');
 const migrationPath = join(root, 'research/archive/document-reset-2026-08/migration-map.json');
 const traceabilityPath = join(root, 'docs/contracts/traceability.json');
 const traceabilityRelativePath = relative(root, traceabilityPath);
+const productRequirementsPath = join(root, 'docs/product-requirements.md');
+const semanticMapPath = join(root, 'docs/contracts/semantic-map.json');
 const inventoryPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
 const errors = [];
 
@@ -211,6 +213,99 @@ function checkTraceability(traceability, manifest, scenarios) {
   return clauseIds;
 }
 
+
+function discoverProductDefinitions() {
+  const definitions = new Map();
+  if (!existsSync(productRequirementsPath)) {
+    errors.push('product requirements: missing docs/product-requirements.md');
+    return definitions;
+  }
+  for (const line of fileText(productRequirementsPath).split(/\r?\n/u)) {
+    if (!line.startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    const first = cells[0] ?? '';
+    const p = first.match(/^(P-\d{2})$/u);
+    const q = first.match(/^(Q-\d{2})（決定(?:・更新)?）$/u);
+    const id = p?.[1] ?? q?.[1];
+    if (!id) continue;
+    definitions.set(id, (definitions.get(id) ?? 0) + 1);
+  }
+  return definitions;
+}
+
+function discoverContractSemanticIds(manifest) {
+  const owners = new Map();
+  for (const entry of manifest?.contracts ?? []) {
+    if (entry.status !== 'active' || !entry.path?.endsWith('.md')) continue;
+    const path = join(root, entry.path);
+    if (!existsSync(path)) continue;
+    const content = fileText(path);
+    const ids = [...content.matchAll(/<!--\s*clause:\s*([A-Z0-9-]+)\s*-->/gu)].map((match) => match[1]);
+    if (ids.length === 0) errors.push(`${entry.path}: no clause IDs`);
+    for (const id of ids) {
+      const prior = owners.get(id);
+      if (prior) errors.push(`semantic identity: duplicate inline clause ${id} in ${prior} and ${entry.path}`);
+      else owners.set(id, entry.path);
+    }
+  }
+  return owners;
+}
+
+function checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds) {
+  if (semanticMap === null || typeof semanticMap !== 'object') {
+    errors.push('semantic map: expected object');
+    return;
+  }
+  if (semanticMap.schemaVersion !== 1) errors.push('semantic map: schemaVersion must be 1');
+  if (!Array.isArray(semanticMap.edges)) {
+    errors.push('semantic map: edges must be an array');
+    return;
+  }
+  const allowedTypes = new Set(['refines', 'constrainedBy']);
+  const seen = new Set();
+  const adjacency = new Map();
+  const semanticExists = (id) => contractSemanticIds.has(id) || productDefinitions.has(id);
+  for (const [position, edge] of semanticMap.edges.entries()) {
+    const label = `semantic map edge #${position}`;
+    if (edge === null || typeof edge !== 'object' || Array.isArray(edge)) {
+      errors.push(`${label}: expected object`);
+      continue;
+    }
+    const keys = Object.keys(edge).sort();
+    if (keys.join(',') !== 'from,to,type') errors.push(`${label}: only from/type/to are allowed (semantic prose is forbidden)`);
+    if (typeof edge.from !== 'string' || typeof edge.to !== 'string' || !allowedTypes.has(edge.type)) {
+      errors.push(`${label}: malformed edge`);
+      continue;
+    }
+    if (edge.from === edge.to) errors.push(`${label}: self edge is forbidden`);
+    const tuple = `${edge.from}\n${edge.type}\n${edge.to}`;
+    if (seen.has(tuple)) errors.push(`${label}: duplicate edge ${edge.from} ${edge.type} ${edge.to}`);
+    seen.add(tuple);
+    for (const endpoint of [edge.from, edge.to]) {
+      if (!semanticExists(endpoint)) errors.push(`${label}: unresolved semantic endpoint ${endpoint}`);
+      if (/^(?:P|Q)-\d{2}$/u.test(endpoint) && productDefinitions.get(endpoint) !== 1) {
+        errors.push(`${label}: product definition ${endpoint} must resolve exactly once`);
+      }
+    }
+    if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
+    adjacency.get(edge.from).push(edge.to);
+  }
+  const visiting = new Set();
+  const visited = new Set();
+  function visit(node, trail) {
+    if (visiting.has(node)) {
+      errors.push(`semantic map: dependency cycle ${[...trail, node].join(' -> ')}`);
+      return;
+    }
+    if (visited.has(node)) return;
+    visiting.add(node);
+    for (const next of adjacency.get(node) ?? []) visit(next, [...trail, node]);
+    visiting.delete(node);
+    visited.add(node);
+  }
+  for (const node of adjacency.keys()) visit(node, []);
+}
+
 function checkLastVerifiedCommits(manifest, traceability) {
   function commitBlobHash(commit, path) {
     try {
@@ -341,13 +436,19 @@ function run() {
   requireFile(scenarioPath, 'scenario registry');
   requireFile(migrationPath, 'migration map');
   requireFile(traceabilityPath, 'traceability registry');
+  requireFile(productRequirementsPath, 'product requirements');
+  requireFile(semanticMapPath, 'semantic map');
   requireFile(inventoryPath, 'legacy contract inventory');
   const manifest = readJson(manifestPath);
   const migration = readJson(migrationPath);
   const scenarios = readJson(scenarioPath);
   const traceability = readJson(traceabilityPath);
+  const semanticMap = readJson(semanticMapPath);
   const inventory = readJson(inventoryPath);
   checkManifest(manifest);
+  const productDefinitions = discoverProductDefinitions();
+  const contractSemanticIds = discoverContractSemanticIds(manifest);
+  checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds);
   const clauseIds = checkTraceability(traceability, manifest, scenarios?.scenarios);
   checkScenarios(scenarios?.scenarios, migration, new Set((manifest?.contracts ?? []).map((entry) => entry.id)), clauseIds);
   checkMigrationMap(migration);
