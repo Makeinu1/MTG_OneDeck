@@ -150,12 +150,11 @@ A Work Order may include task-local explanatory text, but canonical meaning rema
 
 ### 5.2 No semantic verdict promotion
 
-A Work Order may state:
+A Work Order may reference an M1 capability ID whose current verdict matters.
 
-- current Project State verdict as input;
-- intended repair target.
+It must **not copy the verdict value into the SOW**. The executor reads the current verdict from Project State at execution time.
 
-It must never change MATCH/GAP/CONFLICT/UNKNOWN itself.
+This prevents an old Work Order from replaying a stale MATCH/GAP/CONFLICT/UNKNOWN value as current reality.
 
 ### 5.3 No verification laundering
 
@@ -209,11 +208,9 @@ A child cannot approve its parent or itself.
 
 ### 5.7 Work state is not Project State
 
-A SOW may identify:
+A SOW identifies its planning base and expected bounded outputs.
 
-- planning base;
-- work branch / candidate reference if known;
-- expected outputs.
+Current branch / candidate HEAD is execution context discovered at runtime, not durable authority copied into the Work Order.
 
 It must not become the canonical source for current milestone, project status, or semantic reality.
 
@@ -343,6 +340,15 @@ Examples:
 - `docs/product-requirements.md` for a non-ID Product Truth section.
 
 These references do not mean the authority itself may be edited.
+
+`authorityRefs.paths` is not an arbitrary “make this file authoritative” escape hatch. A path is valid here only when it resolves to an existing canonical authority class, such as:
+
+- Product Requirements;
+- an active contract path from the manifest;
+- Project State NOW;
+- the judge protocol when adjudication is in scope.
+
+Ordinary source/test files belong in `scope.inputPaths`, not `authorityRefs.paths`.
 
 ### 7.7 `contextRefs.capabilityRefs`
 
@@ -665,6 +671,7 @@ It should check:
 - required fields;
 - unknown top-level fields are rejected;
 - exact planningBase commit exists;
+- reference resolution can be performed at planningBase;
 - workId syntax;
 - authority semantic refs resolve;
 - target semantic refs resolve;
@@ -713,7 +720,7 @@ A Work Order is not automatically invalid merely because HEAD moved.
 
 Reinspection is required when:
 
-- `planningBase` is not an ancestor of the intended candidate;
+- `planningBase` is not an ancestor of the intended candidate or the candidate diverged from the planned lineage;
 - Project State active milestone/gate/prohibited scope changed materially;
 - a referenced semantic ID was removed / changed ownership;
 - a referenced Acceptance scenario was removed / materially changed;
@@ -811,33 +818,42 @@ A human/LLM can author one bounded Work Order and a machine can reject malformed
 
 ### M4-2 — Repository reference resolution
 
-Implement validation for:
+Implement structural validation for:
 
-- planningBase;
-- semanticRefs;
-- capabilityRefs;
-- acceptanceRefs;
+- planningBase existence;
+- authority semantic refs;
+- authority path class;
+- target semantic refs;
+- capability context refs;
+- verification semantic / Acceptance refs;
 - input/protected paths;
-- project-state gate snapshot.
+- fixed inherited policies.
+
+Validation must be able to evaluate the packet against its **planningBase**, so a later repository state cannot retroactively make an originally invalid reference look valid.
 
 Add tests for:
 
 - valid bounded Work Order;
 - unresolved semantic reference;
-- stale/invalid commit;
+- non-authority path placed in `authorityRefs.paths`;
+- invalid planning commit;
 - forbidden authority/result fields;
 - unsafe path.
 
 Exit:
 
-Work Order references are machine-resolvable without copying higher-layer truth.
+Work Order references are machine-resolvable at the planning snapshot without copying higher-layer truth.
 
-### M4-3 — Delegation and scope-drift validation
+### M4-3 — Execution binding, delegation and scope-drift validation
 
-Implement:
+For an explicit candidate HEAD, implement:
 
+- planningBase ancestor / divergence check;
+- current Project State re-read;
+- referenced semantic / Acceptance existence recheck;
+- M3 impact reuse to detect whether referenced/protected semantics changed since planning;
 - optional parentWorkId / parent packet comparison;
-- child scope subset validation;
+- child target-semantic subset validation;
 - inherited protected boundaries;
 - no weakened review policy;
 - no external-write escalation;
@@ -845,9 +861,11 @@ Implement:
 
 Diff drift should initially be **reporting / escalation input**, not an absolute hard failure for mechanically necessary support files.
 
+If canonical authority or protected semantics changed since planning, report the Work Order as requiring reinspection/replan rather than silently executing against old assumptions.
+
 Exit:
 
-A delegated child cannot silently gain authority or scope.
+A delegated child cannot silently gain authority or scope, and a stale Work Order cannot silently execute against changed authority.
 
 ### M4-4 — Cold Restart / Project State handoff
 
