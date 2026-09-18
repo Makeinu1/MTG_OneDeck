@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { isTestLikePath, vitestProjectForPath } from './vitest-projects.mjs';
+import { isTestLikePath, partitionVitestTestFiles, vitestProjectForPath } from './vitest-projects.mjs';
 
 const DEFAULT_ROOT = resolve(import.meta.dirname, '../..');
 const REGISTRY_PATH = resolve(import.meta.dirname, 'validation-domains.json');
@@ -151,10 +151,7 @@ export function resolveDomainSelection({ root = DEFAULT_ROOT, files = [] } = {})
     selectedDomains: selectedIds,
     contractIds,
     testFiles: uniqueTestFiles,
-    testFilesByProject: {
-      core: uniqueTestFiles.filter((file) => file.startsWith('src/engine/')),
-      dom: uniqueTestFiles.filter((file) => !file.startsWith('src/engine/')),
-    },
+    testFilesByProject: partitionVitestTestFiles(uniqueTestFiles),
     escalation,
     reasons,
   };
@@ -172,10 +169,7 @@ export function resolveNamedDomain({ root = DEFAULT_ROOT, domainId }) {
     expandedDomains: expandedIds,
     contractIds: [...new Set(expandedDomains.flatMap((item) => item.relatedContractIds))].sort(),
     testFiles,
-    testFilesByProject: {
-      core: testFiles.filter((file) => file.startsWith('src/engine/')),
-      dom: testFiles.filter((file) => !file.startsWith('src/engine/')),
-    },
+    testFilesByProject: partitionVitestTestFiles(testFiles),
     reasons: expandedDomains.map((item) => `${item.id}: ${item.reason}`),
   };
 }
