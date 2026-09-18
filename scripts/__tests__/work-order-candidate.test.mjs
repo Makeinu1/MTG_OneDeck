@@ -71,6 +71,13 @@ function candidateFixture() {
     },
     capabilities: [{ id: 'CR-01', path: 'docs/project-state/capabilities/x.json' }],
   }));
+  write(root, 'docs/project-state/capabilities/x.json', JSON.stringify({
+    id: 'CR-01',
+    semanticVerdict: 'MATCH',
+    deliveryState: 'IMPLEMENTED',
+    lifecycle: 'ACTIVE',
+    requirementLevel: 'REQUIRED',
+  }));
   write(root, 'docs/acceptance/scenarios.json', JSON.stringify({
     scenarios: [{ id: 'ACC-X-001', status: 'active', manualOnly: false, automatedBy: ['src/x.test.ts'], verifies: ['ENG-X-001'] }],
   }));
@@ -181,6 +188,63 @@ describe('M4 candidate binding and drift', () => {
       const result = validateWorkOrderCandidate(packet(fx.base), { root: fx.root, head });
       expect(result.errors.some((error) => error.includes('semantic authority changed'))).toBe(false);
       expect(result.drift.authoritySemanticChanges).toEqual([]);
+    } finally {
+      rmSync(fx.root, { recursive: true, force: true });
+    }
+  });
+
+  test('requires reinspection when referenced capability context changes', () => {
+    const fx = candidateFixture();
+    try {
+      write(fx.root, 'docs/project-state/capabilities/x.json', JSON.stringify({
+        id: 'CR-01',
+        semanticVerdict: 'CONFLICT',
+        deliveryState: 'IMPLEMENTED',
+        lifecycle: 'ACTIVE',
+        requirementLevel: 'REQUIRED',
+      }));
+      git(fx.root, ['add', '.']);
+      git(fx.root, ['commit', '-m', 'capability verdict change']);
+      const head = git(fx.root, ['rev-parse', 'HEAD']);
+
+      const result = validateWorkOrderCandidate(packet(fx.base), { root: fx.root, head });
+      expect(result.errors).toContain(
+        'candidate: capability context changed since planning CR-01; reinspection/replan required',
+      );
+      expect(result.drift.contextCapabilityChanges).toEqual([
+        expect.objectContaining({ id: 'CR-01' }),
+      ]);
+    } finally {
+      rmSync(fx.root, { recursive: true, force: true });
+    }
+  });
+
+  test('requires reinspection when a referenced Acceptance oracle changes materially', () => {
+    const fx = candidateFixture();
+    try {
+      write(fx.root, 'docs/acceptance/scenarios.json', JSON.stringify({
+        scenarios: [{
+          id: 'ACC-X-001',
+          status: 'active',
+          manualOnly: false,
+          automatedBy: ['src/x.test.ts'],
+          verifies: ['ENG-X-001'],
+          preconditions: [],
+          steps: ['changed execution step'],
+          oracle: 'changed oracle',
+        }],
+      }));
+      git(fx.root, ['add', '.']);
+      git(fx.root, ['commit', '-m', 'acceptance oracle change']);
+      const head = git(fx.root, ['rev-parse', 'HEAD']);
+
+      const result = validateWorkOrderCandidate(packet(fx.base), { root: fx.root, head });
+      expect(result.errors).toContain(
+        'candidate: referenced Acceptance changed materially since planning ACC-X-001; reinspection/replan required',
+      );
+      expect(result.drift.acceptanceChanges).toEqual([
+        expect.objectContaining({ id: 'ACC-X-001' }),
+      ]);
     } finally {
       rmSync(fx.root, { recursive: true, force: true });
     }
