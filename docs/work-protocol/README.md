@@ -100,8 +100,10 @@ If M3.1 reports `MANUAL_REQUIRED`, M3.1 validates the exact-candidate receipt. M
 `scope` is a forecast and drift boundary, not a filesystem permission system.
 
 - `targetSemanticRefs`: semantic area the requested change may materially affect.
-- `inputPaths`: repository material expected to be inspected.
+- `inputPaths`: repository material expected to exist and be inspected at `planningBase`.
 - `expectedChangeRoots`: repository-relative files/directories where edits are expected.
+
+M4-2 requires `inputPaths` to exist at the planning snapshot. M4-3 does **not** require those inputs to survive at candidate HEAD: deleting an obsolete input is valid when the deletion is inside the bounded change scope. Protected/authority paths retain their stricter candidate requirements.
 
 M4-2 resolves references and M4-3 evaluates candidate drift.
 
@@ -155,8 +157,10 @@ With `--head <sha>`, M4-3 additionally validates the exact candidate:
 
 For child Work Orders, pass `--parent <parent.json>` with `--head`. M4-3 checks:
 
+- child `workId` is distinct from the parent `workId`;
 - exact `parentWorkId`;
 - shared `planningBase`;
+- all parent authority semantic/path refs and capability-context refs remain inherited; a child may add read-only refs;
 - target semantic scope is a subset of the parent;
 - expected change roots do not broaden beyond the parent;
 - parent protected path/semantic boundaries remain inherited;
