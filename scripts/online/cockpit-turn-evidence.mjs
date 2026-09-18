@@ -137,7 +137,7 @@ async function keep(p) {
   }
   throw Error('keep failed');
 }
-async function mutate(p, perform, label, attempt = 0) {
+async function mutate(p, perform, label, attempt = 0, retryReady = null) {
   assert.ok(attempt < 3, `bounded retry: ${label}`);
   const wait = p.waitForResponse(
     (r) =>
@@ -147,13 +147,20 @@ async function mutate(p, perform, label, attempt = 0) {
   );
   await perform();
   const r = await wait;
+  const request = r.request().postDataJSON();
   const v = await r.json();
   if (r.status() !== 200) {
     assert.equal(v.error, 'REVISION_CONFLICT', label);
-    const alert = p.locator('.table-connection');
-    await alert.waitFor({ state: 'visible' });
-    await alert.getByRole('button', { name: '閉じる', exact: true }).click();
-    return mutate(p, perform, label, attempt + 1);
+    if (request?.type === 'commit') {
+      const alert = p.locator('.table-connection');
+      await alert.waitFor({ state: 'visible' });
+      await alert.getByRole('button', { name: '閉じる', exact: true }).click();
+    } else if (retryReady) {
+      await until(retryReady, `${label} retry ready`);
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return mutate(p, perform, label, attempt + 1, retryReady);
   }
   return v;
 }
@@ -342,25 +349,34 @@ try {
     const actor = active === 'P1' ? host : guest;
     if (round > 0) {
       await menu(host);
+      const reclaim = host.getByRole('button', { name: '部屋主が操作権を回収', exact: true });
       await mutate(
         host,
-        () => host.getByRole('button', { name: '部屋主が操作権を回収', exact: true }).click(),
+        () => reclaim.click(),
         'reclaim',
+        0,
+        () => reclaim.isEnabled(),
       );
       await closeMenu(host);
       if (active === 'P2') {
         await menu(guest);
+        const hold = guest.getByRole('button', { name: 'HOLD・応答を要求', exact: true });
         await mutate(
           guest,
-          () => guest.getByRole('button', { name: 'HOLD・応答を要求', exact: true }).click(),
+          () => hold.click(),
           'hold',
+          0,
+          () => hold.isEnabled(),
         );
         await closeMenu(guest);
         await menu(host);
+        const grant = host.getByRole('button', { name: '操作権を貸す', exact: true });
         await mutate(
           host,
-          () => host.getByRole('button', { name: '操作権を貸す', exact: true }).click(),
+          () => grant.click(),
           'grant',
+          0,
+          () => grant.isEnabled(),
         );
         await closeMenu(host);
       }
