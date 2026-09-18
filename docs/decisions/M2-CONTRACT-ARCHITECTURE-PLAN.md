@@ -1,6 +1,6 @@
 # M2 Contract Architecture Plan — candidate
 
-Status: CANDIDATE / design only  
+Status: AUDITED CANDIDATE / design only  
 Baseline: `main@11496a4871b0ab577aec35aa523b3b4719dcce3e`  
 Gate: M2-PLAN  
 Implementation authority: none
@@ -86,15 +86,24 @@ Project State owns NOW and semantic verdicts. It consumes M2 structure but does 
 
 ## 5. Semantic node universe
 
-M2 resolves only three existing ID families:
+M2 resolves three ID families, but semantic identity does **not** depend on the legacy verification registry.
 
-1. Product nodes: `P-*` / resolved `Q-*` IDs parsed from `docs/product-requirements.md`.
-2. Contract-clause nodes: stable inline clause IDs registered by the active clause registry.
-3. Acceptance scenario nodes: `ACC-*` IDs from `docs/acceptance/scenarios.json`.
+1. Product nodes: `P-*` and resolved `Q-*` IDs defined by the canonical tables in `docs/product-requirements.md`.
+2. Contract semantic nodes: stable inline `<!-- clause: ID -->` markers scanned directly from active Markdown contracts listed by `manifest.json`.
+3. Acceptance scenario nodes: `ACC-*` scenario IDs from `docs/acceptance/scenarios.json`.
 
-No separate copy of node prose is stored in the graph.
+Product-node resolution must be deterministic:
 
-A node's meaning always comes from its owning source file.
+- a `P-xx` definition is a requirement-table row whose first cell is exactly that ID;
+- a `Q-xx` definition is a recovery/product-decision table row whose first cell begins with that ID and is explicitly marked resolved/decided;
+- ordinary prose mentions such as “P-08” are references, not definitions;
+- a targeted product ID must resolve to exactly one definition row.
+
+Contract semantic IDs are discovered from active contract source markers, not from `traceability.json`. The validator rejects duplicate inline IDs across active contracts.
+
+This separation is intentional: semantic meaning can exist before M3 binds verification evidence to it.
+
+No separate copy of node prose is stored in the graph. A node's meaning always comes from its owning Product Requirement or active contract source.
 
 ## 6. Relation model
 
@@ -167,7 +176,7 @@ This is a logical control plane, not a second prose truth source.
 
 ### 8.1 `manifest.json`
 
-Owns file-level registration and broad domain ownership only:
+Owns file-level registration and broad domain ownership:
 
 - contract ID;
 - active/generated lifecycle;
@@ -177,17 +186,17 @@ Owns file-level registration and broad domain ownership only:
 
 `manifest.milestone` should be removed because Project State owns current milestone.
 
-`dependsOn` must not remain semantic authority. M2 should either retire it or produce any useful contract-level dependency view by collapsing clause-level semantic edges. Do not preserve two normative dependency graphs.
+`dependsOn` remains for M2 as a **coarse file-level dependency / compatibility declaration only**. It is not semantic authority and must not be used to infer clause meaning or impact. M2 does not remove a currently consistent field merely to make the new graph look cleaner; a later hygiene phase may retire it if it proves redundant.
 
 `owner` is process-role metadata and is explicitly outside M2; M4 may rename/rework it.
 
-`verifiedBy` / `lastVerifiedCommit` are M3-owned compatibility fields until verification architecture migrates them.
+`verifiedBy` / `lastVerifiedCommit` remain M3-owned compatibility fields. M2 may refresh their values when current gates require it, but does not redesign their meaning.
 
 ### 8.2 `traceability.json`
 
-Becomes a thin clause/source registry, not a second contract body.
+After M2 it is a **verification-binding compatibility registry**, not the source of semantic identity and not a second contract body.
 
-Normative semantic prose fields should be removed:
+M2 removes duplicated normative prose fields:
 
 - `rule`
 - `precondition`
@@ -195,21 +204,28 @@ Normative semantic prose fields should be removed:
 - `failureBehavior`
 - `invariant`
 
-Current verification fields may remain temporarily only to preserve existing gates until M3 replaces them. They must not be interpreted as M2 semantic ownership.
+Existing verification fields may remain for M3:
 
-`acceptedBy` should be removed during M2 because it duplicates `scenario.verifies`.
+- `verificationDisposition`
+- `verifiedBy`
+- `manualProcedure`
+- explicit pending-decision linkage where still required by current Project State machinery.
 
-The pending-decision link currently encoded through `verificationDisposition=deferred-needs-decision` / `needsDecision` should be migrated to an explicit decision reference that Project State can consume without pretending that a semantic decision is a test disposition.
+`acceptedBy` is removed because it duplicates `scenario.verifies`. Reverse accepted-by views are generated from scenarios.
+
+The three `ACC-ACCEPT-00*` pseudo-semantic clauses are removed. They describe registry mechanics, not product/engine meaning. Their structural requirements become direct `check-docs` invariants.
+
+A semantic inline clause is no longer required to have a traceability row merely to exist. A traceability row, when present, must resolve to an existing semantic ID. This allows M2 to introduce semantic anchors without pretending that M3 verification already exists.
 
 ### 8.3 `scenarios.json`
 
 Scenario content remains here.
 
-`verifies` is the only normative scenario→semantic verification relation.
+`verifies` is the only authored scenario→semantic verification claim.
 
-`contractRefs` should not duplicate contracts already derivable from `verifies`. If a scenario truly needs a non-verifying contract for setup/context, retain only that exception as an optional `contextRefs`.
+`contractRefs` no longer duplicates contracts derivable from `verifies`. If a scenario genuinely needs a non-verifying contract for setup/context, that exception is stored as optional `contextRefs`.
 
-The three `ACC-ACCEPT-00*` meta-clauses describe registry mechanics rather than product/engine semantics. Their structural rules should be enforced by `check-docs`, not by scenarios self-verifying an Acceptance semantic contract.
+M2 does not add missing behavioral acceptance coverage. It only makes existing verification claims one-directional and structurally consistent.
 
 ## 9. Required new stable UX anchors
 
@@ -217,64 +233,75 @@ The M0 reconciliation created five semantic groups that are important downstream
 
 M2 should add only these anchors:
 
-- `UX-CONST-MANUAL` — Manual Resolution ownership / parent effect application;
-- `UX-CONST-CHOICE` — Choice Authority / Choice Signal;
-- `UX-CONST-GRANTED-ACTION` — effect-granted independent Magic action;
-- `UX-CONST-INFORMATION` — intended audience / Look / Reveal / Move;
-- `UX-CONST-RECOVERY` — narrowly-defined Room Owner recovery proxy.
+- `UX-CONST-MANUAL` — Section 3 Manual Resolution ownership / parent effect application;
+- `UX-CONST-CHOICE` — Section 8 Choice Authority / Choice Signal;
+- `UX-CONST-GRANTED-ACTION` — Section 8 effect-granted independent Magic action;
+- `UX-CONST-INFORMATION` — Section 11 intended audience / Look / Reveal / Move;
+- `UX-CONST-RECOVERY` — Section 10 narrowly-defined Room Owner recovery proxy.
 
 Do not assign IDs mechanically to all 33 constitutional invariants.
 
 The five anchors exist because downstream ownership/impact must reference them; that is the stable-ID threshold.
 
+These anchors are semantic identities only. M2 must not fabricate `acceptedBy`, test bindings, or passing evidence for them. M3 owns that work.
+
 ## 10. Initial authority map
 
-The first M2 map should include at least the following high-value edges.
+The first M2 map must stay sparse and include only relations supported by the current source text.
 
 ### Product → interaction refinement
 
-- `UX-CONST-MANUAL refines P-03`
+High-confidence initial edges:
+
 - `UX-CONST-MANUAL refines P-06`
 - `UX-CONST-HOLD refines P-04`
-- `UX-CONST-HOLD refines P-07`
 - `UX-CONST-CHOICE refines P-04`
 - `UX-CONST-CHOICE refines P-06`
 - `UX-CONST-GRANTED-ACTION refines P-04`
-- `UX-CONST-GRANTED-ACTION refines P-07`
 - `UX-CONST-UNDO refines P-08`
 - `UX-CONST-INFORMATION refines P-06`
 - `UX-CONST-INFORMATION refines P-10`
 - `UX-CONST-RECOVERY refines P-09`
 - `UX-CONST-RECOVERY refines Q-01`
-- `UX-CONST-ELIMINATION refines Q-02`
 
-These edges express product→interaction ownership without copying the requirement text.
+Do **not** create an edge merely because the concepts are adjacent.
+
+In particular:
+
+- `Q-02` currently owns the irreversibility of confirmed elimination/end in Product Requirements, but the existing `UX-CONST-ELIMINATION` text does not explicitly encode that irreversibility. Therefore M2 must not assert `UX-CONST-ELIMINATION refines Q-02` unless the active UX source is separately reconciled.
+- P-03 cross-mode semantic consistency is broader than Manual Resolution itself; no `UX-CONST-MANUAL → P-03` edge is required.
+- P-07 causality/continuation is broader than HOLD or an effect-granted action; do not add those refinement edges without a more direct clause-level basis.
 
 ### Lower-domain constraints
+
+High-confidence initial constraints:
 
 - `ENG-CMD-004 constrainedBy UX-CONST-MANUAL`
 - `ENG-CMD-R6-001 constrainedBy UX-CONST-UNDO`
 - `ENG-TURN-R6-002 constrainedBy UX-CONST-HOLD`
 - `ENG-MP-005 constrainedBy UX-CONST-ELIMINATION`
 - `ENG-MP-005 constrainedBy UX-CONST-RECOVERY`
-- `ENG-ZONES-001 constrainedBy UX-CONST-INFORMATION`
 
-Do not invent a lower contract node merely to make every UX node have a child. Absence of a lower semantic node may be a real implementation/contract gap.
+Do not map `UX-CONST-INFORMATION` to `ENG-ZONES-001` merely because both mention private zones. `ENG-ZONES-001` does not own intended-audience / Reveal semantics and currently mixes zone ownership/keying with visibility language. Until an active lower-domain clause actually owns information-audience semantics, the missing lower relation is a visible contract gap rather than an invented edge.
+
+Do not invent a lower contract node merely to make every UX node have a child. Absence of a lower semantic node is valid M2 output.
 
 ## 11. Graph invariants
 
 The M2 validator must enforce:
 
-1. every edge endpoint resolves to an existing stable ID;
-2. `from != to`;
-3. duplicate edge tuples are rejected;
-4. `refines` and `constrainedBy` together form an acyclic authority/dependency graph;
-5. `verifies` originates from an existing acceptance scenario and targets an existing semantic node;
-6. reverse edges are never authored;
-7. a clause ID has exactly one owning source marker;
-8. active semantic meaning is never stored as prose in `semantic-map.json`;
-9. Product Requirements, active contract clauses, and acceptance scenarios remain their own source of truth;
-10. Project State verdicts are not inferred from graph connectivity or verification presence.
+1. every semantic-map endpoint resolves to an existing Product definition or active-contract inline semantic ID;
+2. every `scenario.verifies` target resolves to an existing semantic ID;
+3. `from != to`;
+4. duplicate edge tuples are rejected;
+5. `refines` and `constrainedBy` together form an acyclic semantic dependency graph;
+6. reverse semantic edges are never authored;
+7. inline contract semantic IDs are globally unique across active contracts;
+8. product definition IDs targeted by the graph resolve exactly once;
+9. active semantic meaning is never stored as prose in `semantic-map.json`;
+10. Product Requirements, active contract sources, and acceptance scenarios remain their own source of truth;
+11. traceability rows may bind verification to semantic IDs but do not define semantic existence;
+12. Project State verdicts are never inferred from graph connectivity or verification presence.
 
 ## 12. M2 / M3 boundary
 
@@ -305,65 +332,96 @@ M2 may preserve them for compatibility but does not redesign their behavior.
 
 ## 13. M2 implementation slices
 
+M2-1 through M2-3 are implementation-order boundaries, not independently mergeable semantic releases. Because `docs/contracts` and `docs/acceptance` are M1 watched roots, the implementation should stay on one candidate branch until M2-4 performs one bounded M1 re-audit/rebaseline.
+
+Do not open a merge-ready PR from an intermediate stale state.
+
 ### M2-1 — Semantic identity and edge substrate
 
 - add `semantic-map.json` schema v1;
-- add validator support for Product IDs, clause IDs, scenario IDs and edge invariants;
-- populate only reviewed high-value `refines` / `constrainedBy` edges;
+- add semantic-node discovery from Product definition rows and active-contract inline markers;
+- add validator support for endpoint uniqueness, edge type and DAG invariants;
+- populate only reviewed high-confidence `refines` / `constrainedBy` edges;
+- treat current manifest `dependsOn` as coarse/non-semantic;
 - no gameplay changes;
 - no verification behavior changes.
 
-Exit: the map can answer authority/dependency questions without prose duplication.
+Exit: the map can answer authority/dependency questions without prose duplication or traceability ownership.
 
-### M2-2 — Stable anchors and one-way acceptance relations
+### M2-2 — Stable anchors
 
-- add the five UX stable anchors;
-- update clause registry/checker so a semantic clause can exist without inventing immediate acceptance evidence;
-- make `scenario.verifies` authoritative;
-- derive reverse accepted-by views;
-- remove authored `acceptedBy`;
-- replace exceptional non-verifying scenario contract references with `contextRefs`.
+- add the five UX inline stable anchors;
+- validate them through semantic-node discovery, not by fabricating verification rows;
+- add reviewed semantic edges for those anchors;
+- fix stale version-string authority wording such as `ENG-MP-004` by referring to the active UX Constitution/stable authority instead of “v6.3”;
+- do not add acceptance evidence.
 
-Exit: no bidirectional verification edge drift remains.
+Exit: the M0-reconciled interaction semantics are addressable without pretending they are implemented or verified.
 
-### M2-3 — Clause registry slimming / decision cleanup
+### M2-3 — Registry de-duplication and compatibility migration
 
+- make `scenario.verifies` the single authored scenario→semantic verification claim;
+- remove authored `acceptedBy` and derive reverse views;
+- replace non-verifying `contractRefs` exceptions with optional `contextRefs`;
 - remove duplicated normative prose from traceability;
-- move Acceptance-registry structural invariants into `check-docs`;
-- replace deferred-decision encoding with explicit decision reference;
-- remove stale manifest milestone;
-- retire manifest `dependsOn` as semantic authority and generate any useful file-level dependency view from semantic edges.
+- remove `ACC-ACCEPT-00*` pseudo-semantic clauses and enforce those structural rules directly in `check-docs`;
+- remove stale `manifest.milestone`;
+- retain `manifest.dependsOn` as explicitly non-semantic compatibility metadata;
+- preserve M3-owned `verifiedBy` / `automatedBy` / `lastVerifiedCommit` behavior.
 
-Exit: semantic meaning lives only in Product Requirements / active contracts; registries hold IDs/relations only.
+Compatibility choreography is required because current `check-docs` pins `traceability.json` bytes into every active contract's verification baseline:
 
-### M2-4 — Cold restart and compatibility audit
+1. land the final M2 semantic/registry bytes on the candidate branch at commit **S**;
+2. update every affected active contract's `lastVerifiedCommit` to **S** in a later compatibility commit;
+3. run the existing full verification chain;
+4. do not interpret the metadata refresh as semantic MATCH.
 
-Using repo-only context, prove a fresh reader can answer:
+Exit: the current bidirectional-drift class is structurally impossible while current verification behavior still works.
+
+### M2-4 — Bounded M1 re-audit + cold restart
+
+After M2-1 through M2-3 are complete:
+
+- re-audit all M1 capabilities against the final M2 semantic state;
+- preserve every MATCH/GAP/CONFLICT/UNKNOWN verdict unless independent evidence requires a change;
+- choose the post-compatibility contract commit as the new M1 baseline;
+- update capability `auditedAtCommit` and generated Project State;
+- verify there are no watched-root changes after the new baseline;
+- run repo-only cold restart.
+
+The cold restart must prove a fresh reader can answer:
 
 - who owns P-04/P-08/P-10;
-- how HOLD, Choice, effect-granted action, Undo, Information, Recovery connect to product requirements;
-- which engine clauses are constrained by those UX semantics;
-- which acceptance scenarios verify existing semantic nodes;
-- which M0 semantics still lack lower-contract or verification coverage;
-- that M1 verdicts remain unchanged.
+- how HOLD, Choice, effect-granted action, Undo, Information and Recovery connect to product requirements;
+- which lower clauses are constrained by those UX semantics;
+- where a lower semantic relation is intentionally absent;
+- which acceptance scenarios claim to verify existing semantic nodes;
+- which M0 semantics remain unverified for M3;
+- that M1 verdicts remain unchanged unless separately justified.
 
-Exit: M2-PLAN implementation is legible without prior chat and does not create a second truth system.
+Exit: canonical main can consume M2 without prior chat and without a second truth system.
 
 ## 14. M2 acceptance criteria
 
 M2 implementation is complete only if:
 
-- no active semantic prose is duplicated into the graph/registry;
-- no authored reverse edge remains;
+- no active semantic prose is duplicated into `semantic-map.json`;
+- traceability no longer duplicates contract semantic prose;
+- semantic identity is discoverable independently from verification binding;
+- no authored reverse verification edge remains;
 - current `acceptedBy` / `verifies` drift class is impossible by schema;
 - Product Requirements participate in the graph without being reclassified as a contract;
-- the five M0-reconciled semantic groups have stable anchors;
-- file-level and clause-level authority are distinguishable;
+- the five M0-reconciled semantic groups have stable anchors without fake verification;
+- file-level manifest ownership and clause-level semantic authority are distinguishable;
 - `manifest.milestone` no longer competes with Project State NOW;
-- graph cycles and unresolved endpoints fail CI;
+- `manifest.dependsOn` is explicitly non-semantic and does not compete with the semantic graph;
+- graph cycles, duplicate semantic IDs and unresolved endpoints fail CI;
+- known unsupported mappings such as Q-02 irreversibility and lower information-audience ownership remain explicit gaps rather than false edges;
+- current verification pinning remains functional through the explicit compatibility rebaseline;
+- final Project State freshness is restored after all watched-root changes;
 - M1 capability verdicts do not change merely because the architecture became clearer;
-- M3 has a clean handoff for verification/freshness without M2 owning test paths;
-- the new machinery remains small enough that a human can inspect the entire semantic edge set directly.
+- M3 has a clean handoff for verification/freshness without M2 claiming test success;
+- the new machinery remains small enough that a human can inspect the semantic edge set directly.
 
 ## 15. Explicitly deferred to M3
 
@@ -378,19 +436,27 @@ M3 must decide and bind verification for at least:
 
 The M2 graph makes those obligations addressable; M3 makes them executable/fail-closed.
 
-## 16. Risks and rollback
+## 16. Independent-audit risks and rollback
 
-Main risks:
+The independent M2-PLAN audit identified and corrected these design risks:
+
+- **false authority edges** — adjacency is not refinement; unsupported Q-02 and Information→Zones edges were removed;
+- **semantic identity coupled to verification** — inline contract markers now define semantic identity independently from traceability;
+- **M1 freshness omission** — all watched-root changes are now followed by one bounded final M1 re-audit/rebaseline before merge;
+- **verification-pin blast radius** — traceability migration now includes an explicit all-affected-contract compatibility rebaseline;
+- **unnecessary dependency churn** — `manifest.dependsOn` is retained as coarse non-semantic metadata instead of being deleted during M2;
+- **M2/M3 boundary leakage** — new semantic anchors receive no fabricated evidence; missing behavioral acceptance stays in M3.
+
+Remaining general risks:
 
 - over-modeling every sentence;
 - treating graph connectivity as proof of implementation;
-- preserving both `dependsOn` and semantic edges as competing dependency truths;
-- moving M3 verification concerns into M2;
-- adding IDs purely for completeness metrics.
+- adding IDs purely for completeness metrics;
+- allowing a compatibility field to quietly regain semantic-authority status.
 
 Rollback rule:
 
-If an M2 structure cannot explain a concrete authority, dependency, cold-restart, or future invalidation need, remove it.
+If an M2 structure cannot explain a concrete authority, dependency, cold-restart, or future invalidation need, remove it. If a proposed edge is not directly supported by both endpoint sources, omit the edge and surface the gap.
 
 ## 17. M2-PLAN recommendation
 
@@ -398,6 +464,8 @@ Proceed with the four slices above.
 
 The core architecture decision is:
 
-> Keep canonical meaning in Product Requirements and active contracts. Add one sparse, typed, prose-free semantic edge map. Store verification direction once in acceptance scenarios. Generate reverse views. Keep NOW in Project State and verification/freshness in M3.
+> Keep canonical meaning in Product Requirements and active contracts. Discover semantic IDs directly from those sources, add one sparse prose-free semantic edge map, author scenario verification direction once, and generate reverse views. Keep NOW in Project State and verification/freshness in M3.
 
-This is the smallest architecture that closes the observed authority gaps without introducing a second semantic truth.
+Implementation may proceed only with the migration choreography in M2-3/M2-4: current verification pins must be refreshed without semantic promotion, and Project State must be re-audited after all watched-root changes.
+
+This audited candidate is the smallest architecture found that closes the observed authority gaps without introducing a second semantic truth.
