@@ -115,6 +115,7 @@ function checkScenarios(scenarios, migration, semanticIds = new Set()) {
     }
     if ('contractRefs' in scenario) errors.push(`scenario ${scenario.id ?? '<unknown>'}: contractRefs is retired; derive contract ownership from verifies targets`);
     if (typeof scenario.id !== 'string') continue;
+    if (!/^ACC-[A-Z0-9-]+$/u.test(scenario.id)) errors.push(`scenario ${scenario.id}: invalid stable scenario id`);
     if (seen.has(scenario.id)) errors.push(`scenario: duplicate id ${scenario.id}`);
     seen.add(scenario.id);
     if (!allowedStatus.has(scenario.status)) errors.push(`scenario ${scenario.id}: invalid status ${scenario.status}`);
@@ -197,8 +198,14 @@ function checkTraceability(traceability, manifest, contractSemanticIds) {
     if (clause.id.startsWith('ACC-ACCEPT-')) errors.push(`traceability ${clause.id}: retired pseudo semantic clause`);
     if (clauseIds.has(clause.id)) errors.push(`traceability: duplicate clause id ${clause.id}`);
     clauseIds.add(clause.id);
-    if (!contractSemanticIds.has(clause.id)) errors.push(`traceability ${clause.id}: does not resolve to an active inline semantic ID`);
+    const semanticOwnerPath = contractSemanticIds.get(clause.id);
+    if (!semanticOwnerPath) errors.push(`traceability ${clause.id}: does not resolve to an active inline semantic ID`);
+    else if (clause.sourcePath !== semanticOwnerPath) errors.push(`traceability ${clause.id}: sourcePath does not match semantic owner ${semanticOwnerPath}`);
     if (!contractIds.has(clause.contractId)) errors.push(`traceability ${clause.id}: unresolved contractId ${clause.contractId}`);
+    else {
+      const ownerContract = (manifest?.contracts ?? []).find((entry) => entry.id === clause.contractId);
+      if (ownerContract?.path !== clause.sourcePath) errors.push(`traceability ${clause.id}: contractId/path ownership mismatch`);
+    }
     if (!['active', 'obsolete'].includes(clause.status)) errors.push(`traceability ${clause.id}: invalid status ${clause.status}`);
     if (!['automated', 'acceptance', 'manual', 'deferred-needs-decision'].includes(clause.verificationDisposition)) {
       errors.push(`traceability ${clause.id}: invalid verificationDisposition ${clause.verificationDisposition}`);
