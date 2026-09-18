@@ -1,9 +1,8 @@
 # constitution-v1-contract-integration provenance archive
 
-Status: HISTORICAL / PROVENANCE ONLY  
-Current semantic authority: none  
-Current Project State authority: none  
-External-write authority: none
+Lifecycle: HISTORICAL_PROVENANCE  
+AUTHORITY: NONE  
+EXECUTION AUTHORITY: NONE
 
 Archived branch: `constitution-v1-contract-integration`  
 Archived head: `5fa70acecc89206c6bb16678efc4fa7ef06230ac`  
