@@ -1,4 +1,4 @@
-import { defineConfig, configDefaults } from 'vitest/config';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { CORE_TEST_INCLUDE, DEFAULT_TEST_INCLUDE, DOM_ENGINE_EXCLUDE, TEST_EXCLUDE } from './scripts/checks/vitest-projects.mjs';
 
