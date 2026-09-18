@@ -120,6 +120,18 @@ function packet(planningBase) {
 }
 
 describe('M4 candidate binding and drift', () => {
+  test('candidate API rejects an invalid packet even when called directly', () => {
+    const fx = candidateFixture();
+    try {
+      const candidate = packet(fx.base);
+      candidate.constraints.authorizedToPush = true;
+      const result = validateWorkOrderCandidate(candidate, { root: fx.root, head: fx.base });
+      expect(result.errors).toContain('candidate packet $.constraints: unknown field authorizedToPush');
+    } finally {
+      rmSync(fx.root, { recursive: true, force: true });
+    }
+  });
+
   test('reports an out-of-root support file without treating file drift alone as a hard failure', () => {
     const fx = candidateFixture();
     try {
