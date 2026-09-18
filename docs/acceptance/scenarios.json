@@ -23,12 +23,8 @@
         "src/data/__tests__/deckParser.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-COMPILER"
-      ],
       "verifies": [
-        "ENG-COMP-001",
-        "ACC-ACCEPT-001"
+        "ENG-COMP-001"
       ],
       "supersedes": []
     },
@@ -54,10 +50,6 @@
         "src/components/game/MulliganStage.test.tsx"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-STATE",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "ENG-STATE-001",
         "ENG-CMD-003"
@@ -84,9 +76,6 @@
       "oracle": "No acceptance pass/fail is claimed until CONFLICT-TURN-DRAW-001 receives an explicit ruling; preserve the existing turn path as evidence only.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "ENG-TURN-003"
       ],
@@ -113,9 +102,6 @@
         "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-ZONES"
-      ],
       "verifies": [
         "ENG-ZONES-001",
         "ENG-ZONES-004"
@@ -144,9 +130,6 @@
         "src/engine/__tests__/priority.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "ENG-TURN-001",
         "ENG-TURN-002"
@@ -175,9 +158,6 @@
         "src/engine/__tests__/manaTransaction.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA"
-      ],
       "verifies": [
         "ENG-MANA-001",
         "ENG-MANA-002"
@@ -205,9 +185,6 @@
         "src/engine/__tests__/mana.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA"
-      ],
       "verifies": [
         "ENG-MANA-002"
       ],
@@ -236,9 +213,6 @@
         "src/engine/__tests__/mana.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA"
-      ],
       "verifies": [
         "ENG-MANA-001"
       ],
@@ -267,9 +241,6 @@
         "src/engine/__tests__/manaTransaction.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA"
-      ],
       "verifies": [
         "ENG-MANA-002"
       ],
@@ -298,9 +269,6 @@
         "src/engine/__tests__/manaTransaction.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA"
-      ],
       "verifies": [
         "ENG-MANA-002"
       ],
@@ -331,10 +299,6 @@
         "src/engine/__tests__/manaTransaction.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "ENG-MANA-003",
         "ENG-CMD-003"
@@ -365,10 +329,6 @@
         "src/engine/__tests__/act4CostVocabulary.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-MANA",
-        "CONTRACT-ENGINE-COMPILER"
-      ],
       "verifies": [
         "ENG-MANA-003",
         "ENG-COMP-002"
@@ -399,9 +359,6 @@
         "src/engine/__tests__/cr701DiscardCompiler.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-COMPILER"
-      ],
       "verifies": [
         "ENG-COMP-001",
         "ENG-COMP-002",
@@ -430,10 +387,6 @@
         "src/store/__tests__/snapshotPersistenceControl.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-STATE",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "ENG-STATE-004",
         "ENG-CMD-003"
@@ -459,12 +412,7 @@
       "oracle": "The live response is recorded only in the online lane and is not required by ordinary acceptance.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-ACCEPTANCE"
-      ],
-      "verifies": [
-        "ACC-ACCEPT-002"
-      ],
+      "verifies": [],
       "supersedes": []
     },
     {
@@ -487,10 +435,6 @@
       "oracle": "The current interaction surface remains legible and usable at all three contract viewports with no console errors.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UI-ARCHITECTURE",
-        "CONTRACT-UI-RESPONSIVE"
-      ],
       "verifies": [
         "UI-RESP-001",
         "UI-RESP-002",
@@ -517,9 +461,6 @@
       "oracle": "Human comfort and audibility are recorded only when AV behavior is changed; semantic event boundaries remain deterministic.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-AV"
-      ],
       "verifies": [
         "AV-004"
       ],
@@ -546,14 +487,9 @@
         "src/engine/__tests__/eventEnvelope.test.ts"
       ],
       "manualOnly": false,
-      "contractRefs": [
-        "CONTRACT-ENGINE-STATE",
-        "CONTRACT-ENGINE-COMPILER"
-      ],
       "verifies": [
         "ENG-STATE-005",
-        "ENG-COMP-004",
-        "ACC-ACCEPT-003"
+        "ENG-COMP-004"
       ],
       "supersedes": []
     },
@@ -573,10 +509,6 @@
       "oracle": "geometry invents no meaning",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-STATE"
-      ],
       "verifies": [
         "UX-CONST-REALITY",
         "ENG-STATE-R6-001"
@@ -599,11 +531,6 @@
       "oracle": "human Correction wins",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-STATE",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "UX-CONST-CORRECTION",
         "ENG-STATE-R6-001",
@@ -627,11 +554,6 @@
       "oracle": "automation observable and correctable",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-COMPILER",
-        "CONTRACT-ENGINE-MANA"
-      ],
       "verifies": [
         "UX-CONST-AUTOMATION",
         "ENG-COMP-R6-001",
@@ -655,10 +577,6 @@
       "oracle": "solo first and turn-zero manual opportunity",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "UX-CONST-PREGAME",
         "ENG-TURN-R6-001"
@@ -681,10 +599,6 @@
       "oracle": "stop behavior differs, authority does not",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "UX-CONST-CONTROL",
         "ENG-TURN-R6-001"
@@ -707,10 +621,6 @@
       "oracle": "HOLD identity-bound; ownership retained",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "UX-CONST-HOLD",
         "ENG-TURN-R6-002"
@@ -733,10 +643,6 @@
       "oracle": "one committed unit per Undo",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "UX-CONST-UNDO",
         "ENG-CMD-R6-001"
@@ -759,11 +665,6 @@
       "oracle": "removal explicit; objects isolated, not Exile",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-MULTIPLAYER",
-        "CONTRACT-ENGINE-ZONES"
-      ],
       "verifies": [
         "UX-CONST-ELIMINATION",
         "ENG-MP-004",
@@ -793,11 +694,6 @@
       "oracle": "The later automation evaluation does not silently overwrite the human-confirmed Correction; any conflicting reapplication requires a new explicit attributable operation rather than implicit reassertion.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-STATE",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "UX-CONST-CORRECTION",
         "ENG-STATE-R6-001",
@@ -826,10 +722,6 @@
       "oracle": "The HOLD request bound to A is stale and cannot rebind to B or grant foreground authority in B.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "UX-CONST-HOLD",
         "ENG-TURN-R6-002"
@@ -856,10 +748,6 @@
       "oracle": "A request alone transfers no authority: the current operator retains foreground/progression authority and all parent ownership until explicit approval.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "UX-CONST-HOLD",
         "ENG-TURN-R6-002"
@@ -887,10 +775,6 @@
       "oracle": "One Undo reverts exactly one supported committed unit and does not collapse all pre-処理完了 operations into a mega-undo; farther rewind requires another invocation.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-COMMANDS"
-      ],
       "verifies": [
         "UX-CONST-UNDO",
         "ENG-CMD-R6-001"
@@ -917,10 +801,6 @@
       "oracle": "Trigger Memory remains an ambient obligation and does not by itself become a global progress gate or steal foreground authority; only independently canonical unresolved work may block progression.",
       "automatedBy": [],
       "manualOnly": true,
-      "contractRefs": [
-        "CONTRACT-UX-CONSTITUTION",
-        "CONTRACT-ENGINE-TURN"
-      ],
       "verifies": [
         "UX-CONST-AUTOMATION",
         "ENG-TURN-R6-001"
