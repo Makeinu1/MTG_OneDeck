@@ -21,7 +21,7 @@ npm run check:domain -- docs
 npm run check
 ```
 
-The Project State check validates canonical state integrity, bounded coverage, freshness, surfaced deferred decisions, evidence locators, production routing references, and baseline/main provenance; it does not infer semantic correctness. `check:fast` is the affected, offline, no-build lane. `check:domain` selects one domain. `check` includes Project State and is the machine gate used by `check:release`, alongside the complete static verification, docs verification, lint, Vitest projects, and production build.
+The Work Protocol check validates the canonical M4 schema and representative root/child/invalid SOW fixtures without creating Project State or external-write authority. The Project State check validates canonical state integrity, bounded coverage, freshness, surfaced deferred decisions, evidence locators, production routing references, and baseline/main provenance; it does not infer semantic correctness. `check:fast` is the affected, offline, no-build lane. `check:domain` selects one domain. `check` includes Project State and is the machine gate used by `check:release`, alongside the complete static verification, docs verification, lint, Vitest projects, and production build.
 
 ## Development
 
