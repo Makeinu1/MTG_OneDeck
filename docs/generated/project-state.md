@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf` (main, 2026-09-18).
+Audited baseline: `c2671e0ee45211b66d31f00f169c481291dc7eb0` (main, 2026-09-18).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -18,6 +18,9 @@ Authority note: this generated view is committed project NOW only on `main`; on 
 - NOW authority: `docs/project-state/index.json`
 - Roadmap / provenance / history: `research/cr-grounding/cr-backbone-ledger.json`
 - Roadmap authority policy: `research/cr-grounding/AUTHORITY.md`
+- Verification integrity: `scripts/checks/check-verification.mjs`
+- Verification impact resolver: `scripts/checks/semantic-verification.mjs`
+- Candidate verification gate: `scripts/checks/verify-semantic.mjs`
 
 Historical `activeProgram`, `nextGate`, planned-sequence or "single source" wording inside CR-grounding material does not override Project State NOW.
 
@@ -25,22 +28,23 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`
-- Active: `M3 — Verification Harness`
-- Next gate: `M3-PLAN`
-- Next work: Design, independently audit, and Owner-approve the M3 Verification Harness plan that binds M2 semantic nodes and Acceptance verification claims to evidence, execution, freshness, invalidation and fail-closed verification without changing Product Truth, UX semantics, or M1 verdicts.
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`
+- Active: `M4 — Work Protocol / SOW`
+- Next gate: `M4-PLAN`
+- Next work: Design, independently audit, and Owner-approve the M4 Work Protocol / SOW plan that standardizes bounded Goal/Scope/Authority/Inputs/Constraints/Evidence/DoD/Escalation without moving Product Truth, Project State NOW, semantic ownership, or verification verdicts into task prompts.
 
 ## Coverage claim
 
 - Mode: `BOUNDED`
-- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, current production routing, and unresolved decisions that active verification bindings mark deferred-needs-decision.
+- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, M3 candidate-relative verification bindings/impact/freshness harness, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
 - Completeness sources: `docs/contracts/semantic-map.json`, `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
   - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
-  - M2 provides stable semantic identity and sparse ownership/dependency relations, but M3 has not yet bound complete evidence, execution, freshness or invalidation for those semantics.
-  - Choice Authority, effect-granted actions, Undo recovery and Information/Audience have stable M2 semantic ownership but still require M3 verification design; their graph presence is not implementation proof.
-  - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both are intentional visible gaps rather than inferred mappings.
+  - M3 verification is bounded: mapped semantic obligations fail closed, while implementation changes outside known semantic/evidence mapping remain UNKNOWN_COVERAGE and retain existing domain/full-check escalation.
+  - Choice Authority, effect-granted actions, Undo recovery and Information/Audience now have explicit Acceptance specifications but no fabricated passing evidence; current GAP/CONFLICT reality is preserved.
+  - CR-15 remains REQUIRED/UNKNOWN: the existence of the M3 harness does not prove that every automation path is semantically known or exhaustively covered.
+  - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
 
 ## Capability state
 
@@ -82,7 +86,7 @@ Authority: `docs/contracts/ux-constitution.md :: Undo`
 
 Implementation: `src/online/cloudflare/cockpitMultiplayer.ts :: authorizeCockpitOperation`<br>`src/online/cloudflare/cockpitSession.ts :: snapshot undo`<br>`src/online/protocol/variableCommand.ts :: handleOnlineVariableSharedUndoIntentV2 / checkpointFor`<br>`src/engine/core/closure/applyCommandV1.ts :: coreUndoAuthorizedPlayerV1`
 
-Next: Keep this CONFLICT visible. M3 must bind explicit evidence/freshness for the actor-owned/top-only recovery mismatch; semantic repair belongs to later selected product work and must not be smuggled into verification.
+Next: Keep this CONFLICT visible. M3 now tracks actor-owned/top-only recovery evidence and freshness, but semantic repair remains later selected product work.
 
 ## Implementation gaps
 
@@ -90,7 +94,7 @@ Next: Keep this CONFLICT visible. M3 must bind explicit evidence/freshness for t
 
 Seat-level hold and authority transfer exist, but exact initiating interaction identity, context-staleness binding, nested HOLD structure and nearest-valid-parent unwind were not found. The revalidated Constitution also distinguishes effect-granted actions from HOLD; that boundary is not established by the audited HOLD implementation.
 
-Next: Keep the GAP visible. M2 now maps HOLD versus effect-granted-action ownership; M3 must bind verification before later implementation work.
+Next: Keep the GAP visible. M3 now selects and freshness-checks HOLD-related evidence, but semantic repair remains later product work.
 
 ### CR-06 — Pregame manual-first Turn Zero checkpoint
 
@@ -142,8 +146,8 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 - production gameplay semantic changes
 - R4b/R5 redesign
 - casual Product Requirements or UX Constitution changes
-- M3 implementation before an independently audited Owner-approved M3 plan
-- M4-M7 implementation
+- M4 implementation before an independently audited Owner-approved M4 plan
+- M5-M7 implementation
 
 ## Freshness
 
