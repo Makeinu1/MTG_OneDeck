@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `a97cfd9435f48af69fcfb4dca498c0c3f04f79b5` (main, 2026-09-18).
+Audited baseline: `b71a3a3c92bd48bc66ef4e3ab5a814ac5b8c69c3` (main, 2026-09-18).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -34,8 +34,8 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 - Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`
 - Active: `M5 — Audit / Hygiene / Recovery`
-- Next gate: `M5-PLAN`
-- Next work: Design, independently audit, and Owner-approve the M5 Audit / Hygiene / Recovery plan for repository-wide reassessment, stale/dead/duplicate authority cleanup, orphan evidence/Acceptance/test cleanup, and safe interrupted-work recovery without changing Product Truth, M1 semantic verdicts, or prematurely implementing the M6 closed execution loop.
+- Next gate: `M5.0 — Foundation Verification`
+- Next work: Implement and independently verify the Owner-approved M5.0 foundation: legacy inventory machine-base/judge-overlay separation and fail-closed changed-test self-selection. Do not begin destructive repository cleanup until both foundation changes are green and integrated.
 
 ## Coverage claim
 
