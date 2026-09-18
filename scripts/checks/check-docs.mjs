@@ -123,11 +123,32 @@ function checkScenarios(scenarios, migration, semanticIds = new Set()) {
     for (const key of ['tags', 'preconditions', 'steps', 'automatedBy', 'supersedes', 'verifies']) {
       if (!Array.isArray(scenario[key])) errors.push(`scenario ${scenario.id}: ${key} must be an array`);
     }
-    for (const ref of scenario.verifies ?? []) if (!semanticIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved verifies ${ref}`);
+    if (Array.isArray(scenario.preconditions) && scenario.preconditions.length === 0) errors.push(`scenario ${scenario.id}: preconditions must not be empty`);
+    if (Array.isArray(scenario.steps) && scenario.steps.length === 0) errors.push(`scenario ${scenario.id}: steps must not be empty`);
+    if (scenario.status !== 'periodic' && Array.isArray(scenario.verifies) && scenario.verifies.length === 0) {
+      errors.push(`scenario ${scenario.id}: active/deferred scenario must verify at least one semantic node`);
+    }
+    if (['deferred', 'periodic'].includes(scenario.status) && scenario.manualOnly !== true) {
+      errors.push(`scenario ${scenario.id}: deferred/periodic evidence must remain outside ordinary automated acceptance`);
+    }
+    if (scenario.manualOnly === false && Array.isArray(scenario.automatedBy) && scenario.automatedBy.length === 0) {
+      errors.push(`scenario ${scenario.id}: non-manual scenario requires automatedBy evidence`);
+    }
+    for (const ref of scenario.verifies ?? []) {
+      if (ref.startsWith('ACC-')) errors.push(`scenario ${scenario.id}: Acceptance scenarios cannot verify Acceptance scenario IDs`);
+      else if (!semanticIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved verifies ${ref}`);
+    }
     for (const path of scenario.automatedBy ?? []) requireFile(join(root, path), `scenario ${scenario.id} automatedBy`);
     for (const ref of scenario.supersedes ?? []) {
       if (typeof ref === 'string' && !legacyIds.has(ref) && !seen.has(ref)) errors.push(`scenario ${scenario.id}: unresolved supersedes ${ref}`);
     }
+  }
+  const goldenReplay = scenarios.find((scenario) => scenario?.id === 'ACC-CR-REPLAY-001');
+  if (!goldenReplay) errors.push('scenarios: ACC-CR-REPLAY-001 structural replay scenario is required');
+  else {
+    if (goldenReplay.status !== 'active' || goldenReplay.manualOnly !== false) errors.push('ACC-CR-REPLAY-001: golden replay must remain active automated acceptance');
+    if (!goldenReplay.tags?.includes('replay') || !goldenReplay.tags?.includes('golden')) errors.push('ACC-CR-REPLAY-001: replay/golden tags are required');
+    if (!Array.isArray(goldenReplay.automatedBy) || goldenReplay.automatedBy.length === 0) errors.push('ACC-CR-REPLAY-001: automated replay evidence is required');
   }
 }
 function fileText(path) {
@@ -437,9 +458,9 @@ function run() {
   const contractSemanticIds = discoverContractSemanticIds(manifest);
   checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds);
   const scenarioIds = new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id));
-  const semanticIds = new Set([...productDefinitions.keys(), ...contractSemanticIds.keys(), ...scenarioIds]);
+  const semanticTargets = new Set([...productDefinitions.keys(), ...contractSemanticIds.keys()]);
   checkTraceability(traceability, manifest, contractSemanticIds);
-  checkScenarios(scenarios?.scenarios, migration, semanticIds);
+  checkScenarios(scenarios?.scenarios, migration, semanticTargets);
   checkMigrationMap(migration);
   checkLastVerifiedCommits(manifest, traceability);
   checkLegacyInventory(inventory, new Set([...contractSemanticIds.keys(), ...productDefinitions.keys()]), scenarioIds);
