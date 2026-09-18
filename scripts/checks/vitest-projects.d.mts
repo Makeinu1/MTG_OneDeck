@@ -1,9 +1,8 @@
-export const TEST_FILE_SUFFIXES: readonly string[];
-export const TEST_IGNORED_DIRECTORIES: readonly string[];
-export const DOM_TEST_INCLUDE: string[];
+export const DEFAULT_TEST_INCLUDE: string[];
 export const CORE_TEST_INCLUDE: string[];
-export const TEST_ADDITIONAL_EXCLUDE: string[];
+export const TEST_EXCLUDE: string[];
 export const DOM_ENGINE_EXCLUDE: string;
+export const TEST_FILE_SUFFIXES: readonly string[];
 export function isTestLikePath(path: string): boolean;
 export function vitestProjectForPath(path: string): 'core' | 'dom' | null;
 export function partitionVitestTestFiles(paths: string[]): { core: string[]; dom: string[] };
