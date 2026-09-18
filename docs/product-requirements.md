@@ -6,9 +6,11 @@
 UI資産の共有原則を定める。すなわち「なぜ作るか」「何を満たすか」の正本である。
 
 本書は実装済みであることを主張しない。現在地・active milestone・next gateは
-`docs/project-state/index.json`、実装意味は`docs/contracts/manifest.json`配下の各契約、
-進め方はdelivery policy、詳細な候補・監査・出荷手順はdocument governanceがそれぞれ所有する。
-本書だけからcommit、push、deploy、publish、shipその他の外部権限は生じない。
+`docs/project-state/index.json`、実装意味は`docs/contracts/manifest.json`配下の各契約が所有する。
+作業の進め方と外部書込み権限境界は`AGENTS.md`および該当するrepository Skill、CR裁定は
+`docs/judge-protocol.md`、候補のverification / freshnessはProject Stateが指すM3 Verification Harnessが所有する。
+これらのprocess authorityはいずれも本書のProduct Truthを上書きせず、本書だけからcommit、push、deploy、
+publish、shipその他の外部権限は生じない。
 
 2026-09-09の要求再整理では、本書の要求を当時の設計比較の入力とした。
 [統合仕様案](cockpit-specification-2026-09-09.md)や[UX要求仕様案](cockpit-ux-requirements-2026-09-09.md)は

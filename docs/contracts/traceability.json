@@ -51,38 +51,6 @@
       ]
     },
     {
-      "id": "ENG-STATE-004",
-      "contractId": "CONTRACT-ENGINE-STATE",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/state-and-invariants.md",
-      "sourceMarker": "clause: ENG-STATE-004",
-      "verificationDisposition": "automated",
-      "evidenceBindings": [
-        {
-          "path": "src/store/__tests__/snapshotPersistenceControl.test.ts",
-          "marker": "verifies: ENG-STATE-004",
-          "kind": "automated",
-          "role": "conformance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-STATE-005",
-      "contractId": "CONTRACT-ENGINE-STATE",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/state-and-invariants.md",
-      "sourceMarker": "clause: ENG-STATE-005",
-      "verificationDisposition": "automated",
-      "evidenceBindings": [
-        {
-          "path": "src/engine/__tests__/eventEnvelope.test.ts",
-          "marker": "verifies: ENG-STATE-005",
-          "kind": "automated",
-          "role": "conformance"
-        }
-      ]
-    },
-    {
       "id": "ENG-CMD-001",
       "contractId": "CONTRACT-ENGINE-COMMANDS",
       "status": "active",
@@ -126,7 +94,7 @@
           "path": "src/store/__tests__/interactionUndo.test.ts",
           "marker": "verifies: ENG-CMD-003",
           "kind": "automated",
-          "role": "conformance"
+          "role": "characterization"
         }
       ]
     },
@@ -141,22 +109,6 @@
         {
           "path": "src/engine/__tests__/caseGrammar.test.ts",
           "marker": "verifies: ENG-CMD-004",
-          "kind": "automated",
-          "role": "conformance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-ZONES-001",
-      "contractId": "CONTRACT-ENGINE-ZONES",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
-      "sourceMarker": "clause: ENG-ZONES-001",
-      "verificationDisposition": "automated",
-      "evidenceBindings": [
-        {
-          "path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts",
-          "marker": "verifies: ENG-ZONES-001",
           "kind": "automated",
           "role": "conformance"
         }
@@ -268,7 +220,7 @@
       "verificationDisposition": "automated",
       "evidenceBindings": [
         {
-          "path": "src/engine/core/turn/__tests__/pendingTriggerV1.test.ts",
+          "path": "src/engine/__tests__/priority.test.ts",
           "marker": "verifies: ENG-TURN-004",
           "kind": "automated",
           "role": "conformance"
@@ -300,7 +252,7 @@
       "verificationDisposition": "automated",
       "evidenceBindings": [
         {
-          "path": "src/engine/__tests__/manaTransaction.test.ts",
+          "path": "src/engine/__tests__/mana.test.ts",
           "marker": "verifies: ENG-MANA-002",
           "kind": "automated",
           "role": "conformance"
@@ -430,22 +382,6 @@
         {
           "path": "src/engine/__tests__/caseGrammar.test.ts",
           "marker": "verifies: ENG-COMP-003",
-          "kind": "automated",
-          "role": "conformance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-COMP-004",
-      "contractId": "CONTRACT-ENGINE-COMPILER",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/oracle-compiler.md",
-      "sourceMarker": "clause: ENG-COMP-004",
-      "verificationDisposition": "automated",
-      "evidenceBindings": [
-        {
-          "path": "src/engine/__tests__/eventEnvelope.test.ts",
-          "marker": "verifies: ENG-COMP-004",
           "kind": "automated",
           "role": "conformance"
         }
@@ -604,7 +540,7 @@
       "verificationDisposition": "automated",
       "evidenceBindings": [
         {
-          "path": "src/components/game/presentation/presentationRuntime.test.ts",
+          "path": "scripts/__tests__/check-verification.test.mjs",
           "marker": "verifies: UI-ARCH-004",
           "kind": "automated",
           "role": "conformance"

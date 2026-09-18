@@ -4,9 +4,14 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
+    "commit": "a97cfd9435f48af69fcfb4dca498c0c3f04f79b5",
     "auditedDate": "2026-09-18",
-    "watchedRoots": ["src", "docs/contracts", "docs/acceptance", "docs/product-requirements.md"]
+    "watchedRoots": [
+      "src",
+      "docs/contracts",
+      "docs/acceptance",
+      "docs/product-requirements.md"
+    ]
   },
   "authorities": {
     "productGoal": "docs/product-requirements.md",
@@ -15,58 +20,142 @@
     "semanticMap": "docs/contracts/semantic-map.json",
     "traceabilityRegistry": "docs/contracts/traceability.json",
     "acceptanceRegistry": "docs/acceptance/scenarios.json",
-    "productionImplementation": ["src"]
+    "productionImplementation": [
+      "src"
+    ]
   },
   "program": {
-    "completedMilestones": ["M0 — Constitution / Truth", "M1 — Canonical Project State", "M1.1 — Canonical Project State Hardening", "M2 — Contract Architecture", "M3 — Verification Harness"],
+    "completedMilestones": [
+      "M0 — Constitution / Truth",
+      "M1 — Canonical Project State",
+      "M1.1 — Canonical Project State Hardening",
+      "M2 — Contract Architecture",
+      "M3 — Verification Harness",
+      "M3.1 — Verification Harness Hardening"
+    ],
     "activeMilestone": "M4 — Work Protocol / SOW",
     "nextGate": "M4-PLAN",
-    "nextWork": "Design, independently audit, and Owner-approve the M4 Work Protocol / SOW plan that standardizes bounded Goal/Scope/Authority/Inputs/Constraints/Evidence/DoD/Escalation without moving Product Truth, Project State NOW, semantic ownership, or verification verdicts into task prompts.",
-    "prohibitedScope": ["R6 gameplay implementation", "production gameplay semantic changes", "R4b/R5 redesign", "casual Product Requirements or UX Constitution changes", "M4 implementation before an independently audited Owner-approved M4 plan", "M5-M7 implementation"]
+    "nextWork": "Revise, independently re-audit, and Owner-approve the M4 Work Protocol / SOW plan against the hardened M3.1 verification model before any M4 implementation begins.",
+    "prohibitedScope": [
+      "R6 gameplay implementation",
+      "production gameplay semantic changes",
+      "R4b/R5 redesign",
+      "casual Product Requirements or UX Constitution changes",
+      "M4 implementation before the revised M4 plan is independently re-audited and Owner-approved",
+      "M5-M7 implementation"
+    ]
   },
   "coverage": {
     "mode": "BOUNDED",
-    "scope": "The indexed M1 capability audit, M2 semantic ownership/dependency control plane, M3 candidate-relative verification bindings/impact/freshness harness, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.",
-    "completenessSources": ["docs/contracts/semantic-map.json", "docs/contracts/traceability.json", "docs/acceptance/scenarios.json", "docs/project-state/production-map.json"],
+    "scope": "The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification bindings/impact/manual-evidence/freshness harness, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.",
+    "completenessSources": [
+      "docs/contracts/semantic-map.json",
+      "docs/contracts/traceability.json",
+      "docs/acceptance/scenarios.json",
+      "docs/project-state/production-map.json"
+    ],
     "knownLimitations": [
       "The capability list is not a proof that every repository concern has been semantically audited.",
       "UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.",
-      "M3 verification is bounded: mapped semantic obligations fail closed, while implementation changes outside known semantic/evidence mapping remain UNKNOWN_COVERAGE and retain existing domain/full-check escalation.",
-      "Choice Authority, effect-granted actions, Undo recovery and Information/Audience now have explicit Acceptance specifications but no fabricated passing evidence; current GAP/CONFLICT reality is preserved.",
-      "CR-15 remains REQUIRED/UNKNOWN: the existence of the M3 harness does not prove that every automation path is semantically known or exhaustively covered.",
+      "M3.1 verification remains bounded: mapped semantic obligations fail closed, while implementation changes outside known semantic/evidence mapping remain UNKNOWN_COVERAGE and retain existing domain/full-check escalation.",
+      "Verification-claim/evidence weakening now invalidates the affected semantic obligations; new verification specifications alone do not fabricate runtime conformance.",
+      "Impacted manual-only Acceptance can be satisfied only by an explicit exact-base/head manual evidence receipt; the receipt is verification evidence, not semantic truth, Project State, or durable external-write authority.",
+      "Choice Authority, effect-granted actions, Undo recovery and Information/Audience have explicit Acceptance specifications but no fabricated passing evidence; current GAP/CONFLICT reality is preserved.",
+      "CR-15 remains REQUIRED/UNKNOWN: M3.1 hardening does not prove that every automation path is semantically known or exhaustively covered.",
       "Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps."
     ]
   },
   "capabilities": [
-    {"id":"CR-01","path":"docs/project-state/capabilities/manual-resolution.json"},
-    {"id":"CR-02","path":"docs/project-state/capabilities/correction.json"},
-    {"id":"CR-03","path":"docs/project-state/capabilities/trigger-occurrence.json"},
-    {"id":"CR-04","path":"docs/project-state/capabilities/trigger-memory-progression.json"},
-    {"id":"CR-05","path":"docs/project-state/capabilities/hold.json"},
-    {"id":"CR-06","path":"docs/project-state/capabilities/pregame-turn-zero.json"},
-    {"id":"CR-07","path":"docs/project-state/capabilities/control-mode.json"},
-    {"id":"CR-08","path":"docs/project-state/capabilities/multiple-combat.json"},
-    {"id":"CR-09","path":"docs/project-state/capabilities/authority-separation.json"},
-    {"id":"CR-10","path":"docs/project-state/capabilities/disconnect-elimination.json"},
-    {"id":"CR-11","path":"docs/project-state/capabilities/eliminated-object-preservation.json"},
-    {"id":"CR-12","path":"docs/project-state/capabilities/actor-owned-undo.json"},
-    {"id":"CR-13","path":"docs/project-state/capabilities/knowledge-safe-undo.json"},
-    {"id":"CR-14","path":"docs/project-state/capabilities/memo.json"},
-    {"id":"CR-15","path":"docs/project-state/capabilities/bounded-automation.json"}
+    {
+      "id": "CR-01",
+      "path": "docs/project-state/capabilities/manual-resolution.json"
+    },
+    {
+      "id": "CR-02",
+      "path": "docs/project-state/capabilities/correction.json"
+    },
+    {
+      "id": "CR-03",
+      "path": "docs/project-state/capabilities/trigger-occurrence.json"
+    },
+    {
+      "id": "CR-04",
+      "path": "docs/project-state/capabilities/trigger-memory-progression.json"
+    },
+    {
+      "id": "CR-05",
+      "path": "docs/project-state/capabilities/hold.json"
+    },
+    {
+      "id": "CR-06",
+      "path": "docs/project-state/capabilities/pregame-turn-zero.json"
+    },
+    {
+      "id": "CR-07",
+      "path": "docs/project-state/capabilities/control-mode.json"
+    },
+    {
+      "id": "CR-08",
+      "path": "docs/project-state/capabilities/multiple-combat.json"
+    },
+    {
+      "id": "CR-09",
+      "path": "docs/project-state/capabilities/authority-separation.json"
+    },
+    {
+      "id": "CR-10",
+      "path": "docs/project-state/capabilities/disconnect-elimination.json"
+    },
+    {
+      "id": "CR-11",
+      "path": "docs/project-state/capabilities/eliminated-object-preservation.json"
+    },
+    {
+      "id": "CR-12",
+      "path": "docs/project-state/capabilities/actor-owned-undo.json"
+    },
+    {
+      "id": "CR-13",
+      "path": "docs/project-state/capabilities/knowledge-safe-undo.json"
+    },
+    {
+      "id": "CR-14",
+      "path": "docs/project-state/capabilities/memo.json"
+    },
+    {
+      "id": "CR-15",
+      "path": "docs/project-state/capabilities/bounded-automation.json"
+    }
   ],
   "pendingDecisions": [
     {
       "id": "CONFLICT-TURN-DRAW-001",
       "status": "PENDING_JUDGMENT",
-      "traceabilityRefs": ["ENG-TURN-003"],
-      "acceptanceRefs": ["ACC-TURN-001"],
+      "traceabilityRefs": [
+        "ENG-TURN-003"
+      ],
+      "acceptanceRefs": [
+        "ACC-TURN-001"
+      ],
       "summary": "Turn-entry draw acceptance remains explicitly deferred in the active traceability/acceptance registries.",
       "nextAction": "Judge the pinned CR, active turn contract, acceptance wording and runtime evidence first; escalate to the Owner only if an irreducible contract, architecture or value choice remains."
     }
   ],
   "ownerDecisions": [
-    {"id":"OD-001","status":"RESOLVED","decision":"B","summary":"Canonical root index + capability state files + generated current-state view.","decidedDate":"2026-09-17"},
-    {"id":"OD-002","status":"RESOLVED","decision":"2A","summary":"Project State owns NOW and next gate; the CR backbone ledger is roadmap/provenance/history.","decidedDate":"2026-09-17"}
+    {
+      "id": "OD-001",
+      "status": "RESOLVED",
+      "decision": "B",
+      "summary": "Canonical root index + capability state files + generated current-state view.",
+      "decidedDate": "2026-09-17"
+    },
+    {
+      "id": "OD-002",
+      "status": "RESOLVED",
+      "decision": "2A",
+      "summary": "Project State owns NOW and next gate; the CR backbone ledger is roadmap/provenance/history.",
+      "decidedDate": "2026-09-17"
+    }
   ],
   "roles": {
     "nowAuthority": "docs/project-state/index.json",
