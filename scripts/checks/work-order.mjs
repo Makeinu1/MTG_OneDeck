@@ -190,7 +190,7 @@ function canonicalAuthorityPaths(manifest) {
   ]);
 }
 
-export function validateWorkOrderReferences(workOrder, { root = DEFAULT_ROOT } = {}) {
+export function validateWorkOrderReferences(workOrder, { root = DEFAULT_ROOT, requireInputPaths = true } = {}) {
   const errors = [];
   const base = workOrder?.planningBase;
   if (typeof base !== 'string' || !/^[0-9a-f]{40}$/u.test(base)) {
@@ -254,7 +254,7 @@ export function validateWorkOrderReferences(workOrder, { root = DEFAULT_ROOT } =
   }
 
   for (const [label, paths, requireExists] of [
-    ['scope.inputPaths', workOrder.scope?.inputPaths ?? [], true],
+    ['scope.inputPaths', workOrder.scope?.inputPaths ?? [], requireInputPaths],
     ['scope.expectedChangeRoots', workOrder.scope?.expectedChangeRoots ?? [], false],
     ['protected.paths', workOrder.protected?.paths ?? [], true],
   ]) {
@@ -353,6 +353,9 @@ export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) 
     return errors;
   }
 
+  if (child.workId === parent.workId) {
+    errors.push(`delegation: child workId ${child.workId} must differ from parent workId`);
+  }
   if (child.parentWorkId !== parent.workId) {
     errors.push(`delegation: child parentWorkId ${child.parentWorkId} does not match parent workId ${parent.workId}`);
   }
@@ -363,6 +366,17 @@ export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) 
     const childReferenceErrors = validateWorkOrderReferences(child, { root });
     errors.push(...parentReferenceErrors.map((error) => `delegation parent ${error}`));
     errors.push(...childReferenceErrors.map((error) => `delegation child ${error}`));
+  }
+
+  for (const [label, parentValues, childValues] of [
+    ['authority semantic', parent.authorityRefs?.semanticRefs ?? [], child.authorityRefs?.semanticRefs ?? []],
+    ['authority path', parent.authorityRefs?.paths ?? [], child.authorityRefs?.paths ?? []],
+    ['capability context', parent.contextRefs?.capabilityRefs ?? [], child.contextRefs?.capabilityRefs ?? []],
+  ]) {
+    const childSet = new Set(childValues);
+    for (const value of parentValues) {
+      if (!childSet.has(value)) errors.push(`delegation: child drops parent ${label}: ${value}`);
+    }
   }
 
   const parentTargets = new Set(parent.scope?.targetSemanticRefs ?? []);
@@ -466,7 +480,10 @@ export function validateWorkOrderCandidate(workOrder, {
     return { errors, drift };
   }
 
-  const candidateRefs = validateWorkOrderReferences({ ...workOrder, planningBase: head }, { root });
+  const candidateRefs = validateWorkOrderReferences(
+    { ...workOrder, planningBase: head },
+    { root, requireInputPaths: false },
+  );
   errors.push(...candidateRefs.map((error) => error.replaceAll('planningBase', 'candidate')));
 
   const baseStateErrors = [];
