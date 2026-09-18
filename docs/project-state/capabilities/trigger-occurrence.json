@@ -7,9 +7,21 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
-  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Trigger occurrence / Trigger memory"}],
-  "implementationRefs": [{"path":"src/engine/cockpitTriggerOccurrence.ts"},{"path":"src/engine/cockpitTriggers.ts"}],
+  "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
+  "authorityRefs": [
+    {
+      "path": "docs/contracts/ux-constitution.md",
+      "locator": "Trigger occurrence / Trigger memory"
+    }
+  ],
+  "implementationRefs": [
+    {
+      "path": "src/engine/cockpitTriggerOccurrence.ts"
+    },
+    {
+      "path": "src/engine/cockpitTriggers.ts"
+    }
+  ],
   "verificationRefs": [],
   "rationale": "The current engine contains an explicit candidate-to-occurrence materialization boundary.",
   "nextAction": "Preserve the boundary and add targeted verification when the trigger-memory lane is selected.",
