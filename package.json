@@ -70,7 +70,9 @@
     "check:domain": "node scripts/checks/domain-check.mjs",
     "check:forbidden": "node scripts/checks/forbidden-files.mjs",
     "check:release": "node scripts/checks/release-check.mjs",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "check:verification": "node scripts/checks/check-verification.mjs",
+    "verify:semantic": "node scripts/checks/verify-semantic.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
