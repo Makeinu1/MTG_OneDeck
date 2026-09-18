@@ -8,18 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Normal mode / Full Control"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/engine/cockpitTable.ts",
-      "locator": "shortcut and phase progression"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Normal mode / Full Control"}],
+  "implementationRefs": [{"path":"src/engine/cockpitTable.ts","locator":"shortcut and phase progression"}],
   "verificationRefs": [],
   "rationale": "Legacy shortcut/progression behavior is not an explicit, reviewed mapping of the R6 Normal and Full Control semantics.",
   "nextAction": "Keep the gap explicit until a contract-to-implementation mapping is implemented and verified.",
