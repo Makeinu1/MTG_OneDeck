@@ -32,10 +32,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`
 - Active: `M5 — Audit / Hygiene / Recovery`
-- Next gate: `M5.0 — Foundation Verification`
-- Next work: Implement and independently verify the Owner-approved M5.0 foundation: legacy inventory machine-base/judge-overlay separation and fail-closed changed-test self-selection. Do not begin destructive repository cleanup until both foundation changes are green and integrated.
+- Next gate: `M5.1 — Lifecycle / Retention / Retirement`
+- Next work: Integrate and independently verify the M5.1 lifecycle/retirement policy and current browser evidence ownership. Do not begin destructive M5.2 cleanup until M5.1 is integrated and the retained evidence/regression owners required by the audited M5 plan are explicit.
 
 ## Coverage claim
 
