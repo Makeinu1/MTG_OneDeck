@@ -162,7 +162,8 @@ For child Work Orders, pass `--parent <parent.json>` with `--head`. M4-3 checks:
 - parent protected path/semantic boundaries remain inherited;
 - parent Non-goals, task-local constraints and escalation triggers remain inherited;
 - review / verification policies are not weakened;
-- parent verification semantic / Acceptance obligations relevant to the child target are retained.
+- parent verification semantic / Acceptance obligations relevant to the child target are retained;
+- a child completion report may establish only the child's bounded contribution; it cannot mark the parent complete or self-approve review that AGENTS requires to be independent.
 
 M4-3 does not infer whether natural-language Goal wording is truly “narrower”; that remains an execution/review judgment rather than an LLM-generated authority claim.
 
