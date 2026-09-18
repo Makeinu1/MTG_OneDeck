@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "edges": [
+    {
+      "from": "UX-CONST-HOLD",
+      "type": "refines",
+      "to": "P-04"
+    },
+    {
+      "from": "UX-CONST-UNDO",
+      "type": "refines",
+      "to": "P-08"
+    },
+    {
+      "from": "ENG-CMD-R6-001",
+      "type": "constrainedBy",
+      "to": "UX-CONST-UNDO"
+    },
+    {
+      "from": "ENG-TURN-R6-002",
+      "type": "constrainedBy",
+      "to": "UX-CONST-HOLD"
+    },
+    {
+      "from": "ENG-MP-005",
+      "type": "constrainedBy",
+      "to": "UX-CONST-ELIMINATION"
+    }
+  ]
+}
