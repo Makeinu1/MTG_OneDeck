@@ -2,14 +2,15 @@
 
 ## Purpose
 
-Prove that a brand-new LLM with no prior chat, memory, Issue context or human briefing can recover the **current** project state and the M0→M3.1 control model from repository files alone.
+Prove that a brand-new LLM with no prior chat, memory, Issue context or human briefing can recover the **current** project state and the M0→M4 control model from repository files alone.
 
-A passing reader must keep four layers separate:
+A passing reader must keep five layers separate:
 
 1. M0 Product/UX semantic truth;
 2. M1 Project State NOW and semantic verdicts;
 3. M2 semantic identity/ownership/dependency;
-4. M3/M3.1 candidate-relative verification binding, coverage invalidation, manual evidence, impact, execution and freshness.
+4. M3/M3.1 candidate-relative verification binding, coverage invalidation, manual evidence, impact, execution and freshness;
+5. M4 bounded Work Protocol / SOW execution envelope.
 
 No lower layer may silently become authority for a higher layer.
 
@@ -17,7 +18,7 @@ The historical M1 acceptance record is `docs/project-state/evidence/m1-cold-rest
 
 ## Fixed prompt
 
-> You have no prior context for this repository. Using repository files only, explain the current project state, semantic authority model, and verification model. Identify Product Truth, authoritative UX Constitution, active contract registry, Semantic Control Plane, verification binding registry, Acceptance claims, implementation roots/surfaces, current MATCH/GAP/CONFLICT/UNKNOWN items, completed milestone, active milestone, next work/gate, unresolved/deferred decisions, bounded coverage and frozen/prohibited scope. Explain how an explicit base/head candidate is mapped to affected semantic IDs, dependent semantics, Acceptance scenarios and evidence; how automated/manual/deferred/unbound/unknown coverage is represented; and why green evidence does not imply semantic MATCH. Cite repository paths. Do not infer current state from Issues, PRs, CI, graph connectivity or historical evidence alone. State whether Project State is stale and whether the checked-out branch is main or a candidate branch.
+> You have no prior context for this repository. Using repository files only, explain the current project state, semantic authority model, verification model, and bounded Work Protocol. Identify Product Truth, authoritative UX Constitution, active contract registry, Semantic Control Plane, verification binding registry, Acceptance claims, Work Order schema/validator, implementation roots/surfaces, current MATCH/GAP/CONFLICT/UNKNOWN items, completed milestone, active milestone, next work/gate, unresolved/deferred decisions, bounded coverage and frozen/prohibited scope. Explain how an explicit base/head candidate is mapped to affected semantic IDs, dependent semantics, Acceptance scenarios and evidence; how automated/manual/deferred/unbound/unknown coverage is represented; how a Work Order is validated at planningBase and candidate HEAD; how child delegation is bounded; why a stored Work Order cannot authorize external writes; and why green evidence does not imply semantic MATCH. Cite repository paths. Do not infer current state from Issues, PRs, CI, graph connectivity, Work Order history or historical evidence alone. State whether Project State is stale and whether the checked-out branch is main or a candidate branch.
 
 ## Required result
 
@@ -66,57 +67,82 @@ A passing answer must recover all of the following without past conversation.
 27. `docs/project-state/evidence/m3-1-direct-evidence-role-audit.md` records the independent row-by-row review of the M3 direct evidence migration; automated evidence is not assumed conformance merely because a marker exists.
 28. Impacted manual-only scenarios may be satisfied only by an explicit manual evidence receipt whose exact base/head matches the candidate. The receipt contains scenario/result/evidence reference only and cannot carry semantic verdict or external-write permission.
 29. `.github/workflows/semantic-verification.yml` supports an explicit manual `workflow_dispatch` lane for the same exact candidate; the receipt is materialized only for the run and is not repository truth.
-26. Required automated tests are deduplicated and reuse the existing Vitest `core` / `dom` projects.
+30. Required automated tests are deduplicated and reuse the existing Vitest `core` / `dom` projects.
 
 ### Result and freshness model
 
-30. M3/M3.1 keeps separate:
+31. M3/M3.1 keeps separate:
    - semantic truth;
    - verification claim;
    - evidence binding;
    - execution result/freshness;
    - M1 semantic verdict.
-31. Candidate verification may report `VERIFIED_WITHIN_DECLARED_COVERAGE`, `PARTIAL`, or `UNKNOWN_COVERAGE`; it must not claim complete project-wide verification.
-32. Impacted manual-only scenarios surface `MANUAL_REQUIRED`; no automatic green result is manufactured.
-33. `deferred-needs-decision` remains neither pass nor failure-to-be-hidden; it is a blocking unresolved verification state when impacted.
-34. Impacted semantic nodes with no direct evidence and no Acceptance claim are `UNBOUND`.
-35. Characterization-only evidence cannot establish conformance.
-36. Candidate freshness is recomputed from explicit base/head execution; it is not stored as semantic truth or Project State verdict.
-37. Green full-suite CI does not convert UNKNOWN coverage to MATCH and does not resolve CR-15.
+32. Candidate verification may report `VERIFIED_WITHIN_DECLARED_COVERAGE`, `PARTIAL`, or `UNKNOWN_COVERAGE`; it must not claim complete project-wide verification.
+33. Impacted manual-only scenarios surface `MANUAL_REQUIRED`; no automatic green result is manufactured.
+34. `deferred-needs-decision` remains neither pass nor failure-to-be-hidden; it is a blocking unresolved verification state when impacted.
+35. Impacted semantic nodes with no direct evidence and no Acceptance claim are `UNBOUND`.
+36. Characterization-only evidence cannot establish conformance.
+37. Candidate freshness is recomputed from explicit base/head execution; it is not stored as semantic truth or Project State verdict.
+38. Green full-suite CI does not convert UNKNOWN coverage to MATCH and does not resolve CR-15.
 
 ### Compatibility migration
 
-38. Active manifest entries no longer carry historical `verifiedBy` / `lastVerifiedCommit` pins after the replacement M3 gate became green.
-39. The generated engine API entry may retain its distinct generated-file verification metadata.
-40. `check:fast --base ... --head ...` composes domain safety tests with semantic-required tests and evaluates semantic blockers after the tests run.
-41. `check:release --base ... --head ...` runs candidate semantic verification after ordinary release checks.
-42. `.github/workflows/semantic-verification.yml` verifies PR candidates and main updates with explicit bases; empty-tree first-push cases do not falsely claim semantic freshness.
+39. Active manifest entries no longer carry historical `verifiedBy` / `lastVerifiedCommit` pins after the replacement M3 gate became green.
+40. The generated engine API entry may retain its distinct generated-file verification metadata.
+41. `check:fast --base ... --head ...` composes domain safety tests with semantic-required tests and evaluates semantic blockers after the tests run.
+42. `check:release --base ... --head ...` runs candidate semantic verification after ordinary release checks.
+43. `.github/workflows/semantic-verification.yml` verifies PR candidates and main updates with explicit bases; empty-tree first-push cases do not falsely claim semantic freshness.
 
 ### M1 NOW remains intact
 
-43. The current verdict set remains:
+44. The current verdict set remains:
    - MATCH 6;
    - CONFLICT 2;
    - GAP 5;
    - UNKNOWN 2.
-44. CR-04 and CR-12 remain CONFLICT.
-45. CR-14 remains OPTIONAL/UNKNOWN.
-46. CR-15 remains REQUIRED/UNKNOWN.
-47. M3/M3.1 architecture or green verification never promotes these verdicts automatically.
-48. The audited baseline and watched roots come from `docs/project-state/index.json`.
-49. If a descendant of the audited baseline changes a watched root, Project State is stale until bounded re-audit/rebaseline.
-50. `coverage.mode = BOUNDED` remains explicit.
-51. `docs/project-state/production-map.json` remains the production routing snapshot.
-52. CR-grounding remains roadmap/provenance/history under `research/cr-grounding/AUTHORITY.md`, not NOW.
-53. On main, Project State is committed NOW. On a non-main branch, branch-local Project State is candidate state until merged.
+45. CR-04 and CR-12 remain CONFLICT.
+46. CR-14 remains OPTIONAL/UNKNOWN.
+47. CR-15 remains REQUIRED/UNKNOWN.
+48. M3/M3.1 architecture or green verification never promotes these verdicts automatically.
+49. The audited baseline and watched roots come from `docs/project-state/index.json`.
+50. If a descendant of the audited baseline changes a watched root, Project State is stale until bounded re-audit/rebaseline.
+51. `coverage.mode = BOUNDED` remains explicit.
+52. `docs/project-state/production-map.json` remains the production routing snapshot.
+53. CR-grounding remains roadmap/provenance/history under `research/cr-grounding/AUTHORITY.md`, not NOW.
+54. On main, Project State is committed NOW. On a non-main branch, branch-local Project State is candidate state until merged.
 
 ### Current handoff
 
-54. M3.1 completion means the repository can answer “what needs verification for this explicit candidate and why?” without chat history.
-55. The next milestone is M4 Work Protocol / SOW.
-56. M4 owns bounded work delegation: Goal / Scope / Authority / Inputs / Constraints / Evidence / Definition of Done / Escalation.
-57. M4 must not move Product Truth, Project State NOW, semantic ownership or verification verdicts into task prompts.
-58. No M4 implementation begins before the revised M4 plan is independently re-audited and Owner-approved.
+55. M3.1 completion means the repository can answer “what needs verification for this explicit candidate and why?” without chat history.
+56. The next milestone is M4 Work Protocol / SOW.
+57. M4 owns bounded work delegation: Goal / Scope / Authority / Inputs / Constraints / Evidence / Definition of Done / Escalation.
+58. M4 must not move Product Truth, Project State NOW, semantic ownership or verification verdicts into task prompts.
+59. No M4 implementation begins before the revised M4 plan is independently re-audited and Owner-approved.
+
+### M4 Work Protocol / SOW
+
+60. `docs/work-protocol/README.md` is the canonical M4 process contract. It owns the bounded execution envelope only; it is not Product Truth, Project State NOW, semantic ownership, verification result, or roadmap authority.
+61. `docs/work-protocol/work-order.schema.json` is recursively closed. Every object rejects undeclared nested fields.
+62. Root Work Orders use `parentWorkId: null`; child Work Orders carry the explicit parent work ID. The ID links packets but does not create a persistent registry or authority lookup.
+63. A Work Order separates:
+   - `authorityRefs` — canonical meaning that constrains interpretation;
+   - `contextRefs` — current-reality capability IDs whose verdict is read from Project State;
+   - `verificationIntent` — semantic / Acceptance obligations inherited from M3/M3.1;
+   - `scope` — bounded target semantic area, inputs and expected change roots.
+64. Work Orders never store current M1 verdict values, M3/M3.1 PASS/freshness, current milestone/next gate, or durable commit/push/merge/deploy permission.
+65. `scripts/checks/work-order.mjs` validates structure and resolves semantic/capability/Acceptance/authority/path references against the exact `planningBase` snapshot. A later repository state cannot retroactively make an invalid old packet valid.
+66. With an explicit candidate head, M4-3 requires `planningBase` ancestry, rechecks references, detects Project State execution-boundary changes, rejects protected-path mutation and distinguishes authority-source semantic changes from ordinary M3/M3.1 implementation/evidence impact.
+67. Files outside `expectedChangeRoots` are reported as drift for review; file drift alone is not automatically reclassified as semantic failure.
+68. Child delegation is monotonic for change authority: target semantic scope and expected change roots cannot broaden, protected boundaries cannot weaken, inherited review/verification policy cannot weaken, and parent verification obligations relevant to the child target cannot silently disappear.
+69. A child may add read-only authority/input references needed to understand its narrower task; reference expansion alone is not mutation authority.
+70. M3.1 owns exact-candidate manual evidence receipt validation. M4 owns only the bounded procedure around who performs/reviews the manual work and how its evidence reference is handed back.
+71. `scripts/checks/check-work-protocol.mjs` verifies the representative root and child fixtures and proves that the nested authority-escalation fixture is rejected.
+72. M4 creates no permanent `current-work.json` registry and no arbitrary shell-command execution DSL.
+73. Basic interruption resume uses Project State NOW + Work Order + current git candidate + M3/M3.1 verification state + unresolved review findings. Conversation history is optional context, not authority.
+74. M5 owns deeper stale/dead artifact audit, repository hygiene and interrupted-work recovery beyond this basic resume envelope.
+75. M6 owns orchestration. M4 does not auto-select work, recursively dispatch agents, retry failed work, merge competing outputs or advance milestones.
+76. Before M6 closed-loop orchestration is approved, M6-PLAN must require an independently bounded CR-15 audit for the automation surfaces it will invoke.
+77. On a non-main M4 implementation branch, Work Protocol changes are candidate process state until merged; they do not override main Project State NOW.
 
 ## Machine integrity gates
 
@@ -127,6 +153,10 @@ A passing answer must recover all of the following without past conversation.
 `npm run check:fast -- --base <sha> --head <sha>` unions existing validation-domain tests with M3 semantic-required tests. Full escalation still runs the existing full machine check before semantic blocker evaluation.
 
 `npm run check:release -- --base <sha> --head <sha>` requires both ordinary release checks and M3 candidate semantic verification for commit-based release diffs.
+
+`npm run check:work-order -- <work-order.json> [--head <sha>] [--parent <parent.json>]` validates one Work Order's structure, planning-snapshot references and optional candidate/delegation binding.
+
+`npm run check:work-protocol` validates the canonical M4 schema/fixtures and rejects the authority-escalation fixture.
 
 `npm run check:project-state` independently validates canonical/candidate Project State integrity and watched-root freshness.
 
@@ -146,6 +176,7 @@ Cold Restart passes only when a repo-only reader can reconstruct:
 - candidate freshness;
 - the distinction between verification success and semantic MATCH;
 - active-manifest pin retirement and replacement protection;
-- the revised M4-PLAN approval boundary and next gate;
+- M4 Work Order authority boundaries, planning-snapshot validation, candidate drift, monotonic delegation and external-write non-authority;
+- the M4/M5/M6 boundary and CR-15 gate before closed-loop orchestration;
 
 and the machine gates agree with that model for the checked-out repository.
