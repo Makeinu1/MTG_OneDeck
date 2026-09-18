@@ -8,22 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Disconnection and elimination"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/online/cloudflare/cockpitMultiplayer.ts",
-      "locator": "presence / kicked"
-    },
-    {
-      "path": "src/online/cloudflare/cockpitSession.ts",
-      "locator": "explicit eliminate control"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Disconnection and elimination"}],
+  "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"presence / kicked"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"explicit eliminate control"}],
   "verificationRefs": [],
   "rationale": "Presence, kicked state and elimination are represented separately; disconnection does not itself eliminate a player.",
   "nextAction": "Preserve the separation and keep regression evidence current.",
