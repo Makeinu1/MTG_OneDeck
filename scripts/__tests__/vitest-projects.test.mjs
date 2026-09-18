@@ -11,9 +11,10 @@ describe('sequential Vitest projects', () => {
     expect(vitestProjectForPath('src/online/publicApp/publicAppClientV1.test.ts')).toBe('dom');
     expect(vitestProjectForPath('scripts/__tests__/machine-checks.test.mjs')).toBe('dom');
     expect(vitestProjectForPath('.claude/worktree/foo.test.ts')).toBeNull();
-    expect(vitestProjectForPath('dist/foo.test.ts')).toBeNull();
-    expect(vitestProjectForPath('src/.cache/foo.test.ts')).toBeNull();
-    expect(vitestProjectForPath('src/vite.config.test.ts')).toBeNull();
+    expect(vitestProjectForPath('node_modules/pkg/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('src/.git/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('dist/foo.test.ts')).toBe('dom');
+    expect(vitestProjectForPath('src/vite.config.test.ts')).toBe('dom');
     expect(vitestProjectForPath('src/engine/__tests__/not-vitest.test.py')).toBeNull();
     expect(isTestLikePath('src/engine/__tests__/not-vitest.test.py')).toBe(true);
     expect(vitestProjectForPath('src\\engine\\__tests__\\combat.test.ts')).toBe('core');
