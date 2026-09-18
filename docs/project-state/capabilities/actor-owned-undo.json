@@ -7,11 +7,11 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
+  "auditedAtCommit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Undo"}],
   "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"authorizeCockpitOperation"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"snapshot undo"},{"path":"src/online/protocol/variableCommand.ts","locator":"handleOnlineVariableSharedUndoIntentV2 / checkpointFor"},{"path":"src/engine/core/closure/applyCommandV1.ts","locator":"coreUndoAuthorizedPlayerV1"}],
   "verificationRefs": [{"path":"src/online/protocol/__tests__/sharedUndoV2.test.ts"}],
   "rationale": "The active Constitution now requires one shared strict newest-first history, actor-owned normal Undo, and only a narrow Room Owner proxy when the unavailable actor's operation is the current undoable top. The audited legacy Cockpit path authorizes eligible Undo by current master, while the public online path permits a trusted current/checkpoint steward to roll back the current shared checkpoint; existing tests explicitly show a different seat can perform that rollback. This is broader than the actor-owned / top-only recovery authority even where rollback itself is one-step newest-first.",
-  "nextAction": "Keep this CONFLICT visible. M3 must bind explicit evidence/freshness for the actor-owned/top-only recovery mismatch; semantic repair belongs to later selected product work and must not be smuggled into verification.",
+  "nextAction": "Keep this CONFLICT visible. M3 now tracks actor-owned/top-only recovery evidence and freshness, but semantic repair remains later selected product work.",
   "ownerDecisionRefs": []
 }
