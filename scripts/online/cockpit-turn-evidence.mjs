@@ -320,9 +320,11 @@ try {
     );
   }, 'manual resolution finished');
   stage = 'mana-setup';
+  const manaPlus = host.getByLabel('Gマナを1増やす', { exact: true });
+  await until(() => manaPlus.isEnabled(), 'mana control enabled');
   await mutate(
     host,
-    () => host.getByLabel('Gマナを1増やす', { exact: true }).click(),
+    () => manaPlus.click(),
     'mana',
   );
   let totalTurns = 0;
