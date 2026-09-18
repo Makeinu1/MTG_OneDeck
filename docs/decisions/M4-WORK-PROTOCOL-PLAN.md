@@ -249,8 +249,7 @@ Recommended logical shape:
   "nonGoals": ["..."],
   "protected": {
     "paths": ["..."],
-    "semanticRefs": ["..."],
-    "statements": ["..."]
+    "semanticRefs": ["..."]
   },
   "constraints": {
     "local": ["..."]
@@ -275,9 +274,9 @@ No free-form compatibility machinery unless an actual migration need appears.
 
 ### 7.2 `workId`
 
-Stable execution-envelope identifier.
+Stable execution-envelope identifier within the handoff/delegation context.
 
-It is not a semantic ID and must never participate in M2 semantic identity.
+It is not a semantic ID, does not claim repository-global uniqueness, and must never participate in M2 semantic identity.
 
 Recommended form:
 
@@ -389,6 +388,8 @@ Tooling-only work may have no target semantic refs.
 
 Files/directories that are relevant inputs.
 
+Use exact repository-relative files or directory prefixes; do not add a general glob DSL.
+
 This is not a write allowlist.
 
 It answers:
@@ -398,6 +399,8 @@ It answers:
 ### 7.11 `scope.expectedChangeRoots`
 
 Expected locations of edits.
+
+Use exact repository-relative files or directory prefixes; no authored glob language is needed.
 
 This is a scope forecast / drift guard, not a permission system.
 
@@ -425,6 +428,8 @@ Task-specific repository areas that must remain unchanged.
 
 Use sparingly.
 
+Path collections in the Work Order use exact repository-relative files or directory prefixes. M4 does not introduce a glob/pattern DSL.
+
 ### 7.14 `protected.semanticRefs`
 
 Semantic identities whose meaning must not change in this work.
@@ -436,15 +441,7 @@ Example:
 
 This is especially useful when repairing implementation to match an existing semantic authority.
 
-### 7.15 `protected.statements`
-
-Small task-local invariants that do not have stable semantic IDs.
-
-These must not be used to create a second canonical product/contract body.
-
-If a statement is durable semantic truth, it belongs in M0/M2 authority, not here.
-
-### 7.16 `constraints.local`
+### 7.15 `constraints.local`
 
 Task-local execution constraints.
 
@@ -456,7 +453,7 @@ Examples:
 
 Do not copy global AGENTS constraints here.
 
-### 7.17 `doneWhen`
+### 7.16 `doneWhen`
 
 Observable completion statements.
 
@@ -474,7 +471,7 @@ Example:
 - required independent review has no HIGH/BLOCKER;
 - diff remains inside bounded scope.
 
-### 7.18 `escalateWhen`
+### 7.17 `escalateWhen`
 
 Task-specific escalation triggers beyond the protocol's mandatory triggers.
 
@@ -482,7 +479,7 @@ This field may strengthen escalation.
 
 It may not weaken mandatory escalation conditions.
 
-### 7.19 `review.policy`
+### 7.18 `review.policy`
 
 Initial M4 should use:
 
@@ -851,7 +848,7 @@ For an explicit candidate HEAD, implement:
 - planningBase ancestor / divergence check;
 - current Project State re-read;
 - referenced semantic / Acceptance existence recheck;
-- M3 impact reuse to detect whether referenced/protected semantics changed since planning;
+- M3 impact/provenance reuse to distinguish authority-source changes from implementation/evidence impact;
 - optional parentWorkId / parent packet comparison;
 - child target-semantic subset validation;
 - inherited protected boundaries;
@@ -861,7 +858,9 @@ For an explicit candidate HEAD, implement:
 
 Diff drift should initially be **reporting / escalation input**, not an absolute hard failure for mechanically necessary support files.
 
-If canonical authority or protected semantics changed since planning, report the Work Order as requiring reinspection/replan rather than silently executing against old assumptions.
+For staleness, only an authority-source / ownership change to a referenced or protected semantic invalidates the SOW assumption. A semantic obligation becoming impacted because implementation or evidence changed is **not** by itself a change to semantic authority; it remains ordinary M3 verification input.
+
+If canonical authority or protected semantic meaning/ownership changed since planning, report the Work Order as requiring reinspection/replan rather than silently executing against old assumptions.
 
 Exit:
 
