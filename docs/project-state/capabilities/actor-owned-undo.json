@@ -7,11 +7,37 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
-  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Undo"}],
-  "implementationRefs": [{"path":"src/online/cloudflare/cockpitMultiplayer.ts","locator":"authorizeCockpitOperation"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"snapshot undo"},{"path":"src/online/protocol/variableCommand.ts","locator":"handleOnlineVariableSharedUndoIntentV2 / checkpointFor"},{"path":"src/engine/core/closure/applyCommandV1.ts","locator":"coreUndoAuthorizedPlayerV1"}],
-  "verificationRefs": [{"path":"src/online/protocol/__tests__/sharedUndoV2.test.ts"}],
+  "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
+  "authorityRefs": [
+    {
+      "path": "docs/contracts/ux-constitution.md",
+      "locator": "Undo"
+    }
+  ],
+  "implementationRefs": [
+    {
+      "path": "src/online/cloudflare/cockpitMultiplayer.ts",
+      "locator": "authorizeCockpitOperation"
+    },
+    {
+      "path": "src/online/cloudflare/cockpitSession.ts",
+      "locator": "snapshot undo"
+    },
+    {
+      "path": "src/online/protocol/variableCommand.ts",
+      "locator": "handleOnlineVariableSharedUndoIntentV2 / checkpointFor"
+    },
+    {
+      "path": "src/engine/core/closure/applyCommandV1.ts",
+      "locator": "coreUndoAuthorizedPlayerV1"
+    }
+  ],
+  "verificationRefs": [
+    {
+      "path": "src/online/protocol/__tests__/sharedUndoV2.test.ts"
+    }
+  ],
   "rationale": "The active Constitution now requires one shared strict newest-first history, actor-owned normal Undo, and only a narrow Room Owner proxy when the unavailable actor's operation is the current undoable top. The audited legacy Cockpit path authorizes eligible Undo by current master, while the public online path permits a trusted current/checkpoint steward to roll back the current shared checkpoint; existing tests explicitly show a different seat can perform that rollback. This is broader than the actor-owned / top-only recovery authority even where rollback itself is one-step newest-first.",
-  "nextAction": "Keep this CONFLICT visible. Future repair must bind normal rollback to the exact operation actor and model the unavailable-actor Room Owner proxy explicitly without weakening newest-first or knowledge-safety.",
+  "nextAction": "Keep this CONFLICT visible. M3 must bind explicit evidence/freshness for the actor-owned/top-only recovery mismatch; semantic repair belongs to later selected product work and must not be smuggled into verification.",
   "ownerDecisionRefs": []
 }
