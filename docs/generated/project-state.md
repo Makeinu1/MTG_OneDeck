@@ -21,6 +21,10 @@ Authority note: this generated view is committed project NOW only on `main`; on 
 - Verification integrity: `scripts/checks/check-verification.mjs`
 - Verification impact resolver: `scripts/checks/semantic-verification.mjs`
 - Candidate verification gate: `scripts/checks/verify-semantic.mjs`
+- Work Protocol: `docs/work-protocol/README.md`
+- Work Order schema: `docs/work-protocol/work-order.schema.json`
+- Work Order validator: `scripts/checks/work-order.mjs`
+- Work Protocol integrity: `scripts/checks/check-work-protocol.mjs`
 
 Historical `activeProgram`, `nextGate`, planned-sequence or "single source" wording inside CR-grounding material does not override Project State NOW.
 
@@ -28,24 +32,25 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`
-- Active: `M4 — Work Protocol / SOW`
-- Next gate: `M4-PLAN`
-- Next work: Revise, independently re-audit, and Owner-approve the M4 Work Protocol / SOW plan against the hardened M3.1 verification model before any M4 implementation begins.
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`
+- Active: `M5 — Audit / Hygiene / Recovery`
+- Next gate: `M5-PLAN`
+- Next work: Design, independently audit, and Owner-approve the M5 Audit / Hygiene / Recovery plan for repository-wide reassessment, stale/dead/duplicate authority cleanup, orphan evidence/Acceptance/test cleanup, and safe interrupted-work recovery without changing Product Truth, M1 semantic verdicts, or prematurely implementing the M6 closed execution loop.
 
 ## Coverage claim
 
 - Mode: `BOUNDED`
-- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification bindings/impact/manual-evidence/freshness harness, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
+- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4 bounded Work Protocol / SOW controls, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
 - Completeness sources: `docs/contracts/semantic-map.json`, `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
   - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
   - M3.1 verification remains bounded: mapped semantic obligations fail closed, while implementation changes outside known semantic/evidence mapping remain UNKNOWN_COVERAGE and retain existing domain/full-check escalation.
-  - Verification-claim/evidence weakening now invalidates the affected semantic obligations; new verification specifications alone do not fabricate runtime conformance.
+  - Verification-claim/evidence weakening invalidates affected semantic obligations; new verification specifications alone do not fabricate runtime conformance.
   - Impacted manual-only Acceptance can be satisfied only by an explicit exact-base/head manual evidence receipt; the receipt is verification evidence, not semantic truth, Project State, or durable external-write authority.
-  - Choice Authority, effect-granted actions, Undo recovery and Information/Audience have explicit Acceptance specifications but no fabricated passing evidence; current GAP/CONFLICT reality is preserved.
-  - CR-15 remains REQUIRED/UNKNOWN: M3.1 hardening does not prove that every automation path is semantically known or exhaustively covered.
+  - M4 Work Orders are bounded execution envelopes only: they do not create Product/contract truth, Project State NOW, semantic verdicts, verification freshness, or external-write permission.
+  - M4 candidate/delegation validation detects bounded staleness and scope drift but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
+  - CR-15 remains REQUIRED/UNKNOWN: M4 does not prove that every automation path is semantically known or exhaustively covered, and M6 requires a separately bounded automation audit.
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
 
 ## Capability state
@@ -148,8 +153,8 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 - production gameplay semantic changes
 - R4b/R5 redesign
 - casual Product Requirements or UX Constitution changes
-- M4 implementation before the revised M4 plan is independently re-audited and Owner-approved
-- M5-M7 implementation
+- M5 implementation before an independently audited Owner-approved M5 plan
+- M6-M7 implementation
 
 ## Freshness
 
