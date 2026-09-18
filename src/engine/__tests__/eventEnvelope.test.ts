@@ -1,3 +1,4 @@
+// scenario: ACC-CR-REPLAY-001
 import { describe, expect, it } from 'vitest';
 
 import { applyCommand, type GameCommand } from '../commands';

@@ -1,3 +1,4 @@
+// scenario: ACC-IMPORT-001
 import { describe, it, expect } from 'vitest';
 import { parseDeckList, type ParsedDeck } from '../deckParser';
 

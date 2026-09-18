@@ -12,6 +12,7 @@ const machineCheckSteps = [
   { name: 'CR固定版検証', cmd: 'npm', args: ['run', 'verify:cr'] },
   { name: 'バージョン契約検証', cmd: 'npm', args: ['run', 'verify:versions'] },
   { name: 'docs契約検証', cmd: 'npm', args: ['run', 'check:docs'] },
+  { name: 'Verification Binding整合性検証', cmd: 'npm', args: ['run', 'check:verification'] },
   { name: 'Project State整合性検証', cmd: 'npm', args: ['run', 'check:project-state'] },
   {
     name: 'Online状態アーキテクチャ検証',

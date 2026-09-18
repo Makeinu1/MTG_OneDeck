@@ -1,3 +1,4 @@
+// scenario: ACC-STACK-001
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyCommand } from '../commands';
 import { initGame } from '../init';

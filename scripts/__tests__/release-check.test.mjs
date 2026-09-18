@@ -164,6 +164,29 @@ describe('release-check', () => {
     }
   });
 
+  test('attributes semantic verification failure after a green ordinary check', () => {
+    const repo = repository();
+    try {
+      const calls = [];
+      const result = runReleaseCheck(quietOptions({
+        cwd: repo.cwd,
+        base: repo.base,
+        head: repo.head,
+        spawn: (cmd, args) => {
+          calls.push([cmd, args]);
+          return { status: calls.length === 1 ? 0 : 19, signal: null, error: null };
+        },
+        forbidden: () => 0,
+      }));
+      expect(result).toMatchObject({ exitCode: 19, stage: 'semantic-verification' });
+      expect(calls[0]).toEqual(['npm', ['run', 'check']]);
+      expect(calls[1][0]).toBe('npm');
+      expect(calls[1][1]).toEqual(expect.arrayContaining(['verify:semantic', '--base', repo.base, '--head', repo.head]));
+    } finally {
+      rmSync(repo.cwd, { recursive: true, force: true });
+    }
+  });
+
   test('returns forbidden failure and keeps the resolved diff object', () => {
     const repo = repository();
     try {

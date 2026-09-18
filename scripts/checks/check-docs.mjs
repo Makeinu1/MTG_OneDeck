@@ -61,8 +61,16 @@ function checkManifest(manifest) {
       errors.push('manifest: every contract entry must be an object');
       continue;
     }
-    for (const key of ['id', 'status', 'path', 'authorityFor', 'owner', 'dependsOn', 'supersedes', 'verifiedBy', 'lastVerifiedCommit']) {
+    for (const key of ['id', 'status', 'path', 'authorityFor', 'owner', 'dependsOn', 'supersedes']) {
       if (!(key in entry)) errors.push(`manifest ${entry.id ?? '<unknown>'}: missing ${key}`);
+    }
+    if (entry.status === 'active' && ('verifiedBy' in entry || 'lastVerifiedCommit' in entry)) {
+      errors.push(`manifest ${entry.id ?? '<unknown>'}: active contract must not carry retired verification pin fields`);
+    }
+    if (entry.status === 'generated') {
+      for (const key of ['verifiedBy', 'lastVerifiedCommit']) {
+        if (!(key in entry)) errors.push(`manifest ${entry.id ?? '<unknown>'}: generated entry missing ${key}`);
+      }
     }
     if (typeof entry.id === 'string') {
       if (byId.has(entry.id)) errors.push(`manifest: duplicate contract id ${entry.id}`);
@@ -91,8 +99,12 @@ function checkManifest(manifest) {
     for (const ref of [...(entry.dependsOn ?? []), ...(entry.supersedes ?? [])]) {
       if (typeof ref === 'string' && !byId.has(ref) && !ref.startsWith('legacy:')) errors.push(`manifest ${entry.id}: unresolved reference ${ref}`);
     }
-    for (const verifier of entry.verifiedBy ?? []) requireFile(join(root, verifier), `manifest ${entry.id} verifiedBy`);
-    if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) errors.push(`manifest ${entry.id}: invalid lastVerifiedCommit`);
+    if (entry.status === 'generated') {
+      for (const verifier of entry.verifiedBy ?? []) requireFile(join(root, verifier), `manifest ${entry.id} verifiedBy`);
+      if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) {
+        errors.push(`manifest ${entry.id}: invalid lastVerifiedCommit`);
+      }
+    }
   }
   if (Array.isArray(manifest.activeAllowlist)) {
     for (const allowance of manifest.activeAllowlist) {
@@ -139,7 +151,13 @@ function checkScenarios(scenarios, migration, semanticIds = new Set()) {
       if (ref.startsWith('ACC-')) errors.push(`scenario ${scenario.id}: Acceptance scenarios cannot verify Acceptance scenario IDs`);
       else if (!semanticIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved verifies ${ref}`);
     }
-    for (const path of scenario.automatedBy ?? []) requireFile(join(root, path), `scenario ${scenario.id} automatedBy`);
+    for (const path of scenario.automatedBy ?? []) {
+      requireFile(join(root, path), `scenario ${scenario.id} automatedBy`);
+      const absolute = join(root, path);
+      if (existsSync(absolute) && !fileText(absolute).includes(`scenario: ${scenario.id}`)) {
+        errors.push(`scenario ${scenario.id}: automatedBy path lacks scenario marker ${path}`);
+      }
+    }
     for (const ref of scenario.supersedes ?? []) {
       if (typeof ref === 'string' && !legacyIds.has(ref) && !seen.has(ref)) errors.push(`scenario ${scenario.id}: unresolved supersedes ${ref}`);
     }
@@ -176,6 +194,7 @@ function checkMarker(path, marker, clauseId) {
 }
 
 function checkTraceability(traceability, manifest, contractSemanticIds) {
+  if (traceability?.schemaVersion !== 2) errors.push('traceability: schemaVersion must be 2');
   if (traceability === null || typeof traceability !== 'object' || !Array.isArray(traceability.clauses)) {
     errors.push('traceability: expected clauses array');
     return new Set();
@@ -188,7 +207,7 @@ function checkTraceability(traceability, manifest, contractSemanticIds) {
       errors.push('traceability: every clause must be an object');
       continue;
     }
-    for (const key of ['id', 'contractId', 'status', 'sourcePath', 'sourceMarker', 'verificationDisposition', 'verifiedBy']) {
+    for (const key of ['id', 'contractId', 'status', 'sourcePath', 'sourceMarker', 'verificationDisposition', 'evidenceBindings']) {
       if (!(key in clause)) errors.push(`traceability ${clause.id ?? '<unknown>'}: missing ${key}`);
     }
     for (const key of forbiddenSemanticFields) {
@@ -207,7 +226,7 @@ function checkTraceability(traceability, manifest, contractSemanticIds) {
       if (ownerContract?.path !== clause.sourcePath) errors.push(`traceability ${clause.id}: contractId/path ownership mismatch`);
     }
     if (!['active', 'obsolete'].includes(clause.status)) errors.push(`traceability ${clause.id}: invalid status ${clause.status}`);
-    if (!['automated', 'acceptance', 'manual', 'deferred-needs-decision'].includes(clause.verificationDisposition)) {
+    if (!['automated', 'manual', 'deferred-needs-decision'].includes(clause.verificationDisposition)) {
       errors.push(`traceability ${clause.id}: invalid verificationDisposition ${clause.verificationDisposition}`);
     }
     const source = join(root, clause.sourcePath ?? '');
@@ -219,10 +238,16 @@ function checkTraceability(traceability, manifest, contractSemanticIds) {
     if (clause.status === 'active' && (typeof clause.sourceMarker !== 'string' || clause.sourceMarker.trim() === '')) {
       errors.push(`traceability ${clause.id}: active clause requires a non-empty sourceMarker`);
     }
-    if (!Array.isArray(clause.verifiedBy) || clause.verifiedBy.length === 0) errors.push(`traceability ${clause.id}: no verification evidence`);
-    for (const verifier of clause.verifiedBy ?? []) {
-      if (!verifier.path || !verifier.marker || !verifier.kind) errors.push(`traceability ${clause.id}: malformed verifiedBy entry`);
-      else checkMarker(verifier.path, verifier.marker, clause.id);
+    if (!Array.isArray(clause.evidenceBindings)) errors.push(`traceability ${clause.id}: evidenceBindings must be an array`);
+    if (clause.verificationDisposition === 'automated' && clause.evidenceBindings?.length === 0) {
+      errors.push(`traceability ${clause.id}: automated disposition requires direct evidence`);
+    }
+    for (const verifier of clause.evidenceBindings ?? []) {
+      if (!verifier.path || !verifier.marker || verifier.kind !== 'automated') errors.push(`traceability ${clause.id}: malformed evidence binding`);
+      else {
+        if (!['conformance', 'characterization'].includes(verifier.role)) errors.push(`traceability ${clause.id}: invalid evidence role ${verifier.role}`);
+        checkMarker(verifier.path, verifier.marker, clause.id);
+      }
     }
     if (clause.verificationDisposition === 'manual' && typeof clause.manualProcedure !== 'string') errors.push(`traceability ${clause.id}: manualProcedure required`);
     if (clause.verificationDisposition === 'deferred-needs-decision' && typeof clause.needsDecision !== 'string') errors.push(`traceability ${clause.id}: needsDecision required`);
@@ -340,6 +365,7 @@ function checkLastVerifiedCommits(manifest, traceability) {
   }
 
   for (const entry of manifest?.contracts ?? []) {
+    if (entry.status !== 'generated') continue;
     if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) continue;
     const sha = entry.lastVerifiedCommit;
     try {
@@ -355,7 +381,7 @@ function checkLastVerifiedCommits(manifest, traceability) {
     }
     const clauseEvidence = (traceability?.clauses ?? [])
       .filter((clause) => clause.contractId === entry.id)
-      .flatMap((clause) => (clause.verifiedBy ?? []).map((verifier) => verifier.path));
+      .flatMap((clause) => (clause.evidenceBindings ?? []).map((verifier) => verifier.path));
     const paths = [...new Set([
       entry.path,
       ...(entry.status === 'active' ? [traceabilityRelativePath] : []),

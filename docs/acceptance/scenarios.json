@@ -806,6 +806,114 @@
         "ENG-TURN-R6-001"
       ],
       "supersedes": []
+    },
+    {
+      "id": "ACC-M3-CHOICE-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "m3",
+        "choice",
+        "authority",
+        "manual"
+      ],
+      "preconditions": [
+        "A owns an in-progress parent Resolution that requires B to make a Magic-required choice."
+      ],
+      "steps": [
+        "B communicates the required choice through the smallest audience-correct choice signal.",
+        "Confirm the signal alone does not mutate canonical GameState.",
+        "A applies the parent effect using B's choice and remains parent Resolution owner."
+      ],
+      "oracle": "B retains Choice Authority; the signal itself is non-mutating; A retains parent Resolution/effect-application ownership; secret choice audience is not widened.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "verifies": [
+        "UX-CONST-CHOICE"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-M3-GRANTED-ACTION-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "m3",
+        "granted-action",
+        "authority",
+        "manual"
+      ],
+      "preconditions": [
+        "A owns an in-progress parent Resolution whose effect explicitly permits or instructs B to perform a bounded independent Magic action."
+      ],
+      "steps": [
+        "B performs the granted action as its actor without requesting HOLD.",
+        "Complete the granted action including its actor-owned modes/targets/costs.",
+        "Resume A's suspended parent Resolution."
+      ],
+      "oracle": "B is actor only for the granted action; no HOLD is required; A retains parent Resolution ownership and the parent resumes after the granted action commits.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "verifies": [
+        "UX-CONST-GRANTED-ACTION"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-M3-UNDO-RECOVERY-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "m3",
+        "undo",
+        "recovery",
+        "authority",
+        "manual"
+      ],
+      "preconditions": [
+        "Shared committed history contains at least two operations by different actors and the newest operation actor can be made unavailable."
+      ],
+      "steps": [
+        "Verify a non-actor cannot normally Undo the current top operation.",
+        "Make the top operation's actor unavailable and use only the Room Owner recovery proxy on that exact top.",
+        "Verify later learned information remains learned and repeated Undo stays strict newest-first.",
+        "Verify confirmed irreversible elimination/end is not crossed by normal Undo."
+      ],
+      "oracle": "Normal Undo is actor-owned; Room Owner proxy is top-only and unavailable-actor-only; history remains strict LIFO; knowledge is not erased; Q-02 irreversibility is preserved.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "verifies": [
+        "UX-CONST-UNDO",
+        "UX-CONST-RECOVERY"
+      ],
+      "supersedes": []
+    },
+    {
+      "id": "ACC-M3-INFORMATION-001",
+      "status": "active",
+      "risk": "R1",
+      "tags": [
+        "m3",
+        "information",
+        "audience",
+        "manual"
+      ],
+      "preconditions": [
+        "Use a multiplayer state with information intended for self, a specific participant, and the table."
+      ],
+      "steps": [
+        "Perform Look for an authorized limited audience.",
+        "Perform explicit Reveal to the intended audience without moving the object.",
+        "Perform Move as a separate operation.",
+        "Exercise HOLD, Room Owner/recovery and reconnect/view changes without granting additional information access."
+      ],
+      "oracle": "self/specific/table audiences remain distinct; Look/Reveal/Move remain distinct; Reveal changes audience rather than zone; operational authority or reconnect never widens hidden-information authority.",
+      "automatedBy": [],
+      "manualOnly": true,
+      "verifies": [
+        "UX-CONST-INFORMATION"
+      ],
+      "supersedes": []
     }
   ]
 }

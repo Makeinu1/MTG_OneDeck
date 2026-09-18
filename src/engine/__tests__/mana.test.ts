@@ -1,3 +1,6 @@
+// scenario: ACC-MANA-001
+// scenario: ACC-MANA-002
+// scenario: ACC-MANA-003
 import { describe, it, expect } from 'vitest';
 import { parseManaCost, solvePayment } from '../mana';
 import type { ManaPool } from '../types';

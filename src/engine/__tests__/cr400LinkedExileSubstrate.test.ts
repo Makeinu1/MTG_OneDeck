@@ -1,3 +1,4 @@
+// scenario: ACC-ZONE-001
 import { describe, expect, it } from 'vitest';
 
 import type { CardDef } from '../../types/card';

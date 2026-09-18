@@ -1,3 +1,4 @@
+// scenario: ACC-STACK-001
 import { describe, expect, it } from 'vitest';
 
 import { advanceToPriority, apnapPlayerOrder, orderPendingTriggersApnap } from '../priority';
