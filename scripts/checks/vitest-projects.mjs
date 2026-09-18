@@ -5,12 +5,22 @@ import { pathToFileURL } from 'node:url';
 
 const projects = ['core', 'dom'];
 
-export const CORE_TEST_INCLUDE = ['src/engine/**/*.{test,spec}.?(c|m)[jt]s?(x)'];
+export const TEST_FILE_SUFFIXES = Object.freeze([
+  '.test.ts', '.test.tsx', '.test.js', '.test.jsx',
+  '.test.mts', '.test.mjs', '.test.cts', '.test.cjs',
+  '.spec.ts', '.spec.tsx', '.spec.js', '.spec.jsx',
+  '.spec.mts', '.spec.mjs', '.spec.cts', '.spec.cjs',
+]);
+export const TEST_IGNORED_DIRECTORIES = Object.freeze([
+  '.git', '.claude', '.tmp', 'coverage', 'dist', 'node_modules',
+]);
+export const DOM_TEST_INCLUDE = TEST_FILE_SUFFIXES.map((suffix) => `**/*${suffix}`);
+export const CORE_TEST_INCLUDE = TEST_FILE_SUFFIXES.map((suffix) => `src/engine/**/*${suffix}`);
+export const TEST_ADDITIONAL_EXCLUDE = TEST_IGNORED_DIRECTORIES.map((directory) => `${directory}/**`);
 export const DOM_ENGINE_EXCLUDE = 'src/engine/**';
 
 const TEST_LIKE_PATH = /(?:^|\/)[^/]+\.(?:test|spec)\.[^/]+$/u;
-const RUNNABLE_TEST_PATH = /(?:^|\/)[^/]+\.(?:test|spec)\.[cm]?[jt]sx?$/u;
-const EXCLUDED_PATH_SEGMENTS = new Set(['.git', '.claude', '.tmp', 'coverage', 'dist', 'node_modules']);
+const EXCLUDED_PATH_SEGMENTS = new Set(TEST_IGNORED_DIRECTORIES);
 
 function normalizeRepositoryPath(path) {
   return path.replaceAll('\\', '/').replace(/^\.\//, '');
@@ -22,7 +32,7 @@ export function isTestLikePath(path) {
 
 export function vitestProjectForPath(path) {
   const normalized = normalizeRepositoryPath(path);
-  if (!RUNNABLE_TEST_PATH.test(normalized)) return null;
+  if (!TEST_FILE_SUFFIXES.some((suffix) => normalized.endsWith(suffix))) return null;
   if (normalized.split('/').some((segment) => EXCLUDED_PATH_SEGMENTS.has(segment))) return null;
   return normalized.startsWith('src/engine/') ? 'core' : 'dom';
 }
