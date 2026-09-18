@@ -295,7 +295,8 @@ Optional parent execution-envelope identifier.
 
 Rules:
 
-- root Work Orders use `null` / omit only if the final schema defines one canonical root representation;
+- root Work Orders must use `parentWorkId: null`;
+- child Work Orders must use a non-empty parent work ID string;
 - a child must identify the exact parent packet supplied to delegation validation;
 - `parentWorkId` is a linkage hint, not a registry lookup and not an authority source;
 - child validation must check `child.parentWorkId === parent.workId`.
