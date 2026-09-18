@@ -350,6 +350,10 @@ export function buildVerificationPlan({
 
   const impactedSemantics = [...impactReasons.keys()].sort();
   const impactedScenarios = [...scenarioReasons.keys()].filter((id) => headScenarioMap.has(id)).sort();
+  const executionScenarios = impactedScenarios.filter((id) => {
+    const reasons = scenarioReasons.get(id) ?? new Set();
+    return [...reasons].some((reason) => reason !== 'acceptance-spec-changed');
+  });
 
   const directEvidence = [];
   const characterizationOnly = [];
@@ -367,7 +371,7 @@ export function buildVerificationPlan({
   const scenarioEvidence = [];
   const manualRequired = [];
   const deferredScenarios = [];
-  for (const id of impactedScenarios) {
+  for (const id of executionScenarios) {
     const scenario = headScenarioMap.get(id);
     if (scenario.status === 'deferred') deferredScenarios.push(id);
     if (scenario.manualOnly) manualRequired.push(id);
@@ -417,6 +421,7 @@ export function buildVerificationPlan({
       directBindings: bindingChangedSemantics,
     },
     scenarioImpact: sortedReasons(scenarioReasons),
+    executionScenarioImpact: executionScenarios,
     evidence: {
       direct: directEvidence.sort((a, b) => `${a.semanticId}:${a.path}`.localeCompare(`${b.semanticId}:${b.path}`)),
       scenario: scenarioEvidence.sort((a, b) => `${a.scenarioId}:${a.path}`.localeCompare(`${b.scenarioId}:${b.path}`)),
@@ -432,6 +437,7 @@ export function buildVerificationPlan({
     testsByProject,
     blockers,
     coverage,
+    verificationSpecFreshness: specChangedScenarios.length > 0 || bindingChangedSemantics.length > 0 ? 'CHANGED' : 'UNCHANGED',
     semanticVerdict: 'NOT_COMPUTED',
   };
 }
