@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { join, resolve } from 'node:path';
 import { hasExplicitNormativeLanguage, isExplicitlyNonNormative, isNumberedTableRow, isTableHeader } from './legacy-inventory-policy.mjs';
 
@@ -51,6 +52,15 @@ const clauseTargets = {
 
 function hashText(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function gitBlobSha(text) {
+  const bytes = Buffer.byteLength(text, 'utf8');
+  return createHash('sha1').update(`blob ${bytes}\0`, 'utf8').update(text, 'utf8').digest('hex');
+}
+
+function itemKeyFor({ sourcePath, sourceAnchor, textHash }) {
+  return `${sourcePath}#L${sourceAnchor.lineStart}-L${sourceAnchor.lineEnd}:${textHash}`;
 }
 
 function itemType(sourceKind, line) {
@@ -128,23 +138,49 @@ function extract(sourcePath, sourceKind) {
     const sourceText = line;
     const targets = targetFor(sourceKind, sourceText);
     const disposition = dispositionFor({ sourceKind, type, text: sourceText, targets });
+    const sourceAnchor = { lineStart: index + 1, lineEnd: index + 1 };
+    const textHash = hashText(sourceText);
     items.push({
+      itemKey: itemKeyFor({ sourcePath, sourceAnchor, textHash }),
       legacyItemId: `LEGACY-${sourceKind === 'acceptance' ? 'ACC' : 'ENG'}-${String(items.length + 1).padStart(4, '0')}`,
       sourcePath,
-      sourceAnchor: { lineStart: index + 1, lineEnd: index + 1 },
+      sourceAnchor,
       itemType: type,
       sourceText,
-      textHash: hashText(sourceText),
+      textHash,
       summary: sourceText.trim().slice(0, 240),
-      disposition: disposition.disposition,
-      targetIds: targets,
-      rationale: disposition.rationale,
+      suggestedDisposition: disposition.disposition,
+      suggestedTargetIds: targets,
+      suggestedRationale: disposition.rationale,
     });
   }
   return items;
 }
 
-const items = sources.flatMap(([sourcePath, sourceKind]) => extract(sourcePath, sourceKind));
-const outputPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
-writeFileSync(outputPath, `${JSON.stringify({ schemaVersion: 1, sources: sources.map(([sourcePath]) => sourcePath), items }, null, 2)}\n`);
-console.log(`generated ${items.length} legacy inventory items at ${outputPath}`);
+export function renderLegacyInventory() {
+  const items = sources.flatMap(([sourcePath, sourceKind]) => extract(sourcePath, sourceKind));
+  return {
+    schemaVersion: 2,
+    sources: sources.map(([sourcePath]) => {
+      const text = readFileSync(join(root, sourcePath), 'utf8');
+      return { path: sourcePath, blobSha: gitBlobSha(text) };
+    }),
+    items,
+  };
+}
+
+function run() {
+  const outputPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
+  const rendered = `${JSON.stringify(renderLegacyInventory(), null, 2)}\n`;
+  if (process.argv.includes('--check')) {
+    const current = readFileSync(outputPath, 'utf8');
+    if (current !== rendered) throw new Error('legacy contract inventory is stale; run generate-legacy-inventory.mjs');
+    console.log('PASS: legacy contract inventory matches deterministic generator');
+    return;
+  }
+  writeFileSync(outputPath, rendered);
+  console.log(`generated ${renderLegacyInventory().items.length} legacy inventory items at ${outputPath}`);
+}
+
+const isCli = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+if (isCli) run();
