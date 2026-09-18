@@ -216,13 +216,15 @@ Do not add additional evidence-role categories unless a concrete current binding
 
 ## 7. Verification binding registry
 
-M3 should reuse `docs/contracts/traceability.json` rather than create a second authored verification registry.
+M3 should reuse `docs/contracts/traceability.json` rather than create a second authored **direct-evidence** registry.
 
 Its M3 role becomes:
 
-> canonical semantic-ID → evidence-binding metadata
+> optional semantic-ID → direct evidence-binding metadata
 
-It must remain unable to create semantic identity.
+It must remain unable to create semantic identity, and a semantic node is **not required** to have a traceability row merely to exist or to be Acceptance-verified.
+
+Acceptance-backed semantics are owned by `scenario.verifies` plus the scenario execution/manual binding. Product nodes and stable UX anchors may therefore be verified only through Acceptance without receiving synthetic traceability rows.
 
 ### Proposed schema direction
 
@@ -257,12 +259,19 @@ Conceptual example:
 
 No PASS/FAIL/freshness or semantic prose belongs in this registry.
 
+Evidence-role migration must be independently reviewed row by row. Existing `verifiedBy` entries must **not** be bulk-defaulted to `conformance`; where a current test only characterizes implementation behavior, bind it as `characterization`.
+
 ### Acceptance-backed semantics
 
-For `verificationDisposition: acceptance`:
+The current 16 `verificationDisposition: acceptance` traceability rows are M2 compatibility residue: their only useful relation is already authored by `scenario.verifies`.
 
-- the semantic claim is derived from `scenario.verifies`;
+After scenario execution bindings are structurally validated, M3 should retire those redundant acceptance rows rather than promote them into permanent duplicate metadata.
+
+For Acceptance-backed semantics:
+
+- the semantic claim is derived only from `scenario.verifies`;
 - scenario execution binding remains on the Acceptance scenario;
+- no traceability row is required;
 - do not duplicate scenario IDs into reverse traceability arrays.
 
 ### Manual / deferred
@@ -292,7 +301,13 @@ A scenario contains:
 
 M3 should not add a generic scenario DSL or workflow engine.
 
+Acceptance scenario markers/bindings are verification metadata only; they do not make a scenario pass and do not alter its oracle.
+
 All current automated scenario bindings are test-file paths; M3 should reuse that reality.
+
+Current `automatedBy` test files do not contain stable Acceptance scenario markers. During M3 migration, automated scenarios should gain a lightweight machine-checkable binding marker (for example `scenario: ACC-...`) in their bound test file, or an equally narrow explicit binding mechanism. Once migrated, the checker must reject an `automatedBy` path that does not prove it is bound to that scenario.
+
+Do not infer scenario coverage merely because a test file name looks related.
 
 ## 9. Required missing Acceptance specifications
 
@@ -397,9 +412,11 @@ Reverse edges are generated, never authored.
 
 Changing a specific refiner does not automatically invalidate the broader target.
 
-## 12. Evidence-path impact
+## 12. Implementation and evidence-path impact
 
 Semantic-source changes are not the only invalidation input.
+
+### Evidence file changes
 
 If an evidence file itself changes:
 
@@ -407,6 +424,22 @@ If an evidence file itself changes:
 - every Acceptance scenario using that `automatedBy` path is impacted.
 
 This prevents modified tests from being treated as automatically fresh merely because the contract text did not change.
+
+### Implementation source changes
+
+A production/source-code change may alter behavior even when no semantic source or bound test file changed.
+
+M3 must reuse the existing validation-domain resolver:
+
+1. changed implementation files select validation domains;
+2. domains select concrete test files;
+3. selected test files are reverse-mapped to semantic direct-evidence bindings and Acceptance `automatedBy` bindings;
+4. those semantic/scenario obligations become part of the M3 impact report;
+5. tests selected by domain safety remain selected even when no semantic binding exists.
+
+This gives M3 an explanation path from implementation diff → existing safety domain → test evidence → semantic/scenario obligation without inventing a second implementation ownership map.
+
+If a changed implementation path is unknown to the domain resolver, retain the existing full-check escalation and report semantic impact as UNKNOWN rather than guessing.
 
 If an automated evidence path cannot be resolved to an executable test lane, fail closed rather than silently skipping it.
 
@@ -428,7 +461,36 @@ If a future evidence binding needs a non-Vitest executor, add an explicit named 
 
 Do not add arbitrary shell commands to authored JSON.
 
-## 14. Verification plan
+## 14. Verification gates and plan
+
+M3 needs two distinct machine surfaces.
+
+### Structural integrity gate
+
+A base-independent gate (for example `check:verification`) validates:
+
+- binding schemas;
+- semantic endpoint existence;
+- evidence paths/markers;
+- scenario execution binding integrity;
+- no duplicate/reverse metadata;
+- no malformed role/disposition.
+
+This belongs in ordinary `npm run check` and can run on any checkout.
+
+It must not claim that candidate-specific manual or automated evidence is current.
+
+### Candidate verification gate
+
+A candidate-specific gate (for example `verify:semantic --base <sha> --head <sha>`) computes impact/freshness and is the gate that may say candidate evidence is established.
+
+The base/head pair must be explicit. M3 must not silently guess a semantic verification base.
+
+`check:fast --base ... --head ...` and PR/release workflows can invoke this gate with their already-known diff base.
+
+A release flow that omits an explicit base may still run full structural/general safety checks, but it must not claim M3 candidate semantic verification.
+
+### Verification plan
 
 For explicit `base` and `head`, M3 generates an ephemeral plan containing:
 
@@ -560,20 +622,23 @@ A semantic-aware narrow plan must never reduce existing safety because it happen
 
 At minimum M3 fails closed on:
 
-1. impacted semantic ID with malformed verification metadata;
-2. automated disposition with no executable evidence binding;
-3. evidence binding path missing;
-4. evidence marker missing or points to another semantic ID;
-5. scenario `verifies` unresolved;
-6. impacted active/deferred scenario with no usable execution/manual disposition;
-7. unknown semantic-source diff that cannot be mapped safely;
-8. unknown evidence executor;
-9. required automated evidence FAIL;
-10. required evidence not run;
-11. required manual evidence absent;
-12. affected deferred decision unresolved;
-13. stale evidence path changed but not rerun;
-14. generated verification plan/result inconsistent with base/head.
+1. impacted semantic ID whose available direct/Acceptance verification metadata is malformed;
+2. impacted semantic ID with neither direct evidence nor an Acceptance claim when verification is required (`UNBOUND`);
+3. automated disposition with no executable evidence binding;
+4. evidence binding path missing;
+5. direct evidence marker missing or points to another semantic ID;
+6. automated Acceptance binding missing its scenario marker after migration;
+7. scenario `verifies` unresolved;
+8. impacted active/deferred scenario with no usable execution/manual disposition;
+9. unknown semantic-source diff that cannot be mapped safely;
+10. unknown implementation path without conservative domain escalation;
+11. unknown evidence executor;
+12. required automated evidence FAIL;
+13. required evidence not run;
+14. required manual evidence absent;
+15. affected deferred decision unresolved;
+16. stale evidence path changed but not rerun;
+17. generated verification plan/result inconsistent with base/head.
 
 Fail-closed means “verification not established”, not “semantic CONFLICT”.
 
@@ -605,9 +670,12 @@ Implement:
 
 - formal evidence-binding vocabulary;
 - `conformance` vs `characterization`;
+- independently classify existing direct bindings rather than bulk-defaulting their role;
 - migrate `traceability.verifiedBy` toward stable `evidenceBindings`;
+- retire redundant `verificationDisposition: acceptance` traceability rows after scenario bindings are validated;
 - keep semantic identity external to traceability;
 - define Choice / Granted Action / Undo Recovery / Information Acceptance scenarios;
+- add/validate lightweight scenario markers for current automated Acceptance bindings;
 - no fake pass evidence;
 - structural validation for binding ownership and markers.
 
@@ -624,8 +692,9 @@ Implement:
 - Acceptance scenario comparison;
 - reverse M2 dependency closure;
 - evidence-path reverse lookup;
+- implementation diff → validation domain → selected tests → semantic/scenario reverse mapping;
 - deterministic impact reasons;
-- conservative fallback for unmappable semantic edits.
+- conservative fallback for unmappable semantic or implementation edits.
 
 Exit:
 
@@ -635,6 +704,8 @@ For a candidate diff, the harness deterministically identifies impacted semantic
 
 Implement:
 
+- add a base-independent verification-integrity gate;
+- add an explicit-base candidate semantic verification gate;
 - generate verification plan;
 - map current automated evidence to core/dom Vitest execution;
 - union semantic-required tests with existing validation-domain plan;
