@@ -86,5 +86,13 @@ describe('manual semantic evidence receipt', () => {
         authorizedToMerge: true,
       }],
     }, plan())).toThrow(/allows only/);
+
+    expect(() => validateManualEvidenceReceipt({
+      schemaVersion: 1,
+      base: 'a'.repeat(40),
+      head: 'b'.repeat(40),
+      results: [],
+      authorizedToDeploy: true,
+    }, plan())).toThrow(/allows only/);
   });
 });
