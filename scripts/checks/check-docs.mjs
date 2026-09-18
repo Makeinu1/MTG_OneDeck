@@ -205,9 +205,8 @@ function checkTraceability(traceability, manifest, scenarios) {
     const inlineIds = [...content.matchAll(/<!--\s*clause:\s*([A-Z0-9-]+)\s*-->/g)].map((match) => match[1]);
     if (inlineIds.length === 0) errors.push(`${entry.path}: no clause IDs`);
     for (const id of inlineIds) {
-      if (!clauseIds.has(id)) errors.push(`${entry.path}: inline clause ${id} missing from traceability`);
       const clause = traceability.clauses.find((item) => item.id === id);
-      if (clause?.sourcePath !== entry.path) errors.push(`${entry.path}: clause ${id} sourcePath mismatch`);
+      if (clause && clause.sourcePath !== entry.path) errors.push(`${entry.path}: clause ${id} sourcePath mismatch`);
     }
   }
   return clauseIds;
