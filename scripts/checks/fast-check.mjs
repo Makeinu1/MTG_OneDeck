@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 
 import { collectChangedFiles } from './change-detector.mjs';
 import { DEFAULT_ROOT, resolveDomainSelection } from './validation-domain-resolver.mjs';
+import { buildVerificationPlan } from './semantic-verification.mjs';
+import { runSemanticVerification } from './verify-semantic.mjs';
 
 function parseArgs(argv) {
   const options = { head: 'HEAD', base: undefined, dryRun: false, json: false };
@@ -106,18 +108,64 @@ function runTargeted(report) {
   return exitCode;
 }
 
+function addSemanticTests(report, plan) {
+  if (!plan) return report;
+  const testFiles = [...new Set([...report.testFiles, ...plan.requiredTests])].sort();
+  return {
+    ...report,
+    testFiles,
+    testFileCount: testFiles.length,
+    testFilesByProject: {
+      core: testFiles.filter((file) => file.startsWith('src/engine/')),
+      dom: testFiles.filter((file) => !file.startsWith('src/engine/')),
+    },
+    semanticVerification: {
+      coverage: plan.coverage,
+      impactedSemantics: Object.keys(plan.semanticImpact),
+      impactedScenarios: Object.keys(plan.scenarioImpact),
+      blockers: plan.blockers,
+    },
+  };
+}
+
+function runSemanticGate(options) {
+  if (!options.base) {
+    console.log('\n=== check:fast: semantic verification ===\nSKIP: explicit base is required for candidate freshness');
+    return 0;
+  }
+  const result = runSemanticVerification({
+    cwd: DEFAULT_ROOT,
+    base: options.base,
+    head: options.head,
+    execute: false,
+    writePlan: true,
+  });
+  return result.exitCode;
+}
+
 function run() {
   try {
     const options = parseArgs(process.argv.slice(2));
-    const report = reportFor(options);
+    const semanticPlan = options.base ? buildVerificationPlan({ cwd: DEFAULT_ROOT, base: options.base, head: options.head }) : null;
+    const report = addSemanticTests(reportFor(options), semanticPlan);
     if (options.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
     else printReport(report);
     if (options.dryRun || options.json) return;
     if (report.escalation === 'full') {
-      process.exitCode = runStep('full release check', 'npm', ['run', 'check']);
+      const fullCode = runStep('full release check', 'npm', ['run', 'check']);
+      if (fullCode !== 0) {
+        process.exitCode = fullCode;
+        return;
+      }
+      process.exitCode = runSemanticGate(options);
       return;
     }
-    process.exitCode = runTargeted(report);
+    const targetedCode = runTargeted(report);
+    if (targetedCode !== 0) {
+      process.exitCode = targetedCode;
+      return;
+    }
+    process.exitCode = runSemanticGate(options);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 2;
