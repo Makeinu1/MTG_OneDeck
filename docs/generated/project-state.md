@@ -32,10 +32,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`
 - Active: `M5 — Audit / Hygiene / Recovery`
-- Next gate: `M5.1 — Lifecycle / Retention / Retirement`
-- Next work: Integrate and independently verify the M5.1 lifecycle/retirement policy and current browser evidence ownership. Do not begin destructive M5.2 cleanup until M5.1 is integrated and the retained evidence/regression owners required by the audited M5 plan are explicit.
+- Next gate: `M5.2 — Repository Reconciliation / Cleanup`
+- Next work: Execute bounded M5.2 cleanup waves under docs/repository-hygiene.md and scripts/evidence/registry.json: rehome required regression/evidence owners before retiring obsolete workflows or evidence, archive unique provenance before branch retirement, and keep compatibility/A3 production repair on their explicit separate preconditions. Do not delete branches, workflows, evidence, or compatibility surfaces merely because they are old or unused by runtime imports.
 
 ## Coverage claim
 
