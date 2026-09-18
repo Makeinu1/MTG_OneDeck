@@ -12,12 +12,16 @@ const TEST_LIKE_PATH = /(?:^|\/)[^/]+\.(?:test|spec)\.[^/]+$/u;
 const RUNNABLE_TEST_PATH = /(?:^|\/)[^/]+\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 const EXCLUDED_PATH_SEGMENTS = new Set(['.git', '.claude', '.tmp', 'coverage', 'dist', 'node_modules']);
 
+function normalizeRepositoryPath(path) {
+  return path.replaceAll('\\', '/').replace(/^\.\//, '');
+}
+
 export function isTestLikePath(path) {
-  return TEST_LIKE_PATH.test(path.replaceAll('\\\\', '/'));
+  return TEST_LIKE_PATH.test(normalizeRepositoryPath(path));
 }
 
 export function vitestProjectForPath(path) {
-  const normalized = path.replaceAll('\\\\', '/').replace(/^\.\//, '');
+  const normalized = normalizeRepositoryPath(path);
   if (!RUNNABLE_TEST_PATH.test(normalized)) return null;
   if (normalized.split('/').some((segment) => EXCLUDED_PATH_SEGMENTS.has(segment))) return null;
   return normalized.startsWith('src/engine/') ? 'core' : 'dom';
