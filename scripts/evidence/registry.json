@@ -39,8 +39,8 @@
       },
       "requiredFacts": [
         "A legal graveyard card is selected through visible UI and the committed cast preserves sourceZone=graveyard.",
-        "Finite additional discard/sacrifice cost selection is committed atomically with the spell cast and cannot leave a split partial commit.",
-        "Visible turn-face-up action emits special.turnFaceUp, preserves the battlefield physical object, changes face state, and does not fabricate a stack entry.",
+        "The selected discard additional cost is included in the same cast operation; final state shows the spell on the stack and the cost card in the graveyard.",
+        "Visible turn-face-up action emits special.turnFaceUp for the selected card ID and the resulting card state is face up.",
         "Browser console errors and warnings remain zero."
       ],
       "legacyRetirementPrecondition": "A current non-legacy execution path for this contract is active and verified before the old R4 browser workflow shell is retired."
