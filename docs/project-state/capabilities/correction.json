@@ -7,10 +7,24 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
-  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Correction / Undo boundary"}],
-  "implementationRefs": [{"path":"src/engine/cockpitR4b.ts","locator":"repair.* operations and mutation gate"}],
-  "verificationRefs": [{"path":"src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts"}],
+  "auditedAtCommit": "a97cfd9435f48af69fcfb4dca498c0c3f04f79b5",
+  "authorityRefs": [
+    {
+      "path": "docs/contracts/ux-constitution.md",
+      "locator": "Correction / Undo boundary"
+    }
+  ],
+  "implementationRefs": [
+    {
+      "path": "src/engine/cockpitR4b.ts",
+      "locator": "repair.* operations and mutation gate"
+    }
+  ],
+  "verificationRefs": [
+    {
+      "path": "src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts"
+    }
+  ],
   "rationale": "Finite repair operations and strict mutation classification exist separately from ordinary game effects and Undo.",
   "nextAction": "Preserve the distinction and keep targeted regression evidence current.",
   "ownerDecisionRefs": []
