@@ -1,0 +1,40 @@
+name: Semantic Verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verification binding integrity
+        run: npm run check:verification
+      - name: Pull request semantic verification
+        if: github.event_name == 'pull_request'
+        run: npm run verify:semantic -- --base "origin/${{ github.base_ref }}" --head HEAD
+      - id: diff-base
+        if: github.event_name == 'push'
+        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - name: Main update semantic verification
+        if: github.event_name == 'push'
+        run: |
+          BASE="${{ steps.diff-base.outputs.base }}"
+          if [ "$BASE" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
+            echo "First-push empty-tree diff: semantic freshness not claimed; structural integrity already checked."
+            exit 0
+          fi
+          npm run verify:semantic -- --base "$BASE" --head "${{ github.sha }}"
