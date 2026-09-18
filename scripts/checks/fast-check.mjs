@@ -87,6 +87,9 @@ function runStep(label, command, args) {
 
 function runTargeted(report) {
   let exitCode = 0;
+  const ingressCode = runStep('Cockpit mutation ingress', process.execPath, ['scripts/checks/check-cockpit-mutation-ingress.mjs']);
+  if (ingressCode !== 0) exitCode = ingressCode;
+
   const docsCode = runStep('docs', process.execPath, ['scripts/checks/check-docs.mjs']);
   if (docsCode !== 0) exitCode = docsCode;
 
