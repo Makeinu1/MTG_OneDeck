@@ -1,5 +1,10 @@
 # エンジン状態オントロジー (ESO)
 
+> **M5 lifecycle:** `SUPPORTING` — retain  
+> **Authority:** `NONE`。ESOは状態モデリングのsupporting ledgerとして保持するが、active engine contractではない。現在のsemantic authorityは `docs/contracts/manifest.json` 配下のactive contractsが所有する。  
+> 本文中のM0進捗・凍結先・旧`engine-spec §34`参照はhistorical/supporting contextであり、自動的に現行semantic IDへ読み替えない。
+
+
 > M0 モデリング・サイクルの生きた成果物①。正本手法 = [`engine-design-method.md`](engine-design-method.md) §1、
 > アーキ = [`architecture-substrate-compiler.md`](architecture-substrate-compiler.md)、契約 = [`engine-spec.md`](engine-spec.md) §34。
 >
