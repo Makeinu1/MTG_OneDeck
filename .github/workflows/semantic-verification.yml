@@ -5,6 +5,20 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Exact base commit for candidate verification
+        required: true
+        type: string
+      head:
+        description: Exact candidate head commit to verify
+        required: true
+        type: string
+      manual_evidence_json:
+        description: Candidate-bound manual evidence receipt JSON
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +30,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.head || github.sha }}
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -26,6 +41,14 @@ jobs:
       - name: Pull request semantic verification
         if: github.event_name == 'pull_request'
         run: npm run verify:semantic -- --base "origin/${{ github.base_ref }}" --head HEAD
+      - name: Materialize manual evidence receipt
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          MANUAL_EVIDENCE_JSON: ${{ inputs.manual_evidence_json }}
+        run: node -e "require('node:fs').writeFileSync(process.env.RUNNER_TEMP + '/manual-evidence.json', process.env.MANUAL_EVIDENCE_JSON)"
+      - name: Manual semantic verification
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run verify:semantic -- --base "${{ inputs.base }}" --head "${{ inputs.head }}" --manual-evidence "$RUNNER_TEMP/manual-evidence.json"
       - id: diff-base
         if: github.event_name == 'push'
         run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
