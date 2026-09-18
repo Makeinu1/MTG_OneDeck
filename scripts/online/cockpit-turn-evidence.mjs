@@ -305,6 +305,18 @@ try {
   );
   await details.getByLabel('作業面を閉じる', { exact: true }).click();
 
+  // Direct mana-pool adjustment is an effect operation and is only legal while
+  // Manual Resolution owns the effect context. Seed one green mana here so the
+  // ordinary turn journey can still prove phase-boundary mana expiry.
+  stage = 'mana-setup';
+  await host.getByText('マナの調整（Resolution）', { exact: true }).click();
+  await mutate(
+    host,
+    () => host.getByRole('button', { name: 'Gマナを追加', exact: true }).click(),
+    'mana during manual resolution',
+  );
+  assert.equal((await read(host)).table.seats[0].mana.G, 1);
+
   stage = 'manual-modifier-finish';
   await host.locator('.table-progress__source').click();
   await mutate(
@@ -319,18 +331,6 @@ try {
       !view.table.stack.some((entry) => entry.source.id === manualCardId)
     );
   }, 'manual resolution finished');
-  stage = 'mana-setup';
-  await host.getByRole('button', { name: /^マナ・プール \d+点$/ }).click();
-  const manaDialog = host.getByRole('dialog', { name: 'マナ・プール', exact: true });
-  await manaDialog.waitFor();
-  const manaPlus = manaDialog.getByLabel('Gマナを1増やす', { exact: true });
-  await until(() => manaPlus.isEnabled(), 'mana control enabled');
-  await mutate(
-    host,
-    () => manaPlus.click(),
-    'mana',
-  );
-  await manaDialog.getByRole('button', { name: '閉じる', exact: true }).click();
   let totalTurns = 0;
   for (let round = 0; round < 4; round++) {
     stage = `ordinary-turn-${round + 1}`;
