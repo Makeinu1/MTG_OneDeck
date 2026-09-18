@@ -153,13 +153,12 @@ function checkMarker(path, marker, clauseId) {
   }
 }
 
-function checkTraceability(traceability, manifest, scenarios, contractSemanticIds) {
+function checkTraceability(traceability, manifest, contractSemanticIds) {
   if (traceability === null || typeof traceability !== 'object' || !Array.isArray(traceability.clauses)) {
     errors.push('traceability: expected clauses array');
     return new Set();
   }
   const contractIds = new Set((manifest?.contracts ?? []).map((entry) => entry.id));
-  const scenarioIds = new Set((scenarios ?? []).map((scenario) => scenario.id));
   const clauseIds = new Set();
   const forbiddenSemanticFields = ['rule', 'precondition', 'resultingBehavior', 'failureBehavior', 'invariant', 'acceptedBy'];
   for (const clause of traceability.clauses) {
@@ -439,7 +438,7 @@ function run() {
   checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds);
   const scenarioIds = new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id));
   const semanticIds = new Set([...productDefinitions.keys(), ...contractSemanticIds.keys(), ...scenarioIds]);
-  checkTraceability(traceability, manifest, scenarios?.scenarios, contractSemanticIds);
+  checkTraceability(traceability, manifest, contractSemanticIds);
   checkScenarios(scenarios?.scenarios, migration, semanticIds);
   checkMigrationMap(migration);
   checkLastVerifiedCommits(manifest, traceability);
