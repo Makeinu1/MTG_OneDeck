@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { parseClauses, parseProduct } from './semantic-verification.mjs';
+import { buildVerificationPlan, parseClauses, parseProduct } from './semantic-verification.mjs';
 
 const DEFAULT_ROOT = resolve(import.meta.dirname, '../..');
 const SCHEMA_PATH = 'docs/work-protocol/work-order.schema.json';
@@ -255,6 +255,223 @@ export function validateWorkOrderReferences(workOrder, { root = DEFAULT_ROOT } =
   return errors;
 }
 
+function isAncestor(root, base, head) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', base, head], {
+      cwd: root,
+      stdio: ['ignore', 'ignore', 'ignore'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function changedFilesBetween(root, base, head) {
+  const output = git(root, ['diff', '--name-only', base, head]);
+  return output.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean).sort();
+}
+
+function pathCoveredBy(path, roots) {
+  return roots.some((root) => path === root || path.startsWith(`${root}/`));
+}
+
+function authorityImpactReason(reason) {
+  return [
+    'product-definition:',
+    'product-unattributed-prose',
+    'contract-clause:',
+    'contract-unattributed-prose:',
+    'manifest-owner:',
+    'semantic-edge:',
+  ].some((prefix) => reason.startsWith(prefix));
+}
+
+function currentExecutionBoundary(projectState) {
+  return {
+    activeMilestone: projectState?.program?.activeMilestone ?? null,
+    nextGate: projectState?.program?.nextGate ?? null,
+    prohibitedScope: projectState?.program?.prohibitedScope ?? [],
+  };
+}
+
+export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) {
+  const errors = [];
+  if (!parent) {
+    errors.push('delegation: child Work Order requires an explicit parent packet');
+    return errors;
+  }
+
+  const parentShape = validateWorkOrder(parent, { root });
+  if (parentShape.length > 0) {
+    errors.push(...parentShape.map((error) => `delegation parent ${error}`));
+    return errors;
+  }
+
+  if (child.parentWorkId !== parent.workId) {
+    errors.push(`delegation: child parentWorkId ${child.parentWorkId} does not match parent workId ${parent.workId}`);
+  }
+  if (child.planningBase !== parent.planningBase) {
+    errors.push('delegation: child and parent must share planningBase; replan explicitly instead of silently rebasing a child');
+  }
+
+  const parentTargets = new Set(parent.scope?.targetSemanticRefs ?? []);
+  for (const id of child.scope?.targetSemanticRefs ?? []) {
+    if (!parentTargets.has(id)) errors.push(`delegation: child target semantic ${id} is outside parent target scope`);
+  }
+
+  for (const rootPath of child.scope?.expectedChangeRoots ?? []) {
+    if (!pathCoveredBy(rootPath, parent.scope?.expectedChangeRoots ?? [])) {
+      errors.push(`delegation: child expected change root ${rootPath} is outside parent change scope`);
+    }
+  }
+
+  for (const parentPath of parent.protected?.paths ?? []) {
+    if (!pathCoveredBy(parentPath, child.protected?.paths ?? [])) {
+      errors.push(`delegation: child weakens protected path boundary ${parentPath}`);
+    }
+  }
+
+  const childProtectedSemantics = new Set(child.protected?.semanticRefs ?? []);
+  for (const id of parent.protected?.semanticRefs ?? []) {
+    if (!childProtectedSemantics.has(id)) errors.push(`delegation: child weakens protected semantic boundary ${id}`);
+  }
+
+  if (child.review?.policy !== parent.review?.policy) {
+    errors.push('delegation: child review policy differs from parent');
+  }
+  if (child.verificationIntent?.policy !== parent.verificationIntent?.policy) {
+    errors.push('delegation: child verification policy differs from parent');
+  }
+
+  const childTargets = new Set(child.scope?.targetSemanticRefs ?? []);
+  const childVerificationSemantics = new Set(child.verificationIntent?.semanticRefs ?? []);
+  for (const id of parent.verificationIntent?.semanticRefs ?? []) {
+    if (childTargets.has(id) && !childVerificationSemantics.has(id)) {
+      errors.push(`delegation: child drops parent verification semantic ${id} inside child target scope`);
+    }
+  }
+
+  const acceptanceErrors = [];
+  const acceptance = parseJsonAtRef(root, parent.planningBase, ACCEPTANCE_PATH, acceptanceErrors);
+  errors.push(...acceptanceErrors.map((error) => `delegation ${error}`));
+  if (acceptance) {
+    const scenarios = new Map((acceptance.scenarios ?? []).map((scenario) => [scenario.id, scenario]));
+    const childAcceptance = new Set(child.verificationIntent?.acceptanceRefs ?? []);
+    for (const scenarioId of parent.verificationIntent?.acceptanceRefs ?? []) {
+      const scenario = scenarios.get(scenarioId);
+      if (!scenario) continue;
+      if ((scenario.verifies ?? []).some((id) => childTargets.has(id)) && !childAcceptance.has(scenarioId)) {
+        errors.push(`delegation: child drops parent Acceptance ${scenarioId} relevant to child target scope`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+export function validateWorkOrderCandidate(workOrder, {
+  root = DEFAULT_ROOT,
+  head,
+  parentWorkOrder = null,
+} = {}) {
+  const errors = [];
+  const drift = {
+    changedFiles: [],
+    outsideExpectedChangeRoots: [],
+    authorityPathChanges: [],
+    authoritySemanticChanges: [],
+    protectedPathChanges: [],
+  };
+
+  if (typeof head !== 'string' || !/^[0-9a-f]{40}$/u.test(head)) {
+    errors.push('candidate: explicit 40-char head commit SHA is required');
+    return { errors, drift };
+  }
+  if (!commitExists(root, head)) {
+    errors.push(`candidate: head commit does not exist ${head}`);
+    return { errors, drift };
+  }
+  if (!isAncestor(root, workOrder.planningBase, head)) {
+    errors.push('candidate: planningBase is not an ancestor of head; replan instead of validating a divergent candidate');
+    return { errors, drift };
+  }
+
+  const candidateRefs = validateWorkOrderReferences({ ...workOrder, planningBase: head }, { root });
+  errors.push(...candidateRefs.map((error) => error.replaceAll('planningBase', 'candidate')));
+
+  const baseStateErrors = [];
+  const headStateErrors = [];
+  const baseState = parseJsonAtRef(root, workOrder.planningBase, PROJECT_STATE_PATH, baseStateErrors);
+  const headState = parseJsonAtRef(root, head, PROJECT_STATE_PATH, headStateErrors);
+  errors.push(...baseStateErrors.map((error) => error.replaceAll('planningBase', 'candidate base')));
+  errors.push(...headStateErrors.map((error) => error.replaceAll('planningBase', 'candidate head')));
+  if (baseState && headState
+      && stableJson(currentExecutionBoundary(baseState)) !== stableJson(currentExecutionBoundary(headState))) {
+    errors.push('candidate: Project State execution boundary changed since planning; reinspection/replan required');
+  }
+
+  const changedFiles = changedFilesBetween(root, workOrder.planningBase, head);
+  drift.changedFiles = changedFiles;
+  drift.outsideExpectedChangeRoots = changedFiles.filter(
+    (path) => !pathCoveredBy(path, workOrder.scope?.expectedChangeRoots ?? []),
+  );
+
+  for (const protectedPath of workOrder.protected?.paths ?? []) {
+    for (const path of changedFiles) {
+      if (path === protectedPath || path.startsWith(`${protectedPath}/`)) {
+        drift.protectedPathChanges.push(path);
+        errors.push(`candidate: protected path changed ${path}`);
+      }
+    }
+  }
+
+  for (const authorityPath of workOrder.authorityRefs?.paths ?? []) {
+    if (readAtRef(root, workOrder.planningBase, authorityPath) !== readAtRef(root, head, authorityPath)) {
+      drift.authorityPathChanges.push(authorityPath);
+      errors.push(`candidate: referenced authority path changed since planning ${authorityPath}`);
+    }
+  }
+
+  let verificationPlan;
+  try {
+    verificationPlan = buildVerificationPlan({ cwd: root, base: workOrder.planningBase, head });
+  } catch (error) {
+    errors.push(`candidate: unable to compute M3.1 impact: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (verificationPlan) {
+    const guarded = new Set([
+      ...(workOrder.authorityRefs?.semanticRefs ?? []),
+      ...(workOrder.protected?.semanticRefs ?? []),
+    ]);
+    for (const id of guarded) {
+      const reasons = verificationPlan.semanticImpact?.[id] ?? [];
+      const authorityReasons = reasons.filter(authorityImpactReason);
+      if (authorityReasons.length > 0) {
+        drift.authoritySemanticChanges.push({ id, reasons: authorityReasons });
+        errors.push(`candidate: referenced/protected semantic authority changed since planning ${id} (${authorityReasons.join(', ')})`);
+      }
+    }
+  }
+
+  if (workOrder.parentWorkId !== null) {
+    errors.push(...validateDelegation(workOrder, parentWorkOrder, { root }));
+  } else if (parentWorkOrder !== null) {
+    errors.push('delegation: root Work Order must not be validated with a parent packet');
+  }
+
+  return {
+    errors: [...new Set(errors)],
+    drift: {
+      ...drift,
+      changedFiles: [...new Set(drift.changedFiles)].sort(),
+      outsideExpectedChangeRoots: [...new Set(drift.outsideExpectedChangeRoots)].sort(),
+      authorityPathChanges: [...new Set(drift.authorityPathChanges)].sort(),
+      protectedPathChanges: [...new Set(drift.protectedPathChanges)].sort(),
+    },
+  };
+}
+
 export function validateWorkOrderAtPlanningBase(workOrder, options = {}) {
   const structural = validateWorkOrder(workOrder, options);
   if (structural.length > 0) return structural;
@@ -273,17 +490,42 @@ export function readWorkOrder(path, root = DEFAULT_ROOT) {
   return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
 }
 
+function parseCliArgs(args) {
+  const options = { path: null, head: null, parentPath: null };
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '--head' || arg === '--parent') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) throw new Error(`${arg} requires a value`);
+      if (arg === '--head') options.head = value;
+      else options.parentPath = value;
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('-') || options.path !== null) throw new Error(`unknown argument ${arg}`);
+    options.path = arg;
+  }
+  if (!options.path) throw new Error('work-order path is required');
+  if (options.parentPath && !options.head) throw new Error('--parent requires --head candidate validation');
+  return options;
+}
+
 function cli() {
-  const args = process.argv.slice(2);
-  if (args.length !== 1 || args[0].startsWith('-')) {
-    console.error('Usage: npm run check:work-order -- <work-order.json>');
+  let options;
+  try {
+    options = parseCliArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    console.error('Usage: npm run check:work-order -- <work-order.json> [--head <sha>] [--parent <parent-work-order.json>]');
     process.exitCode = 2;
     return;
   }
 
   let workOrder;
+  let parentWorkOrder = null;
   try {
-    workOrder = readWorkOrder(args[0]);
+    workOrder = readWorkOrder(options.path);
+    if (options.parentPath) parentWorkOrder = readWorkOrder(options.parentPath);
   } catch (error) {
     console.error(`work-order: unable to read JSON: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 2;
@@ -306,9 +548,31 @@ function cli() {
     process.exitCode = 1;
     return;
   }
-
   console.log('work-order planning-snapshot references: PASS');
-  console.log('M4-2 validates planningBase references; candidate/delegation checks belong to M4-3.');
+
+  if (!options.head) {
+    console.log('M4-2 complete for this packet; pass --head for M4-3 candidate/delegation validation.');
+    return;
+  }
+
+  const candidate = validateWorkOrderCandidate(workOrder, {
+    head: options.head,
+    parentWorkOrder,
+  });
+  if (candidate.errors.length > 0) {
+    console.error('work-order candidate/delegation validation: FAIL');
+    for (const error of candidate.errors) console.error(`- ${error}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log('work-order candidate/delegation validation: PASS');
+  if (candidate.drift.outsideExpectedChangeRoots.length > 0) {
+    console.log('work-order scope drift: REVIEW_REQUIRED');
+    for (const path of candidate.drift.outsideExpectedChangeRoots) console.log(`- outside expectedChangeRoots: ${path}`);
+  } else {
+    console.log('work-order scope drift: NONE');
+  }
 }
 
 const isCli = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
