@@ -31,7 +31,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 - Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`
 - Active: `M4 — Work Protocol / SOW`
 - Next gate: `M4-PLAN`
-- Next work: Design, independently audit, and Owner-approve the M4 Work Protocol / SOW plan that standardizes bounded Goal/Scope/Authority/Inputs/Constraints/Evidence/DoD/Escalation without moving Product Truth, Project State NOW, semantic ownership, or verification verdicts into task prompts.
+- Next work: Revise, independently re-audit, and Owner-approve the M4 Work Protocol / SOW plan against the hardened M3.1 verification model before any M4 implementation begins.
 
 ## Coverage claim
 
