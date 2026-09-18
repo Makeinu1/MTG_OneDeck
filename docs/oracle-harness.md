@@ -1,5 +1,10 @@
 # LLM-oracle 盲予測ハーネス(物差し契約)
 
+> **M5 lifecycle:** `SUPPORTING`  
+> **Authority:** `NONE`。本書はOracle比較・反証方法を支えるsupporting methodology/evidence documentであり、active Product/semantic/Acceptance contractではない。  
+> 実行結果のfreshnessやPASSはcurrent verification pathが候補ごとに所有し、本文や保存済みoracle結果から将来candidateへ持ち越さない。
+
+
 > M0 モデリング・サイクルの**物差し(ruler)契約**。正本手法 = [`engine-design-method.md`](engine-design-method.md) §3-4、
 > KPI = [`engine-spec.md`](engine-spec.md) §34.7、対象モデル = [`engine-state-ontology.md`](engine-state-ontology.md)。
 >

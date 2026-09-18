@@ -1,5 +1,10 @@
 # 理想のMTGエンジンへ向けた設計手法(engine-design-method)
 
+> **M5 lifecycle:** `SUPPORTING`  
+> **Authority:** `NONE`。本書は設計・反証・計測のmethodologyを支える資料であり、Product Truth、active contract、Project State NOW、verification PASSを所有しない。  
+> 現在状態の判断は `docs/project-state/index.json` とactive contract/verification registryを再読する。本文中の過去milestone/status表現はcurrent verdictとして扱わない。
+
+
 > メタ文書。**何を作るか**(=`docs/architecture-substrate-compiler.md`)の一段上、**どう作るか=
 > どう設計を磨き続けるか**を定める。実装の前に置く規律であり、各反復で本書自身も更新する。
 > 最終更新: 2026-07-08(§9 抽象の昇格規律=北極星③を追加)。
