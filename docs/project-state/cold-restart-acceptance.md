@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Prove that a brand-new LLM with no prior chat, memory, Issue context or human briefing can recover the **current** project state and the M0→M4 control model from repository files alone.
+Prove that a brand-new LLM with no prior chat, memory, Issue context or human briefing can recover the **current** project state and the M0→M4.1 control model from repository files alone.
 
 A passing reader must keep five layers separate:
 
@@ -113,7 +113,7 @@ A passing answer must recover all of the following without past conversation.
 
 ### Current handoff
 
-55. M4 completion means the repository can hand one bounded work item to a fresh execution context, validate its planning snapshot and exact candidate, and bound child delegation without relying on chat history or creating a second authority system.
+55. M4/M4.1 completion means the repository can hand one bounded work item to a fresh execution context, validate its planning snapshot and exact candidate, and bound child delegation without relying on chat history or creating a second authority system.
 56. The next milestone is M5 Audit / Hygiene / Recovery.
 57. M5 owns repository-wide reassessment and cleanup of stale/dead/duplicate authority surfaces, orphan Acceptance/evidence/tests, legacy implementation/document drift, and interrupted-work recovery beyond M4's basic resume envelope.
 58. M5 must preserve M0 Product/UX Truth, M1 semantic verdict ownership, M2 semantic identity, M3/M3.1 verification semantics, and M4 external-write/delegation boundaries unless an explicit separately-authorized authority change is the work itself.
@@ -132,8 +132,8 @@ A passing answer must recover all of the following without past conversation.
 64. Work Orders never store current M1 verdict values, M3/M3.1 PASS/freshness, current milestone/next gate, or durable commit/push/merge/deploy permission.
 65. `scripts/checks/work-order.mjs` validates structure and resolves semantic/capability/Acceptance/authority/path references against the exact `planningBase` snapshot. A later repository state cannot retroactively make an invalid old packet valid.
 66. With an explicit candidate head, M4-3 requires `planningBase` ancestry, rechecks references, detects Project State execution-boundary changes, M1 capability-context changes and material referenced-Acceptance changes, rejects protected-path mutation, and distinguishes authority-source semantic changes from ordinary M3/M3.1 implementation/evidence impact.
-67. Files outside `expectedChangeRoots` are reported as drift for review; file drift alone is not automatically reclassified as semantic failure.
-68. Child delegation is monotonic for change authority: target semantic scope and expected change roots cannot broaden, protected boundaries cannot weaken, inherited review/verification policy cannot weaken, and parent verification obligations relevant to the child target cannot silently disappear.
+67. Files outside `expectedChangeRoots` are reported as drift for review; file drift alone is not automatically reclassified as semantic failure. `scope.inputPaths` must exist at planningBase but may be deleted by the candidate when deletion is within the bounded change scope.
+68. Child delegation is monotonic for change authority: child workId differs from the parent, parent authority refs and capability-context refs remain inherited, target semantic scope and expected change roots cannot broaden, protected boundaries cannot weaken, inherited review/verification policy cannot weaken, and parent verification obligations relevant to the child target cannot silently disappear.
 69. A child may add read-only authority/input references needed to understand its narrower task; reference expansion alone is not mutation authority.
 70. M3.1 owns exact-candidate manual evidence receipt validation. M4 owns only the bounded procedure around who performs/reviews the manual work and how its evidence reference is handed back.
 71. `scripts/checks/check-work-protocol.mjs` verifies the representative root and child fixtures and proves that the nested authority-escalation fixture is rejected.
@@ -143,6 +143,7 @@ A passing answer must recover all of the following without past conversation.
 75. M6 owns orchestration. M4 does not auto-select work, recursively dispatch agents, retry failed work, merge competing outputs or advance milestones.
 76. Before M6 closed-loop orchestration is approved, M6-PLAN must require an independently bounded CR-15 audit for the automation surfaces it will invoke.
 77. On main, the M4 Work Protocol is committed process state subordinate to Project State NOW; on a non-main branch, Work Protocol changes are candidate process state until merged.
+78. `AGENTS.md` and the development skill require Work Order validation when a packet is supplied and for milestone/repository-wide/delegated work, while small non-delegated tasks may use the compact Goal/Non-goals/Acceptance/untouched plan without ceremonial packet creation.
 
 ## Machine integrity gates
 
