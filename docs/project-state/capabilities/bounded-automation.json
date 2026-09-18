@@ -7,11 +7,23 @@
   "deliveryState": "UNKNOWN",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
-  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Bounded automation / known capability"}],
-  "implementationRefs": [{"path":"src/engine/cockpitTriggers.ts"},{"path":"src/engine/cockpitR31.ts"}],
+  "auditedAtCommit": "a97cfd9435f48af69fcfb4dca498c0c3f04f79b5",
+  "authorityRefs": [
+    {
+      "path": "docs/contracts/ux-constitution.md",
+      "locator": "Bounded automation / known capability"
+    }
+  ],
+  "implementationRefs": [
+    {
+      "path": "src/engine/cockpitTriggers.ts"
+    },
+    {
+      "path": "src/engine/cockpitR31.ts"
+    }
+  ],
   "verificationRefs": [],
   "rationale": "Bounded detectors/materializers and manual fallback exist in subsystems, but complete current capability coverage has not been reconstructed well enough for a global MATCH/GAP/CONFLICT verdict.",
-  "nextAction": "Keep UNKNOWN. M3 provides bounded candidate-relative verification but does not prove exhaustive automation capability coverage or that every automation path is semantically known.",
+  "nextAction": "Keep UNKNOWN. M3.1 hardens verification-coverage invalidation, manual evidence handling, and evidence-role classification, but it still does not prove exhaustive automation capability coverage or that every automation path is semantically known.",
   "ownerDecisionRefs": []
 }
