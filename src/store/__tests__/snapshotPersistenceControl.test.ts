@@ -1,3 +1,4 @@
+// scenario: ACC-UNDO-001
 import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { loadSnapshot, saveSnapshot, SNAPSHOT_VERSION } from '../../data/gameSnapshot';
