@@ -7,11 +7,11 @@
   "deliveryState": "UNKNOWN",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
+  "auditedAtCommit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Bounded automation / known capability"}],
   "implementationRefs": [{"path":"src/engine/cockpitTriggers.ts"},{"path":"src/engine/cockpitR31.ts"}],
   "verificationRefs": [],
   "rationale": "Bounded detectors/materializers and manual fallback exist in subsystems, but complete current capability coverage has not been reconstructed well enough for a global MATCH/GAP/CONFLICT verdict.",
-  "nextAction": "Keep UNKNOWN until M3 maps explicit capability scope, evidence and freshness without treating test presence or graph connectivity as semantic MATCH.",
+  "nextAction": "Keep UNKNOWN. M3 provides bounded candidate-relative verification but does not prove exhaustive automation capability coverage or that every automation path is semantically known.",
   "ownerDecisionRefs": []
 }
