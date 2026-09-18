@@ -9,10 +9,7 @@ const projects = ['core', 'dom'];
 const SUPPORTED_DEFAULT_INCLUDE = ['**/*.{test,spec}.?(c|m)[jt]s?(x)'];
 const SUPPORTED_DEFAULT_EXCLUDE = [
   '**/node_modules/**',
-  '**/dist/**',
-  '**/cypress/**',
-  '**/.{idea,git,cache,output,temp}/**',
-  '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
+  '**/.git/**',
 ];
 
 function assertSupportedVitestDefaults() {
@@ -38,13 +35,7 @@ export const TEST_FILE_SUFFIXES = Object.freeze([
 ]);
 
 const TEST_LIKE_PATH = /(?:^|\/)[^/]+\.(?:test|spec)\.[^/]+$/u;
-const DEFAULT_EXCLUDED_DIRECTORIES = new Set([
-  'node_modules', 'dist', 'cypress', '.idea', '.git', '.cache', '.output', '.temp',
-]);
-const DEFAULT_EXCLUDED_CONFIG_NAMES = new Set([
-  'karma', 'rollup', 'webpack', 'vite', 'vitest', 'jest', 'ava', 'babel', 'nyc',
-  'cypress', 'tsup', 'build', 'eslint', 'prettier',
-]);
+const DEFAULT_EXCLUDED_DIRECTORIES = new Set(['node_modules', '.git']);
 
 function normalizeRepositoryPath(path) {
   return path.replaceAll('\\', '/').replace(/^\.\//, '');
@@ -54,9 +45,7 @@ function isExcludedTestPath(normalized) {
   const segments = normalized.split('/');
   if (segments.some((segment) => DEFAULT_EXCLUDED_DIRECTORIES.has(segment))) return true;
   if (normalized.startsWith('.claude/')) return true;
-  const filename = segments.at(-1) ?? '';
-  const configMatch = filename.match(/^([^.]+)\.config\./u);
-  return configMatch ? DEFAULT_EXCLUDED_CONFIG_NAMES.has(configMatch[1]) : false;
+  return false;
 }
 
 export function isTestLikePath(path) {
