@@ -7,7 +7,7 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
+  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Correction / Undo boundary"}],
   "implementationRefs": [{"path":"src/engine/cockpitR4b.ts","locator":"repair.* operations and mutation gate"}],
   "verificationRefs": [{"path":"src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts"}],
