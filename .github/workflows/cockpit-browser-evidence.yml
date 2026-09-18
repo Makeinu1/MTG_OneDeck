@@ -1,0 +1,162 @@
+name: Cockpit browser evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/cockpit-browser-evidence.yml'
+      - 'scripts/evidence/**'
+      - 'scripts/online/r31-resolution-uat.mjs'
+      - 'scripts/online/r4-ui-browser-evidence.ts'
+      - 'scripts/online/r4-ui-evidence-harness.tsx'
+      - 'scripts/online/cockpit-turn-evidence.mjs'
+      - 'src/components/game/**'
+      - 'src/online/**'
+      - 'src/engine/**'
+      - 'src/data/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cockpit-browser-evidence.yml'
+      - 'scripts/evidence/**'
+      - 'scripts/online/r31-resolution-uat.mjs'
+      - 'scripts/online/r4-ui-browser-evidence.ts'
+      - 'scripts/online/r4-ui-evidence-harness.tsx'
+      - 'scripts/online/cockpit-turn-evidence.mjs'
+      - 'src/components/game/**'
+      - 'src/online/**'
+      - 'src/engine/**'
+      - 'src/data/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  session-browser:
+    name: R3.1 resolution and turn-cleanup browser evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Acquire isolated Worker and browser runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/cockpit-runtime"
+          cd "$RUNNER_TEMP/cockpit-runtime"
+          npm init -y >/dev/null
+          npm install --save-exact wrangler@4.131.1 playwright@1.63.0
+          node node_modules/playwright/cli.js install --with-deps chromium
+      - name: Start local Worker and Vite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node "$RUNNER_TEMP/cockpit-runtime/node_modules/wrangler/bin/wrangler.js" dev --local --ip 127.0.0.1 --port 8789 --persist-to "$RUNNER_TEMP/cockpit-sqlite" --log-level error > "$RUNNER_TEMP/cockpit-worker.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/cockpit-worker.pid"
+          node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 > "$RUNNER_TEMP/cockpit-vite.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/cockpit-vite.pid"
+          for i in $(seq 1 80); do
+            if curl -s --max-time 1 -o /dev/null http://127.0.0.1:8789/ && curl -fsS --max-time 1 -o /dev/null http://127.0.0.1:5173/; then
+              exit 0
+            fi
+            sleep 0.5
+          done
+          cat "$RUNNER_TEMP/cockpit-worker.log" || true
+          cat "$RUNNER_TEMP/cockpit-vite.log" || true
+          exit 1
+      - name: Run current R3.1 Manual Resolution browser contract
+        env:
+          COCKPIT_EVIDENCE_DIR: ${{ runner.temp }}/cockpit-r31-evidence
+          COCKPIT_PLAYWRIGHT_MODULE: ${{ runner.temp }}/cockpit-runtime/node_modules/playwright/index.mjs
+          COCKPIT_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/online/r31-resolution-uat.mjs
+      - name: Run current turn-cleanup browser contract
+        env:
+          COCKPIT_EVIDENCE_DIR: ${{ runner.temp }}/cockpit-turn-evidence
+          COCKPIT_PLAYWRIGHT_MODULE: ${{ runner.temp }}/cockpit-runtime/node_modules/playwright/index.mjs
+          COCKPIT_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/online/cockpit-turn-evidence.mjs
+      - name: Dump local runtime logs on failure
+        if: failure()
+        run: |
+          cat "$RUNNER_TEMP/cockpit-worker.log" || true
+          cat "$RUNNER_TEMP/cockpit-vite.log" || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cockpit-current-session-browser-evidence
+          path: |
+            ${{ runner.temp }}/cockpit-r31-evidence
+            ${{ runner.temp }}/cockpit-turn-evidence
+          retention-days: 7
+          if-no-files-found: warn
+
+  formal-browser:
+    name: R4 Formal browser evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Create evidence-only Vite entry
+        shell: bash
+        run: |
+          cat > r4-ui-evidence.html <<'EOF'
+          <!doctype html>
+          <html lang="ja">
+            <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+            <body><div id="root"></div><script type="module" src="/scripts/online/r4-ui-evidence-harness.tsx"></script></body>
+          </html>
+          EOF
+      - name: Start local Vite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 > "$RUNNER_TEMP/r4-vite.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/r4-vite.pid"
+          for i in $(seq 1 80); do
+            if curl -fsS --max-time 1 http://127.0.0.1:5173/r4-ui-evidence.html >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat "$RUNNER_TEMP/r4-vite.log" || true
+          exit 1
+      - name: Run current R4 Formal browser contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          O4P06F_CHROME="$CHROME"           R4_UI_EVIDENCE_ORIGIN="http://127.0.0.1:5173"           R4_UI_EVIDENCE_OUTPUT="$RUNNER_TEMP/r4-ui-browser-evidence.json"           ./node_modules/.bin/tsx scripts/online/r4-ui-browser-evidence.ts
+          cat "$RUNNER_TEMP/r4-ui-browser-evidence.json"
+      - name: Dump Vite log on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/r4-vite.log" || true
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cockpit-current-r4-formal-browser-evidence
+          path: ${{ runner.temp }}/r4-ui-browser-evidence.json
+          retention-days: 7
+          if-no-files-found: warn
