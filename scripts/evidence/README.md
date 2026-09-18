@@ -20,3 +20,5 @@ A contract here establishes:
 It does not claim that a browser check is currently fresh for a candidate merely because the contract exists. Candidate freshness still belongs to the current verification path that executes/records the evidence.
 
 The current three contracts intentionally remain outside `scripts/journeys/registry.json`: the journey harness local stages currently accept Vitest runners, while these Cockpit browser checks require local browser/server or evidence-only Vite setup. M5 does not redesign the journey harness merely to move old evidence.
+
+Their current execution owner is `.github/workflows/cockpit-browser-evidence.yml`, which runs the registered executors on relevant pull requests to `main`, relevant pushes to `main`, and explicit workflow dispatch. A green historical branch-only workflow is not current evidence for a later candidate.
