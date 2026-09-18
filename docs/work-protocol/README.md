@@ -178,6 +178,32 @@ Even when a packet is structurally valid:
 6. HIGH/BLOCKER review findings remain unresolved until separately cleared;
 7. canonical authority is never edited merely to make implementation easier.
 
+## Manual evidence procedure
+
+When M3.1 reports `MANUAL_REQUIRED`:
+
+1. read the referenced Acceptance scenario and its oracle; do not invent a substitute manual check;
+2. the check may be performed by the current execution actor only when that actor can directly observe every required condition with available tools;
+3. human sensory, strategic, table-agreement, or inaccessible real-browser/physical observations must be escalated to the current user/human rather than simulated by an LLM;
+4. a manual PASS is evidence only. It is not independent review approval and does not change an M1 semantic verdict;
+5. when AGENTS requires independent review, the required reviewer remains separate from the implementation context even if the manual scenario was already performed;
+6. communicate the result to M3.1 as the exact-candidate receipt (`scenarioId`, `PASS|FAIL`, `evidenceRef`) bound to the same base/head;
+7. do not persist that receipt inside the Work Order as current truth or as external-write permission.
+
+## Escalation packet
+
+When a mandatory or task-local escalation condition is reached, report only the bounded decision packet:
+
+- blocking question;
+- exact authority/evidence causing the block;
+- why deterministic resolution is unavailable;
+- smallest viable options;
+- consequence of each option;
+- a justified recommendation when one exists;
+- exact human/Owner decision required.
+
+This is a communication shape, not a persistent escalation registry. It never grants external-write authority and does not update Project State by itself.
+
 ## Persistence
 
 M4 creates no permanent `current-work.json` registry.
