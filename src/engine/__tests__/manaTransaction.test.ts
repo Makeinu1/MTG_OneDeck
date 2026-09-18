@@ -1,3 +1,7 @@
+// scenario: ACC-MANA-001
+// scenario: ACC-MANA-004
+// scenario: ACC-MANA-005
+// scenario: ACC-MANA-006
 import { describe, expect, it } from 'vitest';
 
 import {
