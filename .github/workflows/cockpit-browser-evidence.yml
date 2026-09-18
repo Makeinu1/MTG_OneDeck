@@ -84,6 +84,26 @@ jobs:
           COCKPIT_PLAYWRIGHT_MODULE: ${{ runner.temp }}/cockpit-runtime/node_modules/playwright/index.mjs
           COCKPIT_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: node scripts/online/r31-resolution-uat.mjs
+      - name: Restart local runtime for turn-cleanup isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          kill "$(cat "$RUNNER_TEMP/cockpit-worker.pid")" "$(cat "$RUNNER_TEMP/cockpit-vite.pid")" 2>/dev/null || true
+          sleep 1
+          rm -rf "$RUNNER_TEMP/cockpit-sqlite-turn"
+          node "$RUNNER_TEMP/cockpit-runtime/node_modules/wrangler/bin/wrangler.js" dev --local --ip 127.0.0.1 --port 8789 --persist-to "$RUNNER_TEMP/cockpit-sqlite-turn" --log-level error > "$RUNNER_TEMP/cockpit-worker.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/cockpit-worker.pid"
+          node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 > "$RUNNER_TEMP/cockpit-vite.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/cockpit-vite.pid"
+          for i in $(seq 1 80); do
+            if curl -s --max-time 1 -o /dev/null http://127.0.0.1:8789/ && curl -fsS --max-time 1 -o /dev/null http://127.0.0.1:5173/; then
+              exit 0
+            fi
+            sleep 0.5
+          done
+          cat "$RUNNER_TEMP/cockpit-worker.log" || true
+          cat "$RUNNER_TEMP/cockpit-vite.log" || true
+          exit 1
       - name: Run current turn-cleanup browser contract
         env:
           COCKPIT_EVIDENCE_DIR: ${{ runner.temp }}/cockpit-turn-evidence
