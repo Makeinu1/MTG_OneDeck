@@ -320,13 +320,17 @@ try {
     );
   }, 'manual resolution finished');
   stage = 'mana-setup';
-  const manaPlus = host.getByLabel('Gマナを1増やす', { exact: true });
+  await host.getByRole('button', { name: /^マナ・プール \d+点$/ }).click();
+  const manaDialog = host.getByRole('dialog', { name: 'マナ・プール', exact: true });
+  await manaDialog.waitFor();
+  const manaPlus = manaDialog.getByLabel('Gマナを1増やす', { exact: true });
   await until(() => manaPlus.isEnabled(), 'mana control enabled');
   await mutate(
     host,
     () => manaPlus.click(),
     'mana',
   );
+  await manaDialog.getByRole('button', { name: '閉じる', exact: true }).click();
   let totalTurns = 0;
   for (let round = 0; round < 4; round++) {
     stage = `ordinary-turn-${round + 1}`;
