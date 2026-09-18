@@ -191,3 +191,11 @@ M5 owns deeper audit/hygiene/recovery, including stale/dead artifact cleanup and
 M6 owns orchestration. M4 does not auto-select work, dispatch recursive agents, retry failed work, merge competing worker outputs, or advance milestones automatically.
 
 Before M6 closed-loop orchestration is approved, M6-PLAN must require an independently bounded CR-15 audit for the automation surfaces it will invoke.
+
+## Representative fixtures
+
+- `docs/work-protocol/examples/root-implementation.json` — machine-valid root Work Order.
+- `docs/work-protocol/examples/child-evidence.json` — machine-valid monotonic child Work Order.
+- `docs/work-protocol/examples/invalid-authority-escalation.json` — intentionally invalid nested external-write authority attempt; the Work Protocol gate must reject it.
+
+Run `npm run check:work-protocol` to validate these fixtures and delegation invariants together.
