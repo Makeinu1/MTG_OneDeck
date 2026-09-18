@@ -7,7 +7,7 @@
   "deliveryState": "UNPLANNED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
+  "auditedAtCommit": "c2671e0ee45211b66d31f00f169c481291dc7eb0",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Pregame / Turn Zero"}],
   "implementationRefs": [{"path":"src/online/pregame/operations.ts"},{"path":"src/online/pregame/projection.ts"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"start control"}],
   "verificationRefs": [{"path":"src/online/pregame/__tests__/pregameLifecycleV1.test.ts"}],
