@@ -26,9 +26,11 @@ jobs:
           src/engine/__tests__/cockpitR31.test.ts
           src/engine/__tests__/cockpitR31Lifecycle.test.ts
           src/engine/__tests__/cockpitTriggers.test.ts
-      - name: R4b v2 session and Formal regressions
+      - name: Cockpit recovery, R4b v2 session and Formal regressions
         run: >-
           node node_modules/vitest/vitest.mjs run --project dom
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
+          src/online/browser/__tests__/cockpitClient.test.ts
           src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts
           src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
@@ -65,6 +67,7 @@ jobs:
           src/online/cloudflare/cockpitR4bSession.ts
           src/online/cloudflare/cockpitR4bAudit.ts
           src/online/cloudflare/cockpitSession.ts
+          src/online/cloudflare/__tests__/cockpitSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4bSession.test.ts
           src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts
           src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts
@@ -72,6 +75,7 @@ jobs:
           src/online/cloudflare/__tests__/cockpitR4Session.test.ts
           src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts
           src/online/browser/cockpitClient.ts
+          src/online/browser/__tests__/cockpitClient.test.ts
           src/online/browser/__tests__/cockpitClientR4b.test.ts
           src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts
           src/online/browser/__tests__/cockpitClientR4bSunset.test.ts
