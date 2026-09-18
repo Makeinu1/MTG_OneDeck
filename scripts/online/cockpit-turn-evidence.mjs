@@ -249,7 +249,47 @@ try {
   const board = host.locator(`[data-layout-card-id="${permanent.id}"]`).first();
   await mutate(host, () => board.dblclick(), 'tap');
   assert.equal((await read(host)).table.cards[permanent.id].tapped, true);
-  // Add an explicitly scoped temporary effect through the ordinary card details.
+  // Card tools are intentionally available only during Manual Resolution.
+  // Cast a second creature and enter the explicit manual-resolution path so the
+  // temporary modifier is created through the current visible UI.
+  stage = 'manual-modifier-cast';
+  state = await read(host);
+  const ownSeat = state.table.seats.find((s) => s.id === state.multiplayer?.ownSeatId);
+  const manualCardId = ownSeat?.zones.hand[0];
+  assert.ok(manualCardId);
+  const manualCard = state.table.cards[manualCardId];
+  const manualDef = manualCard && state.table.defs[manualCard.defId];
+  const manualName = manualDef?.printedName ?? manualDef?.name ?? manualCardId;
+  await host.getByTestId(`card-${manualCardId}`).click({ button: 'right' });
+  await host.getByRole('menuitem', { name: '唱える', exact: true }).click();
+  await mutate(
+    host,
+    () => host.getByRole('button', { name: '支払って唱える', exact: true }).click(),
+    'manual modifier cast',
+  );
+  await host
+    .getByRole('button', { name: '支払って唱える', exact: true })
+    .waitFor({ state: 'hidden' });
+  await until(
+    async () => (await read(host)).table.stack.some((entry) => entry.source.id === manualCardId),
+    'manual modifier cast persisted',
+  );
+
+  stage = 'manual-modifier-resolution';
+  await host.locator('.table-progress__source').click();
+  await mutate(
+    host,
+    () => host.getByRole('button', { name: '効果を自分で処理する', exact: true }).click(),
+    'manual resolution begin',
+  );
+  await until(
+    async () => (await read(host)).table.resolution?.source.id === manualCardId,
+    'manual resolution active',
+  );
+  const resolutionPanel = host.getByLabel(`《${manualName}》を解決`, { exact: true });
+  await resolutionPanel.waitFor();
+  await resolutionPanel.getByLabel('作業面を閉じる', { exact: true }).click();
+
   stage = 'temporary-modifier';
   await board.click({ button: 'right' });
   await host.getByRole('menuitem', { name: '詳細・その他の操作', exact: true }).click();
@@ -263,7 +303,22 @@ try {
     () => details.getByRole('button', { name: '修整を追加', exact: true }).click(),
     'modifier',
   );
-  await details.getByRole('button', { name: '作業面を閉じる', exact: true }).click();
+  await details.getByLabel('作業面を閉じる', { exact: true }).click();
+
+  stage = 'manual-modifier-finish';
+  await host.locator('.table-progress__source').click();
+  await mutate(
+    host,
+    () => host.getByRole('button', { name: '処理完了', exact: true }).click(),
+    'manual resolution end',
+  );
+  await until(async () => {
+    const view = await read(host);
+    return (
+      view.table.resolution === null &&
+      !view.table.stack.some((entry) => entry.source.id === manualCardId)
+    );
+  }, 'manual resolution finished');
   await host.getByRole('button', { name: '操作', exact: true }).click();
   await host.getByText('マナの調整', { exact: true }).click();
   await mutate(
