@@ -4,7 +4,7 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "a97cfd9435f48af69fcfb4dca498c0c3f04f79b5",
+    "commit": "b71a3a3c92bd48bc66ef4e3ab5a814ac5b8c69c3",
     "auditedDate": "2026-09-18",
     "watchedRoots": [
       "src",
@@ -36,8 +36,8 @@
       "M4.1 — Work Protocol Hardening"
     ],
     "activeMilestone": "M5 — Audit / Hygiene / Recovery",
-    "nextGate": "M5-PLAN",
-    "nextWork": "Design, independently audit, and Owner-approve the M5 Audit / Hygiene / Recovery plan for repository-wide reassessment, stale/dead/duplicate authority cleanup, orphan evidence/Acceptance/test cleanup, and safe interrupted-work recovery without changing Product Truth, M1 semantic verdicts, or prematurely implementing the M6 closed execution loop.",
+    "nextGate": "M5.0 — Foundation Verification",
+    "nextWork": "Implement and independently verify the Owner-approved M5.0 foundation: legacy inventory machine-base/judge-overlay separation and fail-closed changed-test self-selection. Do not begin destructive repository cleanup until both foundation changes are green and integrated.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",

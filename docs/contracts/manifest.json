@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "traceability": "docs/contracts/traceability.json",
   "legacyInventory": "research/archive/document-reset-2026-08/legacy-contract-inventory.json",
+  "legacyInventoryDecisions": "research/archive/document-reset-2026-08/legacy-contract-decisions.json",
   "activeAllowlist": [],
   "contracts": [
     {"id":"CONTRACT-UX-CONSTITUTION","status":"active","path":"docs/contracts/ux-constitution.md","authorityFor":["interaction-semantics","human-authority","automation-boundary","game-lifecycle","hold","undo-correction","room-administration"],"owner":"judge","dependsOn":[],"supersedes":[]},

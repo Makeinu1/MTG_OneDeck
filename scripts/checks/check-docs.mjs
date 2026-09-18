@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { isActiveLegacyItem } from './legacy-inventory-policy.mjs';
+import { isActiveLegacySuggestion, LEGACY_SUGGESTED_DISPOSITIONS, validateLegacyDecision } from './legacy-inventory-policy.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
 const manifestPath = join(root, 'docs/contracts/manifest.json');
@@ -14,7 +14,6 @@ const traceabilityPath = join(root, 'docs/contracts/traceability.json');
 const traceabilityRelativePath = relative(root, traceabilityPath);
 const productRequirementsPath = join(root, 'docs/product-requirements.md');
 const semanticMapPath = join(root, 'docs/contracts/semantic-map.json');
-const inventoryPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
 const errors = [];
 
 function readJson(path) {
@@ -53,6 +52,13 @@ function walk(directory) {
 
 function checkManifest(manifest) {
   if (manifest === null || typeof manifest !== 'object') return;
+  for (const key of ['legacyInventory', 'legacyInventoryDecisions']) {
+    if (typeof manifest[key] !== 'string' || manifest[key].trim() === '') {
+      errors.push(`manifest: ${key} path is required`);
+    } else {
+      requireFile(join(root, manifest[key]), `manifest ${key}`);
+    }
+  }
   const entries = Array.isArray(manifest.contracts) ? manifest.contracts : [];
   const byId = new Map();
   const authorities = new Map();
@@ -410,26 +416,73 @@ function hashText(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
-function checkLegacyInventory(inventory, clauseIds, scenarioIds) {
+function gitBlobHash(text) {
+  const bytes = Buffer.byteLength(text, 'utf8');
+  return createHash('sha1').update(`blob ${bytes}\0`, 'utf8').update(text, 'utf8').digest('hex');
+}
+
+function legacyItemKey(item) {
+  const anchor = item?.sourceAnchor ?? {};
+  return `${item?.sourcePath ?? ''}#L${anchor.lineStart ?? ''}-L${anchor.lineEnd ?? ''}:${item?.textHash ?? ''}`;
+}
+
+function checkLegacyInventory(inventory, validTargets) {
   if (inventory === null || typeof inventory !== 'object' || !Array.isArray(inventory.items)) {
     errors.push('legacy inventory: expected items array');
     return;
   }
-  const dispositions = new Set(['active-clause', 'active-acceptance', 'covered-by', 'archived-historical', 'duplicate-of', 'obsolete-by-explicit-decision', 'deferred-needs-decision']);
+  if (inventory.schemaVersion !== 2) errors.push('legacy inventory: schemaVersion must be 2');
+  if (!Array.isArray(inventory.sources)) errors.push('legacy inventory: sources must be an array');
+
+  const sourcePaths = new Set();
+  for (const sourceEntry of inventory.sources ?? []) {
+    if (sourceEntry === null || typeof sourceEntry !== 'object' || Array.isArray(sourceEntry)) {
+      errors.push('legacy inventory: every source entry must be an object');
+      continue;
+    }
+    if (typeof sourceEntry.path !== 'string' || typeof sourceEntry.blobSha !== 'string') {
+      errors.push('legacy inventory: source entry requires path and blobSha');
+      continue;
+    }
+    if (sourcePaths.has(sourceEntry.path)) errors.push(`legacy inventory: duplicate source ${sourceEntry.path}`);
+    sourcePaths.add(sourceEntry.path);
+    const source = join(root, sourceEntry.path);
+    requireFile(source, `legacy inventory source ${sourceEntry.path}`);
+    if (existsSync(source) && gitBlobHash(fileText(source)) !== sourceEntry.blobSha) {
+      errors.push(`legacy inventory source ${sourceEntry.path}: blobSha mismatch`);
+    }
+  }
+
   const ids = new Set();
+  const itemKeys = new Set();
   const anchors = new Set();
-  const validTargets = new Set([...clauseIds, ...scenarioIds]);
   for (const item of inventory.items) {
-    for (const key of ['legacyItemId', 'sourcePath', 'sourceAnchor', 'itemType', 'textHash', 'summary', 'disposition', 'targetIds', 'rationale']) {
+    for (const key of [
+      'itemKey', 'legacyItemId', 'sourcePath', 'sourceAnchor', 'itemType', 'sourceText', 'textHash', 'summary',
+      'suggestedDisposition', 'suggestedTargetIds', 'suggestedRationale',
+    ]) {
       if (!(key in item)) errors.push(`legacy inventory ${item.legacyItemId ?? '<unknown>'}: missing ${key}`);
+    }
+    for (const judgeKey of ['disposition', 'targetIds', 'rationale', 'decisionRef', 'duplicateOfItemKey']) {
+      if (judgeKey in item) errors.push(`legacy inventory ${item.legacyItemId ?? '<unknown>'}: judge field ${judgeKey} must live in overlay`);
     }
     if (typeof item.legacyItemId !== 'string') continue;
     if (ids.has(item.legacyItemId)) errors.push(`legacy inventory: duplicate id ${item.legacyItemId}`);
     ids.add(item.legacyItemId);
+    if (typeof item.itemKey !== 'string' || item.itemKey !== legacyItemKey(item)) {
+      errors.push(`legacy inventory ${item.legacyItemId}: itemKey mismatch`);
+    } else if (itemKeys.has(item.itemKey)) {
+      errors.push(`legacy inventory: duplicate itemKey ${item.itemKey}`);
+    } else itemKeys.add(item.itemKey);
+
     const anchorKey = `${item.sourcePath}:${JSON.stringify(item.sourceAnchor)}`;
     if (anchors.has(anchorKey)) errors.push(`legacy inventory: duplicate source anchor ${anchorKey}`);
     anchors.add(anchorKey);
-    if (!dispositions.has(item.disposition)) errors.push(`legacy inventory ${item.legacyItemId}: invalid disposition ${item.disposition}`);
+    if (!sourcePaths.has(item.sourcePath)) errors.push(`legacy inventory ${item.legacyItemId}: sourcePath is not declared in sources`);
+    if (!LEGACY_SUGGESTED_DISPOSITIONS.has(item.suggestedDisposition)) {
+      errors.push(`legacy inventory ${item.legacyItemId}: invalid suggestedDisposition ${item.suggestedDisposition}`);
+    }
+
     const source = join(root, item.sourcePath ?? '');
     requireFile(source, `legacy inventory ${item.legacyItemId} source`);
     if (typeof item.sourceText !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: sourceText required for hash proof`);
@@ -441,13 +494,46 @@ function checkLegacyInventory(inventory, clauseIds, scenarioIds) {
     } else {
       errors.push(`legacy inventory ${item.legacyItemId}: sourceAnchor line range required`);
     }
-    if (item.disposition === 'deferred-needs-decision' && typeof item.rationale !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: deferred rationale required`);
-    if (item.disposition === 'archived-historical' && typeof item.rationale !== 'string') errors.push(`legacy inventory ${item.legacyItemId}: historical rationale required`);
-    if (item.disposition === 'duplicate-of' && (!Array.isArray(item.targetIds) || item.targetIds.length !== 1 || !ids.has(item.targetIds[0]))) errors.push(`legacy inventory ${item.legacyItemId}: duplicate-of target must exist`);
-    if (['active-clause', 'active-acceptance', 'covered-by'].includes(item.disposition)) {
-      if (!isActiveLegacyItem(item)) errors.push(`legacy inventory ${item.legacyItemId}: active disposition lacks explicit normative or numbered acceptance evidence`);
-      if (!Array.isArray(item.targetIds) || item.targetIds.length === 0) errors.push(`legacy inventory ${item.legacyItemId}: targetIds required`);
-      for (const target of item.targetIds ?? []) if (!validTargets.has(target)) errors.push(`legacy inventory ${item.legacyItemId}: unresolved target ${target}`);
+
+    if (!Array.isArray(item.suggestedTargetIds)) {
+      errors.push(`legacy inventory ${item.legacyItemId}: suggestedTargetIds must be an array`);
+    } else {
+      for (const target of item.suggestedTargetIds) {
+        if (!validTargets.has(target)) errors.push(`legacy inventory ${item.legacyItemId}: unresolved suggested target ${target}`);
+      }
+    }
+    if (typeof item.suggestedRationale !== 'string' || item.suggestedRationale.trim() === '') {
+      errors.push(`legacy inventory ${item.legacyItemId}: suggestedRationale is required`);
+    }
+    if (['active-clause', 'active-acceptance'].includes(item.suggestedDisposition)) {
+      if (!isActiveLegacySuggestion(item)) {
+        errors.push(`legacy inventory ${item.legacyItemId}: active suggestion lacks explicit normative or numbered acceptance evidence`);
+      }
+      if (!Array.isArray(item.suggestedTargetIds) || item.suggestedTargetIds.length === 0) {
+        errors.push(`legacy inventory ${item.legacyItemId}: active suggestion requires suggestedTargetIds`);
+      }
+    }
+  }
+}
+
+function checkLegacyDecisions(decisions, inventory, validTargets, expectedBase) {
+  if (decisions === null || typeof decisions !== 'object' || Array.isArray(decisions)) {
+    errors.push('legacy decisions: expected object');
+    return;
+  }
+  if (decisions.schemaVersion !== 1) errors.push('legacy decisions: schemaVersion must be 1');
+  if (decisions.base !== expectedBase) errors.push(`legacy decisions: base must be ${expectedBase}`);
+  if (!Array.isArray(decisions.decisions)) {
+    errors.push('legacy decisions: decisions must be an array');
+    return;
+  }
+  const baseItemKeys = new Set((inventory?.items ?? []).map((item) => item.itemKey));
+  const seen = new Set();
+  for (const decision of decisions.decisions) {
+    if (seen.has(decision?.itemKey)) errors.push(`legacy decisions: duplicate decision for ${decision.itemKey}`);
+    else if (typeof decision?.itemKey === 'string') seen.add(decision.itemKey);
+    for (const issue of validateLegacyDecision(decision, { baseItemKeys, validTargets })) {
+      errors.push(`legacy decisions ${issue}`);
     }
   }
 }
@@ -479,35 +565,59 @@ function run() {
   requireFile(traceabilityPath, 'traceability registry');
   requireFile(productRequirementsPath, 'product requirements');
   requireFile(semanticMapPath, 'semantic map');
-  requireFile(inventoryPath, 'legacy contract inventory');
+
   const manifest = readJson(manifestPath);
+  checkManifest(manifest);
+
+  const inventoryRelativePath = typeof manifest?.legacyInventory === 'string' ? manifest.legacyInventory : null;
+  const decisionsRelativePath = typeof manifest?.legacyInventoryDecisions === 'string' ? manifest.legacyInventoryDecisions : null;
+  const inventoryPath = inventoryRelativePath ? join(root, inventoryRelativePath) : null;
+  const decisionsPath = decisionsRelativePath ? join(root, decisionsRelativePath) : null;
+  if (inventoryPath) requireFile(inventoryPath, 'legacy contract inventory');
+  if (decisionsPath) requireFile(decisionsPath, 'legacy contract decisions');
+
   const migration = readJson(migrationPath);
   const scenarios = readJson(scenarioPath);
   const traceability = readJson(traceabilityPath);
   const semanticMap = readJson(semanticMapPath);
-  const inventory = readJson(inventoryPath);
-  checkManifest(manifest);
+  const inventory = inventoryPath && existsSync(inventoryPath) ? readJson(inventoryPath) : null;
+  const decisions = decisionsPath && existsSync(decisionsPath) ? readJson(decisionsPath) : null;
+
   const productDefinitions = discoverProductDefinitions();
   const contractSemanticIds = discoverContractSemanticIds(manifest);
   checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds);
   const scenarioIds = new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id));
   const semanticTargets = new Set([...productDefinitions.keys(), ...contractSemanticIds.keys()]);
+  const legacyValidTargets = new Set([...semanticTargets, ...scenarioIds]);
   checkTraceability(traceability, manifest, contractSemanticIds);
   checkScenarios(scenarios?.scenarios, migration, semanticTargets);
   checkMigrationMap(migration);
   checkLastVerifiedCommits(manifest, traceability);
-  checkLegacyInventory(inventory, new Set([...contractSemanticIds.keys(), ...productDefinitions.keys()]), scenarioIds);
+  checkLegacyInventory(inventory, legacyValidTargets);
+  if (decisionsRelativePath) checkLegacyDecisions(decisions, inventory, legacyValidTargets, inventoryRelativePath);
+
   for (const path of [
     join(root, 'README.md'), join(root, 'docs/README.md'), join(root, 'docs/acceptance.md'), join(root, 'docs/engine-spec.md'),
     join(root, 'docs/engine-state-ontology.md'),
     ...((manifest?.contracts ?? []).map((entry) => join(root, entry.path)).filter((path) => extname(path) === '.md')),
   ]) if (existsSync(path)) localLinks(path);
-  const generated = execFileSync(process.execPath, [join(root, 'scripts/checks/generate-engine-api.mjs'), '--check'], { encoding: 'utf8' });
-  if (generated.trim()) console.log(generated.trim());
+
+  for (const [script, label] of [
+    ['scripts/checks/generate-engine-api.mjs', 'generated engine API'],
+    ['scripts/checks/generate-legacy-inventory.mjs', 'legacy inventory'],
+    ['scripts/checks/generate-migration-map.mjs', 'migration map'],
+  ]) {
+    const generated = execFileSync(process.execPath, [join(root, script), '--check'], { encoding: 'utf8' });
+    if (generated.trim()) console.log(generated.trim());
+    if (!generated.includes('PASS') && label !== 'generated engine API') {
+      errors.push(`${label}: deterministic check did not report PASS`);
+    }
+  }
+
   if (errors.length > 0) {
     for (const error of errors) console.error(`FAIL: ${error}`);
     process.exitCode = 1;
-  } else console.log(`PASS: docs contracts, scenarios, migration map, links, and generated API`);
+  } else console.log('PASS: docs contracts, scenarios, migration map, legacy base/overlay, links, and generated assets');
 }
 
 const isCli = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
