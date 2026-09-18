@@ -8,22 +8,8 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Undo knowledge boundary"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/online/cloudflare/cockpitSession.ts",
-      "locator": "knowledgeEpoch / undoKnowledgeEpochs"
-    },
-    {
-      "path": "src/online/protocol/variableCommand.ts",
-      "locator": "shared checkpoint informationExposureWarning"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Undo knowledge boundary"}],
+  "implementationRefs": [{"path":"src/online/cloudflare/cockpitSession.ts","locator":"knowledgeEpoch / undoKnowledgeEpochs"},{"path":"src/online/protocol/variableCommand.ts","locator":"shared checkpoint informationExposureWarning"}],
   "verificationRefs": [],
   "rationale": "The audited Undo paths include explicit information/knowledge boundaries rather than treating rollback as erasing learned hidden information. The M0 reconciliation preserves this rule while separately tightening who may invoke Undo.",
   "nextAction": "Preserve knowledge safety independently of the CR-12 actor/recovery-authority conflict.",
