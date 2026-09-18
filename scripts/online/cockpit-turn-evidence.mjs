@@ -224,10 +224,18 @@ try {
     () => host.getByRole('button', { name: '支払って唱える', exact: true }).click(),
     'cast',
   );
+  stage = 'cast-settle';
+  await host.getByRole('button', { name: '支払って唱える', exact: true }).waitFor({ state: 'hidden' });
+  await until(async () => (await read(host)).table.stack.length > 0, 'cast persisted');
+  stage = 'resolve-permanent';
   await mutate(
     host,
     () => host.getByRole('button', { name: '解決', exact: true }).click(),
     'resolve',
+  );
+  await until(
+    async () => Object.values((await read(host)).table.cards).some((card) => card.zone === 'battlefield'),
+    'resolved permanent',
   );
   state = await read(host);
   const permanent = Object.values(state.table.cards).find((c) => c.zone === 'battlefield');
@@ -361,7 +369,8 @@ try {
 } catch (error) {
   report.passed = false;
   report.failedStage = stage;
-  report.failureCategory = error.name;
+  report.failureCategory = error?.name ?? 'Error';
+  report.failureMessage = String(error?.message ?? error).slice(0, 300);
   process.exitCode = 1;
 } finally {
   await mkdir(output, { recursive: true });
