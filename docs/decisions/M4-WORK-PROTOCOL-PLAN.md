@@ -226,6 +226,7 @@ Recommended logical shape:
 {
   "schemaVersion": 1,
   "workId": "WO-...",
+  "parentWorkId": null,
   "title": "...",
   "planningBase": "<40-char commit SHA>",
   "goal": "...",
@@ -264,6 +265,8 @@ Recommended logical shape:
 
 This is a conceptual target, not final schema syntax.
 
+The implemented schema must be **recursively closed**: every object level accepts only its declared keys (`additionalProperties: false` or equivalent), array element types are explicit, and unknown nested fields are rejected rather than ignored. This is required so authority/result fields cannot be smuggled inside `constraints`, `review`, `verificationIntent`, or another nested object.
+
 ## 7. Field semantics
 
 ### 7.1 `schemaVersion`
@@ -286,13 +289,26 @@ or another non-semantic unique ID.
 
 Avoid encoding project meaning into the identifier.
 
-### 7.3 `title`
+### 7.3 `parentWorkId`
+
+Optional parent execution-envelope identifier.
+
+Rules:
+
+- root Work Orders use `null` / omit only if the final schema defines one canonical root representation;
+- a child must identify the exact parent packet supplied to delegation validation;
+- `parentWorkId` is a linkage hint, not a registry lookup and not an authority source;
+- child validation must check `child.parentWorkId === parent.workId`.
+
+M4 does not create a persistent Work Order registry to resolve this identifier.
+
+### 7.4 `title`
 
 Short human-readable summary.
 
 Not an authority field.
 
-### 7.4 `planningBase`
+### 7.5 `planningBase`
 
 Exact commit from which the SOW was planned.
 
@@ -307,7 +323,7 @@ It does not assert that the commit remains current main.
 
 At execution start, the protocol compares planning base with current Project State / target branch and decides whether reinspection is required.
 
-### 7.5 `goal`
+### 7.6 `goal`
 
 One observable outcome.
 
@@ -326,7 +342,7 @@ Good:
 
 > Make actor-owned Undo recovery behavior addressable by one bounded implementation change while preserving current shared-history semantics.
 
-### 7.6 `authorityRefs.semanticRefs` / `authorityRefs.paths`
+### 7.7 `authorityRefs.semanticRefs` / `authorityRefs.paths`
 
 Canonical authority that constrains interpretation of the task.
 
@@ -349,7 +365,7 @@ These references do not mean the authority itself may be edited.
 
 Ordinary source/test files belong in `scope.inputPaths`, not `authorityRefs.paths`.
 
-### 7.7 `contextRefs.capabilityRefs`
+### 7.8 `contextRefs.capabilityRefs`
 
 Optional M1 capability IDs whose current verdict materially affects the work.
 
@@ -357,7 +373,7 @@ This is current-reality context, not semantic authority.
 
 The SOW cannot assign a new verdict.
 
-### 7.8 `verificationIntent`
+### 7.9 `verificationIntent`
 
 Declares which semantic / Acceptance obligations the work intends to satisfy or preserve.
 
@@ -367,11 +383,13 @@ Fields:
 - `acceptanceRefs`;
 - `policy: INHERIT_M3`.
 
-M3 derives evidence paths, execution and freshness. The SOW must not list raw test paths when M3 already owns their binding.
+M3/M3.1 derives evidence paths, execution and freshness. The SOW must not list raw test paths when the verification harness already owns their binding.
+
+If M3.1 reports `MANUAL_REQUIRED`, the exact-candidate manual evidence receipt is validated by M3.1. M4 owns the bounded work procedure around who performs the manual check, what review/approval is required, and how the resulting evidence reference is communicated. The Work Order does **not** store the receipt's PASS/freshness as durable truth.
 
 Verification intent is not a PASS claim.
 
-### 7.9 `scope.targetSemanticRefs`
+### 7.10 `scope.targetSemanticRefs`
 
 Optional semantic area the work is allowed to materially affect.
 
@@ -384,7 +402,7 @@ For an implementation repair that must conform to an unchanged contract, the gov
 
 Tooling-only work may have no target semantic refs.
 
-### 7.10 `scope.inputPaths`
+### 7.11 `scope.inputPaths`
 
 Files/directories that are relevant inputs.
 
@@ -396,7 +414,7 @@ It answers:
 
 > what repository material must be inspected?
 
-### 7.11 `scope.expectedChangeRoots`
+### 7.12 `scope.expectedChangeRoots`
 
 Expected locations of edits.
 
@@ -412,7 +430,7 @@ If implementation requires edits outside these roots:
 
 Do not block a correct fix merely because a support file was not predicted.
 
-### 7.12 `nonGoals`
+### 7.13 `nonGoals`
 
 Explicit exclusions for this work item.
 
@@ -422,7 +440,7 @@ Use only local ambiguity that would otherwise cause scope creep.
 
 Project-wide prohibited scope remains in Project State / AGENTS.
 
-### 7.13 `protected.paths`
+### 7.14 `protected.paths`
 
 Task-specific repository areas that must remain unchanged.
 
@@ -430,7 +448,7 @@ Use sparingly.
 
 Path collections in the Work Order use exact repository-relative files or directory prefixes. M4 does not introduce a glob/pattern DSL.
 
-### 7.14 `protected.semanticRefs`
+### 7.15 `protected.semanticRefs`
 
 Semantic identities whose meaning must not change in this work.
 
@@ -441,7 +459,7 @@ Example:
 
 This is especially useful when repairing implementation to match an existing semantic authority.
 
-### 7.15 `constraints.local`
+### 7.16 `constraints.local`
 
 Task-local execution constraints.
 
@@ -453,7 +471,7 @@ Examples:
 
 Do not copy global AGENTS constraints here.
 
-### 7.16 `doneWhen`
+### 7.17 `doneWhen`
 
 Observable completion statements.
 
@@ -471,7 +489,7 @@ Example:
 - required independent review has no HIGH/BLOCKER;
 - diff remains inside bounded scope.
 
-### 7.17 `escalateWhen`
+### 7.18 `escalateWhen`
 
 Task-specific escalation triggers beyond the protocol's mandatory triggers.
 
@@ -479,7 +497,7 @@ This field may strengthen escalation.
 
 It may not weaken mandatory escalation conditions.
 
-### 7.18 `review.policy`
+### 7.19 `review.policy`
 
 Initial M4 should use:
 
@@ -610,7 +628,7 @@ Each child records:
 - inherited protected boundaries;
 - inherited mandatory escalation rules.
 
-Parent/child validation receives both packets explicitly. M4 does not introduce a persistent Work Order registry merely to resolve `parentWorkId`.
+Parent/child validation receives both packets explicitly, verifies `child.parentWorkId === parent.workId`, and never resolves the parent by searching a persistent registry. M4 does not introduce a persistent Work Order registry merely to resolve `parentWorkId`.
 
 A child must not:
 
@@ -666,7 +684,7 @@ It should check:
 
 - schemaVersion;
 - required fields;
-- unknown top-level fields are rejected;
+- unknown fields are rejected at **every schema level**, not only top-level;
 - exact planningBase commit exists;
 - reference resolution can be performed at planningBase;
 - workId syntax;
@@ -679,8 +697,8 @@ It should check:
 - protected semantic IDs resolve;
 - `verificationIntent.policy === INHERIT_M3`;
 - `review.policy === INHERIT_AGENTS`;
-- prohibited fields are absent;
-- no durable external-write authorization field exists.
+- prohibited fields/concepts are absent recursively at every nesting level;
+- no durable external-write authorization field exists anywhere in the packet.
 
 It should **not**:
 
@@ -695,7 +713,7 @@ It should **not**:
 
 To prevent authority leakage, M4 validator should reject authored fields that attempt to store higher-layer results.
 
-Initial forbidden concepts:
+Initial forbidden concepts (rejected recursively, regardless of nesting):
 
 - `semanticVerdict`
 - `verificationResult`
@@ -795,6 +813,16 @@ M4 must not:
 
 A validator / packet generator is not an orchestrator.
 
+### M6 entry safety gate
+
+M4 completion does not resolve `CR-15 — Automation acts only on reviewed semantic capabilities (known)`.
+
+Before M6 is approved to orchestrate automatic inspect/work/repair loops, M6-PLAN must require an independent bounded audit of the automation surfaces it will invoke. At minimum, the relevant automation scope must no longer rely on an unqualified global CR-15 UNKNOWN as if it were MATCH. The acceptable resolution may be a bounded MATCH for the exact M6 automation surface rather than a claim of exhaustive repository-wide automation knowledge.
+
+This gate belongs to M6 approval; M4 must not attempt to solve CR-15 by expanding the Work Order schema.
+
+A validator / packet generator is not an orchestrator.
+
 ## 23. Proposed implementation slices
 
 M4 should be implemented on one candidate branch after M4-PLAN approval.
@@ -849,7 +877,7 @@ For an explicit candidate HEAD, implement:
 - current Project State re-read;
 - referenced semantic / Acceptance existence recheck;
 - M3 impact/provenance reuse to distinguish authority-source changes from implementation/evidence impact;
-- optional parentWorkId / parent packet comparison;
+- explicit `parentWorkId` / parent packet comparison;
 - child target-semantic subset validation;
 - inherited protected boundaries;
 - no weakened review policy;
@@ -898,16 +926,16 @@ The repository can hand one bounded work item to a fresh execution context witho
 
 M4 is complete only if:
 
-- Work Order is explicitly subordinate to M0–M3;
+- Work Order is explicitly subordinate to M0–M3/M3.1;
 - no Product/contract prose is duplicated as a new truth source;
 - Project State remains the only project NOW;
 - semantic verdicts remain M1-owned;
 - evidence result/freshness remains M3-owned;
-- stored SOW cannot grant external-write authority;
+- stored SOW cannot grant external-write authority, including through nested fields;
 - required fields cover Goal / Scope / Authority refs / Inputs / Constraints / DoD / Escalation;
 - canonical references are machine-resolvable;
 - scope broadening requires escalation;
-- child delegation is monotonic and cannot gain authority;
+- child delegation is monotonic, carries explicit `parentWorkId`, and cannot gain authority;
 - child cannot self-approve or complete parent;
 - existing AGENTS review rules are inherited rather than duplicated;
 - no arbitrary-shell execution DSL is introduced;
@@ -915,7 +943,7 @@ M4 is complete only if:
 - basic interruption resume works from repo + Work Order + git candidate;
 - M5 recovery/hygiene is not implemented prematurely;
 - M6 orchestration is not implemented prematurely;
-- validator remains small and inspectable;
+- validator remains small and inspectable, with recursively closed schema objects;
 - representative valid/invalid fixtures prove the protocol;
 - relevant CI is green;
 - Cold Restart PASS.
