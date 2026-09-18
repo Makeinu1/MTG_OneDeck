@@ -32,7 +32,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`
 - Active: `M5 — Audit / Hygiene / Recovery`
 - Next gate: `M5-PLAN`
 - Next work: Design, independently audit, and Owner-approve the M5 Audit / Hygiene / Recovery plan for repository-wide reassessment, stale/dead/duplicate authority cleanup, orphan evidence/Acceptance/test cleanup, and safe interrupted-work recovery without changing Product Truth, M1 semantic verdicts, or prematurely implementing the M6 closed execution loop.
@@ -40,7 +40,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 ## Coverage claim
 
 - Mode: `BOUNDED`
-- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4 bounded Work Protocol / SOW controls, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
+- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4/M4.1 bounded Work Protocol / SOW controls and execution-entry integration, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
 - Completeness sources: `docs/contracts/semantic-map.json`, `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
@@ -49,7 +49,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - Verification-claim/evidence weakening invalidates affected semantic obligations; new verification specifications alone do not fabricate runtime conformance.
   - Impacted manual-only Acceptance can be satisfied only by an explicit exact-base/head manual evidence receipt; the receipt is verification evidence, not semantic truth, Project State, or durable external-write authority.
   - M4 Work Orders are bounded execution envelopes only: they do not create Product/contract truth, Project State NOW, semantic verdicts, verification freshness, or external-write permission.
-  - M4 candidate/delegation validation detects bounded staleness and scope drift but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
+  - M4/M4.1 candidate/delegation validation detects bounded staleness and scope drift, permits planned input deletion, and preserves delegated authority/context boundaries, but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
   - CR-15 remains REQUIRED/UNKNOWN: M4 does not prove that every automation path is semantically known or exhaustively covered, and M6 requires a separately bounded automation audit.
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
 
