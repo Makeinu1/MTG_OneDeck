@@ -13,6 +13,7 @@ Read only the authority that matches the change:
 - [`acceptance/scenarios.json`](acceptance/scenarios.json) — executable and manual acceptance registry.
 - [`generated/engine-api.md`](generated/engine-api.md) — generated TypeScript export index.
 - [`decisions/`](decisions/) — rationale for a contract choice.
+- [`repository-hygiene.md`](repository-hygiene.md) — M5 supporting lifecycle/retention/retirement policy; it classifies how assets are read and retired without becoming Product, semantic, Project State, or external-write authority.
 - [`../research/cr-grounding/cr-backbone-ledger.json`](../research/cr-grounding/cr-backbone-ledger.json) — extended roadmap, CR program provenance and historical planning; **not current NOW authority**.
 - [`../research/archive/document-reset-2026-08/conflict-register.json`](../research/archive/document-reset-2026-08/conflict-register.json) — unresolved and resolved reset findings.
 
