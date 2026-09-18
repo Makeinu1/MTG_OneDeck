@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "workId": "WO-20260918-401",
+  "parentWorkId": null,
+  "title": "Actor-owned Undo repair",
+  "planningBase": "c6af3837c7f609bdd572d866f355b06b543766af",
+  "goal": "Repair actor-owned Undo behavior within the existing Undo semantics without changing Product or UX authority.",
+  "authorityRefs": {
+    "semanticRefs": [
+      "P-08",
+      "UX-CONST-UNDO"
+    ],
+    "paths": [
+      "docs/product-requirements.md",
+      "docs/contracts/ux-constitution.md"
+    ]
+  },
+  "contextRefs": {
+    "capabilityRefs": [
+      "CR-12"
+    ]
+  },
+  "verificationIntent": {
+    "semanticRefs": [
+      "UX-CONST-UNDO"
+    ],
+    "acceptanceRefs": [
+      "ACC-M3-UNDO-RECOVERY-001"
+    ],
+    "policy": "INHERIT_M3"
+  },
+  "scope": {
+    "targetSemanticRefs": [
+      "UX-CONST-UNDO"
+    ],
+    "inputPaths": [
+      "src/store",
+      "docs/contracts/ux-constitution.md"
+    ],
+    "expectedChangeRoots": [
+      "src/store"
+    ]
+  },
+  "nonGoals": [
+    "Do not change Product Truth or UX-CONST-UNDO meaning.",
+    "Do not redesign unrelated history or recovery semantics."
+  ],
+  "protected": {
+    "paths": [
+      "docs/product-requirements.md",
+      "docs/contracts/ux-constitution.md"
+    ],
+    "semanticRefs": [
+      "P-08"
+    ]
+  },
+  "constraints": {
+    "local": [
+      "No dependency additions."
+    ]
+  },
+  "doneWhen": [
+    "The bounded Undo implementation change satisfies the referenced Acceptance intent.",
+    "M3/M3.1 candidate verification has no unresolved blocker for the exact candidate.",
+    "Required review under AGENTS has no unresolved HIGH/BLOCKER."
+  ],
+  "escalateWhen": [
+    "The repair requires changing UX-CONST-UNDO or Product Truth.",
+    "The candidate requires edits outside the bounded history/store area for semantic reasons."
+  ],
+  "review": {
+    "policy": "INHERIT_AGENTS"
+  }
+}
