@@ -193,15 +193,17 @@ Execution may not broaden scope beyond the SOW without an explicit escalation/de
 
 ### 5.6 Child delegation cannot increase authority
 
-A child Work Order must be a monotonic restriction of its parent:
+A child Work Order must be a monotonic restriction of its parent **with respect to change authority**:
 
 - same or narrower goal contribution;
-- scope subset;
-- inherited protected/untouched boundaries;
-- no additional semantic authority;
+- `scope.targetSemanticRefs` is a subset of the parent's target semantic scope;
+- expected change roots are equal or narrower except for mechanically necessary support files;
+- inherited protected/untouched boundaries are not weakened;
 - no additional write authority;
 - no weaker verification / review obligations;
 - no broader external side effects.
+
+A child may add **supporting authority/input references** needed to understand its narrower task. Adding a lower-domain contract or code path as a read-only reference is not scope escalation by itself.
 
 A child cannot approve its parent or itself.
 
@@ -230,10 +232,20 @@ Recommended logical shape:
   "title": "...",
   "planningBase": "<40-char commit SHA>",
   "goal": "...",
-  "scope": {
+  "authorityRefs": {
     "semanticRefs": ["..."],
-    "capabilityRefs": ["CR-.."],
+    "paths": ["..."]
+  },
+  "contextRefs": {
+    "capabilityRefs": ["CR-.."]
+  },
+  "verificationIntent": {
+    "semanticRefs": ["..."],
     "acceptanceRefs": ["ACC-..."],
+    "policy": "INHERIT_M3"
+  },
+  "scope": {
+    "targetSemanticRefs": ["..."],
     "inputPaths": ["..."],
     "expectedChangeRoots": ["..."]
   },
@@ -244,7 +256,6 @@ Recommended logical shape:
     "statements": ["..."]
   },
   "constraints": {
-    "projectStateGate": "M4-...",
     "local": ["..."]
   },
   "doneWhen": ["..."],
@@ -319,34 +330,56 @@ Good:
 
 > Make actor-owned Undo recovery behavior addressable by one bounded implementation change while preserving current shared-history semantics.
 
-### 7.6 `scope.semanticRefs`
+### 7.6 `authorityRefs.semanticRefs` / `authorityRefs.paths`
 
-Optional stable M2 semantic IDs materially affected by or constraining the work.
+Canonical authority that constrains interpretation of the task.
 
-Validation:
+Use stable semantic IDs where one exists. Use a repository path only when the relevant authority has no suitable semantic ID.
 
-- IDs must resolve through current M2 sources;
-- absence is valid for tooling-only work.
+Examples:
 
-These are references, not copied clauses.
+- `P-08`;
+- `UX-CONST-UNDO`;
+- `docs/product-requirements.md` for a non-ID Product Truth section.
 
-### 7.7 `scope.capabilityRefs`
+These references do not mean the authority itself may be edited.
 
-Optional M1 capability IDs whose current verdict is relevant.
+### 7.7 `contextRefs.capabilityRefs`
 
-The SOW records the dependency only.
+Optional M1 capability IDs whose current verdict materially affects the work.
 
-It does not assign a new verdict.
+This is current-reality context, not semantic authority.
 
-### 7.8 `scope.acceptanceRefs`
+The SOW cannot assign a new verdict.
 
-Optional Acceptance scenario IDs describing required behavioral outcome.
+### 7.8 `verificationIntent`
 
-M3 owns evidence binding and freshness.
+Declares which semantic / Acceptance obligations the work intends to satisfy or preserve.
 
-The SOW must not list raw test files when an Acceptance reference already defines the behavioral claim.
+Fields:
 
-### 7.9 `scope.inputPaths`
+- `semanticRefs`;
+- `acceptanceRefs`;
+- `policy: INHERIT_M3`.
+
+M3 derives evidence paths, execution and freshness. The SOW must not list raw test paths when M3 already owns their binding.
+
+Verification intent is not a PASS claim.
+
+### 7.9 `scope.targetSemanticRefs`
+
+Optional semantic area the work is allowed to materially affect.
+
+This is distinct from `authorityRefs`:
+
+- authority refs tell the executor what governs the work;
+- target refs bound the semantic area of the requested change.
+
+For an implementation repair that must conform to an unchanged contract, the governing contract can appear in `authorityRefs` and `protected.semanticRefs` without appearing as a semantic-mutation target.
+
+Tooling-only work may have no target semantic refs.
+
+### 7.10 `scope.inputPaths`
 
 Files/directories that are relevant inputs.
 
@@ -356,7 +389,7 @@ It answers:
 
 > what repository material must be inspected?
 
-### 7.10 `scope.expectedChangeRoots`
+### 7.11 `scope.expectedChangeRoots`
 
 Expected locations of edits.
 
@@ -370,7 +403,7 @@ If implementation requires edits outside these roots:
 
 Do not block a correct fix merely because a support file was not predicted.
 
-### 7.11 `nonGoals`
+### 7.12 `nonGoals`
 
 Explicit exclusions for this work item.
 
@@ -380,13 +413,13 @@ Use only local ambiguity that would otherwise cause scope creep.
 
 Project-wide prohibited scope remains in Project State / AGENTS.
 
-### 7.12 `protected.paths`
+### 7.13 `protected.paths`
 
 Task-specific repository areas that must remain unchanged.
 
 Use sparingly.
 
-### 7.13 `protected.semanticRefs`
+### 7.14 `protected.semanticRefs`
 
 Semantic identities whose meaning must not change in this work.
 
@@ -397,23 +430,13 @@ Example:
 
 This is especially useful when repairing implementation to match an existing semantic authority.
 
-### 7.14 `protected.statements`
+### 7.15 `protected.statements`
 
 Small task-local invariants that do not have stable semantic IDs.
 
 These must not be used to create a second canonical product/contract body.
 
 If a statement is durable semantic truth, it belongs in M0/M2 authority, not here.
-
-### 7.15 `constraints.projectStateGate`
-
-Snapshot of the expected gate / milestone context.
-
-This is a drift detector only.
-
-Current Project State remains authoritative.
-
-If current Project State differs, execution must re-evaluate the Work Order rather than treating the stored gate as current.
 
 ### 7.16 `constraints.local`
 
@@ -579,9 +602,12 @@ Each child records:
 - parent workId;
 - same planning base unless explicitly replanned;
 - narrower Goal;
-- subset semantic/capability/acceptance scope;
+- target semantic scope that is a subset of the parent;
+- verification intent sufficient for its narrower contribution;
 - inherited protected boundaries;
 - inherited mandatory escalation rules.
+
+Parent/child validation receives both packets explicitly. M4 does not introduce a persistent Work Order registry merely to resolve `parentWorkId`.
 
 A child must not:
 
@@ -637,14 +663,17 @@ It should check:
 
 - schemaVersion;
 - required fields;
+- unknown top-level fields are rejected;
 - exact planningBase commit exists;
 - workId syntax;
-- semanticRefs resolve;
-- capabilityRefs resolve;
-- acceptanceRefs resolve;
+- authority semantic refs resolve;
+- target semantic refs resolve;
+- verification semantic / Acceptance refs resolve;
+- capability context refs resolve;
 - referenced paths exist where required;
 - expectedChangeRoots / protected.paths are repository-relative and safe;
 - protected semantic IDs resolve;
+- `verificationIntent.policy === INHERIT_M3`;
 - `review.policy === INHERIT_AGENTS`;
 - prohibited fields are absent;
 - no durable external-write authorization field exists.
@@ -667,8 +696,9 @@ Initial forbidden concepts:
 - `semanticVerdict`
 - `verificationResult`
 - `verificationFreshness`
-- `currentMilestone` as independent authority
-- `nextGate` as independent authority
+- stored `currentMilestone` as independent authority
+- stored `nextGate` as independent authority
+- stored Project State status / completion fields
 - `authorizedToPush`
 - `authorizedToMerge`
 - `authorizedToDeploy`
