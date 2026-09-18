@@ -151,6 +151,7 @@ async function mutate(p, perform, label, attempt = 0) {
   if (r.status() !== 200) {
     assert.equal(v.error, 'REVISION_CONFLICT', label);
     const alert = p.locator('.table-connection');
+    await alert.waitFor({ state: 'visible' });
     await alert.getByRole('button', { name: '閉じる', exact: true }).click();
     return mutate(p, perform, label, attempt + 1);
   }
