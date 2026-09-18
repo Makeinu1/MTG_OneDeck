@@ -302,9 +302,21 @@ export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) 
     return errors;
   }
 
+  const childShape = validateWorkOrder(child, { root });
+  if (childShape.length > 0) {
+    errors.push(...childShape.map((error) => `delegation child ${error}`));
+    return errors;
+  }
+
   const parentShape = validateWorkOrder(parent, { root });
   if (parentShape.length > 0) {
     errors.push(...parentShape.map((error) => `delegation parent ${error}`));
+    return errors;
+  }
+
+  const parentReferenceErrors = validateWorkOrderReferences(parent, { root });
+  if (parentReferenceErrors.length > 0) {
+    errors.push(...parentReferenceErrors.map((error) => `delegation parent ${error}`));
     return errors;
   }
 
@@ -342,6 +354,17 @@ export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) 
   }
   if (child.verificationIntent?.policy !== parent.verificationIntent?.policy) {
     errors.push('delegation: child verification policy differs from parent');
+  }
+
+  for (const [label, parentValues, childValues] of [
+    ['non-goal', parent.nonGoals ?? [], child.nonGoals ?? []],
+    ['local constraint', parent.constraints?.local ?? [], child.constraints?.local ?? []],
+    ['escalation trigger', parent.escalateWhen ?? [], child.escalateWhen ?? []],
+  ]) {
+    const childSet = new Set(childValues);
+    for (const value of parentValues) {
+      if (!childSet.has(value)) errors.push(`delegation: child drops parent ${label}: ${value}`);
+    }
   }
 
   const childTargets = new Set(child.scope?.targetSemanticRefs ?? []);
