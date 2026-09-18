@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "status": "CURRENT_VERIFICATION_OWNERSHIP",
+  "semanticAuthority": "none",
+  "acceptanceAuthority": "none",
+  "contracts": [
+    {
+      "id": "COCKPIT-R31-RESOLUTION-RECOVERY",
+      "lifecycle": "ACTIVE",
+      "class": "CURRENT_BROWSER_REGRESSION",
+      "goal": "Preserve exact Manual Resolution identity across fold/browse/reload and finish the active resolution without silently auto-starting the next stack entry.",
+      "executor": {
+        "runner": "node",
+        "script": "scripts/online/r31-resolution-uat.mjs",
+        "environmentBound": true,
+        "localOnly": true
+      },
+      "requiredFacts": [
+        "Two spells form canonical response stack B/A.",
+        "B enters entry-bound Manual Resolution and exposes its exact resolution identity.",
+        "Folding/browsing preserves B and returns to the same resolution.",
+        "Reload/reconnect reconstructs the same Resolution B.",
+        "Finishing B leaves A pending and does not auto-start A.",
+        "Page errors and unexpected console errors remain zero."
+      ],
+      "legacyRetirementPrecondition": "The current execution path for this contract is active and verified before legacy R3.1 browser evidence is retired."
+    },
+    {
+      "id": "COCKPIT-R4-FORMAL-BROWSER",
+      "lifecycle": "ACTIVE",
+      "class": "CURRENT_BROWSER_REGRESSION",
+      "goal": "Preserve browser composition for Formal operations that are covered at lower layers but not by the O4P production journey.",
+      "executor": {
+        "runner": "tsx",
+        "script": "scripts/online/r4-ui-browser-evidence.ts",
+        "harness": "scripts/online/r4-ui-evidence-harness.tsx",
+        "environmentBound": true,
+        "localOnly": true
+      },
+      "requiredFacts": [
+        "A legal graveyard card is selected through visible UI and the committed cast preserves sourceZone=graveyard.",
+        "Finite additional discard/sacrifice cost selection is committed atomically with the spell cast and cannot leave a split partial commit.",
+        "Visible turn-face-up action emits special.turnFaceUp, preserves the battlefield physical object, changes face state, and does not fabricate a stack entry.",
+        "Browser console errors and warnings remain zero."
+      ],
+      "legacyRetirementPrecondition": "A current non-legacy execution path owns this evidence contract before the old R4 browser workflow shell is retired."
+    },
+    {
+      "id": "COCKPIT-TURN-CLEANUP-BROWSER",
+      "lifecycle": "ACTIVE",
+      "class": "CURRENT_BROWSER_EVIDENCE",
+      "goal": "Preserve the cross-layer two-seat Cockpit turn/draw/cleanup/reload behavior that split unit/component tests do not by themselves compose.",
+      "executor": {
+        "runner": "node",
+        "script": "scripts/online/cockpit-turn-evidence.mjs",
+        "environmentBound": true,
+        "localOnly": true
+      },
+      "requiredFacts": [
+        "The first player skips the first turn draw in the two-player start.",
+        "Subsequent ordinary draw occurs exactly once.",
+        "Reload during draw does not repeat the turn-based action.",
+        "A permanent untaps on the correct next turn.",
+        "Mana clears and temporary modifiers expire at the required boundary.",
+        "Cleanup modal blocks bypass, exact discard selection is applied, and cleanup completes.",
+        "Turn increments exactly once after cleanup.",
+        "Page errors and unexpected console errors remain zero."
+      ],
+      "legacyRetirementPrecondition": "The current contract execution path is registered and verified before historical turn/cleanup workflow or branch evidence is retired."
+    }
+  ]
+}
