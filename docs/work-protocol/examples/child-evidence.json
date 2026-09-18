@@ -62,6 +62,8 @@
     "The parent-required Undo regression evidence is executable and M3/M3.1-bound."
   ],
   "escalateWhen": [
+    "The repair requires changing UX-CONST-UNDO or Product Truth.",
+    "The candidate requires edits outside the bounded history/store area for semantic reasons.",
     "Evidence requires changing the protected Undo semantic authority."
   ],
   "review": {
