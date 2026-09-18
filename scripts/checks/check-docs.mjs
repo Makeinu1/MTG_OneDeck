@@ -61,8 +61,16 @@ function checkManifest(manifest) {
       errors.push('manifest: every contract entry must be an object');
       continue;
     }
-    for (const key of ['id', 'status', 'path', 'authorityFor', 'owner', 'dependsOn', 'supersedes', 'verifiedBy', 'lastVerifiedCommit']) {
+    for (const key of ['id', 'status', 'path', 'authorityFor', 'owner', 'dependsOn', 'supersedes']) {
       if (!(key in entry)) errors.push(`manifest ${entry.id ?? '<unknown>'}: missing ${key}`);
+    }
+    if (entry.status === 'active' && ('verifiedBy' in entry || 'lastVerifiedCommit' in entry)) {
+      errors.push(`manifest ${entry.id ?? '<unknown>'}: active contract must not carry retired verification pin fields`);
+    }
+    if (entry.status === 'generated') {
+      for (const key of ['verifiedBy', 'lastVerifiedCommit']) {
+        if (!(key in entry)) errors.push(`manifest ${entry.id ?? '<unknown>'}: generated entry missing ${key}`);
+      }
     }
     if (typeof entry.id === 'string') {
       if (byId.has(entry.id)) errors.push(`manifest: duplicate contract id ${entry.id}`);
@@ -91,8 +99,12 @@ function checkManifest(manifest) {
     for (const ref of [...(entry.dependsOn ?? []), ...(entry.supersedes ?? [])]) {
       if (typeof ref === 'string' && !byId.has(ref) && !ref.startsWith('legacy:')) errors.push(`manifest ${entry.id}: unresolved reference ${ref}`);
     }
-    for (const verifier of entry.verifiedBy ?? []) requireFile(join(root, verifier), `manifest ${entry.id} verifiedBy`);
-    if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) errors.push(`manifest ${entry.id}: invalid lastVerifiedCommit`);
+    if (entry.status === 'generated') {
+      for (const verifier of entry.verifiedBy ?? []) requireFile(join(root, verifier), `manifest ${entry.id} verifiedBy`);
+      if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) {
+        errors.push(`manifest ${entry.id}: invalid lastVerifiedCommit`);
+      }
+    }
   }
   if (Array.isArray(manifest.activeAllowlist)) {
     for (const allowance of manifest.activeAllowlist) {
@@ -353,6 +365,7 @@ function checkLastVerifiedCommits(manifest, traceability) {
   }
 
   for (const entry of manifest?.contracts ?? []) {
+    if (entry.status !== 'generated') continue;
     if (typeof entry.lastVerifiedCommit !== 'string' || !/^[0-9a-f]{40}$/.test(entry.lastVerifiedCommit)) continue;
     const sha = entry.lastVerifiedCommit;
     try {
