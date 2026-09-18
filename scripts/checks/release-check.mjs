@@ -178,6 +178,13 @@ export function runReleaseCheck({
   if (buildBase) checkArgs.push('--', `--build-base=${buildBase}`);
   const check = runChildStage('check', () => spawn('npm', checkArgs, { cwd, stdio: 'inherit', shell: false }), { error });
   if (check.exitCode !== 0) return { exitCode: check.exitCode, stage: 'check', diff };
+  if (diff?.baseType === 'commit') {
+    const semanticArgs = ['run', 'verify:semantic', '--', '--base', diff.base, '--head', headSha];
+    const semantic = runChildStage('semantic verification', () => spawn('npm', semanticArgs, { cwd, stdio: 'inherit', shell: false }), { error });
+    if (semantic.exitCode !== 0) return { exitCode: semantic.exitCode, stage: 'semantic-verification', diff };
+  } else if (diff?.baseType === 'tree') {
+    write('release-check: semantic freshness not claimed for empty-tree first push');
+  }
   try {
     assertCleanCheckout(cwd);
   } catch (cause) {
