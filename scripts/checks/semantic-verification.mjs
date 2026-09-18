@@ -526,4 +526,4 @@ export function verificationConstants() {
   };
 }
 
-export { parseProduct, parseClauses, stableJson };
+export { directBindingChangeDetails, parseProduct, parseClauses, scenarioChangeDetails, stableJson };
