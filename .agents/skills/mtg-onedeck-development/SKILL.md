@@ -10,12 +10,12 @@ working player outcome, not a larger process. Read [`AGENTS.md`](../../../AGENTS
 [`docs/product-requirements.md`](../../../docs/product-requirements.md), and the
 smallest applicable contract before editing. Read
 [`docs/judge-protocol.md`](../../../docs/judge-protocol.md) when a CR ruling,
-scope choice, or ambiguity needs adjudication.
+scope choice, or ambiguity needs adjudication. Read
+[`docs/work-protocol/README.md`](../../../docs/work-protocol/README.md) whenever a Work Order is supplied or the work is milestone-wide, repository-wide, or delegated.
 
 ## Work shape
 
-1. Inspect `git status` and `HEAD`, then state the Goal, constraints, and Done
-   when in a few lines. Keep one coherent outcome per change.
+1. Inspect `git status` and `HEAD`. If a Work Order is supplied, or the work is milestone/repository-wide or delegated, validate its structure and `planningBase` before editing with `npm run check:work-order -- <packet>`; otherwise state Goal, constraints, and Done in a few lines. Keep one coherent outcome per change and do not create Work Order ceremony for a small non-delegated change.
 2. Implement only the requested source, contract draft, or test changes. The
    implementer owns source and ordinary tests; the judge owns contracts,
    adjudication, documentation, and git. Do not infer permission for commit,
@@ -28,7 +28,7 @@ scope choice, or ambiguity needs adjudication.
    major CR semantics, or release/deploy infrastructure. Give the reviewer the
    relevant files and acceptance claim, not implementation history. Resolve
    findings before release; routine low-risk edits need no ceremonial audit.
-5. During development, repeat only relevant targeted tests. For an exact candidate
+5. During development, repeat only relevant targeted tests. When a Work Order governs the task, validate the exact candidate HEAD before completion (and supply the explicit parent packet for a child); scope drift or staleness must be resolved rather than hidden. For an exact candidate
    sent to the current deploy-pages CI, do not run local `npm run check`; CI's
    `npm run check:release` (which runs `npm run check`, the forbidden-diff scan,
    and the build) is the sole full-strength suite. Run local `npm run check` once
@@ -57,6 +57,6 @@ scope choice, or ambiguity needs adjudication.
 ## Completion report
 
 Report changed files, targeted-test results, final-check result, deferred or
-manual behavior, review findings (if required), and unresolved issues. After an
-interruption, reconstruct from `git status`, `HEAD`, and relevant CI state; do
+manual behavior, review findings (if required), and unresolved issues. When a Work Order governed the task, include its candidate-validation/drift result without treating the packet as Project State or write authority. After an
+interruption, reconstruct from Project State, the Work Order when present, `git status`, `HEAD`, and relevant CI state; do
 not treat conversation history or scratch files as authority.

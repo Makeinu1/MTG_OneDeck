@@ -32,7 +32,8 @@
       "M2 — Contract Architecture",
       "M3 — Verification Harness",
       "M3.1 — Verification Harness Hardening",
-      "M4 — Work Protocol / SOW"
+      "M4 — Work Protocol / SOW",
+      "M4.1 — Work Protocol Hardening"
     ],
     "activeMilestone": "M5 — Audit / Hygiene / Recovery",
     "nextGate": "M5-PLAN",
@@ -48,7 +49,7 @@
   },
   "coverage": {
     "mode": "BOUNDED",
-    "scope": "The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4 bounded Work Protocol / SOW controls, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.",
+    "scope": "The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4/M4.1 bounded Work Protocol / SOW controls and execution-entry integration, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.",
     "completenessSources": [
       "docs/contracts/semantic-map.json",
       "docs/contracts/traceability.json",
@@ -62,7 +63,7 @@
       "Verification-claim/evidence weakening invalidates affected semantic obligations; new verification specifications alone do not fabricate runtime conformance.",
       "Impacted manual-only Acceptance can be satisfied only by an explicit exact-base/head manual evidence receipt; the receipt is verification evidence, not semantic truth, Project State, or durable external-write authority.",
       "M4 Work Orders are bounded execution envelopes only: they do not create Product/contract truth, Project State NOW, semantic verdicts, verification freshness, or external-write permission.",
-      "M4 candidate/delegation validation detects bounded staleness and scope drift but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.",
+      "M4/M4.1 candidate/delegation validation detects bounded staleness and scope drift, permits planned input deletion, and preserves delegated authority/context boundaries, but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.",
       "CR-15 remains REQUIRED/UNKNOWN: M4 does not prove that every automation path is semantically known or exhaustively covered, and M6 requires a separately bounded automation audit.",
       "Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps."
     ]

@@ -16,6 +16,7 @@ MTG OneDeck is a React + TypeScript + Vite Commander sandbox. Engine transitions
 ```sh
 npm run check:project-state
 npm run check:docs
+npm run check:work-protocol
 npm run check:fast
 npm run check:domain -- docs
 npm run check

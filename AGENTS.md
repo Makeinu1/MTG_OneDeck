@@ -11,6 +11,13 @@ prohibited scope は [`docs/project-state/index.json`](docs/project-state/index.
 [`docs/generated/project-state.md`](docs/generated/project-state.md) を restart view とする。
 Issues、PR、CI、roadmap/history はそれ単独で NOW を決めない。
 
+M4 の bounded Work Protocol は [`docs/work-protocol/README.md`](docs/work-protocol/README.md) を正本とする。
+明示的な Work Order が渡された作業、milestone / repository-wide 作業、親子へ委譲する作業では Work Order を使う。
+編集前に `npm run check:work-order -- <work-order.json>` で planning snapshot を検証し、candidate 完了時は
+exact HEAD（child なら明示的 parent packet も）で再検証する。小さな単発・非委譲作業は従来の
+`Goal / Non-goals / Acceptance criteria / What stays untouched` で十分であり、形式のためだけに Work Order を作らない。
+保存済み Work Order は commit / push / merge / deploy その他の外部書込み権限を一切増やさない。
+
 ## 最小十分の原則
 
 - 現在の要求を満たす最小の方法で終える。必要性を説明できない設計、抽象化、設定層、
@@ -42,7 +49,7 @@ Issues、PR、CI、roadmap/history はそれ単独で NOW を決めない。
 
 1. codeへ触る前に、ユーザーが実際に欲しいもの、今回のscope、明示的な非目標、
    完了条件を数行で言い直す。表面的な症状を直してから意図を推測しない。
-2. 最小planに `Goal / Non-goals / Acceptance criteria / What stays untouched` を含める。
+2. 最小planに `Goal / Non-goals / Acceptance criteria / What stays untouched` を含める。Work Order が必要な作業では、そのpacketをこのplanの機械可読版として扱い、検証済みpacketと矛盾する別planを作らない。
    current milestone、既知 conflict/gap、next gate や禁止範囲が作業判断に関係する場合は、
    まず `docs/generated/project-state.md` と必要な canonical Project State を読む。その上で
    `AGENTS.md`、最小の該当契約、関連code/testを読み、CR裁定や真の曖昧がある場合だけ
@@ -52,7 +59,7 @@ Issues、PR、CI、roadmap/history はそれ単独で NOW を決めない。
 4. UI変更は同じbrowser sessionで375×812、812×375、1440×900とconsole error 0を
    確認する。根拠のない自動化を表示せず、未対応の複合効果はguided/manualと明示する。
 5. 中断後は `docs/generated/project-state.md` / `docs/project-state/index.json` で current NOW と
-   stale 条件を確認してから、`git status`、`HEAD`、必要なCI状態で作業候補を再構成する。
+   stale 条件を確認してから、Work Order がある作業はそのpacketも再検証し、`git status`、`HEAD`、必要なCI状態で作業候補を再構成する。
    feature branch上の Project State は merge 前の candidate であり、mainへ入った確定NOWとして
    扱わない。過去の会話や一時file、Issue、PR、CIだけを状態の正本にしない。
 

@@ -1,9 +1,10 @@
-# M4 Work Protocol / SOW Plan — candidate
+# M4 Work Protocol / SOW Plan — implemented design record
 
-Status: CANDIDATE / design only  
-Baseline: `main@d316ad513c2a9a9d2fccc72039ab2bebc1c2b478`  
-Gate: M4-PLAN  
-Implementation authority: none
+Status: IMPLEMENTED / retained as design rationale  
+Planning baseline: `main@d316ad513c2a9a9d2fccc72039ab2bebc1c2b478`  
+Gate: M4-PLAN SATISFIED  
+Current process contract: `docs/work-protocol/README.md`  
+Authority note: this historical plan grants no runtime or external-write authority; current NOW remains Project State.
 
 ## 1. Goal
 
@@ -1028,12 +1029,12 @@ If the Work Order begins to duplicate Product/contract/Project State/verificatio
 
 If a proposed mechanism is primarily about stale-artifact cleanup or autonomous orchestration, defer it to M5 or M6.
 
-## 27. M4-PLAN recommendation
+## 27. M4 implementation record
 
-Proceed with M4-1 through M4-4 after independent audit and Owner approval.
+The M4-PLAN gate was independently audited and Owner-approved, then implemented through M4-1..M4-4 and hardened by M4.1.
 
-Core decision:
+Implemented core decision:
 
-> Introduce one small machine-checkable Work Order envelope that references M0–M3/M3.1 authority instead of copying it, never stores external-write permission or verification verdicts, bounds scope and protected areas, defines observable Done and mandatory escalation, and allows only monotonic child delegation. Keep work progress in ordinary branch/PR surfaces and leave drift recovery to M5 and orchestration to M6.
+> Introduce one small machine-checkable Work Order envelope that references M0–M3/M3.1 authority instead of copying it, never stores external-write permission or verification verdicts, bounds scope and protected areas, defines observable Done and mandatory escalation, and allows only monotonic child delegation. Keep work progress in ordinary branch/PR surfaces and leave repository-wide drift recovery to M5 and orchestration to M6.
 
-Implementation authority remains **none** until M4-PLAN is independently audited and Owner-approved.
+Current process authority is `docs/work-protocol/README.md`; current project NOW remains `docs/project-state/index.json`. This retained plan is design rationale only and grants no execution or external-write permission.

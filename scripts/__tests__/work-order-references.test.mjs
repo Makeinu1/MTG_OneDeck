@@ -171,6 +171,19 @@ describe('M4 Work Order planning-snapshot reference resolution', () => {
     }
   });
 
+  test('still requires input paths to exist at planningBase', () => {
+    const fx = fixtureRepo();
+    try {
+      const packet = workOrder(fx.base);
+      packet.scope.inputPaths = ['scripts/missing-input.txt'];
+      expect(validateWorkOrderReferences(packet, { root: fx.root })).toContain(
+        'scope.inputPaths: missing at planningBase: scripts/missing-input.txt',
+      );
+    } finally {
+      rmSync(fx.root, { recursive: true, force: true });
+    }
+  });
+
   test('rejects a nonexistent planning commit', () => {
     const fx = fixtureRepo();
     try {
