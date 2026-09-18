@@ -370,7 +370,9 @@ Compare normalized definition rows per P/Q ID between explicit base and head.
 
 A changed definition invalidates that Product semantic ID.
 
-If parsing becomes ambiguous, fail closed to all Product IDs in the file rather than guessing.
+Product Requirements is canonical truth beyond the machine-addressable P/Q rows. Therefore any changed Product Requirements text that cannot be assigned to a specific P/Q definition row must conservatively invalidate all Product semantic IDs rather than being ignored.
+
+If parsing or change attribution becomes ambiguous, fail closed to all Product IDs in the file rather than guessing.
 
 ### Active contract clauses
 
@@ -439,7 +441,9 @@ M3 must reuse the existing validation-domain resolver:
 
 This gives M3 an explanation path from implementation diff → existing safety domain → test evidence → semantic/scenario obligation without inventing a second implementation ownership map.
 
-If a changed implementation path is unknown to the domain resolver, retain the existing full-check escalation and report semantic impact as UNKNOWN rather than guessing.
+If a changed implementation path is unknown to the domain resolver, retain the existing full-check escalation and report semantic impact/coverage as UNKNOWN rather than guessing.
+
+An UNKNOWN implementation-to-semantic mapping does not become MATCH because the full suite passes. It means semantic verification is established only within the declared M3 coverage.
 
 If an automated evidence path cannot be resolved to an executable test lane, fail closed rather than silently skipping it.
 
@@ -508,7 +512,25 @@ This plan is generated output, not canonical semantic state.
 
 The plan must be deterministic for the same repository/base/head.
 
-## 15. Verification result model
+## 15. Bounded verification coverage
+
+M3 inherits M1's bounded-coverage discipline.
+
+The harness may report:
+
+- `VERIFIED_WITHIN_DECLARED_COVERAGE`;
+- `PARTIAL`;
+- `UNKNOWN_COVERAGE`;
+
+but must not report complete project-wide semantic verification unless Project State separately expands and audits that coverage.
+
+Known semantic obligations fail closed inside declared coverage.
+
+Implementation changes with no semantic mapping remain visible coverage gaps and retain existing domain/full safety escalation. M3 must not invent semantic ownership merely to make coverage metrics look complete.
+
+CR-15 REQUIRED/UNKNOWN remains especially important: building a verification harness does not itself prove that all automation acts only on reviewed known capabilities.
+
+## 16. Verification result model
 
 Execution output keeps separate dimensions.
 
@@ -532,7 +554,7 @@ from verification execution.
 
 The harness may report the existing M1 verdict as context, but it must label it as Project State input.
 
-## 16. Manual evidence boundary
+## 17. Manual evidence boundary
 
 M3 must surface manual obligations explicitly.
 
@@ -554,7 +576,7 @@ If implementation requires a minimal manual evidence receipt format, it must be 
 
 Process roles, assignments and escalation policy remain M4.
 
-## 17. Deferred decisions
+## 18. Deferred decisions
 
 `deferred-needs-decision` is not failure and not pass.
 
@@ -564,13 +586,15 @@ It is a blocking unresolved verification state when the affected semantic is in 
 
 M3 must not resolve that Product/contract judgment automatically.
 
-## 18. Freshness
+## 19. Freshness
 
 M3 should retire the idea that one historical file-level commit pin proves all current semantic evidence.
 
 Freshness is candidate-relative:
 
 > was the required evidence for the impacted semantic/scenario set executed or explicitly satisfied against this candidate?
+
+M3 does not promise that a repo-only reader can recover the historical status of every external CI run. A repo-only reader must be able to reconstruct the verification architecture, bindings and required recomputation. Current candidate freshness is established by executing the harness for an explicit base/head pair.
 
 Do not store freshness inside:
 
@@ -594,7 +618,7 @@ This removes the M2-observed all-contract pin blast radius.
 
 Migration must be staged; do not remove the old gate before the replacement gate is green.
 
-## 19. Relationship to check:fast
+## 20. Relationship to check:fast
 
 `check:fast` currently answers:
 
@@ -618,7 +642,17 @@ Recommended composition:
 
 A semantic-aware narrow plan must never reduce existing safety because it happens to know fewer nodes.
 
-## 20. Fail-closed conditions
+### CI integration
+
+Before manifest historical pins are retired, equivalent candidate protection must exist on every path that can update main:
+
+- pull request: explicit PR base/merge-base → candidate head;
+- direct main update, if permitted: previous main commit/first parent → new main head;
+- release candidate: explicit release base → exact release head.
+
+If the system cannot determine an explicit base, it may run broad safety checks but must not claim candidate semantic freshness.
+
+## 21. Fail-closed conditions
 
 At minimum M3 fails closed on:
 
@@ -642,7 +676,7 @@ At minimum M3 fails closed on:
 
 Fail-closed means “verification not established”, not “semantic CONFLICT”.
 
-## 21. Explicit non-goals
+## 22. Explicit non-goals
 
 M3 does not:
 
@@ -660,7 +694,7 @@ M3 does not:
 - turn every source line into a semantic ID;
 - require full-project tests for every tiny change when precise fail-closed evidence exists.
 
-## 22. M3 implementation slices
+## 23. M3 implementation slices
 
 M3 implementation should remain on one candidate branch until final verification migration and bounded M1 re-audit are complete.
 
@@ -747,7 +781,7 @@ Exit:
 
 main can answer “what needs verification for this candidate and why?” without chat history.
 
-## 23. M3 acceptance criteria
+## 24. M3 acceptance criteria
 
 M3 is complete only if:
 
@@ -763,6 +797,7 @@ M3 is complete only if:
 - evidence-file changes invalidate their bindings;
 - required automated evidence cannot be silently skipped;
 - manual/deferred/unbound obligations are explicit and fail closed when impacted;
+- bounded semantic coverage is explicit and UNKNOWN coverage is never promoted by a green full suite;
 - current domain-level safety checks are not weakened;
 - file-level manifest verification pins can be retired without reducing protection;
 - M1 verdicts are not inferred or promoted from M3;
@@ -774,7 +809,7 @@ M3 is complete only if:
 - Cold Restart PASS;
 - no M4/M5/M6 implementation is smuggled into M3.
 
-## 24. Risks and audit questions
+## 25. Risks and audit questions
 
 Independent audit must challenge at least:
 
@@ -789,6 +824,10 @@ Prefer precise semantic fingerprints, with conservative fallback only when mappi
 Can upstream Product/UX changes leave dependent engine/UI semantics looking fresh?
 
 Reverse M2 dependency closure must prevent this.
+
+Can non-ID Product prose or contract context change without invalidating any semantic node?
+
+No. Unattributable canonical-truth edits broaden invalidation conservatively.
 
 ### Test tautology
 
@@ -820,7 +859,7 @@ Is M3 becoming a generic workflow/CI platform?
 
 If a structure has no current semantic/evidence use case, remove it.
 
-## 25. Rollback rule
+## 26. Rollback rule
 
 If a proposed M3 abstraction cannot answer one of:
 
@@ -835,7 +874,7 @@ then remove it.
 
 If an exact mapping is uncertain, fail closed or broaden execution. Do not guess.
 
-## 26. M3-PLAN recommendation
+## 27. M3-PLAN recommendation
 
 Proceed with M3-1 through M3-4 after independent audit and Owner approval.
 
