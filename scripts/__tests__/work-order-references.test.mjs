@@ -45,6 +45,13 @@ function fixtureRepo() {
   write(root, 'docs/project-state/index.json', JSON.stringify({
     capabilities: [{ id: 'CR-01', path: 'docs/project-state/capabilities/x.json' }],
   }));
+  write(root, 'docs/project-state/capabilities/x.json', JSON.stringify({
+    id: 'CR-01',
+    semanticVerdict: 'MATCH',
+    deliveryState: 'IMPLEMENTED',
+    lifecycle: 'ACTIVE',
+    requirementLevel: 'REQUIRED',
+  }));
   write(root, 'docs/acceptance/scenarios.json', JSON.stringify({
     scenarios: [{ id: 'ACC-X-001', verifies: ['ENG-X-001'] }],
   }));
