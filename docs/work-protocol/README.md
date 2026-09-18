@@ -145,6 +145,8 @@ With `--head <sha>`, M4-3 additionally validates the exact candidate:
 - `planningBase` must be an ancestor of the candidate head;
 - planning-snapshot references must still resolve at the candidate;
 - Project State execution boundary changes require reinspection/replan;
+- referenced M1 capability context (verdict/delivery/lifecycle/requirement level) changes require reinspection/replan;
+- referenced Acceptance claim/oracle/execution-contract changes require reinspection/replan;
 - referenced authority paths must not silently change;
 - protected paths must remain unchanged;
 - M3/M3.1 provenance distinguishes authority-source changes from ordinary implementation/evidence impact;
