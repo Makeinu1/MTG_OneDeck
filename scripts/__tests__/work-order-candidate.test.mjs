@@ -144,6 +144,26 @@ describe('M4 candidate binding and drift', () => {
     }
   });
 
+  test('allows a planned input path to be deleted by the candidate when the deletion is in scope', () => {
+    const fx = candidateFixture();
+    try {
+      const candidate = packet(fx.base);
+      candidate.scope.inputPaths = ['scripts/input.txt'];
+      candidate.scope.expectedChangeRoots = ['scripts'];
+
+      git(fx.root, ['rm', 'scripts/input.txt']);
+      git(fx.root, ['commit', '-m', 'remove stale input']);
+      const head = git(fx.root, ['rev-parse', 'HEAD']);
+
+      const result = validateWorkOrderCandidate(candidate, { root: fx.root, head });
+      expect(result.errors).toEqual([]);
+      expect(result.drift.changedFiles).toContain('scripts/input.txt');
+      expect(result.drift.outsideExpectedChangeRoots).toEqual([]);
+    } finally {
+      rmSync(fx.root, { recursive: true, force: true });
+    }
+  });
+
   test('reports an out-of-root support file without treating file drift alone as a hard failure', () => {
     const fx = candidateFixture();
     try {
@@ -288,7 +308,10 @@ function parentPacket(base) {
     title: 'Parent',
     planningBase: base,
     goal: 'Parent bounded goal.',
-    authorityRefs: { semanticRefs: ['UX-CONST-UNDO'], paths: [] },
+    authorityRefs: {
+      semanticRefs: ['UX-CONST-UNDO'],
+      paths: ['docs/contracts/ux-constitution.md'],
+    },
     contextRefs: { capabilityRefs: ['CR-12'] },
     verificationIntent: {
       semanticRefs: ['UX-CONST-UNDO'],
@@ -333,6 +356,20 @@ describe('M4 monotonic delegation', () => {
   test('accepts a structurally narrower child that preserves protection and verification', () => {
     const base = currentHead();
     expect(validateDelegation(childPacket(base), parentPacket(base), { root: DEFAULT_ROOT })).toEqual([]);
+  });
+
+  test('requires child authority and capability context to inherit the parent packet', () => {
+    const base = currentHead();
+    const child = childPacket(base);
+    child.authorityRefs = { semanticRefs: [], paths: [] };
+    child.contextRefs = { capabilityRefs: [] };
+
+    const errors = validateDelegation(child, parentPacket(base), { root: DEFAULT_ROOT });
+    expect(errors).toEqual(expect.arrayContaining([
+      'delegation: child drops parent authority semantic: UX-CONST-UNDO',
+      'delegation: child drops parent authority path: docs/contracts/ux-constitution.md',
+      'delegation: child drops parent capability context: CR-12',
+    ]));
   });
 
   test('rejects child target/change-scope expansion', () => {
@@ -384,13 +421,16 @@ describe('M4 monotonic delegation', () => {
     ]));
   });
 
-  test('requires exact parent identity and planning snapshot', () => {
+  test('requires distinct work identity, exact parent identity, and planning snapshot', () => {
     const base = currentHead();
+    const parent = parentPacket(base);
     const child = childPacket(base);
+    child.workId = parent.workId;
     child.parentWorkId = 'WO-20260918-999';
     child.planningBase = 'f'.repeat(40);
-    const errors = validateDelegation(child, parentPacket(base), { root: DEFAULT_ROOT });
+    const errors = validateDelegation(child, parent, { root: DEFAULT_ROOT });
     expect(errors).toEqual(expect.arrayContaining([
+      `delegation: child workId ${parent.workId} must differ from parent workId`,
       expect.stringContaining('does not match parent workId'),
       'delegation: child and parent must share planningBase; replan explicitly instead of silently rebasing a child',
     ]));
