@@ -1,0 +1,51 @@
+name: Candidate Verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-verification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - id: diff-base
+        if: github.event_name == 'push'
+        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - name: Candidate-relative verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+            HEAD="HEAD"
+          else
+            BASE="${{ steps.diff-base.outputs.base }}"
+            HEAD="${{ github.sha }}"
+          fi
+          if [ "$BASE" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
+            npm run check
+          else
+            npm run check:fast -- --base "$BASE" --head "$HEAD"
+          fi
+      - name: Candidate build
+        run: npm run build
