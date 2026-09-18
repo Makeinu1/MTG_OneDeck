@@ -122,6 +122,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'verify:versions']],
       ['npm', ['run', 'check:docs']],
       ['npm', ['run', 'check:verification']],
+      ['npm', ['run', 'check:work-protocol']],
       ['npm', ['run', 'check:project-state']],
       ['npm', ['run', 'verify:online-state-architecture']],
       ['npm', ['run', 'verify:mode-neutral-core-identity-zone']],
