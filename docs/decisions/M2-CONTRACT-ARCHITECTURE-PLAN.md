@@ -364,6 +364,7 @@ Exit: the M0-reconciled interaction semantics are addressable without pretending
 - remove authored `contractRefs`; derive related contract IDs from `verifies` when a view needs them;
 - remove duplicated normative prose from traceability;
 - remove `ACC-ACCEPT-00*` pseudo-semantic clauses and enforce those structural rules directly in `check-docs`;
+- remove the corresponding `ACC-ACCEPT-*` entries from `ACC-IMPORT-001`, `ACC-ONLINE-001`, and `ACC-CR-REPLAY-001` `verifies` arrays so no scenario points at retired pseudo-semantic nodes;
 - remove stale `manifest.milestone`;
 - retain `manifest.dependsOn` as explicitly non-semantic compatibility metadata;
 - preserve M3-owned `verifiedBy` / `automatedBy` / `lastVerifiedCommit` behavior.
