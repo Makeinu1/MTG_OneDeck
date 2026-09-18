@@ -62,7 +62,7 @@
         "Reload during draw does not repeat the turn-based action.",
         "A permanent untaps on the correct next turn.",
         "Mana clears and temporary modifiers expire at the required boundary.",
-        "Cleanup modal blocks bypass, exact discard selection is applied, and cleanup completes.",
+        "Cleanup modal blocks keyboard turn advance while unresolved; required discards selected through the modal complete and reduce the active hand to its maximum size.",
         "Turn increments exactly once after cleanup.",
         "Page errors and unexpected console errors remain zero."
       ],
