@@ -233,21 +233,29 @@ try {
     () => host.getByRole('button', { name: '解決', exact: true }).click(),
     'resolve',
   );
-  await until(
-    async () => Object.values((await read(host)).table.cards).some((card) => card.zone === 'battlefield'),
-    'resolved permanent',
-  );
+  await until(async () => {
+    const view = await read(host);
+    return (
+      view.table.resolution === null &&
+      view.table.stack.length === 0 &&
+      Object.values(view.table.cards).some((card) => card.zone === 'battlefield')
+    );
+  }, 'resolution settled');
   state = await read(host);
   const permanent = Object.values(state.table.cards).find((c) => c.zone === 'battlefield');
   assert.ok(permanent);
+  const permanentDef = state.table.defs[permanent.defId];
+  const permanentName = permanentDef?.printedName ?? permanentDef?.name ?? permanent.id;
   const board = host.locator(`[data-layout-card-id="${permanent.id}"]`).first();
   await mutate(host, () => board.dblclick(), 'tap');
   assert.equal((await read(host)).table.cards[permanent.id].tapped, true);
   // Add an explicitly scoped temporary effect through the ordinary card details.
+  stage = 'temporary-modifier';
   await board.click({ button: 'right' });
   await host.getByRole('menuitem', { name: '詳細・その他の操作', exact: true }).click();
-  const details = host.locator('.table-work-panel').filter({ visible: true }).last();
-  await details.getByText('状態・修整・取り付け', { exact: true }).click();
+  const details = host.getByLabel(`《${permanentName}》`, { exact: true });
+  await details.waitFor();
+  await details.locator('summary').filter({ hasText: '状態・修整・取り付け' }).click();
   await details.getByLabel('パワー修整', { exact: true }).fill('3');
   await details.getByLabel('タフネス修整', { exact: true }).fill('3');
   await mutate(
