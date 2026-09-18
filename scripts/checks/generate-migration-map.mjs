@@ -74,8 +74,15 @@ export function renderMigrationMap() {
 }
 
 function run() {
-  writeFileSync(output, `${JSON.stringify(renderMigrationMap(), null, 2)}\n`);
-  console.log(`Wrote research/archive/document-reset-2026-08/migration-map.json`);
+  const rendered = `${JSON.stringify(renderMigrationMap(), null, 2)}\n`;
+  if (process.argv.includes('--check')) {
+    const current = readFileSync(output, 'utf8');
+    if (current !== rendered) throw new Error('migration map is stale; run generate-migration-map.mjs');
+    console.log('PASS: migration map matches deterministic generator');
+    return;
+  }
+  writeFileSync(output, rendered);
+  console.log('Wrote research/archive/document-reset-2026-08/migration-map.json');
 }
 
 const isCli = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
