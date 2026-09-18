@@ -7,7 +7,7 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
+  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Manual Resolution"}],
   "implementationRefs": [{"path":"src/engine/cockpitR31.ts","locator":"ExpectedInteractionContext / resolutionProcess"},{"path":"src/engine/cockpitTable.ts","locator":"resolve.begin / resolve.end"}],
   "verificationRefs": [],
