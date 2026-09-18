@@ -74,7 +74,8 @@
     "check:verification": "node scripts/checks/check-verification.mjs",
     "verify:semantic": "node scripts/checks/verify-semantic.mjs",
     "check:work-order": "node scripts/checks/work-order.mjs",
-    "check:work-protocol": "node scripts/checks/check-work-protocol.mjs"
+    "check:work-protocol": "node scripts/checks/check-work-protocol.mjs",
+    "check:cockpit-ingress": "node scripts/checks/check-cockpit-mutation-ingress.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

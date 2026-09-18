@@ -78,6 +78,37 @@ describe('validation domain resolver', () => {
     expect(selection.escalation).toBe('full');
   });
 
+  test('re-homes R4b and trigger occurrence milestone guards into candidate domains', () => {
+    const r4b = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['src/engine/cockpitR4b.ts'],
+    });
+    expect(r4b.initialDomains).toEqual(expect.arrayContaining(['cockpit-r4b', 'trigger-occurrence']));
+    expect(r4b.testFiles).toEqual(expect.arrayContaining([
+      'src/engine/__tests__/cockpitR4b.test.ts',
+      'src/online/cloudflare/__tests__/cockpitR4bSession.test.ts',
+      'src/components/game/CockpitFormalJourney.r4b.test.ts',
+      'src/engine/__tests__/triggerOccurrence.test.ts',
+    ]));
+
+    const occurrence = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['src/engine/triggerOccurrence.ts'],
+    });
+    expect(occurrence.initialDomains).toContain('trigger-occurrence');
+    expect(occurrence.testFiles).toEqual(expect.arrayContaining([
+      'src/engine/__tests__/triggerOccurrence.test.ts',
+      'src/engine/__tests__/cockpitTriggerOccurrenceLifecycle.test.ts',
+    ]));
+
+    const unclassifiedOnline = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['src/online/browser/cockpitClient.ts'],
+    });
+    expect(unclassifiedOnline.unknownFiles).toContain('src/online/browser/cockpitClient.ts');
+    expect(unclassifiedOnline.escalation).toBe('full');
+  });
+
   test('escalates unknown and shared configuration paths', () => {
     const unknown = resolveDomainSelection({ root: DEFAULT_ROOT, files: ['vendor/new-tool.mjs'] });
     expect(unknown.unknownFiles).toEqual(['vendor/new-tool.mjs']);

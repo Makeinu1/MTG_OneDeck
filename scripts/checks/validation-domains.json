@@ -178,6 +178,28 @@
       "reason": "presentation runtimeとAV reviewを全件選択し、interactionとの依存も確認する。"
     },
     {
+      "id": "cockpit-r4b",
+      "description": "Cockpit R4b mutation authority、Manual Resolution境界、recovery/session、normal-UI ingress",
+      "sourcePatterns": ["src/engine/types.ts", "src/engine/cockpitR31.ts", "src/engine/cockpitR4.ts", "src/engine/cockpitR4b.ts", "src/engine/cockpitTriggers.ts", "src/engine/cockpitTriggersCore.ts", "src/components/game/CockpitManaBatch.tsx", "src/components/game/CockpitCorrectionTools.tsx", "src/components/game/CockpitSessionScreen.tsx", "src/components/game/CockpitTableSurface.tsx", "src/components/game/cockpitPresentation.ts"],
+      "testPatterns": ["src/engine/__tests__/cockpitR4b.test.ts", "src/engine/__tests__/cockpitR4.test.ts", "src/engine/__tests__/cockpitR31.test.ts", "src/engine/__tests__/cockpitR31Lifecycle.test.ts", "src/engine/__tests__/cockpitTriggers.test.ts", "src/online/cloudflare/__tests__/cockpitSession.test.ts", "src/online/browser/__tests__/cockpitClient.test.ts", "src/online/cloudflare/__tests__/cockpitR4bSession.test.ts", "src/online/cloudflare/__tests__/cockpitR4bSunset.test.ts", "src/online/cloudflare/__tests__/cockpitR4bProvenance.test.ts", "src/online/cloudflare/__tests__/cockpitR4bAuditSession.test.ts", "src/online/cloudflare/__tests__/cockpitR4Session.test.ts", "src/online/cloudflare/__tests__/cockpitR4FormalSession.test.ts", "src/online/browser/__tests__/cockpitClientR4b.test.ts", "src/online/browser/__tests__/cockpitClientR4bNormalUi.test.ts", "src/online/browser/__tests__/cockpitClientR4bSunset.test.ts", "src/components/game/CockpitManaBatch.r4b.test.tsx", "src/components/game/CockpitCorrectionTools.r4b.test.tsx", "src/components/game/CockpitNormalRawZero.r4b.test.ts", "src/components/game/CockpitFormalJourney.r4b.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-COMMANDS", "CONTRACT-ENGINE-TURN", "CONTRACT-UI-ARCHITECTURE"],
+      "dependentDomains": [],
+      "escalationLevel": "targeted",
+      "reason": "R4b固有のmutation authority・recovery/session・normal-UI回帰をmilestone workflowではなくcandidate-relative domain選択へ移管する。"
+    },
+    {
+      "id": "trigger-occurrence",
+      "description": "Trigger occurrence identity、collection、Cockpit lifecycle、R3.1/R4/R4b integration",
+      "sourcePatterns": ["src/engine/triggerOccurrence.ts", "src/engine/cockpitTriggerOccurrence.ts", "src/engine/cockpitTriggers.ts", "src/engine/cockpitTriggersCore.ts", "src/engine/cockpitR31.ts", "src/engine/cockpitR4.ts", "src/engine/cockpitR4b.ts"],
+      "testPatterns": ["src/engine/__tests__/triggerOccurrence.test.ts", "src/engine/__tests__/triggerOccurrenceCollector.test.ts", "src/engine/__tests__/cockpitTriggerOccurrence.test.ts", "src/engine/__tests__/cockpitTriggerOccurrenceLifecycle.test.ts", "src/engine/__tests__/cockpitTriggers.test.ts", "src/engine/__tests__/cockpitR31.test.ts", "src/engine/__tests__/cockpitR31Lifecycle.test.ts", "src/engine/__tests__/cockpitR4.test.ts", "src/engine/__tests__/cockpitR4b.test.ts"],
+      "testProject": "core",
+      "relatedContractIds": ["CONTRACT-ENGINE-TURN"],
+      "dependentDomains": [],
+      "escalationLevel": "targeted",
+      "reason": "R5a-1のoccurrence identity/collector/lifecycle回帰をcurrent validation-domainへ移管し、R3.1/R4/R4b変更でも同じ回帰床を維持する。"
+    },
+    {
       "id": "build-tooling",
       "description": "package/build/config、validation script、workflow、architecture gate",
       "sourcePatterns": ["package.json", "package-lock.json", "tsconfig*.json", "vite*.ts", "vitest*.ts", "vitest*.mjs", "eslint*.js", "scripts/**", ".github/workflows/**", "src/main.*", "src/test/setup.*", "src/test/architecture/**"],
