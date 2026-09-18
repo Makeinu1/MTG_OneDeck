@@ -319,14 +319,12 @@ try {
       !view.table.stack.some((entry) => entry.source.id === manualCardId)
     );
   }, 'manual resolution finished');
-  await host.getByRole('button', { name: '操作', exact: true }).click();
-  await host.getByText('マナの調整', { exact: true }).click();
+  stage = 'mana-setup';
   await mutate(
     host,
-    () => host.getByRole('button', { name: 'Gマナを追加', exact: true }).click(),
+    () => host.getByLabel('Gマナを1増やす', { exact: true }).click(),
     'mana',
   );
-  await closeWork(host);
   let totalTurns = 0;
   for (let round = 0; round < 4; round++) {
     stage = `ordinary-turn-${round + 1}`;
