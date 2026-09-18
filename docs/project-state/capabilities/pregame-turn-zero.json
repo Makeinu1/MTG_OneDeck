@@ -8,29 +8,9 @@
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
   "auditedAtCommit": "6b034072f877205c667237fb3e79945fa1b1c43d",
-  "authorityRefs": [
-    {
-      "path": "docs/contracts/ux-constitution.md",
-      "locator": "Pregame / Turn Zero"
-    }
-  ],
-  "implementationRefs": [
-    {
-      "path": "src/online/pregame/operations.ts"
-    },
-    {
-      "path": "src/online/pregame/projection.ts"
-    },
-    {
-      "path": "src/online/cloudflare/cockpitSession.ts",
-      "locator": "start control"
-    }
-  ],
-  "verificationRefs": [
-    {
-      "path": "src/online/pregame/__tests__/pregameLifecycleV1.test.ts"
-    }
-  ],
+  "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Pregame / Turn Zero"}],
+  "implementationRefs": [{"path":"src/online/pregame/operations.ts"},{"path":"src/online/pregame/projection.ts"},{"path":"src/online/cloudflare/cockpitSession.ts","locator":"start control"}],
+  "verificationRefs": [{"path":"src/online/pregame/__tests__/pregameLifecycleV1.test.ts"}],
   "rationale": "Pregame lifecycle and readiness exist, but the required visible manual-first checkpoint for game-start operations before Turn 1 was not identified.",
   "nextAction": "Keep the gap explicit; add dedicated acceptance before future implementation.",
   "ownerDecisionRefs": []
