@@ -61,7 +61,7 @@ A destructive retirement is allowed only when all applicable questions are answe
 9. **Locator** — retained assets no longer point to the retired asset, or locators move in the same reviewed unit.
 10. **Auditability** — a fresh reader can reconstruct why the replacement/current state is authoritative.
 
-If any required answer is unknown, the lifecycle remains `RETIRE_CANDIDATE` with retirement proof explicitly pending; it never advances to deletion.
+For an asset already classified as `RETIRE_CANDIDATE`, any unknown required answer keeps retirement proof explicitly pending and blocks deletion. An asset whose lifecycle itself is `UNKNOWN` remains `UNKNOWN`; missing proof never promotes it to a retirement candidate.
 
 ## 5. Historical authorization is non-replayable
 
