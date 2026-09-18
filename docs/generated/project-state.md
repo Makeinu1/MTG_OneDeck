@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `c2671e0ee45211b66d31f00f169c481291dc7eb0` (main, 2026-09-18).
+Audited baseline: `a97cfd9435f48af69fcfb4dca498c0c3f04f79b5` (main, 2026-09-18).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -28,7 +28,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`
 - Active: `M4 — Work Protocol / SOW`
 - Next gate: `M4-PLAN`
 - Next work: Design, independently audit, and Owner-approve the M4 Work Protocol / SOW plan that standardizes bounded Goal/Scope/Authority/Inputs/Constraints/Evidence/DoD/Escalation without moving Product Truth, Project State NOW, semantic ownership, or verification verdicts into task prompts.
@@ -36,14 +36,16 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 ## Coverage claim
 
 - Mode: `BOUNDED`
-- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, M3 candidate-relative verification bindings/impact/freshness harness, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
+- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification bindings/impact/manual-evidence/freshness harness, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
 - Completeness sources: `docs/contracts/semantic-map.json`, `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
   - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
-  - M3 verification is bounded: mapped semantic obligations fail closed, while implementation changes outside known semantic/evidence mapping remain UNKNOWN_COVERAGE and retain existing domain/full-check escalation.
-  - Choice Authority, effect-granted actions, Undo recovery and Information/Audience now have explicit Acceptance specifications but no fabricated passing evidence; current GAP/CONFLICT reality is preserved.
-  - CR-15 remains REQUIRED/UNKNOWN: the existence of the M3 harness does not prove that every automation path is semantically known or exhaustively covered.
+  - M3.1 verification remains bounded: mapped semantic obligations fail closed, while implementation changes outside known semantic/evidence mapping remain UNKNOWN_COVERAGE and retain existing domain/full-check escalation.
+  - Verification-claim/evidence weakening now invalidates the affected semantic obligations; new verification specifications alone do not fabricate runtime conformance.
+  - Impacted manual-only Acceptance can be satisfied only by an explicit exact-base/head manual evidence receipt; the receipt is verification evidence, not semantic truth, Project State, or durable external-write authority.
+  - Choice Authority, effect-granted actions, Undo recovery and Information/Audience have explicit Acceptance specifications but no fabricated passing evidence; current GAP/CONFLICT reality is preserved.
+  - CR-15 remains REQUIRED/UNKNOWN: M3.1 hardening does not prove that every automation path is semantically known or exhaustively covered.
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
 
 ## Capability state
@@ -146,7 +148,7 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 - production gameplay semantic changes
 - R4b/R5 redesign
 - casual Product Requirements or UX Constitution changes
-- M4 implementation before an independently audited Owner-approved M4 plan
+- M4 implementation before the revised M4 plan is independently re-audited and Owner-approved
 - M5-M7 implementation
 
 ## Freshness
