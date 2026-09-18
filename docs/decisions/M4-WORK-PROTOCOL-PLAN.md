@@ -821,8 +821,6 @@ Before M6 is approved to orchestrate automatic inspect/work/repair loops, M6-PLA
 
 This gate belongs to M6 approval; M4 must not attempt to solve CR-15 by expanding the Work Order schema.
 
-A validator / packet generator is not an orchestrator.
-
 ## 23. Proposed implementation slices
 
 M4 should be implemented on one candidate branch after M4-PLAN approval.
