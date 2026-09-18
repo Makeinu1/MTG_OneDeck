@@ -1,8 +1,32 @@
 import { describe, expect, it } from 'vitest';
 
-import { runVitestProjects } from '../checks/vitest-projects.mjs';
+import { isTestLikePath, partitionVitestTestFiles, runVitestProjects, vitestProjectForPath } from '../checks/vitest-projects.mjs';
 
 describe('sequential Vitest projects', () => {
+  it('shares the current core/dom path classification with Vite config', () => {
+    expect(vitestProjectForPath('src/engine/__tests__/combat.test.ts')).toBe('core');
+    expect(vitestProjectForPath('src/engine/core/closure/__tests__/canonicalV1.spec.mts')).toBe('core');
+    expect(vitestProjectForPath('src/engine/core/closure/__tests__/canonicalV1.spec.mtsx')).toBe('core');
+    expect(vitestProjectForPath('src/engine/core/closure/__tests__/canonicalV1.test.cjsx')).toBe('core');
+    expect(vitestProjectForPath('src/online/publicApp/publicAppClientV1.test.ts')).toBe('dom');
+    expect(vitestProjectForPath('scripts/__tests__/machine-checks.test.mjs')).toBe('dom');
+    expect(vitestProjectForPath('.claude/worktree/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('node_modules/pkg/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('src/.git/foo.test.ts')).toBeNull();
+    expect(vitestProjectForPath('dist/foo.test.ts')).toBe('dom');
+    expect(vitestProjectForPath('src/vite.config.test.ts')).toBe('dom');
+    expect(vitestProjectForPath('src/engine/__tests__/not-vitest.test.py')).toBeNull();
+    expect(isTestLikePath('src/engine/__tests__/not-vitest.test.py')).toBe(true);
+    expect(vitestProjectForPath('src\\engine\\__tests__\\combat.test.ts')).toBe('core');
+    expect(partitionVitestTestFiles([
+      'src/engine/__tests__/combat.test.ts',
+      'src/online/publicApp/publicAppClientV1.test.ts',
+    ])).toEqual({
+      core: ['src/engine/__tests__/combat.test.ts'],
+      dom: ['src/online/publicApp/publicAppClientV1.test.ts'],
+    });
+  });
+
   it('is import-safe and exposes the runner without spawning projects', () => {
     expect(runVitestProjects).toBeTypeOf('function');
   });
