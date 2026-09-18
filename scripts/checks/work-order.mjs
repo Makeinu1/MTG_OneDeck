@@ -295,6 +295,30 @@ function currentExecutionBoundary(projectState) {
   };
 }
 
+function capabilityContextAtRef(root, ref, projectState, capabilityId) {
+  const entry = (projectState?.capabilities ?? []).find((item) => item?.id === capabilityId);
+  if (!entry?.path) return null;
+  const text = readAtRef(root, ref, entry.path);
+  if (text === null) return null;
+  try {
+    const capability = JSON.parse(text);
+    return {
+      semanticVerdict: capability.semanticVerdict ?? null,
+      deliveryState: capability.deliveryState ?? null,
+      lifecycle: capability.lifecycle ?? null,
+      requirementLevel: capability.requirementLevel ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function materialAcceptanceChange(change) {
+  return change?.kind === 'removed'
+    || change?.requiresExecution === true
+    || (change?.reasons ?? []).includes('verification-claim-changed');
+}
+
 export function validateDelegation(child, parent, { root = DEFAULT_ROOT } = {}) {
   const errors = [];
   if (!parent) {
@@ -404,6 +428,8 @@ export function validateWorkOrderCandidate(workOrder, {
     authorityPathChanges: [],
     authoritySemanticChanges: [],
     protectedPathChanges: [],
+    contextCapabilityChanges: [],
+    acceptanceChanges: [],
   };
 
   const planningErrors = validateWorkOrderAtPlanningBase(workOrder, { root });
@@ -439,6 +465,17 @@ export function validateWorkOrderCandidate(workOrder, {
     errors.push('candidate: Project State execution boundary changed since planning; reinspection/replan required');
   }
 
+  if (baseState && headState) {
+    for (const capabilityId of workOrder.contextRefs?.capabilityRefs ?? []) {
+      const before = capabilityContextAtRef(root, workOrder.planningBase, baseState, capabilityId);
+      const after = capabilityContextAtRef(root, head, headState, capabilityId);
+      if (stableJson(before) !== stableJson(after)) {
+        drift.contextCapabilityChanges.push({ id: capabilityId, before, after });
+        errors.push(`candidate: capability context changed since planning ${capabilityId}; reinspection/replan required`);
+      }
+    }
+  }
+
   const changedFiles = changedFilesBetween(root, workOrder.planningBase, head);
   drift.changedFiles = changedFiles;
   drift.outsideExpectedChangeRoots = changedFiles.filter(
@@ -468,6 +505,14 @@ export function validateWorkOrderCandidate(workOrder, {
     errors.push(`candidate: unable to compute M3.1 impact: ${error instanceof Error ? error.message : String(error)}`);
   }
   if (verificationPlan) {
+    const referencedAcceptance = new Set(workOrder.verificationIntent?.acceptanceRefs ?? []);
+    for (const change of verificationPlan.verificationSpecChanges?.scenarios ?? []) {
+      if (referencedAcceptance.has(change.id) && materialAcceptanceChange(change)) {
+        drift.acceptanceChanges.push(change);
+        errors.push(`candidate: referenced Acceptance changed materially since planning ${change.id}; reinspection/replan required`);
+      }
+    }
+
     const guarded = new Set([
       ...(workOrder.authorityRefs?.semanticRefs ?? []),
       ...(workOrder.protected?.semanticRefs ?? []),
@@ -496,6 +541,8 @@ export function validateWorkOrderCandidate(workOrder, {
       outsideExpectedChangeRoots: [...new Set(drift.outsideExpectedChangeRoots)].sort(),
       authorityPathChanges: [...new Set(drift.authorityPathChanges)].sort(),
       protectedPathChanges: [...new Set(drift.protectedPathChanges)].sort(),
+      contextCapabilityChanges: drift.contextCapabilityChanges,
+      acceptanceChanges: drift.acceptanceChanges,
     },
   };
 }
