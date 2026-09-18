@@ -23,7 +23,13 @@
         "Finishing B leaves A pending and does not auto-start A.",
         "Page errors and unexpected console errors remain zero."
       ],
-      "legacyRetirementPrecondition": "The current execution path for this contract is active and verified before legacy R3.1 browser evidence is retired."
+      "legacyRetirementPrecondition": "The current execution path for this contract is active and verified before legacy R3.1 browser evidence is retired.",
+      "executionPath": {
+        "workflow": ".github/workflows/cockpit-browser-evidence.yml",
+        "job": "browser-evidence",
+        "artifact": "cockpit-browser-evidence",
+        "lifecycle": "CURRENT"
+      }
     },
     {
       "id": "COCKPIT-R4-FORMAL-BROWSER",
@@ -43,7 +49,13 @@
         "Visible turn-face-up action emits special.turnFaceUp for the selected card ID and the resulting card state is face up.",
         "Browser console errors and warnings remain zero."
       ],
-      "legacyRetirementPrecondition": "A current non-legacy execution path for this contract is active and verified before the old R4 browser workflow shell is retired."
+      "legacyRetirementPrecondition": "A current non-legacy execution path for this contract is active and verified before the old R4 browser workflow shell is retired.",
+      "executionPath": {
+        "workflow": ".github/workflows/cockpit-browser-evidence.yml",
+        "job": "browser-evidence",
+        "artifact": "cockpit-browser-evidence",
+        "lifecycle": "CURRENT"
+      }
     },
     {
       "id": "COCKPIT-TURN-CLEANUP-BROWSER",
@@ -66,7 +78,13 @@
         "Turn increments exactly once after cleanup.",
         "Page errors and unexpected console errors remain zero."
       ],
-      "legacyRetirementPrecondition": "The current contract execution path is registered and verified before historical turn/cleanup workflow or branch evidence is retired."
+      "legacyRetirementPrecondition": "The current contract execution path is registered and verified before historical turn/cleanup workflow or branch evidence is retired.",
+      "executionPath": {
+        "workflow": ".github/workflows/cockpit-browser-evidence.yml",
+        "job": "browser-evidence",
+        "artifact": "cockpit-browser-evidence",
+        "lifecycle": "CURRENT"
+      }
     }
   ]
 }
