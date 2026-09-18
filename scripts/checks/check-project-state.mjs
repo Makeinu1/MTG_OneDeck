@@ -218,9 +218,11 @@ for (const clause of traceabilityClauses.values()) {
   const decision = pendingDecisions.get(decisionId);
   if (!decision) { err(`traceability ${clause.id}: ${decisionId} is not surfaced in Project State pendingDecisions`); continue; }
   if (!decision.traceabilityRefs.includes(clause.id)) err(`${decisionId}: missing traceability ref ${clause.id}`);
-  for (const scenarioId of clause.acceptedBy ?? []) {
-    const scenario = acceptanceScenarios.get(scenarioId);
-    if (scenario?.status === 'deferred' && !decision.acceptanceRefs.includes(scenarioId)) err(`${decisionId}: deferred acceptance ${scenarioId} is not surfaced`);
+  for (const [scenarioId, scenario] of acceptanceScenarios.entries()) {
+    const verifies = Array.isArray(scenario?.verifies) ? scenario.verifies : [];
+    if (verifies.includes(clause.id) && scenario?.status === 'deferred' && !decision.acceptanceRefs.includes(scenarioId)) {
+      err(`${decisionId}: deferred acceptance ${scenarioId} is not surfaced`);
+    }
   }
 }
 

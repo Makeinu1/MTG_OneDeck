@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "edges": [
+    {
+      "from": "UX-CONST-MANUAL",
+      "type": "refines",
+      "to": "P-06"
+    },
+    {
+      "from": "UX-CONST-HOLD",
+      "type": "refines",
+      "to": "P-04"
+    },
+    {
+      "from": "UX-CONST-CHOICE",
+      "type": "refines",
+      "to": "P-04"
+    },
+    {
+      "from": "UX-CONST-CHOICE",
+      "type": "refines",
+      "to": "P-06"
+    },
+    {
+      "from": "UX-CONST-GRANTED-ACTION",
+      "type": "refines",
+      "to": "P-04"
+    },
+    {
+      "from": "UX-CONST-UNDO",
+      "type": "refines",
+      "to": "P-08"
+    },
+    {
+      "from": "UX-CONST-INFORMATION",
+      "type": "refines",
+      "to": "P-06"
+    },
+    {
+      "from": "UX-CONST-INFORMATION",
+      "type": "refines",
+      "to": "P-10"
+    },
+    {
+      "from": "UX-CONST-RECOVERY",
+      "type": "refines",
+      "to": "Q-01"
+    },
+    {
+      "from": "ENG-CMD-004",
+      "type": "constrainedBy",
+      "to": "UX-CONST-MANUAL"
+    },
+    {
+      "from": "ENG-CMD-R6-001",
+      "type": "constrainedBy",
+      "to": "UX-CONST-UNDO"
+    },
+    {
+      "from": "ENG-TURN-R6-002",
+      "type": "constrainedBy",
+      "to": "UX-CONST-HOLD"
+    },
+    {
+      "from": "ENG-MP-005",
+      "type": "constrainedBy",
+      "to": "UX-CONST-ELIMINATION"
+    },
+    {
+      "from": "ENG-MP-005",
+      "type": "constrainedBy",
+      "to": "UX-CONST-RECOVERY"
+    }
+  ]
+}

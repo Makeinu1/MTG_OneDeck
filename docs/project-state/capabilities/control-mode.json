@@ -7,7 +7,7 @@
   "deliveryState": "UNPLANNED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
+  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Normal mode / Full Control"}],
   "implementationRefs": [{"path":"src/engine/cockpitTable.ts","locator":"shortcut and phase progression"}],
   "verificationRefs": [],

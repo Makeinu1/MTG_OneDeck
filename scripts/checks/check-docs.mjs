@@ -12,6 +12,8 @@ const scenarioPath = join(root, 'docs/acceptance/scenarios.json');
 const migrationPath = join(root, 'research/archive/document-reset-2026-08/migration-map.json');
 const traceabilityPath = join(root, 'docs/contracts/traceability.json');
 const traceabilityRelativePath = relative(root, traceabilityPath);
+const productRequirementsPath = join(root, 'docs/product-requirements.md');
+const semanticMapPath = join(root, 'docs/contracts/semantic-map.json');
 const inventoryPath = join(root, 'research/archive/document-reset-2026-08/legacy-contract-inventory.json');
 const errors = [];
 
@@ -99,30 +101,57 @@ function checkManifest(manifest) {
   }
 }
 
-function checkScenarios(scenarios, migration, contractIds, clauseIds = new Set()) {
+function checkScenarios(scenarios, migration, semanticIds = new Set()) {
   const seen = new Set();
   const legacyIds = new Set((migration?.legacyIds ?? []).map((entry) => entry.id));
+  const allowedStatus = new Set(['active', 'deferred', 'periodic']);
   if (!Array.isArray(scenarios)) {
     errors.push('scenarios: expected an array');
     return;
   }
   for (const scenario of scenarios) {
-    for (const key of ['id', 'status', 'risk', 'tags', 'preconditions', 'steps', 'oracle', 'automatedBy', 'manualOnly', 'supersedes', 'contractRefs', 'verifies']) {
+    for (const key of ['id', 'status', 'risk', 'tags', 'preconditions', 'steps', 'oracle', 'automatedBy', 'manualOnly', 'supersedes', 'verifies']) {
       if (!(key in scenario)) errors.push(`scenario ${scenario.id ?? '<unknown>'}: missing ${key}`);
     }
+    if ('contractRefs' in scenario) errors.push(`scenario ${scenario.id ?? '<unknown>'}: contractRefs is retired; derive contract ownership from verifies targets`);
     if (typeof scenario.id !== 'string') continue;
+    if (!/^ACC-[A-Z0-9-]+$/u.test(scenario.id)) errors.push(`scenario ${scenario.id}: invalid stable scenario id`);
     if (seen.has(scenario.id)) errors.push(`scenario: duplicate id ${scenario.id}`);
     seen.add(scenario.id);
-    for (const ref of scenario.contractRefs ?? []) if (!contractIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved contractRefs ${ref}`);
-    if (!Array.isArray(scenario.verifies) || scenario.verifies.length === 0) errors.push(`scenario ${scenario.id}: verifies must not be empty`);
-    for (const ref of scenario.verifies ?? []) if (!clauseIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved verifies ${ref}`);
+    if (!allowedStatus.has(scenario.status)) errors.push(`scenario ${scenario.id}: invalid status ${scenario.status}`);
+    if (typeof scenario.oracle !== 'string' || scenario.oracle.trim() === '') errors.push(`scenario ${scenario.id}: oracle is required`);
+    if (typeof scenario.manualOnly !== 'boolean') errors.push(`scenario ${scenario.id}: manualOnly must be boolean`);
+    for (const key of ['tags', 'preconditions', 'steps', 'automatedBy', 'supersedes', 'verifies']) {
+      if (!Array.isArray(scenario[key])) errors.push(`scenario ${scenario.id}: ${key} must be an array`);
+    }
+    if (Array.isArray(scenario.preconditions) && scenario.preconditions.length === 0) errors.push(`scenario ${scenario.id}: preconditions must not be empty`);
+    if (Array.isArray(scenario.steps) && scenario.steps.length === 0) errors.push(`scenario ${scenario.id}: steps must not be empty`);
+    if (scenario.status !== 'periodic' && Array.isArray(scenario.verifies) && scenario.verifies.length === 0) {
+      errors.push(`scenario ${scenario.id}: active/deferred scenario must verify at least one semantic node`);
+    }
+    if (['deferred', 'periodic'].includes(scenario.status) && scenario.manualOnly !== true) {
+      errors.push(`scenario ${scenario.id}: deferred/periodic evidence must remain outside ordinary automated acceptance`);
+    }
+    if (scenario.manualOnly === false && Array.isArray(scenario.automatedBy) && scenario.automatedBy.length === 0) {
+      errors.push(`scenario ${scenario.id}: non-manual scenario requires automatedBy evidence`);
+    }
+    for (const ref of scenario.verifies ?? []) {
+      if (ref.startsWith('ACC-')) errors.push(`scenario ${scenario.id}: Acceptance scenarios cannot verify Acceptance scenario IDs`);
+      else if (!semanticIds.has(ref)) errors.push(`scenario ${scenario.id}: unresolved verifies ${ref}`);
+    }
     for (const path of scenario.automatedBy ?? []) requireFile(join(root, path), `scenario ${scenario.id} automatedBy`);
     for (const ref of scenario.supersedes ?? []) {
       if (typeof ref === 'string' && !legacyIds.has(ref) && !seen.has(ref)) errors.push(`scenario ${scenario.id}: unresolved supersedes ${ref}`);
     }
   }
+  const goldenReplay = scenarios.find((scenario) => scenario?.id === 'ACC-CR-REPLAY-001');
+  if (!goldenReplay) errors.push('scenarios: ACC-CR-REPLAY-001 structural replay scenario is required');
+  else {
+    if (goldenReplay.status !== 'active' || goldenReplay.manualOnly !== false) errors.push('ACC-CR-REPLAY-001: golden replay must remain active automated acceptance');
+    if (!goldenReplay.tags?.includes('replay') || !goldenReplay.tags?.includes('golden')) errors.push('ACC-CR-REPLAY-001: replay/golden tags are required');
+    if (!Array.isArray(goldenReplay.automatedBy) || goldenReplay.automatedBy.length === 0) errors.push('ACC-CR-REPLAY-001: automated replay evidence is required');
+  }
 }
-
 function fileText(path) {
   return readFileSync(path, 'utf8');
 }
@@ -146,26 +175,37 @@ function checkMarker(path, marker, clauseId) {
   }
 }
 
-function checkTraceability(traceability, manifest, scenarios) {
+function checkTraceability(traceability, manifest, contractSemanticIds) {
   if (traceability === null || typeof traceability !== 'object' || !Array.isArray(traceability.clauses)) {
     errors.push('traceability: expected clauses array');
     return new Set();
   }
   const contractIds = new Set((manifest?.contracts ?? []).map((entry) => entry.id));
-  const scenarioIds = new Set((scenarios ?? []).map((scenario) => scenario.id));
   const clauseIds = new Set();
+  const forbiddenSemanticFields = ['rule', 'precondition', 'resultingBehavior', 'failureBehavior', 'invariant', 'acceptedBy'];
   for (const clause of traceability.clauses) {
     if (clause === null || typeof clause !== 'object') {
       errors.push('traceability: every clause must be an object');
       continue;
     }
-    for (const key of ['id', 'contractId', 'status', 'sourcePath', 'sourceMarker', 'verificationDisposition', 'verifiedBy', 'acceptedBy']) {
+    for (const key of ['id', 'contractId', 'status', 'sourcePath', 'sourceMarker', 'verificationDisposition', 'verifiedBy']) {
       if (!(key in clause)) errors.push(`traceability ${clause.id ?? '<unknown>'}: missing ${key}`);
     }
+    for (const key of forbiddenSemanticFields) {
+      if (key in clause) errors.push(`traceability ${clause.id ?? '<unknown>'}: retired semantic field ${key}`);
+    }
     if (typeof clause.id !== 'string') continue;
+    if (clause.id.startsWith('ACC-ACCEPT-')) errors.push(`traceability ${clause.id}: retired pseudo semantic clause`);
     if (clauseIds.has(clause.id)) errors.push(`traceability: duplicate clause id ${clause.id}`);
     clauseIds.add(clause.id);
+    const semanticOwnerPath = contractSemanticIds.get(clause.id);
+    if (!semanticOwnerPath) errors.push(`traceability ${clause.id}: does not resolve to an active inline semantic ID`);
+    else if (clause.sourcePath !== semanticOwnerPath) errors.push(`traceability ${clause.id}: sourcePath does not match semantic owner ${semanticOwnerPath}`);
     if (!contractIds.has(clause.contractId)) errors.push(`traceability ${clause.id}: unresolved contractId ${clause.contractId}`);
+    else {
+      const ownerContract = (manifest?.contracts ?? []).find((entry) => entry.id === clause.contractId);
+      if (ownerContract?.path !== clause.sourcePath) errors.push(`traceability ${clause.id}: contractId/path ownership mismatch`);
+    }
     if (!['active', 'obsolete'].includes(clause.status)) errors.push(`traceability ${clause.id}: invalid status ${clause.status}`);
     if (!['automated', 'acceptance', 'manual', 'deferred-needs-decision'].includes(clause.verificationDisposition)) {
       errors.push(`traceability ${clause.id}: invalid verificationDisposition ${clause.verificationDisposition}`);
@@ -174,18 +214,10 @@ function checkTraceability(traceability, manifest, scenarios) {
     requireFile(source, `traceability ${clause.id} source`);
     if (existsSync(source)) {
       const content = fileText(source);
-      if (clause.sourceMarker?.startsWith('scenario: ')) {
-        const sourceScenario = clause.sourceMarker.slice('scenario: '.length);
-        if (!scenarioIds.has(sourceScenario)) errors.push(`traceability ${clause.id}: unresolved source scenario ${sourceScenario}`);
-      } else if (!content.includes(clause.sourceMarker ?? '')) {
-        errors.push(`traceability ${clause.id}: source marker missing ${clause.sourceMarker}`);
-      }
+      if (!content.includes(clause.sourceMarker ?? '')) errors.push(`traceability ${clause.id}: source marker missing ${clause.sourceMarker}`);
     }
     if (clause.status === 'active' && (typeof clause.sourceMarker !== 'string' || clause.sourceMarker.trim() === '')) {
       errors.push(`traceability ${clause.id}: active clause requires a non-empty sourceMarker`);
-    }
-    if (clause.status === 'active' && (!Array.isArray(clause.acceptedBy) || clause.acceptedBy.length === 0)) {
-      errors.push(`traceability ${clause.id}: active clause requires acceptedBy evidence`);
     }
     if (!Array.isArray(clause.verifiedBy) || clause.verifiedBy.length === 0) errors.push(`traceability ${clause.id}: no verification evidence`);
     for (const verifier of clause.verifiedBy ?? []) {
@@ -194,21 +226,99 @@ function checkTraceability(traceability, manifest, scenarios) {
     }
     if (clause.verificationDisposition === 'manual' && typeof clause.manualProcedure !== 'string') errors.push(`traceability ${clause.id}: manualProcedure required`);
     if (clause.verificationDisposition === 'deferred-needs-decision' && typeof clause.needsDecision !== 'string') errors.push(`traceability ${clause.id}: needsDecision required`);
-    for (const acceptedBy of clause.acceptedBy ?? []) if (!scenarioIds.has(acceptedBy)) errors.push(`traceability ${clause.id}: unresolved acceptedBy ${acceptedBy}`);
-  }
-
-  for (const entry of manifest?.contracts ?? []) {
-    if (entry.status !== 'active' || !entry.path.endsWith('.md') || !existsSync(join(root, entry.path))) continue;
-    const content = fileText(join(root, entry.path));
-    const inlineIds = [...content.matchAll(/<!--\s*clause:\s*([A-Z0-9-]+)\s*-->/g)].map((match) => match[1]);
-    if (inlineIds.length === 0) errors.push(`${entry.path}: no clause IDs`);
-    for (const id of inlineIds) {
-      if (!clauseIds.has(id)) errors.push(`${entry.path}: inline clause ${id} missing from traceability`);
-      const clause = traceability.clauses.find((item) => item.id === id);
-      if (clause?.sourcePath !== entry.path) errors.push(`${entry.path}: clause ${id} sourcePath mismatch`);
-    }
   }
   return clauseIds;
+}
+function discoverProductDefinitions() {
+  const definitions = new Map();
+  if (!existsSync(productRequirementsPath)) {
+    errors.push('product requirements: missing docs/product-requirements.md');
+    return definitions;
+  }
+  for (const line of fileText(productRequirementsPath).split(/\r?\n/u)) {
+    if (!line.startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    const first = cells[0] ?? '';
+    const p = first.match(/^(P-\d{2})$/u);
+    const q = first.match(/^(Q-\d{2})（決定(?:・更新)?）$/u);
+    const id = p?.[1] ?? q?.[1];
+    if (!id) continue;
+    definitions.set(id, (definitions.get(id) ?? 0) + 1);
+  }
+  return definitions;
+}
+
+function discoverContractSemanticIds(manifest) {
+  const owners = new Map();
+  for (const entry of manifest?.contracts ?? []) {
+    if (entry.status !== 'active' || !entry.path?.endsWith('.md')) continue;
+    const path = join(root, entry.path);
+    if (!existsSync(path)) continue;
+    const content = fileText(path);
+    const ids = [...content.matchAll(/<!--\s*clause:\s*([A-Z0-9-]+)\s*-->/gu)].map((match) => match[1]);
+    if (ids.length === 0) errors.push(`${entry.path}: no clause IDs`);
+    for (const id of ids) {
+      const prior = owners.get(id);
+      if (prior) errors.push(`semantic identity: duplicate inline clause ${id} in ${prior} and ${entry.path}`);
+      else owners.set(id, entry.path);
+    }
+  }
+  return owners;
+}
+
+function checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds) {
+  if (semanticMap === null || typeof semanticMap !== 'object') {
+    errors.push('semantic map: expected object');
+    return;
+  }
+  if (semanticMap.schemaVersion !== 1) errors.push('semantic map: schemaVersion must be 1');
+  if (!Array.isArray(semanticMap.edges)) {
+    errors.push('semantic map: edges must be an array');
+    return;
+  }
+  const allowedTypes = new Set(['refines', 'constrainedBy']);
+  const seen = new Set();
+  const adjacency = new Map();
+  const semanticExists = (id) => contractSemanticIds.has(id) || productDefinitions.has(id);
+  for (const [position, edge] of semanticMap.edges.entries()) {
+    const label = `semantic map edge #${position}`;
+    if (edge === null || typeof edge !== 'object' || Array.isArray(edge)) {
+      errors.push(`${label}: expected object`);
+      continue;
+    }
+    const keys = Object.keys(edge).sort();
+    if (keys.join(',') !== 'from,to,type') errors.push(`${label}: only from/type/to are allowed (semantic prose is forbidden)`);
+    if (typeof edge.from !== 'string' || typeof edge.to !== 'string' || !allowedTypes.has(edge.type)) {
+      errors.push(`${label}: malformed edge`);
+      continue;
+    }
+    if (edge.from === edge.to) errors.push(`${label}: self edge is forbidden`);
+    const tuple = `${edge.from}\n${edge.type}\n${edge.to}`;
+    if (seen.has(tuple)) errors.push(`${label}: duplicate edge ${edge.from} ${edge.type} ${edge.to}`);
+    seen.add(tuple);
+    for (const endpoint of [edge.from, edge.to]) {
+      if (!semanticExists(endpoint)) errors.push(`${label}: unresolved semantic endpoint ${endpoint}`);
+      if (/^(?:P|Q)-\d{2}$/u.test(endpoint) && productDefinitions.get(endpoint) !== 1) {
+        errors.push(`${label}: product definition ${endpoint} must resolve exactly once`);
+      }
+    }
+    if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
+    adjacency.get(edge.from).push(edge.to);
+  }
+  const visiting = new Set();
+  const visited = new Set();
+  function visit(node, trail) {
+    if (visiting.has(node)) {
+      errors.push(`semantic map: dependency cycle ${[...trail, node].join(' -> ')}`);
+      return;
+    }
+    if (visited.has(node)) return;
+    visiting.add(node);
+    for (const next of adjacency.get(node) ?? []) visit(next, [...trail, node]);
+    visiting.delete(node);
+    visited.add(node);
+  }
+  for (const node of adjacency.keys()) visit(node, []);
 }
 
 function checkLastVerifiedCommits(manifest, traceability) {
@@ -341,18 +451,26 @@ function run() {
   requireFile(scenarioPath, 'scenario registry');
   requireFile(migrationPath, 'migration map');
   requireFile(traceabilityPath, 'traceability registry');
+  requireFile(productRequirementsPath, 'product requirements');
+  requireFile(semanticMapPath, 'semantic map');
   requireFile(inventoryPath, 'legacy contract inventory');
   const manifest = readJson(manifestPath);
   const migration = readJson(migrationPath);
   const scenarios = readJson(scenarioPath);
   const traceability = readJson(traceabilityPath);
+  const semanticMap = readJson(semanticMapPath);
   const inventory = readJson(inventoryPath);
   checkManifest(manifest);
-  const clauseIds = checkTraceability(traceability, manifest, scenarios?.scenarios);
-  checkScenarios(scenarios?.scenarios, migration, new Set((manifest?.contracts ?? []).map((entry) => entry.id)), clauseIds);
+  const productDefinitions = discoverProductDefinitions();
+  const contractSemanticIds = discoverContractSemanticIds(manifest);
+  checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds);
+  const scenarioIds = new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id));
+  const semanticTargets = new Set([...productDefinitions.keys(), ...contractSemanticIds.keys()]);
+  checkTraceability(traceability, manifest, contractSemanticIds);
+  checkScenarios(scenarios?.scenarios, migration, semanticTargets);
   checkMigrationMap(migration);
   checkLastVerifiedCommits(manifest, traceability);
-  checkLegacyInventory(inventory, clauseIds, new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id)));
+  checkLegacyInventory(inventory, new Set([...contractSemanticIds.keys(), ...productDefinitions.keys()]), scenarioIds);
   for (const path of [
     join(root, 'README.md'), join(root, 'docs/README.md'), join(root, 'docs/acceptance.md'), join(root, 'docs/engine-spec.md'),
     join(root, 'docs/engine-state-ontology.md'),

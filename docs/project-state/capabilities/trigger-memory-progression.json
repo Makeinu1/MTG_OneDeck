@@ -7,7 +7,7 @@
   "deliveryState": "IMPLEMENTED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
+  "auditedAtCommit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
   "authorityRefs": [{"path":"docs/contracts/ux-constitution.md","locator":"Trigger memory authority and constitutional invariant 12"}],
   "implementationRefs": [{"path":"src/engine/cockpitTriggersCore.ts","locator":"blockingPublicTableTriggers"},{"path":"src/engine/cockpitTable.ts","locator":"blockingPublicTableTriggers"}],
   "verificationRefs": [],

@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `6d28fba39c548f0798856ddde5fdc3a54e1d7830` (main, 2026-09-18).
+Audited baseline: `778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf` (main, 2026-09-18).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -10,6 +10,7 @@ Authority note: this generated view is committed project NOW only on `main`; on 
 - Product goal: `docs/product-requirements.md`
 - Constitution: `docs/contracts/ux-constitution.md`
 - Active contract registry: `docs/contracts/manifest.json`
+- Semantic map: `docs/contracts/semantic-map.json`
 - Traceability: `docs/contracts/traceability.json`
 - Acceptance registry: `docs/acceptance/scenarios.json`
 - Production implementation roots: `src`
@@ -24,21 +25,22 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`
-- Active: `M2 — Contract Architecture`
-- Next gate: `M2-PLAN`
-- Next work: Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`
+- Active: `M3 — Verification Harness`
+- Next gate: `M3-PLAN`
+- Next work: Design, independently audit, and Owner-approve the M3 Verification Harness plan that binds M2 semantic nodes and Acceptance verification claims to evidence, execution, freshness, invalidation and fail-closed verification without changing Product Truth, UX semantics, or M1 verdicts.
 
 ## Coverage claim
 
 - Mode: `BOUNDED`
-- Scope: The indexed M1 capability audit plus current production routing and unresolved decisions that active traceability marks deferred-needs-decision.
-- Completeness sources: `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
+- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, current production routing, and unresolved decisions that active verification bindings mark deferred-needs-decision.
+- Completeness sources: `docs/contracts/semantic-map.json`, `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
   - UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.
-  - The M0 reconciliation clarified Choice Authority, effect-granted actions, information Audience/Table Reveal and narrow Room Owner recovery. Those semantics do not yet have dedicated stable clause/acceptance ownership; M2 must map them before M3 verification is designed.
-  - Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1.
+  - M2 provides stable semantic identity and sparse ownership/dependency relations, but M3 has not yet bound complete evidence, execution, freshness or invalidation for those semantics.
+  - Choice Authority, effect-granted actions, Undo recovery and Information/Audience have stable M2 semantic ownership but still require M3 verification design; their graph presence is not implementation proof.
+  - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both are intentional visible gaps rather than inferred mappings.
 
 ## Capability state
 
@@ -80,7 +82,7 @@ Authority: `docs/contracts/ux-constitution.md :: Undo`
 
 Implementation: `src/online/cloudflare/cockpitMultiplayer.ts :: authorizeCockpitOperation`<br>`src/online/cloudflare/cockpitSession.ts :: snapshot undo`<br>`src/online/protocol/variableCommand.ts :: handleOnlineVariableSharedUndoIntentV2 / checkpointFor`<br>`src/engine/core/closure/applyCommandV1.ts :: coreUndoAuthorizedPlayerV1`
 
-Next: Keep this CONFLICT visible. Future repair must bind normal rollback to the exact operation actor and model the unavailable-actor Room Owner proxy explicitly without weakening newest-first or knowledge-safety.
+Next: Keep this CONFLICT visible. M3 must bind explicit evidence/freshness for the actor-owned/top-only recovery mismatch; semantic repair belongs to later selected product work and must not be smuggled into verification.
 
 ## Implementation gaps
 
@@ -88,7 +90,7 @@ Next: Keep this CONFLICT visible. Future repair must bind normal rollback to the
 
 Seat-level hold and authority transfer exist, but exact initiating interaction identity, context-staleness binding, nested HOLD structure and nearest-valid-parent unwind were not found. The revalidated Constitution also distinguishes effect-granted actions from HOLD; that boundary is not established by the audited HOLD implementation.
 
-Next: Keep the GAP visible. M2 must map HOLD versus effect-granted-action ownership before later implementation work.
+Next: Keep the GAP visible. M2 now maps HOLD versus effect-granted-action ownership; M3 must bind verification before later implementation work.
 
 ### CR-06 — Pregame manual-first Turn Zero checkpoint
 
@@ -136,11 +138,12 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 
 ## Prohibited scope
 
-- R6 implementation
-- gameplay semantic changes
+- R6 gameplay implementation
+- production gameplay semantic changes
 - R4b/R5 redesign
-- casual Constitution changes
-- M3-M6 implementation
+- casual Product Requirements or UX Constitution changes
+- M3 implementation before an independently audited Owner-approved M3 plan
+- M4-M7 implementation
 
 ## Freshness
 

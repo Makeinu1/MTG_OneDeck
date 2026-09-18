@@ -4,7 +4,7 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "6d28fba39c548f0798856ddde5fdc3a54e1d7830",
+    "commit": "778e5b45cb9f642cfa2d263ac1587de0a9f5f8bf",
     "auditedDate": "2026-09-18",
     "watchedRoots": ["src", "docs/contracts", "docs/acceptance", "docs/product-requirements.md"]
   },
@@ -12,26 +12,28 @@
     "productGoal": "docs/product-requirements.md",
     "constitution": "docs/contracts/ux-constitution.md",
     "contractRegistry": "docs/contracts/manifest.json",
+    "semanticMap": "docs/contracts/semantic-map.json",
     "traceabilityRegistry": "docs/contracts/traceability.json",
     "acceptanceRegistry": "docs/acceptance/scenarios.json",
     "productionImplementation": ["src"]
   },
   "program": {
-    "completedMilestones": ["M0 — Constitution / Truth", "M1 — Canonical Project State"],
-    "activeMilestone": "M2 — Contract Architecture",
-    "nextGate": "M2-PLAN",
-    "nextWork": "Prepare the M2 Contract Architecture inventory/design package for Owner review before any M2 implementation.",
-    "prohibitedScope": ["R6 implementation", "gameplay semantic changes", "R4b/R5 redesign", "casual Constitution changes", "M3-M6 implementation"]
+    "completedMilestones": ["M0 — Constitution / Truth", "M1 — Canonical Project State", "M1.1 — Canonical Project State Hardening", "M2 — Contract Architecture"],
+    "activeMilestone": "M3 — Verification Harness",
+    "nextGate": "M3-PLAN",
+    "nextWork": "Design, independently audit, and Owner-approve the M3 Verification Harness plan that binds M2 semantic nodes and Acceptance verification claims to evidence, execution, freshness, invalidation and fail-closed verification without changing Product Truth, UX semantics, or M1 verdicts.",
+    "prohibitedScope": ["R6 gameplay implementation", "production gameplay semantic changes", "R4b/R5 redesign", "casual Product Requirements or UX Constitution changes", "M3 implementation before an independently audited Owner-approved M3 plan", "M4-M7 implementation"]
   },
   "coverage": {
     "mode": "BOUNDED",
-    "scope": "The indexed M1 capability audit plus current production routing and unresolved decisions that active traceability marks deferred-needs-decision.",
-    "completenessSources": ["docs/contracts/traceability.json", "docs/acceptance/scenarios.json", "docs/project-state/production-map.json"],
+    "scope": "The indexed M1 capability audit, M2 semantic ownership/dependency control plane, current production routing, and unresolved decisions that active verification bindings mark deferred-needs-decision.",
+    "completenessSources": ["docs/contracts/semantic-map.json", "docs/contracts/traceability.json", "docs/acceptance/scenarios.json", "docs/project-state/production-map.json"],
     "knownLimitations": [
       "The capability list is not a proof that every repository concern has been semantically audited.",
       "UNKNOWN capability verdicts remain explicitly unaudited rather than implicitly green.",
-      "The M0 reconciliation clarified Choice Authority, effect-granted actions, information Audience/Table Reveal and narrow Room Owner recovery. Those semantics do not yet have dedicated stable clause/acceptance ownership; M2 must map them before M3 verification is designed.",
-      "Contract architecture completeness is the active M2 concern and is not pre-claimed by M1.1."
+      "M2 provides stable semantic identity and sparse ownership/dependency relations, but M3 has not yet bound complete evidence, execution, freshness or invalidation for those semantics.",
+      "Choice Authority, effect-granted actions, Undo recovery and Information/Audience have stable M2 semantic ownership but still require M3 verification design; their graph presence is not implementation proof.",
+      "Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both are intentional visible gaps rather than inferred mappings."
     ]
   },
   "capabilities": [

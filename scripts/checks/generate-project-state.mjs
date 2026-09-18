@@ -36,6 +36,7 @@ export function renderProjectState({ index, capabilities }) {
     `- Product goal: ${mdCode(index.authorities.productGoal)}`,
     `- Constitution: ${mdCode(index.authorities.constitution)}`,
     `- Active contract registry: ${mdCode(index.authorities.contractRegistry)}`,
+    `- Semantic map: ${mdCode(index.authorities.semanticMap)}`,
     `- Traceability: ${mdCode(index.authorities.traceabilityRegistry)}`,
     `- Acceptance registry: ${mdCode(index.authorities.acceptanceRegistry)}`,
     `- Production implementation roots: ${index.authorities.productionImplementation.map(mdCode).join(', ')}`,
