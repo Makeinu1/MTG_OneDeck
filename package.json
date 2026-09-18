@@ -72,7 +72,8 @@
     "check:release": "node scripts/checks/release-check.mjs",
     "format": "prettier --write .",
     "check:verification": "node scripts/checks/check-verification.mjs",
-    "verify:semantic": "node scripts/checks/verify-semantic.mjs"
+    "verify:semantic": "node scripts/checks/verify-semantic.mjs",
+    "check:work-order": "node scripts/checks/work-order.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
