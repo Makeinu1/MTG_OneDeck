@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "registry": "docs/contracts/traceability.json",
   "clauses": [
     {
@@ -9,11 +9,12 @@
       "sourcePath": "docs/contracts/engine/state-and-invariants.md",
       "sourceMarker": "clause: ENG-STATE-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/init.test.ts",
           "marker": "verifies: ENG-STATE-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -24,11 +25,12 @@
       "sourcePath": "docs/contracts/engine/state-and-invariants.md",
       "sourceMarker": "clause: ENG-STATE-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/commands.test.ts",
           "marker": "verifies: ENG-STATE-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -39,11 +41,12 @@
       "sourcePath": "docs/contracts/engine/state-and-invariants.md",
       "sourceMarker": "clause: ENG-STATE-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/core/__tests__/identityZoneState.test.ts",
           "marker": "verifies: ENG-STATE-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -54,11 +57,12 @@
       "sourcePath": "docs/contracts/engine/state-and-invariants.md",
       "sourceMarker": "clause: ENG-STATE-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/store/__tests__/snapshotPersistenceControl.test.ts",
           "marker": "verifies: ENG-STATE-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -69,11 +73,12 @@
       "sourcePath": "docs/contracts/engine/state-and-invariants.md",
       "sourceMarker": "clause: ENG-STATE-005",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/eventEnvelope.test.ts",
           "marker": "verifies: ENG-STATE-005",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -84,11 +89,12 @@
       "sourcePath": "docs/contracts/engine/commands-and-transactions.md",
       "sourceMarker": "clause: ENG-CMD-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/commands.test.ts",
           "marker": "verifies: ENG-CMD-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -99,11 +105,12 @@
       "sourcePath": "docs/contracts/engine/commands-and-transactions.md",
       "sourceMarker": "clause: ENG-CMD-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/commands.test.ts",
           "marker": "verifies: ENG-CMD-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -114,11 +121,12 @@
       "sourcePath": "docs/contracts/engine/commands-and-transactions.md",
       "sourceMarker": "clause: ENG-CMD-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/store/__tests__/interactionUndo.test.ts",
           "marker": "verifies: ENG-CMD-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -129,11 +137,12 @@
       "sourcePath": "docs/contracts/engine/commands-and-transactions.md",
       "sourceMarker": "clause: ENG-CMD-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/caseGrammar.test.ts",
           "marker": "verifies: ENG-CMD-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -144,11 +153,12 @@
       "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
       "sourceMarker": "clause: ENG-ZONES-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts",
           "marker": "verifies: ENG-ZONES-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -159,11 +169,12 @@
       "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
       "sourceMarker": "clause: ENG-ZONES-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/zoneChangeIdentity.test.ts",
           "marker": "verifies: ENG-ZONES-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -174,11 +185,12 @@
       "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
       "sourceMarker": "clause: ENG-ZONES-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/zoneChangeEvents.test.ts",
           "marker": "verifies: ENG-ZONES-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -189,11 +201,12 @@
       "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
       "sourceMarker": "clause: ENG-ZONES-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/cr400LinkedExileSubstrate.test.ts",
           "marker": "verifies: ENG-ZONES-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -204,11 +217,12 @@
       "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
       "sourceMarker": "clause: ENG-TURN-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/priority.test.ts",
           "marker": "verifies: ENG-TURN-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -219,11 +233,12 @@
       "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
       "sourceMarker": "clause: ENG-TURN-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/priority.test.ts",
           "marker": "verifies: ENG-TURN-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -235,11 +250,12 @@
       "sourceMarker": "clause: ENG-TURN-003",
       "verificationDisposition": "deferred-needs-decision",
       "needsDecision": "CONFLICT-TURN-DRAW-001 must resolve the acceptance interpretation of turn-entry draw.",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/commands.test.ts",
           "marker": "verifies: ENG-TURN-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "characterization"
         }
       ]
     },
@@ -250,11 +266,12 @@
       "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
       "sourceMarker": "clause: ENG-TURN-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/core/turn/__tests__/pendingTriggerV1.test.ts",
           "marker": "verifies: ENG-TURN-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -265,11 +282,12 @@
       "sourcePath": "docs/contracts/engine/mana-costs-and-payment.md",
       "sourceMarker": "clause: ENG-MANA-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/mana.test.ts",
           "marker": "verifies: ENG-MANA-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -280,11 +298,12 @@
       "sourcePath": "docs/contracts/engine/mana-costs-and-payment.md",
       "sourceMarker": "clause: ENG-MANA-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/manaTransaction.test.ts",
           "marker": "verifies: ENG-MANA-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -295,11 +314,12 @@
       "sourcePath": "docs/contracts/engine/mana-costs-and-payment.md",
       "sourceMarker": "clause: ENG-MANA-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/store/__tests__/activatedAbilityEnvelope.test.ts",
           "marker": "verifies: ENG-MANA-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -310,11 +330,12 @@
       "sourcePath": "docs/contracts/engine/multiplayer.md",
       "sourceMarker": "clause: ENG-MP-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/store/__tests__/zonesByPlayer.test.ts",
           "marker": "verifies: ENG-MP-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -325,11 +346,12 @@
       "sourcePath": "docs/contracts/engine/multiplayer.md",
       "sourceMarker": "clause: ENG-MP-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/store/__tests__/activatedAbilityEnvelope.test.ts",
           "marker": "verifies: ENG-MP-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -340,11 +362,12 @@
       "sourcePath": "docs/contracts/engine/multiplayer.md",
       "sourceMarker": "clause: ENG-MP-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/priority.test.ts",
           "marker": "verifies: ENG-MP-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -355,11 +378,12 @@
       "sourcePath": "docs/contracts/engine/multiplayer.md",
       "sourceMarker": "clause: ENG-MP-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/test/architecture/soloOnlineBoundary.test.ts",
           "marker": "verifies: ENG-MP-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -370,11 +394,12 @@
       "sourcePath": "docs/contracts/engine/oracle-compiler.md",
       "sourceMarker": "clause: ENG-COMP-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/cr701DiscardCompiler.test.ts",
           "marker": "verifies: ENG-COMP-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -385,11 +410,12 @@
       "sourcePath": "docs/contracts/engine/oracle-compiler.md",
       "sourceMarker": "clause: ENG-COMP-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/cr701DiscardCompiler.test.ts",
           "marker": "verifies: ENG-COMP-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -400,11 +426,12 @@
       "sourcePath": "docs/contracts/engine/oracle-compiler.md",
       "sourceMarker": "clause: ENG-COMP-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/caseGrammar.test.ts",
           "marker": "verifies: ENG-COMP-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -415,11 +442,12 @@
       "sourcePath": "docs/contracts/engine/oracle-compiler.md",
       "sourceMarker": "clause: ENG-COMP-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/engine/__tests__/eventEnvelope.test.ts",
           "marker": "verifies: ENG-COMP-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -430,11 +458,12 @@
       "sourcePath": "docs/contracts/ui/design-principles.md",
       "sourceMarker": "clause: UI-DESIGN-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/HudInteractions.test.tsx",
           "marker": "verifies: UI-DESIGN-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -445,11 +474,12 @@
       "sourcePath": "docs/contracts/ui/design-principles.md",
       "sourceMarker": "clause: UI-DESIGN-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/recentCueModel.test.ts",
           "marker": "verifies: UI-DESIGN-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -460,11 +490,12 @@
       "sourcePath": "docs/contracts/ui/design-principles.md",
       "sourceMarker": "clause: UI-DESIGN-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/ContextMenu.test.tsx",
           "marker": "verifies: UI-DESIGN-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -475,11 +506,12 @@
       "sourcePath": "docs/contracts/ui/visual-language.md",
       "sourceMarker": "clause: UI-VIS-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/CardView.test.tsx",
           "marker": "verifies: UI-VIS-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -490,11 +522,12 @@
       "sourcePath": "docs/contracts/ui/visual-language.md",
       "sourceMarker": "clause: UI-VIS-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/HudInteractions.test.tsx",
           "marker": "verifies: UI-VIS-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -505,11 +538,12 @@
       "sourcePath": "docs/contracts/ui/visual-language.md",
       "sourceMarker": "clause: UI-VIS-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/ambientMacroProduction.test.ts",
           "marker": "verifies: UI-VIS-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -520,11 +554,12 @@
       "sourcePath": "docs/contracts/ui/architecture.md",
       "sourceMarker": "clause: UI-ARCH-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/GameScreenTabletop.test.tsx",
           "marker": "verifies: UI-ARCH-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -535,11 +570,12 @@
       "sourcePath": "docs/contracts/ui/architecture.md",
       "sourceMarker": "clause: UI-ARCH-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/GameScreenTabletop.test.tsx",
           "marker": "verifies: UI-ARCH-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -550,11 +586,12 @@
       "sourcePath": "docs/contracts/ui/architecture.md",
       "sourceMarker": "clause: UI-ARCH-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/TransitionCue.test.tsx",
           "marker": "verifies: UI-ARCH-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -565,11 +602,12 @@
       "sourcePath": "docs/contracts/ui/architecture.md",
       "sourceMarker": "clause: UI-ARCH-004",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/presentation/presentationRuntime.test.ts",
           "marker": "verifies: UI-ARCH-004",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -580,11 +618,12 @@
       "sourcePath": "docs/contracts/ui/responsive.md",
       "sourceMarker": "clause: UI-RESP-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/adaptiveLaneLayout.test.ts",
           "marker": "verifies: UI-RESP-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -595,11 +634,12 @@
       "sourcePath": "docs/contracts/ui/responsive.md",
       "sourceMarker": "clause: UI-RESP-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/HudInteractions.test.tsx",
           "marker": "verifies: UI-RESP-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -611,13 +651,7 @@
       "sourceMarker": "clause: UI-RESP-003",
       "verificationDisposition": "manual",
       "manualProcedure": "Run ACC-UI-RESP-001 in one stable browser session at 375x812, 812x375, and 1440x900; record console errors and reachability.",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-UI-RESP-001",
-          "kind": "acceptance"
-        }
-      ]
+      "evidenceBindings": []
     },
     {
       "id": "AV-001",
@@ -626,11 +660,12 @@
       "sourcePath": "docs/contracts/ui/audio-visual.md",
       "sourceMarker": "clause: AV-001",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/recentCueModel.test.ts",
           "marker": "verifies: AV-001",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -641,11 +676,12 @@
       "sourcePath": "docs/contracts/ui/audio-visual.md",
       "sourceMarker": "clause: AV-002",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/presentation/__tests__/av0-presentation.test.ts",
           "marker": "verifies: AV-002",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -656,11 +692,12 @@
       "sourcePath": "docs/contracts/ui/audio-visual.md",
       "sourceMarker": "clause: AV-003",
       "verificationDisposition": "automated",
-      "verifiedBy": [
+      "evidenceBindings": [
         {
           "path": "src/components/game/recentCueModel.test.ts",
           "marker": "verifies: AV-003",
-          "kind": "automated"
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
@@ -672,253 +709,7 @@
       "sourceMarker": "clause: AV-004",
       "verificationDisposition": "manual",
       "manualProcedure": "Run ACC-AV-MANUAL-001 after an AV-impacting change and record audibility, timing, reduced motion, and comfort.",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-AV-MANUAL-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-REALITY",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-REALITY",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-REALITY-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-CORRECTION",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-CORRECTION",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-CORRECTION-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-AUTOMATION",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-AUTOMATION",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-AUTOMATION-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-PREGAME",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-PREGAME",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-PREGAME-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-CONTROL",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-CONTROL",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-CONTROL-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-HOLD",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-HOLD",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-HOLD-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-UNDO",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-UNDO",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-UNDO-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "UX-CONST-ELIMINATION",
-      "contractId": "CONTRACT-UX-CONSTITUTION",
-      "status": "active",
-      "sourcePath": "docs/contracts/ux-constitution.md",
-      "sourceMarker": "clause: UX-CONST-ELIMINATION",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-ELIMINATION-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-STATE-R6-001",
-      "contractId": "CONTRACT-ENGINE-STATE",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/state-and-invariants.md",
-      "sourceMarker": "clause: ENG-STATE-R6-001",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-REALITY-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-CMD-R6-001",
-      "contractId": "CONTRACT-ENGINE-COMMANDS",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/commands-and-transactions.md",
-      "sourceMarker": "clause: ENG-CMD-R6-001",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-UNDO-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-ZONES-005",
-      "contractId": "CONTRACT-ENGINE-ZONES",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/zones-events-and-lki.md",
-      "sourceMarker": "clause: ENG-ZONES-005",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-ELIMINATION-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-TURN-R6-001",
-      "contractId": "CONTRACT-ENGINE-TURN",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
-      "sourceMarker": "clause: ENG-TURN-R6-001",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-CONTROL-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-TURN-R6-002",
-      "contractId": "CONTRACT-ENGINE-TURN",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
-      "sourceMarker": "clause: ENG-TURN-R6-002",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-HOLD-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-MANA-R6-001",
-      "contractId": "CONTRACT-ENGINE-MANA",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/mana-costs-and-payment.md",
-      "sourceMarker": "clause: ENG-MANA-R6-001",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-AUTOMATION-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-MP-005",
-      "contractId": "CONTRACT-ENGINE-MULTIPLAYER",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/multiplayer.md",
-      "sourceMarker": "clause: ENG-MP-005",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-ELIMINATION-001",
-          "kind": "acceptance"
-        }
-      ]
-    },
-    {
-      "id": "ENG-COMP-R6-001",
-      "contractId": "CONTRACT-ENGINE-COMPILER",
-      "status": "active",
-      "sourcePath": "docs/contracts/engine/oracle-compiler.md",
-      "sourceMarker": "clause: ENG-COMP-R6-001",
-      "verificationDisposition": "acceptance",
-      "verifiedBy": [
-        {
-          "path": "docs/acceptance/scenarios.json",
-          "marker": "scenario: ACC-R6-AUTOMATION-001",
-          "kind": "acceptance"
-        }
-      ]
+      "evidenceBindings": []
     }
   ]
 }
