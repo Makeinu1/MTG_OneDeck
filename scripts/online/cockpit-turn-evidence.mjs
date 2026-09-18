@@ -309,13 +309,16 @@ try {
   // Manual Resolution owns the effect context. Seed one green mana here so the
   // ordinary turn journey can still prove phase-boundary mana expiry.
   stage = 'mana-setup';
-  await host.getByText('マナの調整（Resolution）', { exact: true }).click();
+  await host.getByRole('button', { name: '操作', exact: true }).click();
+  const resolutionPanel = host.getByLabel(`《${manualName}》の処理`, { exact: true });
+  await resolutionPanel.getByText('マナの調整（Resolution）', { exact: true }).click();
   await mutate(
     host,
-    () => host.getByRole('button', { name: 'Gマナを追加', exact: true }).click(),
+    () => resolutionPanel.getByRole('button', { name: 'Gマナを追加', exact: true }).click(),
     'mana during manual resolution',
   );
   assert.equal((await read(host)).table.seats[0].mana.G, 1);
+  await resolutionPanel.getByLabel('作業面を閉じる', { exact: true }).click();
 
   stage = 'manual-modifier-finish';
   await host.locator('.table-progress__source').click();
