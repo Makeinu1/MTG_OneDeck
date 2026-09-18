@@ -1,10 +1,10 @@
 # OneDeck UX Constitution
 
-Updated: 2026-09-16
-Version: v6.3
+Updated: 2026-09-18
+Version: v6.4
 Status: active upper interaction contract
 
-This contract governs product interaction semantics for OneDeck. Lower engine/UI contracts define implementation truth inside their domains; when a lower contract's UX interpretation conflicts with this document, the lower contract must be reconciled explicitly rather than silently overriding this constitution. This contract does not authorize weakening frozen engine safety, hidden-information boundaries, canonical identity, persistence, or recovery semantics.
+This contract governs product interaction semantics for OneDeck. Product Requirements owns product WHY/WHAT; this Constitution owns the interaction semantics that make those outcomes coherent. Lower engine/UI contracts define implementation truth inside their domains; when a lower contract's UX interpretation conflicts with this document, the lower contract must be reconciled explicitly rather than silently overriding this constitution. This contract does not authorize weakening frozen engine safety, hidden-information boundaries, canonical identity, persistence, or recovery semantics.
 
 ## 1. Product thesis
 
@@ -53,9 +53,10 @@ High-frequency combat semantics such as first strike, double strike, trample, de
 
 ## 3. Manual Resolution and semantic honesty
 
+<!-- clause: UX-CONST-MANUAL -->
 Manual Resolution is a normal success path. OneDeck does not need to generate a card-specific effect wizard for arbitrary Oracle text.
 
-A player may manipulate real Magic-world objects, use voice to communicate choices, record targets/associations where useful, and press `処理完了` when the human judges the current effect work complete.
+The current parent Resolution owner performs that Resolution's effect application, may manipulate real Magic-world objects, records targets/associations where useful, and owns the `処理完了` lifecycle boundary. Other players retain any Magic-required Choice Authority and communicate those choices primarily through voice or lightweight choice signals; their participation alone does not transfer the parent Resolution or mutate canonical GameState.
 
 OneDeck must not claim rules correctness merely because processing was recorded.
 
@@ -66,6 +67,8 @@ Long-lived or unusual semantic state that is expensive to model may be supplemen
 ## 4. Context, Cause and geometry
 
 Geometry never manufactures Magic meaning. `Library → Hand` is not automatically Draw; `Battlefield → Graveyard` is not automatically Destroy or Sacrifice.
+
+`Look`, `Reveal`, and `Move` are distinct interactions. Seeing a card does not itself move it, moving a card does not imply it was revealed, and UI geometry must not silently widen the intended audience.
 
 When semantic meaning is known, preserve it. When unknown, remain honest and Manual.
 
@@ -128,22 +131,34 @@ A HOLD request is bound to the exact initiating interaction identity/context. If
 
 Granted HOLD suspends parent progress; it does not transfer turn ownership or parent Resolution ownership. Nested HOLD unwinds to the nearest still-valid parent work. If the requester misses the timing and the table agrees, ordinary Undo/Correction is used rather than inventing a hidden priority history.
 
+An action explicitly granted by the resolving effect — for example, “B may cast a spell” during A's Resolution — is not a HOLD. The granted player performs that bounded Magic action as its actor, while the parent Resolution remains owned by its original operator and resumes after the granted action is committed.
+
 Stack presentation should make ordering, foreground work, suspended parents, actor/controller and recorded targets spatially legible.
 
 ## 8. Cooperative participation
 
-Primary Operator owns the current parent lifecycle boundary such as `処理完了`; this does not make that player the exclusive manipulator of every object.
+<!-- clause: UX-CONST-CHOICE -->
+Primary Operator owns the current parent Resolution lifecycle and its effect application. This does not give that player another participant's Magic-required decisions.
 
-Other players may manipulate their own authorized Magic-world objects as part of cooperative parent processing — for example discarding their own cards or declaring blockers — without a generic Participant Input workflow.
+When A's Resolution requires B to choose, B retains Choice Authority. Public choices normally remain voice/table conversation; lightweight highlight/selection may externalize the choice when useful. A choice signal is not itself a canonical zone move, Reveal, committed Magic operation, or transfer of parent Resolution ownership.
 
-Public choices normally remain voice/table conversation. Hidden-information authority remains independent from HOLD/progress authority.
+If a choice must remain secret from other participants, OneDeck may use the smallest privacy-preserving selection aid needed to keep the intended audience correct. It does not require a generic Participant Input state machine.
+
+Rule-defined independent actions belong to the player whom the rules assign that action. For example, a defending player directly declares their own blockers; this is not merely a choice inside another player's parent Resolution.
+
+<!-- clause: UX-CONST-GRANTED-ACTION -->
+When a resolving effect explicitly instructs or permits another player to perform an independent Magic action such as casting a spell, that player performs the bounded action as its actor without requesting HOLD. Spell selection, modes, targets, costs and other choices belonging to that action remain with that actor. The original parent Resolution stays owned by its original operator and resumes after the granted action is committed.
+
+Hidden-information authority remains independent from parent Resolution, foreground and HOLD authority.
 
 ## 9. Undo and Correction
 
-### 9.1 Undo is actor-owned
+### 9.1 Undo is actor-owned and chronological
 
 <!-- clause: UX-CONST-UNDO -->
-Normal Undo belongs to the actor who performed the operation. Foreground authority does not grant permission to erase another player's history.
+Undo walks one shared committed history strictly newest-first. It cannot surgically remove an older operation while later committed operations remain.
+
+Normal Undo belongs to the actor who performed the current undoable operation. Foreground authority and Room Owner status do not grant general permission to erase another player's history. If that actor is unavailable in the session, the Room Owner may act only as an explicit recovery proxy once that actor's operation is the current undoable top; this exception does not create ordinary Magic operation authority.
 
 ### 9.2 One press means one undo unit
 
@@ -168,13 +183,20 @@ Room Owner is session-administration authority and is separate from Turn Owner, 
 
 The Room Owner may perform administrative actions required to keep the session viable, including removing a participant who cannot return and force-ending/dissolving the room. These actions must be explicit and attributable; they do not grant ordinary Magic operation authority.
 
+Narrowly defined recovery proxies are exceptions, not a transfer of player authority. A Room Owner may proxy an unavailable actor's Undo only at the current shared-history top, and may advance a choice on behalf of an unavailable player only when the relevant information is public and no meaningful strategic discretion exists. Hidden or strategically meaningful choices wait for the player rather than being guessed.
+
 When a player is eliminated/removed from the game, their owned game objects must cease participating in ordinary game zones/interaction. Implementation may represent this with a dedicated removed-from-game/eliminated-owner holding domain, but it must not masquerade as ordinary Exile and must preserve enough identity/history for recovery/inspection where required.
 
 Temporary network disconnection is not itself elimination. Reconnect/reconciliation should restore canonical participation when possible; owner removal is a separate explicit administrative decision.
 
 ## 11. Continuation, viewing and recovery
 
+<!-- clause: UX-CONST-INFORMATION -->
 Viewing authorized information is free and does not change Current Work. Current Work/Continuation must remain visible or one semantic action away while browsing zones, cards or assistance surfaces.
+
+Information has an intended audience. At minimum OneDeck must be able to distinguish self, specific participant(s), and the table/all players when Magic semantics require it. Primary Operator, foreground, HOLD or Room Owner status alone never widens hidden-information authority.
+
+When an effect requires information to be shown, OneDeck must support an explicit Reveal to the intended audience rather than inferring disclosure from zone geometry. Temporary Reveal and persistent visibility are distinct semantics. `Look`, `Reveal`, and `Move` must remain separately understandable to players.
 
 Unknown commit results reconcile before casual retry. Stale gestures, pending edits, selections and HOLD requests never silently rebind. Secret authority is never widened by reconnect, HOLD or view changes.
 
@@ -208,6 +230,7 @@ R6 does not require:
 - mandatory all-player priority exchange;
 - generic APNAP workflow;
 - generic Participant Input state machine;
+- a speculative general permission/audience framework beyond demonstrated player journeys;
 - card-specific effect wizards by default;
 - a general continuous/layer engine;
 - a general replacement/prevention engine;
@@ -225,7 +248,7 @@ R6 does not require:
 6. Manual Resolution is a first-class success path.
 7. Current Work survives authorized view changes.
 8. Geometry never invents semantic meaning.
-9. Primary Operator owns lifecycle boundaries, not every object operation.
+9. Parent Resolution Owner owns that Resolution's lifecycle and effect application; another player's Choice Authority alone does not transfer ownership or mutate canonical state.
 10. HOLD is approved, identity-bound foreground interruption before progression/resolution commit.
 11. HOLD does not implement mandatory full priority exchange.
 12. Trigger memory does not steal authority or gate progress.
@@ -235,19 +258,22 @@ R6 does not require:
 16. Normal vs Full Control changes stopping behavior, not rules authority.
 17. Pregame includes a Manual-first turn-zero opportunity before Turn 1.
 18. Solo/table practice defaults to the user being first player.
-19. Undo is actor-owned; one invocation reverts one committed unit.
+19. Undo is actor-owned, follows one shared strict newest-first history, and one invocation reverts one committed unit; unavailable-actor Room Owner proxy is limited to the current undoable top.
 20. `処理完了` is a lifecycle boundary, not a mega-undo grouping of all prior Resolution operations.
 21. Undo cannot erase already learned information.
 22. Correction remains distinct, explicit and human-authoritative.
-23. Room Owner administration is separate from Magic operation authority.
+23. Room Owner administration is separate from Magic operation authority; only explicitly defined recovery proxies are exceptions.
 24. Disconnection is not elimination; explicit removal is distinct.
 25. Eliminated-player objects cease ordinary game participation and are not mislabeled as ordinary Exile.
 26. Long-lived human memo state never silently becomes canonical rules truth.
 27. Stale work never silently rebinds.
 28. Unknown persistence result reconciles before retry.
-29. Hidden-information authority remains independent from progress/HOLD authority.
+29. Hidden-information authority remains independent from parent Resolution, foreground, HOLD and Room Owner authority.
 30. Existing spatial-table and pathological-state reachability are preservation requirements.
+31. Effect-granted independent Magic actions belong to their acting player, require no HOLD, and do not transfer the parent Resolution.
+32. Rule-defined independent actions such as blocker declaration belong to the player whom the rules assign that action.
+33. `Look`, `Reveal`, and `Move` are distinct; Reveal changes audience, not zone, and learned information is not erased by Undo.
 
 ## 16. Compatibility rule
 
-The detailed R6 v6.2 design documents remain design rationale and implementation guidance. Where they conflict with this v6.3 active contract, this contract governs R6 interaction intent. Frozen engine safety and canonical semantics are not silently rewritten by this document: collisions must be explicitly classified and resolved in the affected lower contract before implementation.
+The detailed R6 v6.2 design documents remain design rationale and implementation guidance. Where they conflict with this v6.4 active contract, this contract governs R6 interaction intent. Frozen engine safety and canonical semantics are not silently rewritten by this document: collisions must be explicitly classified and resolved in the affected lower contract before implementation.
