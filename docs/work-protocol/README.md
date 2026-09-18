@@ -121,6 +121,8 @@ Run:
 
 ```sh
 npm run check:work-order -- path/to/work-order.json
+npm run check:work-order -- path/to/work-order.json --head <candidate-sha>
+npm run check:work-order -- child.json --head <candidate-sha> --parent parent.json
 ```
 
 The command now performs two layers:
@@ -138,14 +140,28 @@ M4-2 validates:
 - input/protected paths are safe repository-relative paths and exist at that snapshot;
 - expected change roots use safe repository-relative path syntax.
 
-It intentionally does **not** yet decide:
+With `--head <sha>`, M4-3 additionally validates the exact candidate:
 
-- whether a child is a valid semantic/scope subset of its supplied parent;
-- whether the current candidate diverged from `planningBase`;
-- whether changed files exceeded expected change roots;
-- whether referenced/protected authority meaning changed since planning.
+- `planningBase` must be an ancestor of the candidate head;
+- planning-snapshot references must still resolve at the candidate;
+- Project State execution boundary changes require reinspection/replan;
+- referenced authority paths must not silently change;
+- protected paths must remain unchanged;
+- M3/M3.1 provenance distinguishes authority-source changes from ordinary implementation/evidence impact;
+- referenced/protected semantic authority changes require reinspection/replan;
+- changed files outside `expectedChangeRoots` are reported as drift rather than automatically judged wrong.
 
-Those are M4-3 responsibilities.
+For child Work Orders, pass `--parent <parent.json>` with `--head`. M4-3 checks:
+
+- exact `parentWorkId`;
+- shared `planningBase`;
+- target semantic scope is a subset of the parent;
+- expected change roots do not broaden beyond the parent;
+- parent protected path/semantic boundaries remain inherited;
+- review / verification policies are not weakened;
+- parent verification semantic / Acceptance obligations relevant to the child target are retained.
+
+M4-3 does not infer whether natural-language Goal wording is truly “narrower”; that remains an execution/review judgment rather than an LLM-generated authority claim.
 
 ## Mandatory runtime principles
 
