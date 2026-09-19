@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]
+          [[ "$BRANCH" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]
           test "$BRANCH" != "main"
           current="$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')"
           if [ -z "$current" ]; then
