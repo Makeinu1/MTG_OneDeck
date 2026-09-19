@@ -244,7 +244,7 @@ Only after M6-1 pilot demonstrates value. Connect the read-only controller to th
 
 ### M6-3 — Resume / Recovery
 
-Fresh-session resume from M5 recovery pointers.
+Fresh-session resume consumes M5 recovery pointers rather than creating an M6 recovery registry. A supplied M5 receipt must still match current Project State, production map, Work Order hash, exact candidate HEAD and diff fingerprint. `RESUME` reconstructs the same M6-2 LOCAL_ONLY envelope; `REPLAN` stays stale, `RESCUE` requires explicit recovery, and `BLOCKED` remains fail-closed. Recovery never grants rollback or remote-write authority.
 
 ### M6-4 — High-risk Independent QA
 
