@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -130,7 +130,7 @@ describe('repository hygiene fail-closed inventory', () => {
     const root = fixture();
     put(root, '.github/workflows/b.yml', 'name: B\n');
     const path = join(root, 'scripts/checks/repository-hygiene.json');
-    const registry = JSON.parse(require('node:fs').readFileSync(path, 'utf8'));
+    const registry = JSON.parse(readFileSync(path, 'utf8'));
     registry.workflows.push({
       path: '.github/workflows/b.yml',
       lifecycle: 'ACTIVE',
@@ -138,7 +138,7 @@ describe('repository hygiene fail-closed inventory', () => {
       purpose: 'fixture',
       writeCapable: false,
     });
-    require('node:fs').writeFileSync(path, JSON.stringify(registry));
+    writeFileSync(path, JSON.stringify(registry));
     const report = validateRepositoryHygiene({ root });
     expect(report.ok).toBe(false);
     expect(report.errors.join('\n')).toContain('workflow duplicate-gate purpose');
