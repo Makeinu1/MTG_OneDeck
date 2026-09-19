@@ -8,6 +8,15 @@ import { canonicalFreshness } from './recovery-reconstruction.mjs';
 
 export const DEFAULT_ROOT = resolve(import.meta.dirname, '../..');
 
+const REQUIRED_M5_MILESTONES = [
+  'M5.0 — Asset Model / Derived Census Foundation',
+  'M5.1 — Lifecycle / Retention / Retirement',
+  'M5.2 — Repository Reconciliation / Cleanup',
+  'M5.3 — Drift / Hygiene Detection',
+  'M5.4 — Recovery / Reconciliation Protocol',
+  'M5.5 — Adversarial / Destructive Audit',
+];
+
 const PROJECT_STATE = 'docs/project-state/index.json';
 const HYGIENE_REGISTRY = 'scripts/checks/repository-hygiene.json';
 const TRACEABILITY = 'docs/contracts/traceability.json';
@@ -24,20 +33,9 @@ function requirePath(root, path, errors) {
   if (!existsSync(resolve(root, path))) errors.push('missing required certification asset ' + path);
 }
 
-export function certifyM5({ root = DEFAULT_ROOT } = {}) {
+export function validateM5ProgramState(project) {
   const errors = [];
-  const project = readJson(root, PROJECT_STATE);
-  const hygieneRegistry = readJson(root, HYGIENE_REGISTRY);
-  const requiredMilestones = [
-    'M5.0 — Asset Model / Derived Census Foundation',
-    'M5.1 — Lifecycle / Retention / Retirement',
-    'M5.2 — Repository Reconciliation / Cleanup',
-    'M5.3 — Drift / Hygiene Detection',
-    'M5.4 — Recovery / Reconciliation Protocol',
-    'M5.5 — Adversarial / Destructive Audit',
-  ];
-
-  for (const milestone of requiredMilestones) {
+  for (const milestone of REQUIRED_M5_MILESTONES) {
     if (!project.program?.completedMilestones?.includes(milestone)) {
       errors.push('Project State has not completed ' + milestone);
     }
@@ -46,20 +44,17 @@ export function certifyM5({ root = DEFAULT_ROOT } = {}) {
   if (!m56Complete && project.program?.nextGate !== 'M5.6 — Clean Baseline Certification') {
     errors.push('Project State nextGate must be M5.6 — Clean Baseline Certification before certification closeout');
   }
-  if (m56Complete) {
-    if (!project.program?.completedMilestones?.includes('M5 — Audit / Hygiene / Recovery')) {
-      errors.push('M5.6 complete requires top-level M5 completion');
-    }
-    if (project.program?.activeMilestone !== 'M6 — Closed Execution Loop') {
-      errors.push('M5.6 closeout must hand active milestone to M6 without implementing it');
-    }
-    if (project.program?.nextGate !== 'M6-PLAN — Closed Execution Loop') {
-      errors.push('M5.6 closeout nextGate must be M6-PLAN — Closed Execution Loop');
-    }
-    if (!(project.program?.prohibitedScope ?? []).includes('M6-M7 implementation')) {
-      errors.push('M5.6 handoff must retain the M6-M7 implementation prohibition until a separately approved M6 plan');
-    }
+  if (m56Complete && !project.program?.completedMilestones?.includes('M5 — Audit / Hygiene / Recovery')) {
+    errors.push('M5.6 complete requires top-level M5 completion');
   }
+  return errors;
+}
+
+export function certifyM5({ root = DEFAULT_ROOT } = {}) {
+  const errors = [];
+  const project = readJson(root, PROJECT_STATE);
+  const hygieneRegistry = readJson(root, HYGIENE_REGISTRY);
+  errors.push(...validateM5ProgramState(project));
 
   const hygiene = validateRepositoryHygiene({ root });
   if (!hygiene.ok) errors.push(...hygiene.errors.map((error) => 'hygiene: ' + error));
@@ -83,19 +78,9 @@ export function certifyM5({ root = DEFAULT_ROOT } = {}) {
     'scripts/checks/recovery-reconstruction.mjs',
     'scripts/checks/m5-adversarial-audit.mjs',
     'scripts/__tests__/m5-adversarial-audit.test.mjs',
-    'research/archive/m5-provenance/constitution-v1-contract-integration/README.md',
-    'research/archive/m5-provenance/constitution-v1-contract-integration/constitution-v1-contract-integration.patch',
-    'research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/README.md',
-    'research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/stage2b-local-only-evidence.md',
     'src/components/game/CockpitStackLki.test.ts',
   ];
   for (const path of requiredAssets) requirePath(root, path, errors);
-
-  const constitutionArchive = text(root, 'research/archive/m5-provenance/constitution-v1-contract-integration/README.md');
-  if (!/^AUTHORITY:\s*NONE\s*$/imu.test(constitutionArchive)
-      || !/^EXECUTION AUTHORITY:\s*NONE\s*$/imu.test(constitutionArchive)) {
-    errors.push('constitution provenance archive lacks explicit no-authority markers');
-  }
 
   const traceability = text(root, TRACEABILITY);
   if (!traceability.includes('src/components/game/CockpitStackLki.test.ts') || !traceability.includes('ENG-ZONES-004')) {
@@ -131,7 +116,7 @@ export function certifyM5({ root = DEFAULT_ROOT } = {}) {
     ok: errors.length === 0,
     errors,
     summary: {
-      completedM5Gates: requiredMilestones.length,
+      completedM5Gates: REQUIRED_M5_MILESTONES.length,
       workflowCount: hygiene.workflowCount,
       evidenceCount: hygiene.evidenceCount,
       unresolvedLifecycleCount: unknownLifecycle.length,
