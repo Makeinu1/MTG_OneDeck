@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "status": "CURRENT_REPOSITORY_HYGIENE",
+  "semanticAuthority": "none",
+  "projectStateAuthority": "none",
+  "workflows": [
+    {
+      "path": ".github/workflows/candidate-verification.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "verification",
+      "purpose": "Candidate-relative fast/full verification and build for PRs and main.",
+      "writeCapable": false
+    },
+    {
+      "path": ".github/workflows/cockpit-browser-evidence.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "verification",
+      "purpose": "Current Cockpit browser evidence contracts.",
+      "writeCapable": false
+    },
+    {
+      "path": ".github/workflows/deploy-pages.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "release",
+      "purpose": "Validated main release gate and GitHub Pages deployment.",
+      "writeCapable": true
+    },
+    {
+      "path": ".github/workflows/deploy-worker.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "release",
+      "purpose": "Cloudflare Worker deployment only after validated Pages/main SHA or explicit dispatch.",
+      "writeCapable": true
+    },
+    {
+      "path": ".github/workflows/project-state-integrity.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "project-state",
+      "purpose": "Canonical/candidate Project State integrity and freshness.",
+      "writeCapable": false
+    },
+    {
+      "path": ".github/workflows/semantic-verification.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "verification",
+      "purpose": "Candidate semantic verification with exact base/head and bounded manual evidence.",
+      "writeCapable": false
+    },
+    {
+      "path": ".github/workflows/branch-hygiene.yml",
+      "lifecycle": "ACTIVE",
+      "owner": "repository-hygiene",
+      "purpose": "Delete only exact same-repository merged PR head refs and bootstrap the audited M5.2 closeout ref.",
+      "writeCapable": true
+    }
+  ],
+  "historicalAuthorization": {
+    "discoveryPhrases": [
+      "User authorization:",
+      "The user explicitly authorized",
+      "no reapproval"
+    ],
+    "requiredMarker": "NON-REPLAYABLE",
+    "paths": [
+      "docs/cockpit-implementation-plan-2026-09-09.md",
+      "docs/o4p-09i-cockpit-session-decision.md",
+      "docs/solo-cockpit-v41.md"
+    ]
+  },
+  "evidenceAssets": [
+    {
+      "path": "scripts/online/r31-resolution-uat.mjs",
+      "lifecycle": "ACTIVE_CONTRACT",
+      "owner": "COCKPIT-R31-RESOLUTION-RECOVERY",
+      "consumers": [
+        "scripts/evidence/registry.json",
+        ".github/workflows/cockpit-browser-evidence.yml"
+      ],
+      "reason": "Current Manual Resolution browser recovery evidence."
+    },
+    {
+      "path": "scripts/online/r4-ui-browser-evidence.ts",
+      "lifecycle": "ACTIVE_CONTRACT",
+      "owner": "COCKPIT-R4-FORMAL-BROWSER",
+      "consumers": [
+        "scripts/evidence/registry.json",
+        ".github/workflows/cockpit-browser-evidence.yml"
+      ],
+      "reason": "Current R4 Formal browser evidence executor."
+    },
+    {
+      "path": "scripts/online/r4-ui-evidence-harness.tsx",
+      "lifecycle": "ACTIVE_CONTRACT",
+      "owner": "COCKPIT-R4-FORMAL-BROWSER",
+      "consumers": [
+        "scripts/evidence/registry.json",
+        ".github/workflows/cockpit-browser-evidence.yml"
+      ],
+      "reason": "Current R4 Formal browser evidence harness."
+    },
+    {
+      "path": "scripts/online/cockpit-turn-evidence.mjs",
+      "lifecycle": "ACTIVE_CONTRACT",
+      "owner": "COCKPIT-TURN-CLEANUP-BROWSER",
+      "consumers": [
+        "scripts/evidence/registry.json",
+        ".github/workflows/cockpit-browser-evidence.yml"
+      ],
+      "reason": "Current two-seat turn/cleanup browser evidence."
+    },
+    {
+      "path": "scripts/online/o4p-09i-full-match-evidence.ts",
+      "lifecycle": "ACTIVE_JOURNEY",
+      "owner": "O4P-09I/O4P-09I-B",
+      "consumers": [
+        "package.json"
+      ],
+      "reason": "Current production full-match/reliability journey executor."
+    },
+    {
+      "path": "scripts/online/remote-cast-journey-evidence.ts",
+      "lifecycle": "ACTIVE_JOURNEY_SUBSTRATE",
+      "owner": "O4P-CAST-PILOT",
+      "consumers": [
+        "scripts/online/o4p-09i-full-match-evidence.ts"
+      ],
+      "reason": "Current remote cast journey observation validator used by O4P-09I evidence."
+    },
+    {
+      "path": "scripts/online/remote-priority-journey-evidence.ts",
+      "lifecycle": "ACTIVE_JOURNEY_SUBSTRATE",
+      "owner": "O4P-HOLD-RESPONSE-RESOLVE",
+      "consumers": [
+        "scripts/online/o4p-09i-full-match-evidence.ts"
+      ],
+      "reason": "Current HOLD/pass/resolve observation validator used by O4P-09I evidence."
+    },
+    {
+      "path": "scripts/online/o4p-06f-four-browser-evidence.ts",
+      "lifecycle": "SHARED_SUBSTRATE",
+      "owner": "browser-evidence-adapter",
+      "consumers": [
+        "package.json",
+        "scripts/online/o4p-09i-full-match-evidence.ts",
+        "scripts/online/r4-ui-browser-evidence.ts",
+        "scripts/online/cockpit-multiplayer-evidence.ts"
+      ],
+      "reason": "Hardened CDP browser adapter shared by current and historical evidence; old milestone name is not retirement proof."
+    },
+    {
+      "path": "scripts/online/cockpit-combat-events-evidence.mjs",
+      "lifecycle": "HISTORICAL",
+      "owner": "historical-stage2-evidence",
+      "consumers": [],
+      "reason": "Former branch-only integration evidence; current engine regressions own the combat/control/copy-ETB fault models."
+    },
+    {
+      "path": "scripts/online/cockpit-multiplayer-evidence.ts",
+      "lifecycle": "HISTORICAL",
+      "owner": "historical-cockpit-multiplayer-evidence",
+      "consumers": [],
+      "reason": "No current execution owner; retained as historical evidence and as a declared shared-substrate consumer."
+    },
+    {
+      "path": "scripts/online/o4p-03d-evidence.ts",
+      "lifecycle": "HISTORICAL",
+      "owner": "historical-o4p-03d-evidence",
+      "consumers": [],
+      "reason": "Historical environment-bound production evidence tool; not current journey ownership."
+    }
+  ]
+}
