@@ -136,6 +136,28 @@ describe('M6 shadow controller fixed regression set', () => {
   });
 });
 
+describe('M6 lifecycle availability', () => {
+  test('remains available after M6 completes and M7 becomes active', () => {
+    const input = baseInput();
+    input.projectState.program.activeMilestone = 'M7 — Product Gap Delivery';
+    input.projectState.program.completedMilestones = ['M6 — Closed Execution Loop'];
+
+    const decision = decideShadowResult(input);
+    expect(decision.result).toBe(SHADOW_RESULTS.CONTINUE);
+    expect(decision.nextAction).toBe('PROVE');
+  });
+
+  test('fails closed before M6 has been established', () => {
+    const input = baseInput();
+    input.projectState.program.activeMilestone = 'M5 — Audit / Hygiene / Recovery';
+    input.projectState.program.completedMilestones = [];
+
+    const decision = decideShadowResult(input);
+    expect(decision.result).toBe(SHADOW_RESULTS.STALE_REPLAN_REQUIRED);
+    expect(decision.nextAction).toBe('REPLAN');
+  });
+});
+
 describe('M6 shadow controller additional stop boundaries', () => {
   test('deferred semantic requires Owner decision', () => {
     const input = baseInput();

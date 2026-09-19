@@ -72,11 +72,13 @@ export function decideShadowResult({
 } = {}) {
   const reasons = [];
 
-  if (projectState?.program?.activeMilestone !== 'M6 — Closed Execution Loop') {
+  const m6Available = projectState?.program?.activeMilestone === 'M6 — Closed Execution Loop'
+    || projectState?.program?.completedMilestones?.includes('M6 — Closed Execution Loop') === true;
+  if (!m6Available) {
     return makeDecision(
       SHADOW_RESULTS.STALE_REPLAN_REQUIRED,
       'REPLAN',
-      ['Project State does not currently authorize M6 execution'],
+      ['Project State does not yet establish the M6 closed-loop capability'],
     );
   }
 
