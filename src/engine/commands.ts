@@ -5043,7 +5043,9 @@ export function guidedPlanForStackTop(
     }
   }
 
-  return sourceId && prompts.length > 0 ? { sourceId, prompts, commands, warnings } : null;
+  return sourceId && (prompts.length > 0 || commands.length > 0)
+    ? { sourceId, prompts, commands, warnings }
+    : null;
 }
 
 export function activationPlanForSource(
@@ -5906,12 +5908,17 @@ function applyStoredTargetCommands(
           : { abilityLineIndex: card.abilityLineIndex }),
       },
     );
-    applyAutoCommands(
-      draft,
+    const executableCommands =
       normalizedPrompt.atom === 'effect.sacrifice'
         ? withMoveReason(commands, 'sacrifice')
-        : commands,
-    );
+        : commands;
+    if (executableCommands.length === 0) {
+      draft.warnings.push(
+        `${stackNameOf(draft, card)}の保存済み対象への効果を自動処理できませんでした。手動で処理してください。`,
+      );
+      continue;
+    }
+    applyAutoCommands(draft, executableCommands);
     applied = true;
   }
   return applied;

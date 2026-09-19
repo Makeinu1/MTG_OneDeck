@@ -281,4 +281,48 @@ describe('stack control compatibility', () => {
     expect(store().state?.cards[counterId].zone).toBe('graveyard');
   });
 
+
+  it('preserves deterministic commands when every guided target was already stored at cast time', () => {
+    const mixed = makeDef({
+      scryfallId: 'r1d-mixed-guided-stored-target',
+      typeLine: 'Instant',
+      faces: [{
+        name: 'R1-D Mixed Guided',
+        typeLine: 'Instant',
+        oracleText: 'Draw a card. Destroy target creature.',
+      }],
+    });
+    const target = makeDef({
+      scryfallId: 'r1d-mixed-guided-target',
+      typeLine: 'Creature',
+      faces: [{
+        name: 'R1-D Mixed Target',
+        typeLine: 'Creature',
+        power: '2',
+        toughness: '2',
+      }],
+    });
+    store().newGame([
+      { def: mixed, isCommander: false },
+      { def: target, isCommander: false },
+      ...makeDeck(12),
+    ], 309);
+    const mixedId = instanceId(mixed.scryfallId);
+    const targetId = instanceId(target.scryfallId);
+    store().moveCard(mixedId, 'hand');
+    store().moveCard(targetId, 'battlefield');
+
+    expect(store().castToStack(mixedId)).toBe('needs-choice');
+    store().answerPendingCastTarget(targetId);
+    store().confirmPendingCast();
+    const handBeforeResolution = store().state?.zones.hand.length ?? 0;
+
+    store().resolveTop();
+
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state?.zones.hand.length).toBe(handBeforeResolution + 1);
+    expect(store().state?.cards[targetId].zone).toBe('graveyard');
+    expect(store().state?.cards[mixedId].zone).toBe('graveyard');
+  });
+
 });
