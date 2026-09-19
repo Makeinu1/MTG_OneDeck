@@ -574,6 +574,21 @@
       "reason": "M6 control-plane changes are read-only coordination machinery; validate their fixed regression fixtures and ordinary targeted integrity without forcing unrelated product/browser/release checks."
     },
     {
+      "id": "m6-final-certification",
+      "description": "M6 final closed-loop certification boundary",
+      "sourcePatterns": [
+        "docs/project-state/evidence/m6-final-certification.md"
+      ],
+      "testPatterns": [
+        "scripts/__tests__/m6-*.test.mjs"
+      ],
+      "testProject": "dom",
+      "relatedContractIds": [],
+      "dependentDomains": [],
+      "escalationLevel": "full",
+      "reason": "The final M6 certification is the deliberate full-assurance boundary after targeted incremental development."
+    },
+    {
       "id": "build-tooling",
       "description": "package/build/config、validation script、workflow、architecture gate",
       "sourcePatterns": [
