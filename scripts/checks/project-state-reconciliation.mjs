@@ -116,6 +116,20 @@ export function classifyCapabilities({
 } = {}) {
   const watchedChanges = changedFiles.filter((path) => isWatchedPath(path, watchedRoots));
   const reconciliationRequired = watchedChanges.length > 0;
+  if (!baselineFresh || projectStateChanged) {
+    const reasons = [];
+    if (!baselineFresh) reasons.push('base-project-state-baseline-is-stale');
+    if (projectStateChanged) reasons.push('candidate-modifies-project-state-control-plane-before-reconciliation');
+    return {
+      reconciliationRequired,
+      outcome: 'UNKNOWN',
+      watchedChanges,
+      authorityChanges: watchedChanges.filter(isAuthorityPath),
+      implementationChanges: watchedChanges.filter((path) => path.startsWith('src/')),
+      unclaimedImplementationFiles: [],
+      classifications: capabilities.map((item) => classification(item, 'UNKNOWN', reasons)),
+    };
+  }
   if (!reconciliationRequired) {
     return {
       reconciliationRequired: false,
@@ -146,13 +160,9 @@ export function classifyCapabilities({
   let outcome = 'OWNER_REVIEW_REQUIRED';
   let classifications;
 
-  if (!baselineFresh || projectStateChanged || unknownCoverage) {
+  if (unknownCoverage) {
     outcome = 'UNKNOWN';
-    const reasons = [];
-    if (!baselineFresh) reasons.push('base-project-state-baseline-is-stale');
-    if (projectStateChanged) reasons.push('candidate-modifies-project-state-control-plane-before-reconciliation');
-    if (unknownCoverage) reasons.push('m3-unknown-coverage');
-    classifications = capabilities.map((item) => classification(item, 'UNKNOWN', reasons));
+    classifications = capabilities.map((item) => classification(item, 'UNKNOWN', ['m3-unknown-coverage']));
   } else if (authorityChanges.length > 0) {
     classifications = capabilities.map((item) => classification(
       item,
@@ -192,7 +202,7 @@ export function classifyCapabilities({
 function baselineFreshness({ cwd, index, base }) {
   const audited = resolveCommit(cwd, index.baseline.commit);
   assertAncestor(cwd, audited, base, 'project-state baseline');
-  const changed = exactDiffFiles(cwd, audited, base)
+  const changed = collectChangedFiles({ cwd, base: audited, head: base }).files
     .filter((path) => isWatchedPath(path, index.baseline.watchedRoots ?? []));
   return {
     fresh: changed.length === 0,
@@ -220,10 +230,7 @@ export function buildCandidateReconciliation({
   const baseIndex = readJsonAtRef(cwd, baseSha, INDEX_PATH);
   const baseCapabilities = readCapabilities(cwd, baseSha, baseIndex);
   const changes = collectChangedFiles({ cwd, base: baseSha, head: headSha });
-  const exactFiles = exactDiffFiles(cwd, baseSha, headSha);
-  if (JSON.stringify(changes.files) !== JSON.stringify(exactFiles)) {
-    throw new Error('changed-file set is not exact; candidate reconciliation requires committed-only candidate state');
-  }
+  const exactFiles = changes.files;
 
   const freshness = baselineFreshness({ cwd, index: baseIndex, base: baseSha });
   const controlPaths = projectStateControlPaths(baseIndex);
