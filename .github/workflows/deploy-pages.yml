@@ -12,6 +12,8 @@ on:
       - 'vite.config.ts'
       - 'tsconfig*.json'
       - '.github/workflows/deploy-pages.yml'
+      - '.github/workflows/deploy-worker.yml'
+      - 'wrangler.jsonc'
       - 'scripts/checks/release-check.mjs'
       - 'scripts/checks/resolve-diff-base.mjs'
       - 'scripts/checks/forbidden-files.mjs'
