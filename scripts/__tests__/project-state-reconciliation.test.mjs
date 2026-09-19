@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  buildCandidateReconciliation,
   classifyCapabilities,
   isWatchedPath,
 } from '../checks/project-state-reconciliation.mjs';
+import { DEFAULT_ROOT } from '../checks/validation-domain-resolver.mjs';
 
 const watchedRoots = [
   'src',
@@ -37,6 +39,28 @@ function plan(overrides = {}) {
 }
 
 describe('M1 candidate reconciliation', () => {
+  test('runs against an exact frozen no-change candidate without mutating semantic state', () => {
+    const result = buildCandidateReconciliation({
+      cwd: DEFAULT_ROOT,
+      base: 'HEAD',
+      head: 'HEAD',
+    });
+
+    expect(result).toMatchObject({
+      reconciliationRequired: false,
+      outcome: 'NOT_REQUIRED',
+      summary: {
+        PRESERVATION_CANDIDATE: 0,
+        REVIEW_REQUIRED: 0,
+        UNKNOWN: 0,
+      },
+      invariants: {
+        semanticVerdict: 'NOT_COMPUTED',
+        projectStateMutation: 'NOT_PERFORMED',
+      },
+    });
+  });
+
   test('matches watched roots without treating neighboring paths as watched', () => {
     expect(isWatchedPath('src/engine/a.ts', watchedRoots)).toBe(true);
     expect(isWatchedPath('docs/contracts/ux-constitution.md', watchedRoots)).toBe(true);
