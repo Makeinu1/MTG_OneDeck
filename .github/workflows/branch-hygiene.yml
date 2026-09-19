@@ -1,0 +1,69 @@
+name: Repository branch hygiene
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/branch-hygiene.yml
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repository-branch-hygiene
+  cancel-in-progress: false
+
+jobs:
+  bootstrap-m5-closeout:
+    if: github.event_name == 'push' && github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Retire exact M5.2 closeout ref if still present
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="m5-2-final-closeout"
+          expected="b5d908d63e6fe30329384bae6bdd01dfa47a3d5d"
+          current="$(git ls-remote --heads origin "refs/heads/$branch" | awk '{print $1}')"
+          if [ -z "$current" ]; then
+            echo "M5.2 closeout ref already absent"
+            exit 0
+          fi
+          test "$current" = "$expected"
+          git merge-base --is-ancestor "$expected" "${{ github.sha }}"
+          git push origin --delete "$branch"
+
+  retire-merged-head:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Delete only the exact merged same-repository head ref
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          EXPECTED: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]
+          test "$BRANCH" != "main"
+          current="$(git ls-remote --heads origin "refs/heads/$BRANCH" | awk '{print $1}')"
+          if [ -z "$current" ]; then
+            echo "Merged head ref already absent"
+            exit 0
+          fi
+          test "$current" = "$EXPECTED"
+          git push origin --delete "$BRANCH"
