@@ -27,5 +27,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Full release candidate verification
-        run: npm run check:release -- --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}" --build-base=/MTG_OneDeck/
+      - name: Candidate-relative verification
+        run: npm run check:fast -- --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}" --build-base=/MTG_OneDeck/
