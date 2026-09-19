@@ -16,6 +16,7 @@ const machineCheckSteps = [
   { name: 'Work Protocol整合性検証', cmd: 'npm', args: ['run', 'check:work-protocol'] },
   { name: 'Repository Hygiene整合性検証', cmd: 'npm', args: ['run', 'check:hygiene'] },
   { name: 'Recovery Reconstruction整合性検証', cmd: 'npm', args: ['run', 'check:recovery'] },
+  { name: 'M5 Adversarial Audit', cmd: 'npm', args: ['run', 'check:m5-adversarial'] },
   { name: 'Cockpit mutation ingress検証', cmd: 'npm', args: ['run', 'check:cockpit-ingress'] },
   { name: 'Project State整合性検証', cmd: 'npm', args: ['run', 'check:project-state'] },
   {
