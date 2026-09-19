@@ -1,5 +1,8 @@
 # O4P-09A unified game surface cold-audit record
 
+> Lifecycle: **HISTORICAL / PROVENANCE / NON-CURRENT**  
+> External-write authority: **NON-REPLAYABLE**. Any past audit/repair/commit/push/deploy authorization recorded below is historical evidence only and does not authorize current execution or external writes.
+
 Date: 2026-08-25
 Milestone: `O4P-09A`
 Declared base: `0c0c7a533fffd8e3495cf74bb7d86b827f222c2e`
