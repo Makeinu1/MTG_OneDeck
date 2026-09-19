@@ -159,6 +159,12 @@
           "marker": "verifies: ENG-ZONES-004",
           "kind": "automated",
           "role": "conformance"
+        },
+        {
+          "path": "src/components/game/CockpitStackLki.test.ts",
+          "marker": "verifies: ENG-ZONES-004",
+          "kind": "automated",
+          "role": "conformance"
         }
       ]
     },
