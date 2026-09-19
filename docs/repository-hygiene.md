@@ -105,3 +105,18 @@ Deleting a branch ref is separate from closing its PR and separate from deleting
 Recovery reconstructs current reality and whether work can continue. It does not authorize rollback, ref mutation, deployment rollback, persisted-state rollback, or external writes.
 
 Recovery metadata should store pointers/fingerprints, not independent claims of NOW, semantic PASS, compatibility ownership, or write authority.
+
+
+## 11. Drift detection
+
+M5.3 makes the policy above executable through:
+
+- `scripts/checks/repository-hygiene.json` — supporting lifecycle/consumer ownership data only; it is not Product, semantic, Project State, or execution authority.
+- `scripts/checks/check-repository-hygiene.mjs` — fail-closed integrity for workflow inventory, write-capable workflow ownership, historical authorization markers, evidence consumer graphs, shared substrates, retained compatibility surfaces, and architecture-guard ownership.
+- `.github/workflows/branch-hygiene.yml` — deletes only an exact same-repository merged PR head ref after verifying its remote SHA. It does not authorize arbitrary ref deletion or rollback.
+
+The M5.0 changed-test self-selection and legacy base/judge-overlay guards remain independent inherited protections and are registered as such rather than reimplemented.
+
+Evidence files with an old milestone name may remain `SHARED_SUBSTRATE` or `HISTORICAL`; filename age is never enough to delete them. Compatibility paths remain `COMPATIBILITY` until their explicit consumer/persistence retirement preconditions are satisfied.
+
+The hygiene checker is part of canonical `npm run check`. An unclassified workflow/evidence asset or a missing declared consumer is a repository-integrity failure, not an invitation to infer a replacement owner.

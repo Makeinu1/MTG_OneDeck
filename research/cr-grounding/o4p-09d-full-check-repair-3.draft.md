@@ -1,5 +1,8 @@
 # O4P-09D Full-Check Repair 3
 
+> Lifecycle: **DRAFT / NON-CURRENT**  
+> External-write authority: **NON-REPLAYABLE**. Any past audit/repair/commit/push/deploy authorization recorded below is historical/draft context only and does not authorize current execution or external writes.
+
 Date: 2026-08-27
 Repair-candidate base SHA: 36edfe95a26b53fd312df520c2e998ca4ade2205
 Semantic base SHA: d11a54a54bb3f3ad3dcb624132f3ea3e23de1fd2

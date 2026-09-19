@@ -32,10 +32,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`
 - Active: `M5 — Audit / Hygiene / Recovery`
-- Next gate: `M5.3 — Drift / Hygiene Detection`
-- Next work: Implement the approved M5.3 hygiene/drift guards. Close P0 first: preserve changed-test self-selection and generated/judge overlay integrity, enforce historical authorization NON-REPLAYABLE semantics, validate current workflow/evidence bundle references and all write-capable workflow ownership, classify evidence consumers and historical evidence, and protect active shared substrates from filename/age-based retirement. Do not start M6.
+- Next gate: `M5.4 — Recovery / Reconciliation Protocol`
+- Next work: Implement M5.4 as a read-only reconstruction protocol and pointer/hash receipt. Re-read Project State and freshness, validate the Work Order and candidate through M4, recompute M3 verification impact, inspect git/PR/review/generated/production-map state, and classify resume/replan/blocked/rescue without creating a second NOW registry or any rollback/write authority. Do not start M6.
 
 ## Coverage claim
 
