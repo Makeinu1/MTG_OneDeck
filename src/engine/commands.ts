@@ -4963,6 +4963,30 @@ function storedTargetSelectionFor(
   return selections.find((selection) => selection.slotId === targetSlotId(prompt, targetIndex));
 }
 
+function targetSelectionIsCurrentlyLegal(
+  state: GameState,
+  selection: TargetSelection,
+  prompt: EffectPrompt,
+  sourceId: string,
+  controllerId: PlayerId,
+): boolean {
+  const targetKind = prompt.targetKind ?? 'object';
+  if (selection.selection.kind === 'player') {
+    if (targetKind === 'object') return false;
+    return state.players[selection.selection.playerId] !== undefined;
+  }
+  if (targetKind === 'player') return false;
+  const current = state.cards[selection.selection.physicalCardId];
+  if (!current || objectIdOf(current) !== selection.selection.objectId) {
+    return false;
+  }
+  return eligibleTargets(
+    state,
+    prompt.filter ?? {},
+    { sourceId, controllerId },
+  ).includes(current.id);
+}
+
 export function guidedPlanForStackTop(
   state: GameState,
 ): { sourceId: string; prompts: EffectPrompt[]; commands: GameCommand[]; warnings: string[] } | null {
@@ -5014,11 +5038,12 @@ export function guidedPlanForStackTop(
       continue;
     }
     sourceId = sourceId ?? effectLine.sourceId;
-    commands.push(
-      ...(lineHasSelfSacrifice(effectLine.line.text)
-        ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
-        : compiled.commands),
-    );
+    const lineCommands = lineHasSelfSacrifice(effectLine.line.text)
+      ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
+      : compiled.commands;
+    let targetPromptCount = 0;
+    let unresolvedTargetPromptCount = 0;
+    let legalStoredTargetCount = 0;
     for (const [promptIndex, prompt] of compiled.prompts.entries()) {
       if (prompt.recipients) {
         const simultaneousGroupId = `guided-${topId}-${state.eventLog.length}-${promptIndex}`;
@@ -5032,14 +5057,32 @@ export function guidedPlanForStackTop(
         continue;
       }
       if (prompt.kind === 'target') {
+        targetPromptCount += 1;
         const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
-        if (!storedTargetSelectionFor(card, normalizedPrompt, targetIndex)) {
+        const storedSelection = storedTargetSelectionFor(card, normalizedPrompt, targetIndex);
+        if (!storedSelection) {
           prompts.push(normalizedPrompt);
+          unresolvedTargetPromptCount += 1;
+        } else if (targetSelectionIsCurrentlyLegal(
+          state,
+          storedSelection,
+          normalizedPrompt,
+          effectLine.sourceId,
+          card.controllerId,
+        )) {
+          legalStoredTargetCount += 1;
         }
         targetIndex += 1;
       } else {
         prompts.push(prompt);
       }
+    }
+    const allStoredTargetsIllegal =
+      targetPromptCount > 0
+      && unresolvedTargetPromptCount === 0
+      && legalStoredTargetCount === 0;
+    if (!allStoredTargetsIllegal) {
+      commands.push(...lineCommands);
     }
   }
 
@@ -5888,6 +5931,18 @@ function applyStoredTargetCommands(
     const expectedZone = normalizedPrompt.filter?.zone;
     if (expectedZone && draft.state.cards[targetCardId]?.zone !== expectedZone) {
       draft.warnings.push(`${stackNameOf(draft, card)}の保存済み対象は期待した領域にありません。`);
+      continue;
+    }
+    if (!targetSelectionIsCurrentlyLegal(
+      draft.state,
+      selection,
+      normalizedPrompt,
+      sourceId,
+      card.controllerId,
+    )) {
+      draft.warnings.push(
+        `${stackNameOf(draft, card)}の保存済み対象は解決時に適正な対象ではありません。`,
+      );
       continue;
     }
 

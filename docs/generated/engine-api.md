@@ -177,14 +177,14 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 3019: `export function performStateBasedActions(state: GameState): ApplyResult {`
 - line 4883: `export function activationTargetPromptsForSource(`
 - line 4923: `export function expandPlayerRecipientPrompt(`
-- line 4966: `export function guidedPlanForStackTop(`
-- line 5051: `export function activationPlanForSource(`
-- line 5287: `export function activatedManaAbilityPlanForSource(`
-- line 5580: `export function eligibleTargets(`
-- line 6732: `export function returnLinkedExileToBattlefield(state: GameState, linkId: string): ApplyResult {`
-- line 6739: `export function consumeLinkedExileForSource(`
-- line 7211: `export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {`
-- line 7216: `export function applyResolutionCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult {`
+- line 4990: `export function guidedPlanForStackTop(`
+- line 5094: `export function activationPlanForSource(`
+- line 5330: `export function activatedManaAbilityPlanForSource(`
+- line 5623: `export function eligibleTargets(`
+- line 6787: `export function returnLinkedExileToBattlefield(state: GameState, linkId: string): ApplyResult {`
+- line 6794: `export function consumeLinkedExileForSource(`
+- line 7266: `export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {`
+- line 7271: `export function applyResolutionCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult {`
 
 ## `src/engine/compatibility/soloCoreCompatibilityV1.ts`
 
