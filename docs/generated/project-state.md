@@ -32,15 +32,15 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`, `M6-0 — Closed Execution Loop Plan / Preconditions`, `M6-1 — Shadow Controller`, `M6-1P — Shadow Pilot`, `M6-2 — Local Outer Loop`, `M6-3 — Resume / Recovery`
-- Active: `M6 — Closed Execution Loop`
-- Next gate: `M6-4/5 — High-risk QA / Integration Gate`
-- Next work: Implement the minimal pre-close gate: route AGENTS.md high-risk candidates to independent read-only QA, require exact candidate verification to remain green, compare the candidate against latest main/current authority before close, and surface the external-write boundary without granting push/merge/deploy authority.
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`, `M6-0 — Closed Execution Loop Plan / Preconditions`, `M6-1 — Shadow Controller`, `M6-1P — Shadow Pilot`, `M6-2 — Local Outer Loop`, `M6-3 — Resume / Recovery`, `M6-4 — High-risk Independent QA`, `M6-5 — Integration Gate`, `M6-6 — Harness Regression / Ablation`, `M6-7 — Pilot / Certification`, `M6 — Closed Execution Loop`
+- Active: `M7 — Product Gap Delivery`
+- Next gate: `M7-PLAN — Product Gap Prioritization`
+- Next work: Start M7 planning from current M0 Product Truth and M1 capability state. Select bounded Product work from unresolved REQUIRED GAP/CONFLICT/UNKNOWN capabilities, preserve M2/M3/M4/M5/M6 boundaries, and obtain Owner approval before M7 implementation.
 
 ## Coverage claim
 
 - Mode: `BOUNDED`
-- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4/M4.1 bounded Work Protocol / SOW controls and execution-entry integration, current production routing, and unresolved decisions that direct verification bindings mark deferred-needs-decision.
+- Scope: The indexed M1 capability audit, M2 semantic ownership/dependency control plane, hardened M3/M3.1 candidate-relative verification harness, M4/M4.1 bounded Work Protocol, M5 audit/hygiene/recovery controls, M6 evidence-gated Closed Execution Loop, current production routing, and unresolved decisions/capabilities that remain explicitly GAP/CONFLICT/UNKNOWN.
 - Completeness sources: `docs/contracts/semantic-map.json`, `docs/contracts/traceability.json`, `docs/acceptance/scenarios.json`, `docs/project-state/production-map.json`
 - Known limitations:
   - The capability list is not a proof that every repository concern has been semantically audited.
@@ -52,10 +52,9 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - M4/M4.1 candidate/delegation validation detects bounded staleness and scope drift, permits planned input deletion, and preserves delegated authority/context boundaries, but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
   - CR-15 remains REQUIRED/UNKNOWN after R1-D: current primary Cockpit and compatibility GameStore automation surfaces are registered and confirmed execution fractures were repaired, but no exhaustive machine-enforced capability manifest yet proves that every production automation recognizer is mapped to reviewed semantic evidence.
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
-  - M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures; a real-work Shadow Pilot is still required before M6-2 local execution automation.
-  - M6-1P completed a five-root-Work-Order shadow pilot and repaired the post-M6/M7 false-stop coupling. M6-2 local execution/proof/reconcile wiring remains unimplemented.
   - M6-2 exposes a stateless LOCAL_ONLY action envelope for the existing Coding Harness. Fresh-session recovery proof remains M6-3 work.
-  - M6-3 fresh-session resume consumes M5 recovery receipts and reconstructs the M6-2 LOCAL_ONLY envelope without a second recovery registry. High-risk QA routing and pre-close integration freshness remain for M6-4/5.
+  - M6 Closed Execution Loop is intentionally thin and stateless: COMPLETE is exact-candidate Work Order completion only and never grants Product/semantic truth, Project State mutation authority, or external-write permission.
+  - CR-15 remains REQUIRED/UNKNOWN after M6. M6 introduced no gameplay src/contract/Acceptance/Product changes, treats the UNKNOWN as non-green, and requires later selected/audited work before gameplay automation is expanded.
 
 ## Capability state
 
@@ -146,12 +145,9 @@ None.
 
 ## Prohibited scope
 
-- R6 gameplay implementation
-- production gameplay semantic changes
-- R4b/R5 redesign
+- M7 product implementation before an Owner-approved M7 plan / bounded Work Order
 - casual Product Requirements or UX Constitution changes
-- M6 remote-write, merge, deploy, or external-write automation
-- M7 product implementation
+- unreviewed gameplay automation expansion while CR-15 remains REQUIRED/UNKNOWN
 
 ## Freshness
 
