@@ -41,17 +41,19 @@
       "M5.4 — Recovery / Reconciliation Protocol",
       "M5.5 — Adversarial / Destructive Audit",
       "M5.6 — Clean Baseline Certification",
-      "M5 — Audit / Hygiene / Recovery"
+      "M5 — Audit / Hygiene / Recovery",
+      "M6-0 — Closed Execution Loop Plan / Preconditions"
     ],
     "activeMilestone": "M6 — Closed Execution Loop",
-    "nextGate": "M6-PLAN — Closed Execution Loop",
-    "nextWork": "Start a separate M6 planning session. Re-read current Project State, M5 certification evidence, recovery/hygiene/adversarial gates, and the CR-15 automation boundary; independently design/audit M6 before any M6 implementation. This M5 certification does not authorize M6 implementation.",
+    "nextGate": "M6-1 — Shadow Controller",
+    "nextWork": "Implement and verify the read-only M6 Shadow Controller against fixed regression fixtures. It may reconstruct current M1–M5 inputs and return bounded CONTINUE/STOP results, but it must not edit production code, create candidate commits, perform remote writes, advance semantic verdicts, or select M7 Product work.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",
       "R4b/R5 redesign",
       "casual Product Requirements or UX Constitution changes",
-      "M6-M7 implementation"
+      "M6 execution or remote-write automation beyond the approved read-only M6-1 Shadow Controller",
+      "M7 product implementation"
     ]
   },
   "coverage": {
