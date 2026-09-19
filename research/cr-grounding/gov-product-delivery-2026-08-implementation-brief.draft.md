@@ -1,5 +1,8 @@
 # GOV-PRODUCT-DELIVERY-2026-08 implementation brief
 
+> Lifecycle: **DRAFT / NON-CURRENT**  
+> External-write authority: **NON-REPLAYABLE**. Any past audit/repair/commit/push/deploy authorization recorded below is historical/draft context only and does not authorize current execution or external writes.
+
 Milestone ID: `GOV-PRODUCT-DELIVERY-2026-08`
 
 Base SHA: `8b906a888facc49213f51071d660f42098cc174c`
