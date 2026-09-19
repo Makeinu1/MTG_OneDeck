@@ -1,0 +1,126 @@
+name: M5 one-shot branch retirement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/m5-branch-retirement.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: m5-one-shot-branch-retirement
+  cancel-in-progress: false
+
+jobs:
+  retire:
+    if: github.repository == 'Makeinu1/MTG_OneDeck'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Verify exact audited refs before any deletion
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/m5-retire-specs.txt" <<'EOF'
+a3-repair-stack-target-lki|8889f3fb01e936774f5aeff7667d1b4f230b364b
+chore/cloudflare-worker-deploy-20260915|ec67dfe4afc3296b9e93def381e15f469e19088a
+ci/stage14-current-head-final-gate-20260915|4506d8bde56ec8766d1d7c8c69b96e70db931639
+cold-restart-entry-fix|d9c6e7d2a5d7e708f76093338ece58ecf7e3690c
+constitution-v1-contract-integration|5fa70acecc89206c6bb16678efc4fa7ef06230ac
+diag/chatgpt-write-test-20260914|6a97721c5e1d101f440d67ea5320882e8a2bcd18
+fix/cockpit-a3-stack-stage-20260914|470eae60289b68303da92d57bb43f39fcb415b1d
+fix/cockpit-audit17-integration-20260914|cddf6d54c935da94dbe9d0b7d5508eeeb33af683
+fix/cockpit-combat-events-stage2-20260914|55886931474bba2465382789752b361ae1974c57
+fix/cockpit-library-access-stage7-20260914|f195f61ba92cd7ded6fbd484eb34731ceebe8394
+fix/cockpit-playflow-17-20260914|94afce86c6fc6624db1824fd3afa97e04a83470f
+fix/cockpit-pt-replay-stage4-20260914|7787154e17c241eadcb0c25618a8e4d829d12d1a
+fix/cockpit-render-continuity-stage9-20260914|8c951e99ce30a0f93c391ac87175b36198012e96
+fix/cockpit-selection-migration-stage3-20260914|784b83b5f29144b10f74dc72e239c2bf3504d25c
+fix/cockpit-stage2b-assemble-20260914|259640f6e6ae0b873f0c8f66ff4fb3e72e732b82
+fix/cockpit-stage6a-primary-input-20260914-2|1d3bcbafb96bea09cc43937ea70af25d9fd27aee
+fix/cockpit-stage6a-primary-input-20260914|bf166bda2c933c42e854355b6ab49793a7749d92
+fix/cockpit-stage6a-primary-input-test-20260914|bf166bda2c933c42e854355b6ab49793a7749d92
+fix/cockpit-stage11-card-identity-20260915|15e87abd48fdabb8330108e5ebe492bbe5789bb2
+fix/cockpit-stage12-connection-validity-20260915|2cc5f69ecd7f32cff0e98f9a777fdb9d3a3039f4
+fix/cockpit-stage13-regression-matrix-20260915|7b130d5cecb0cb14ebb686173d683aa2fbd01a46
+fix/cockpit-ttl-policy-stage8-20260914|c93e3555f1cf6872bd5d3c8e1f2c10f54c7aa4f3
+fix/cockpit-turn-cleanup-stage2b-20260914|ea02aaeec0bde73a1d378c3f9ecf666668f72791
+fix/r4-release-branch-coverage|0d13d5730d2b81be6d33fd238fa70b68d77f9375
+fix/r4b-generated-api-sync|763d8de5009a0ef27689872ce2b1b2524ebe9927
+fix/r4b-release-ledgers|20831321fadd6b6384551c6120520e21233b41c5
+fix/stage14-full-suite-boundary-repair-20260915|0fddca9cf7b44fcb06f57c66f42051e9d36f99e4
+m0-authority-reconciliation|a31523e9b3bc10082702e555ed8d9d4b6d970082
+m1-1-canonical-state-hardening|6504ca7c1f38652153acc4b6b62028c6450ed023
+m1-canonical-project-state|058f99bd774a03659a0842caabbfc7a6e0e0f55b
+m1-closeout-project-state|391926b5ed126e790aea7aa8b1dd0ffad975527f
+m2-contract-architecture-implementation|b07eebed504ec3b20d0a42786dbde47d83612016
+m2-contract-architecture-plan|c472007343327f56b4aba5011f0b1bccffab42ba
+m3-1-verification-hardening|edbe49409aaeb94c55259f4e6d56a37de439a232
+m3-verification-harness-implementation|542e1084cf7b4f13b2c8b6c866f31f969fa61ace
+m3-verification-harness-plan|17444bee686df668e62dd25d6890428e43940e45
+m4-1-work-protocol-hardening|60b418afb9ecbe38bae7606c682064dffeb1c61d
+m4-work-protocol-implementation|55f1ca6056979f5103045a76d6f62823ed7cde89
+m4-work-protocol-plan|7d6e94fc8b9e991964f09ddfdfa8afd913bfb019
+m4-work-protocol-plan-v2|6f27b95bd6d365563551bff2d6eab68c0b5082d4
+m5-0-closeout-project-state|abbe31dafaa5780b0f991541fdd9a74b213d5137
+m5-0a-legacy-inventory-overlay|69ca733f0bdc5d510f18aa704eace2c3790f028e
+m5-0b-test-self-selection|17690e5c88525b94cc14b9145d0995c236e76b25
+m5-1-closeout|39ace1fc4a670250caa242853723f3aaefa26f1f
+m5-1a-lifecycle-retirement-policy|127fdaa9546b4605d61626ea1c9319d5421ae11b
+m5-1b-current-browser-evidence-contracts|ad085b6b974c4b81f691258bea2af0f8a3dfd098
+m5-2-closeout|f513454001a3bc8f540b084af3740beeeaec226e
+m5-2a-stage1-regression-rehome|7313429914c0853e264d0cdc6151a0f31c314e46
+m5-2b-provenance-archive|167dd330306855fd7b83d671304a06445b5d30d0
+m5-2c-browser-evidence-migration|997e057f87d104a7a5c4079a571ee381fd51e6a9
+m5-2c-current-browser-evidence|9e2df49db19c5ac26bb6c787eb882dcbd0c142c5
+m5-2d-gate-consolidation|47358ac47c5540aac600d98a6f82083d8c1471b0
+m5-2f-m0-doc-reconciliation|6c589f14117a659a7fc3ac6ebbee75fb4a6c4146
+r3-1-manual-resolution|9d1e3f62c6846eea47323c09cd3bd1ed7fadf9d4
+r4a-formal-manual-inventory|b745c69ad8a160397ac718c967128b2d108c2d8a
+r4b-mutation-gate-correction|109625ab5e5d95470a07b197de18524add528dbe
+r5a-1-trigger-occurrence|872dcdb1a99f625b72897e4cb617df193fe658fa
+r6-ux-constitution|5baf505665b071fad6b3f67c34f2116781fee4a5
+r6-ux-constitution-safety-backup|299459531189eb124e05b9dca5ae6f8890aed390
+r31-manual-resolution-lifecycle|273ed024b468897508318557dfabec6f75b929b1
+sync-main-into-r5a1-20260917b|95ede33a503ec25d0d2370efb064bf199d40bff4
+sync-main-into-r5a1-20260917c|95ede33a503ec25d0d2370efb064bf199d40bff4
+sync-main-into-r5a1-20260917|95ede33a503ec25d0d2370efb064bf199d40bff4
+EOF
+          delete_args=()
+          while IFS='|' read -r branch expected; do
+            test -n "$branch"
+            current="$(git ls-remote --heads origin "refs/heads/$branch" | awk '{print $1}')"
+            if [ "$current" != "$expected" ]; then
+              echo "Ref drift: $branch expected=$expected current=${current:-MISSING}" >&2
+              exit 1
+            fi
+            delete_args+=("$branch")
+          done < "$RUNNER_TEMP/m5-retire-specs.txt"
+
+          self_branch="m5-2-residue-cleanup"
+          self_sha="$(git ls-remote --heads origin "refs/heads/$self_branch" | awk '{print $1}')"
+          test -n "$self_sha"
+          git merge-base --is-ancestor "$self_sha" "${{ github.sha }}"
+          delete_args+=("$self_branch")
+
+          printf '%s\n' "${delete_args[@]}" > "$RUNNER_TEMP/m5-retire-verified.txt"
+      - name: Atomically retire verified non-main branch refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t branches < "$RUNNER_TEMP/m5-retire-verified.txt"
+          test "${#branches[@]}" -gt 0
+          git push --atomic origin --delete "${branches[@]}"
+      - name: Prove only main remains from the audited set
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS='|' read -r branch _; do
+            test -z "$(git ls-remote --heads origin "refs/heads/$branch")"
+          done < "$RUNNER_TEMP/m5-retire-specs.txt"
+          test -z "$(git ls-remote --heads origin refs/heads/m5-2-residue-cleanup)"
