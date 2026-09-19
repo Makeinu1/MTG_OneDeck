@@ -186,11 +186,13 @@ export function decideShadowResult({
     );
   }
 
-  if (verificationFailureClass === 'FLAKY_SUSPECTED') {
+  if (verificationFailureClass === 'FLAKY_SUSPECTED' || verificationFailureClass === 'INFRA_FAILURE') {
     return makeDecision(
       SHADOW_RESULTS.CONTINUE,
       'RECONCILE_WITHOUT_PRODUCTION_REPAIR',
-      ['flaky failure suspected; production repair is not authorized by this signal'],
+      [verificationFailureClass === 'FLAKY_SUSPECTED'
+        ? 'flaky failure suspected; production repair is not authorized by this signal'
+        : 'infrastructure failure identified; production repair is not authorized by this signal'],
     );
   }
 
