@@ -37,7 +37,7 @@ describe('M4.17 newGame does NOT auto-advance (mulligan decides on 7)', () => {
 });
 
 describe('M4.17 beginFirstTurn runs the auto-advance after the mulligan decision', () => {
-  it('autoAdvance ON: advances to main1 and draws one (hand 7 -> 8) on a clean baseline', () => {
+  it('autoAdvance ON: advances to main1 without the two-player opening draw', () => {
     useGameStore.setState({ autoAdvanceToMain: true });
     useGameStore.getState().newGame(deck(40), 2);
     useGameStore.getState().keepOpeningHand();

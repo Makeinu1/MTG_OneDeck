@@ -96,8 +96,8 @@ export function initGame(deck: InitDeckCard[], seed: number): GameState {
     },
   ];
 
-  // EDH flow: the game opens at turn 1's untap step, so the player passes
-  // through the draw step (turn-1 draw happens, unlike 1v1 play-first rules).
+  // The game opens at turn 1's untap step. Opening draw-step behavior is
+  // decided by the turn engine from player count (CR 103.8a / 103.8c).
   const base: Omit<GameState, 'players' | 'turnOrder'> = {
     defs,
     cards,
