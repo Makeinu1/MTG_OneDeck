@@ -21,12 +21,18 @@ exact HEAD（child なら明示的 parent packet も）で再検証する。小�
 ## 最小十分の原則
 
 - 現在の要求を満たす最小の方法で終える。必要性を説明できない設計、抽象化、設定層、
-  互換層、テスト、文書は追加しない。
+  互換層、テスト、文書は追加しない。新しい code / state / config / registry / Skill /
+  framework を足す前に、その存在自体が本当に必要かを問う。不要にできるなら作らない。
+- 関連する要求・code・既存testを理解した後は、追加より先に、(1) 不要化、(2) existing
+  owner/path の再利用、(3) platform / stdlib / current dependency、(4) 重複の削除・統合、
+  (5) それでも必要なら最小実装、の順で検討する。
+- 同じ症状を複数箇所へpatchする前に common caller / common owner / common substrate を探す。
+  ただし簡略化を理由に M2 semantic scope や M4 Work Order scope を勝手に広げない。
+- 最小化を理由に security/privacy、hidden information boundary、data-loss/recovery protection、
+  accessibility、明示された Acceptance、fail-closed verification を削らない。
 - 要求整理と計画には必要なだけ強い推論を使ってよいが、実行は原則として軽量な
   model / medium-low相当で単線に進める。session全体を最大推論にせず、複数agentを
   既定にしない。まず一人で完遂可能か判断し、独立して並行できる仕事だけを分ける。
-- Skillは現在のtaskに直接必要なものだけを使う。手続を増やすSkillや新しいframeworkを、
-  手続を守るためだけに導入しない。
 - 前提が誤っていれば正しい推論を重ねても成果にならない。検索や推測で代用せず、
   関連する要求・code・既存testを直接読んでから変更する。
 

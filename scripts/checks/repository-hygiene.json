@@ -50,7 +50,7 @@
       "path": ".github/workflows/branch-hygiene.yml",
       "lifecycle": "ACTIVE",
       "owner": "repository-hygiene",
-      "purpose": "Delete only exact same-repository merged PR head refs and bootstrap the audited M5.2 closeout ref.",
+      "purpose": "Delete only the exact same-repository merged PR head ref after merge.",
       "writeCapable": true
     }
   ],
@@ -67,6 +67,38 @@
       "docs/solo-cockpit-v41.md"
     ]
   },
+  "retainedProvenance": [
+    {
+      "id": "m5-constitution-v1-contract-integration",
+      "lifecycle": "HISTORICAL_PROVENANCE",
+      "paths": [
+        "research/archive/m5-provenance/constitution-v1-contract-integration/README.md",
+        "research/archive/m5-provenance/constitution-v1-contract-integration/constitution-v1-contract-integration.patch"
+      ],
+      "requiredMarkers": {
+        "research/archive/m5-provenance/constitution-v1-contract-integration/README.md": [
+          "AUTHORITY: NONE",
+          "EXECUTION AUTHORITY: NONE"
+        ]
+      },
+      "reason": "Retained M5 provenance for the superseded Constitution/manifest integration branch; never current authority."
+    },
+    {
+      "id": "m5-cockpit-turn-cleanup-stage2b",
+      "lifecycle": "HISTORICAL_PROVENANCE",
+      "paths": [
+        "research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/README.md",
+        "research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/stage2b-local-only-evidence.md"
+      ],
+      "requiredMarkers": {
+        "research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/README.md": [
+          "AUTHORITY: NONE",
+          "EXECUTION AUTHORITY: NONE"
+        ]
+      },
+      "reason": "Retained M5 provenance for branch-only turn/cleanup evidence after migration to current evidence paths."
+    }
+  ],
   "evidenceAssets": [
     {
       "path": "scripts/online/r31-resolution-uat.mjs",
