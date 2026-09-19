@@ -65,11 +65,6 @@ export function decideShadowResult({
   drift = {},
   verificationPlan = null,
   manualEvidenceError = null,
-  noChangeEstablished = false,
-  verificationFailureClass = null,
-  independentAuditRequired = false,
-  independentAuditSatisfied = false,
-  parallelSemanticConflict = false,
 } = {}) {
   const reasons = [];
 
@@ -112,14 +107,6 @@ export function decideShadowResult({
       SHADOW_RESULTS.STALE_REPLAN_REQUIRED,
       'REPLAN',
       ['M5 recovery requires replanning'],
-    );
-  }
-
-  if (parallelSemanticConflict) {
-    return makeDecision(
-      SHADOW_RESULTS.STALE_REPLAN_REQUIRED,
-      'REPLAN',
-      ['parallel semantic conflict detected'],
     );
   }
 
@@ -181,48 +168,7 @@ export function decideShadowResult({
     );
   }
 
-  if (verificationFailureClass === 'UNKNOWN_FAILURE') {
-    return makeDecision(
-      SHADOW_RESULTS.UNKNOWN_COVERAGE,
-      'STOP_UNKNOWN',
-      ['verification failure could not be classified'],
-    );
-  }
-
-  if (verificationFailureClass === 'FLAKY_SUSPECTED' || verificationFailureClass === 'INFRA_FAILURE') {
-    return makeDecision(
-      SHADOW_RESULTS.CONTINUE,
-      'RECONCILE_WITHOUT_PRODUCTION_REPAIR',
-      [verificationFailureClass === 'FLAKY_SUSPECTED'
-        ? 'flaky failure suspected; production repair is not authorized by this signal'
-        : 'infrastructure failure identified; production repair is not authorized by this signal'],
-    );
-  }
-
-  if (verificationFailureClass === 'REAL_REGRESSION') {
-    return makeDecision(
-      SHADOW_RESULTS.CONTINUE,
-      'RECONCILE',
-      ['real regression identified; bounded repair may proceed'],
-    );
-  }
-
-  if (independentAuditRequired && !independentAuditSatisfied) {
-    return makeDecision(
-      SHADOW_RESULTS.CONTINUE,
-      'INDEPENDENT_QA',
-      ['AGENTS risk boundary requires independent read-only QA'],
-    );
-  }
-
   const changedFiles = verificationPlan?.changedFiles ?? drift?.changedFiles ?? [];
-  if (noChangeEstablished && changedFiles.length === 0) {
-    return makeDecision(
-      SHADOW_RESULTS.NO_CHANGE_REQUIRED,
-      'CLOSE_NO_CHANGE',
-      ['external evidence established that the requested outcome is already satisfied'],
-    );
-  }
 
   return makeDecision(
     SHADOW_RESULTS.CONTINUE,
