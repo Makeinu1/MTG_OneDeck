@@ -78,7 +78,8 @@
     "check:cockpit-ingress": "node scripts/checks/check-cockpit-mutation-ingress.mjs",
     "check:hygiene": "node scripts/checks/check-repository-hygiene.mjs",
     "check:recovery": "node scripts/checks/recovery-reconstruction.mjs",
-    "check:m5-adversarial": "node scripts/checks/m5-adversarial-audit.mjs"
+    "check:m5-adversarial": "node scripts/checks/m5-adversarial-audit.mjs",
+    "check:m5-certify": "node scripts/checks/m5-certification.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

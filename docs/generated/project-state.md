@@ -32,10 +32,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`
-- Active: `M5 — Audit / Hygiene / Recovery`
-- Next gate: `M5.6 — Clean Baseline Certification`
-- Next work: Run the M5.6 derived recensus and certification against latest main/candidate. Require zero authority collisions, unclassified instruction/workflow/evidence assets, destructive-cleanup UNKNOWN, changed-test fail-open, execution orphans, broken dormant writers, and unresolved A3 rescue; verify generated freshness, evidence/browser ownership, provenance archives, compatibility retention preconditions, Project State/production-map freshness, semantic/release/recovery/adversarial gates, cold restart reconstruction, and absence of stored external-write authority. Do not start M6.
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`
+- Active: `M6 — Closed Execution Loop`
+- Next gate: `M6-PLAN — Closed Execution Loop`
+- Next work: Start a separate M6 planning session. Re-read current Project State, M5 certification evidence, recovery/hygiene/adversarial gates, and the CR-15 automation boundary; independently design/audit M6 before any M6 implementation. This M5 certification does not authorize M6 implementation.
 
 ## Coverage claim
 

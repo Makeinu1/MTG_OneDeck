@@ -191,3 +191,11 @@ and the machine gates agree with that model for the checked-out repository.
 82. Recovery disposition is explicit: `RESUME`, `REPLAN`, `BLOCKED`, or `RESCUE`. Divergence is rescue, not silent rebase/reset.
 83. No Work Order is interpreted as `REPLAN`, not as permission to infer or continue work.
 84. `npm run check:recovery` is read-only; a generated receipt cannot authorize commit/push/merge/deploy/rollback.
+
+
+### M5 clean baseline certification
+
+85. `scripts/checks/m5-certification.mjs` derives M5 certification from Project State, repository hygiene, recovery freshness, provenance archives, current A3 evidence, and the M5.5 adversarial matrix; it does not create a second authority system.
+86. `scripts/__tests__/m5-certification.test.mjs` requires unresolved M5 lifecycle residue to be zero.
+87. `docs/project-state/evidence/m5-clean-baseline-certification.md` is certification evidence only; Project State remains canonical NOW.
+88. M5 certification does not authorize M6 implementation. After M5.6 PASS the next allowed repository-program action is a separately reviewed M6 planning session.
