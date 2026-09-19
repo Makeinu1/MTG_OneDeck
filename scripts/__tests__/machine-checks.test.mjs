@@ -124,6 +124,7 @@ describe('machine-check execution', () => {
       ['npm', ['run', 'check:verification']],
       ['npm', ['run', 'check:work-protocol']],
       ['npm', ['run', 'check:hygiene']],
+      ['npm', ['run', 'check:recovery']],
       ['npm', ['run', 'check:cockpit-ingress']],
       ['npm', ['run', 'check:project-state']],
       ['npm', ['run', 'verify:online-state-architecture']],

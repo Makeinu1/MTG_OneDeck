@@ -37,11 +37,12 @@
       "M5.0 — Asset Model / Derived Census Foundation",
       "M5.1 — Lifecycle / Retention / Retirement",
       "M5.2 — Repository Reconciliation / Cleanup",
-      "M5.3 — Drift / Hygiene Detection"
+      "M5.3 — Drift / Hygiene Detection",
+      "M5.4 — Recovery / Reconciliation Protocol"
     ],
     "activeMilestone": "M5 — Audit / Hygiene / Recovery",
-    "nextGate": "M5.4 — Recovery / Reconciliation Protocol",
-    "nextWork": "Implement M5.4 as a read-only reconstruction protocol and pointer/hash receipt. Re-read Project State and freshness, validate the Work Order and candidate through M4, recompute M3 verification impact, inspect git/PR/review/generated/production-map state, and classify resume/replan/blocked/rescue without creating a second NOW registry or any rollback/write authority. Do not start M6.",
+    "nextGate": "M5.5 — Adversarial / Destructive Audit",
+    "nextWork": "Execute M5.5 only in isolated fixtures/temporary candidates. Inject the approved failure classes: unowned/deleted/renamed tests, stale overlay itemKey, generator drift, broken workflow bundle references, legacy write-capable workflow, hidden evidence consumers, retirement without provenance, historical authorization replay, stale Work Order planningBase, old-green evidence on a changed candidate, and compatibility retirement with live consumers. Every unsafe case must fail closed; do not damage main or production.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",

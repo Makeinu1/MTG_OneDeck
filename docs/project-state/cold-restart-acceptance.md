@@ -181,3 +181,13 @@ Cold Restart passes only when a repo-only reader can reconstruct:
 - the M4/M5/M6 boundary, the M5-PLAN handoff, and the CR-15 gate before closed-loop orchestration;
 
 and the machine gates agree with that model for the checked-out repository.
+
+
+### M5 recovery / reconciliation
+
+79. `docs/recovery-protocol.md` defines recovery as repository reconstruction, not rollback and not a second NOW registry.
+80. `scripts/checks/recovery-reconstruction.mjs` re-reads Project State/production-map freshness, repository hygiene, optional Work Order validity, git main/HEAD/merge-base/fingerprint, and generated blob identities.
+81. A recovery receipt stores only pointers/hashes. It cannot store current milestone/next gate, semantic verdict, verification PASS/freshness, compatibility ownership, or external-write/deploy/rollback authority.
+82. Recovery disposition is explicit: `RESUME`, `REPLAN`, `BLOCKED`, or `RESCUE`. Divergence is rescue, not silent rebase/reset.
+83. No Work Order is interpreted as `REPLAN`, not as permission to infer or continue work.
+84. `npm run check:recovery` is read-only; a generated receipt cannot authorize commit/push/merge/deploy/rollback.
