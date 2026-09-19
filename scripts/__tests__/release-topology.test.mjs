@@ -35,8 +35,9 @@ describe('R1-C release/integration topology', () => {
     const workflow = text('.github/workflows/candidate-verification.yml');
     expect(workflow).toMatch(/^\s*pull_request:\s*$/m);
     expect(workflow).not.toMatch(/^\s*push:\s*$/m);
+    expect(workflow).toContain('ref: ${{ github.event.pull_request.head.sha }}');
     expect(workflow).toContain(
-      'npm run check:release -- --base "origin/${{ github.base_ref }}" --head HEAD --build-base=/MTG_OneDeck/',
+      'npm run check:release -- --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}" --build-base=/MTG_OneDeck/',
     );
     expect(workflow).not.toContain('check:fast');
   });
