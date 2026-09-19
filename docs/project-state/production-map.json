@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAtCommit": "d396937b9f140344e3d1bd14c25e016a96c6c6a2",
+  "observedAtCommit": "ef2ffe1baa7163112394665331a1044e630be0f0",
   "status": "CURRENT_ROUTING_SNAPSHOT",
   "scope": "Production entry and routing map only. Contract meaning and semantic verdicts remain owned by their canonical sources and Project State capability audits.",
   "freshness": {
