@@ -9,7 +9,7 @@ import { planAutoTap } from '../autotap';
 import { isSummoningSick } from '../status';
 import { parseManaCost } from '../mana';
 import { initGame, type InitDeckCard } from '../init';
-import type { GameState } from '../types';
+import { syncDerivedViews, type GameState } from '../types';
 import { makeDef } from './helpers';
 
 function land(id: string, colors: ManaColor[]): CardDef {
@@ -100,7 +100,7 @@ describe('playLand (spec §7.2)', () => {
 });
 
 describe('turn-1 draw & ETB hooks (spec §7.3-§7.5)', () => {
-  it('draws on turn 1 at the draw step (EDH rule)', () => {
+  it('skips the starting-player draw step in a two-player game (CR 103.8a)', () => {
     const deck = Array.from({ length: 10 }, (_, i) => ({
       def: makeDef({ scryfallId: `c-${i}` }),
       isCommander: false,
@@ -108,7 +108,28 @@ describe('turn-1 draw & ETB hooks (spec §7.3-§7.5)', () => {
     let s = initGame(deck, 1);
     s = { ...s, phase: 'upkeep' };
     const before = s.zones.hand.length;
-    s = applyCommand(s, { type: 'nextPhase' }).state; // -> draw
+    s = applyCommand(s, { type: 'nextPhase' }).state;
+    expect(s.phase).toBe('main1');
+    expect(s.zones.hand.length).toBe(before);
+  });
+
+  it('keeps the starting-player draw step in a four-player game (CR 103.8c)', () => {
+    const deck = Array.from({ length: 10 }, (_, i) => ({
+      def: makeDef({ scryfallId: `c4-${i}` }),
+      isCommander: false,
+    }));
+    let s = initGame(deck, 1);
+    s = syncDerivedViews({
+      ...s,
+      opponentLife: {
+        ...s.opponentLife,
+        '対戦相手B': 40,
+        '対戦相手C': 40,
+      },
+      phase: 'upkeep',
+    });
+    const before = s.zones.hand.length;
+    s = applyCommand(s, { type: 'nextPhase' }).state;
     expect(s.phase).toBe('draw');
     expect(s.zones.hand.length).toBe(before + 1);
   });
