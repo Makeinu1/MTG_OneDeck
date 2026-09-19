@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -50,6 +50,12 @@ function fixture() {
     domains: [{ testPatterns: ['src/test/architecture/**/*.test.ts'] }],
   }));
   put(root, 'docs/old.md', 'User authorization: historical only. NON-REPLAYABLE.\n');
+  put(root, 'research/archive/m5-provenance/example/README.md', [
+    'AUTHORITY: NONE',
+    'EXECUTION AUTHORITY: NONE',
+    '',
+  ].join('\n'));
+  put(root, 'research/archive/m5-provenance/example/example.patch', 'historical patch\n');
   put(root, 'scripts/checks/repository-hygiene.json', JSON.stringify({
     schemaVersion: 1,
     status: 'CURRENT_REPOSITORY_HYGIENE',
@@ -65,6 +71,21 @@ function fixture() {
       requiredMarker: 'NON-REPLAYABLE',
       paths: ['docs/old.md'],
     },
+    retainedProvenance: [{
+      id: 'm5-example',
+      lifecycle: 'HISTORICAL_PROVENANCE',
+      paths: [
+        'research/archive/m5-provenance/example/README.md',
+        'research/archive/m5-provenance/example/example.patch',
+      ],
+      requiredMarkers: {
+        'research/archive/m5-provenance/example/README.md': [
+          'AUTHORITY: NONE',
+          'EXECUTION AUTHORITY: NONE',
+        ],
+      },
+      reason: 'fixture',
+    }],
     evidenceAssets: [{
       path: 'scripts/online/sample-evidence.mjs',
       lifecycle: 'ACTIVE_CONTRACT',
@@ -101,6 +122,30 @@ describe('repository hygiene fail-closed inventory', () => {
       workflowCount: 1,
       evidenceCount: 1,
     });
+  });
+
+  it('rejects deletion of a retained provenance asset', () => {
+    const root = fixture();
+    unlinkSync(join(root, 'research/archive/m5-provenance/example/example.patch'));
+    const report = validateRepositoryHygiene({ root });
+    expect(report.ok).toBe(false);
+    expect(report.errors.join('\n')).toContain('retained provenance m5-example: missing research/archive/m5-provenance/example/example.patch');
+  });
+
+  it('rejects removal of the retained AUTHORITY: NONE marker', () => {
+    const root = fixture();
+    put(root, 'research/archive/m5-provenance/example/README.md', 'EXECUTION AUTHORITY: NONE\n');
+    const report = validateRepositoryHygiene({ root });
+    expect(report.ok).toBe(false);
+    expect(report.errors.join('\n')).toContain('lacks AUTHORITY: NONE');
+  });
+
+  it('rejects removal of the retained EXECUTION AUTHORITY: NONE marker', () => {
+    const root = fixture();
+    put(root, 'research/archive/m5-provenance/example/README.md', 'AUTHORITY: NONE\n');
+    const report = validateRepositoryHygiene({ root });
+    expect(report.ok).toBe(false);
+    expect(report.errors.join('\n')).toContain('lacks EXECUTION AUTHORITY: NONE');
   });
 
   it('rejects an unclassified workflow', () => {
