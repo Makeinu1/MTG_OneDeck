@@ -140,6 +140,31 @@ describe('validation domain resolver', () => {
     expect(config.escalation).toBe('full');
   });
 
+  test('keeps M6 control-plane changes targeted while shared verification tooling stays full', () => {
+    const m6 = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['scripts/checks/m6-shadow-controller.mjs'],
+    });
+    expect(m6.initialDomains).toContain('m6-control-plane');
+    expect(m6.initialDomains).not.toContain('build-tooling');
+    expect(m6.escalation).toBe('targeted');
+    expect(m6.testFiles).toContain('scripts/__tests__/m6-shadow-controller.test.mjs');
+
+    const sharedTooling = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['scripts/checks/fast-check.mjs'],
+    });
+    expect(sharedTooling.initialDomains).toContain('build-tooling');
+    expect(sharedTooling.escalation).toBe('full');
+
+    const workflow = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['.github/workflows/candidate-verification.yml'],
+    });
+    expect(workflow.initialDomains).toContain('build-tooling');
+    expect(workflow.escalation).toBe('full');
+  });
+
   test('named domain selection rejects zero coverage and returns unique files', () => {
     const domains = loadRegistry(DEFAULT_ROOT);
     expect(domains.map((domain) => domain.id)).toContain('engine-mana');
