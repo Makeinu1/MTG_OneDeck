@@ -79,15 +79,23 @@ exact HEAD（child なら明示的 parent packet も）で再検証する。小�
   新test frameworkやtest infrastructureを作らない。要求されていない境界をtestしない。
 - 追加前に「どのacceptanceを証明するか」「既存testが見逃すregressionか」「実装より単純か」
   を答える。test codeが実装より長い・複雑なら過剰設計として、より小さい証明を選ぶ。
-- 開発中は関連する targeted tests のみを反復する。release candidate はPRで`main`へ送り、
-  `.github/workflows/candidate-verification.yml`の`npm run check:release`をpre-mergeの
-  full-strength gateとする。release目的のdirect push to `main`は使わない。merge後は
-  `.github/workflows/deploy-pages.yml`が直前の成功Pages main-push SHAから新しい`main` SHAまでを
-  累積`check:release`し、greenの場合だけPagesをdeployする。Workerはその成功Pages SHAだけを
-  受け取り、production workflowにmanual-dispatch bypassを置かない。CI failureはfail-closedで
-  deployせず停止し、root cause修正後は無効になったtargeted evidenceだけを再確認して新candidateを
-  pushする。外部writeの自動retryはしない。local-only completion、CIを使わない変更、またはlocal
-  full assuranceの明示要求の場合だけ、localの`npm run check`を一度実行してよい。
+- 開発中は関連する targeted tests のみを反復する。通常のincremental PRは
+  `.github/workflows/candidate-verification.yml`から`npm run check:fast`を実行し、
+  changed-test self-selection、validation domain、M3 semantic impactに従ってcandidate-relativeに検証する。
+  unknown path、unrunnable changed test、full指定domainなど安全に限定できない変更は
+  `check:fast`自身が`check:release`へfail-closed escalationする。M6 control-planeのように
+  production/runtime/authorityを変更しない作業はtargeted verificationを標準とし、無関係なbrowser evidenceや
+  full repository gateを儀式的に反復しない。
+- full `check:release` は release / milestone certification、full指定domain、または明示的な
+  full assuranceが必要な境界で実行する。M6中は最終certificationまでcontrol-plane PRごとの全量検証を
+  要求しない。merge後のPages workflowもproduction/release-relevant path変更だけを対象とし、
+  docs / M6 control-plane-only mergeではdeploy/full release scanを起動しない。release目的のdirect push to
+  `main`は使わない。Pagesが起動した場合は直前の成功Pages main-push SHAから新しい`main` SHAまでを
+  累積`check:release`し、greenの場合だけdeployする。Workerはその成功Pages SHAだけを受け取り、
+  production workflowにmanual-dispatch bypassを置かない。CI failureはfail-closedで停止し、
+  root cause修正後は無効になったtargeted evidenceだけを再確認する。外部writeの自動retryはしない。
+  local-only completion、CIを使わない変更、またはlocal full assuranceの明示要求の場合だけ、
+  localの`npm run check`を一度実行してよい。
 
 ## エンジンと CR
 
