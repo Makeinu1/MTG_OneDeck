@@ -184,7 +184,34 @@ export function validateRepositoryHygiene({ root = DEFAULT_ROOT } = {}) {
     }
   }
 
+  const duplicatePurposes = new Map();
+  for (const entry of workflowEntries) {
+    const key = String(entry.owner) + '\0' + String(entry.purpose);
+    const prior = duplicatePurposes.get(key);
+    if (prior) errors.push('workflow duplicate-gate purpose: ' + prior + ' and ' + entry.path);
+    else duplicatePurposes.set(key, entry.path);
+  }
+
   const pkg = readJson(root, PACKAGE_PATH);
+  for (const [name, command] of Object.entries(pkg.scripts ?? {})) {
+    if (typeof command !== 'string') continue;
+    const localRefs = [...command.matchAll(/(?:^|\s)(scripts\/[A-Za-z0-9._/-]+\.(?:mjs|js|ts|tsx))(?:\s|$)/gu)]
+      .map((match) => match[1]);
+    for (const path of localRefs) {
+      if (!existsSync(resolve(root, path))) errors.push('execution-orphan package script ' + name + ': missing ' + path);
+    }
+  }
+
+  for (const entry of workflowEntries) {
+    if (!existsSync(resolve(root, entry.path))) continue;
+    const content = fileText(root, entry.path);
+    const localRefs = [...content.matchAll(/(?:^|[\s"'=])(scripts\/[A-Za-z0-9._/-]+\.(?:mjs|js|ts|tsx))(?:[\s"'$]|$)/gmu)]
+      .map((match) => match[1]);
+    for (const path of localRefs) {
+      if (!existsSync(resolve(root, path))) errors.push('execution-orphan workflow ' + entry.path + ': missing ' + path);
+    }
+  }
+
   const journeys = readJson(root, JOURNEY_REGISTRY_PATH);
   for (const journey of journeys.journeys ?? []) {
     for (const path of [journey.designSource, journey.acceptanceSource]) {
