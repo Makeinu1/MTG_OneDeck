@@ -7,7 +7,7 @@
   "deliveryState": "UNKNOWN",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "c0db31342148897e67a3b48d8fa4dd21e54549b5",
+  "auditedAtCommit": "1fb38c9b62bc249c3315a733de08e8c37a2b6179",
   "authorityRefs": [
     {
       "path": "docs/contracts/ux-constitution.md",
@@ -16,18 +16,6 @@
   ],
   "implementationRefs": [
     {
-      "path": "src/engine/cockpitTriggers.ts"
-    },
-    {
-      "path": "src/engine/cockpitTriggersCore.ts"
-    },
-    {
-      "path": "src/engine/cockpitTriggerOccurrence.ts"
-    },
-    {
-      "path": "src/engine/cockpitR31.ts"
-    },
-    {
       "path": "src/engine/grammar/compile.ts"
     },
     {
@@ -35,20 +23,20 @@
     },
     {
       "path": "src/store/gameStore.ts"
+    },
+    {
+      "path": "src/engine/cockpitTriggersCore.ts"
+    },
+    {
+      "path": "src/engine/cockpitTriggers.ts"
+    },
+    {
+      "path": "src/engine/cockpitR31.ts"
     }
   ],
   "verificationRefs": [
     {
-      "path": "src/engine/__tests__/cockpitTriggers.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/cockpitTriggerOccurrence.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/cockpitR31.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/cockpitR31Lifecycle.test.ts"
+      "path": "src/store/__tests__/stackControl.test.ts"
     },
     {
       "path": "src/engine/__tests__/review.grammar-compile.test.ts"
@@ -60,10 +48,13 @@
       "path": "src/store/__tests__/review.feel-2-silent-skip-honesty.test.ts"
     },
     {
-      "path": "src/store/__tests__/stackControl.test.ts"
+      "path": "src/engine/__tests__/cockpitTriggers.test.ts"
+    },
+    {
+      "path": "src/engine/__tests__/cockpitR31Lifecycle.test.ts"
     }
   ],
-  "rationale": "R1-D reconstructed the current primary Cockpit and compatibility GameStore automation surfaces and closed the confirmed execution fractures in canonical command execution, mixed guided resolution, and stored-target success reporting. The registered paths are bounded and fail closed or fall back to manual handling for unsupported semantics, but there is still no exhaustive machine-enforced capability manifest proving that every production automation recognizer is mapped to reviewed semantic evidence; a global MATCH/GAP/CONFLICT verdict therefore remains unjustified.",
-  "nextAction": "Keep UNKNOWN until a later M6-bounded control-plane step establishes an exhaustive automation capability manifest with freshness enforcement. Treat the registered primary Cockpit and compatibility GameStore paths as the current audited surface; any new automation ingress must invalidate and re-audit CR-15.",
+  "rationale": "R1-A/R1-D reconstructed the current bounded automation execution surfaces across the legacy/local compatibility path and Cockpit trigger/lifecycle boundaries, unified automation mutation through the canonical GameCommand executor, closed known silent/no-op and mixed-guided execution gaps, and added direct composition evidence. The capability remains UNKNOWN because this bounded audit is not a proof that every automation path across every legacy-visible/supporting surface is exhaustively enumerated or semantically reviewed.",
+  "nextAction": "Treat the R1-D inventory and refs as the explicit M6 automation boundary. Any new automation path must extend reviewed capability ownership and verification. Keep UNKNOWN until a separately scoped exhaustive completeness proof covers every production-reachable automation ingress; do not infer MATCH from the absence of known R1 residual defects.",
   "ownerDecisionRefs": []
 }
