@@ -104,6 +104,8 @@ The planner reuses M3 candidate impact and the existing M1 capability references
 
 The planner never computes `MATCH/GAP/CONFLICT/UNKNOWN` semantic verdicts, never edits Project State, and never advances `baseline.commit` or any `auditedAtCommit`. M1 remains the semantic-state owner. After the M1 owner reviews every classification and resolves all `REVIEW_REQUIRED` / `UNKNOWN` entries, the ordinary Project State update may advance the single global epoch and regenerate the human view.
 
+The reconciled `head` is the audited implementation candidate SHA. When the owner accepts that reconciliation, `baseline.commit` / capability `auditedAtCommit` advance to that exact implementation SHA. The later bookkeeping commit that writes Project State and regenerates the human view may sit after that audit point because those Project State files are not watched semantic roots; it must not silently include a further watched-root change.
+
 Run reconciliation **before** editing `docs/project-state/index.json`, capability state files, or the generated Project State view. If those control-plane files are already changed, the planner fails closed rather than accepting circular self-reconciliation.
 
 M2/M3 impact is evidence for scoping the re-audit, not authority to promote or preserve a semantic verdict. Unmapped implementation remains fail-closed through M3 `UNKNOWN_COVERAGE`. This keeps the global epoch safety property while avoiding an automatic assumption that every capability needs the same depth of re-audit.
