@@ -31,11 +31,26 @@ function resolveCommit(cwd, ref) {
   }
 }
 
-function assertAncestor(cwd, base, head, label) {
+function isAncestor(cwd, base, head) {
   try {
     execFileSync('git', ['merge-base', '--is-ancestor', base, head], { cwd, stdio: 'ignore' });
+    return true;
   } catch {
+    return false;
+  }
+}
+
+function assertAncestor(cwd, base, head, label) {
+  if (!isAncestor(cwd, base, head)) {
     throw new Error(`${label}: ${base} is not an ancestor of ${head}`);
+  }
+}
+
+function refIfPresent(cwd, ref) {
+  try {
+    return resolveCommit(cwd, ref);
+  } catch {
+    return null;
   }
 }
 
@@ -112,12 +127,14 @@ export function classifyCapabilities({
   verificationPlan,
   projectStateChanged = false,
   baselineFresh = true,
+  mainFresh = true,
 } = {}) {
   const watchedChanges = changedFiles.filter((path) => isWatchedPath(path, watchedRoots));
   const reconciliationRequired = watchedChanges.length > 0;
-  if (!baselineFresh || projectStateChanged) {
+  if (!baselineFresh || !mainFresh || projectStateChanged) {
     const reasons = [];
     if (!baselineFresh) reasons.push('base-project-state-baseline-is-stale');
+    if (!mainFresh) reasons.push('candidate-does-not-contain-current-main');
     if (projectStateChanged) reasons.push('candidate-modifies-project-state-control-plane-before-reconciliation');
     return {
       reconciliationRequired,
@@ -214,6 +231,23 @@ function readCapabilities(cwd, ref, index) {
   return (index.capabilities ?? []).map((entry) => readJsonAtRef(cwd, ref, entry.path));
 }
 
+function mainFreshness({ cwd, index, head }) {
+  const branch = index.baseline?.branch;
+  if (typeof branch !== 'string' || branch === '') {
+    return { status: 'NOT_CHECKED', ref: null, sha: null };
+  }
+  for (const ref of [`refs/remotes/origin/${branch}`, `refs/heads/${branch}`]) {
+    const sha = refIfPresent(cwd, ref);
+    if (!sha) continue;
+    return {
+      status: isAncestor(cwd, sha, head) ? 'CURRENT' : 'STALE',
+      ref,
+      sha,
+    };
+  }
+  return { status: 'NOT_CHECKED', ref: null, sha: null };
+}
+
 export function buildCandidateReconciliation({
   cwd = DEFAULT_ROOT,
   base,
@@ -232,6 +266,7 @@ export function buildCandidateReconciliation({
   const exactFiles = changes.files;
 
   const freshness = baselineFreshness({ cwd, index: baseIndex, base: baseSha });
+  const currentMain = mainFreshness({ cwd, index: baseIndex, head: headSha });
   const controlPaths = projectStateControlPaths(baseIndex);
   const controlPlaneChanges = exactFiles.filter((path) => controlPaths.has(path));
 
@@ -260,6 +295,7 @@ export function buildCandidateReconciliation({
     verificationPlan,
     projectStateChanged: controlPlaneChanges.length > 0,
     baselineFresh: freshness.fresh,
+    mainFresh: currentMain.status !== 'STALE',
   });
 
   const impactedSemantics = Object.keys(verificationPlan.semanticImpact ?? {}).sort();
@@ -276,6 +312,7 @@ export function buildCandidateReconciliation({
     projectStateBaseline: freshness.auditedAt,
     baselineFreshAtBase: freshness.fresh,
     baselineInvalidatingChangesBeforeCandidate: freshness.invalidatingChanges,
+    currentMain,
     reconciliationRequired: classified.reconciliationRequired,
     outcome: classified.outcome,
     watchedChanges: classified.watchedChanges,
