@@ -245,6 +245,10 @@ describe('AV7b audio-gap closure boundaries', () => {
 
   it('R10: resolving the cleanup-discard dialog emits the normalized turn and draw cues', () => {
     const game = startFreshGame();
+    // R10 needs an over-limit hand specifically to exercise the cleanup-discard
+    // dialog. CR 103.8a now skips the two-player starting player's first-turn
+    // draw step, so create that fixture explicitly rather than relying on it.
+    store().draw(1);
     advanceToEndPhase(game);
     const before = store().state;
     if (!before) throw new Error('state missing');
