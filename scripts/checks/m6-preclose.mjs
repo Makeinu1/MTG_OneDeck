@@ -15,8 +15,6 @@ export const QA_STATUSES = Object.freeze({
   UNCLASSIFIED: 'UNCLASSIFIED',
   NOT_REQUIRED: 'NOT_REQUIRED',
   REQUIRED: 'REQUIRED',
-  PASS: 'PASS',
-  FAIL: 'FAIL',
 });
 
 function decision(result, nextAction, reasons = []) {
@@ -29,6 +27,11 @@ function decision(result, nextAction, reasons = []) {
 
 function nonEmpty(items) {
   return Array.isArray(items) && items.length > 0;
+}
+
+function readJson(root, path) {
+  if (!path) return null;
+  return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
 }
 
 export function mapM3VerificationResult(result) {
@@ -86,16 +89,36 @@ export function mapM3VerificationResult(result) {
   );
 }
 
+export function validateQaEvidence(receipt, localEnvelope) {
+  const errors = [];
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) {
+    return ['independent QA evidence receipt must be an object'];
+  }
+
+  const keys = Object.keys(receipt).sort().join(',');
+  if (keys !== 'base,evidenceRef,head,result,schemaVersion') {
+    errors.push('independent QA evidence allows only schemaVersion/base/head/result/evidenceRef');
+  }
+  if (receipt.schemaVersion !== 1) errors.push('independent QA evidence schemaVersion must be 1');
+  if (!['PASS', 'FAIL'].includes(receipt.result)) errors.push('independent QA evidence result must be PASS or FAIL');
+  if (receipt.base !== localEnvelope?.candidate?.planningBase) errors.push('independent QA evidence base mismatch');
+  if (receipt.head !== localEnvelope?.candidate?.head) errors.push('independent QA evidence head mismatch');
+  if (typeof receipt.evidenceRef !== 'string' || receipt.evidenceRef.trim() === '') {
+    errors.push('independent QA evidence requires evidenceRef');
+  }
+  return errors;
+}
+
 export function evaluateQaBoundary({
   qaStatus = QA_STATUSES.UNCLASSIFIED,
-  qaHead = null,
-  candidateHead = null,
+  qaEvidence = null,
+  localEnvelope = null,
 } = {}) {
   if (!Object.values(QA_STATUSES).includes(qaStatus)) {
     return decision(
       SHADOW_RESULTS.UNKNOWN_COVERAGE,
       'STOP_UNKNOWN',
-      [`unknown independent QA status: ${qaStatus}`],
+      [`unknown independent QA requirement status: ${qaStatus}`],
     );
   }
 
@@ -107,29 +130,31 @@ export function evaluateQaBoundary({
     );
   }
 
-  if (qaStatus === QA_STATUSES.REQUIRED) {
+  if (qaStatus === QA_STATUSES.NOT_REQUIRED) return null;
+
+  if (!qaEvidence) {
     return decision(
       SHADOW_RESULTS.CONTINUE,
       'INDEPENDENT_QA',
-      ['AGENTS.md high-risk boundary requires independent read-only QA'],
+      ['AGENTS.md high-risk boundary requires independent read-only QA evidence'],
     );
   }
 
-  if (qaStatus === QA_STATUSES.PASS || qaStatus === QA_STATUSES.FAIL) {
-    if (!candidateHead || !qaHead || qaHead !== candidateHead) {
-      return decision(
-        SHADOW_RESULTS.CONTINUE,
-        'INDEPENDENT_QA',
-        ['independent QA result is not bound to the exact current candidate'],
-      );
-    }
-    if (qaStatus === QA_STATUSES.FAIL) {
-      return decision(
-        SHADOW_RESULTS.CONTINUE,
-        'RECONCILE_QA_FINDINGS',
-        ['independent read-only QA returned unresolved findings for the exact candidate'],
-      );
-    }
+  const qaErrors = validateQaEvidence(qaEvidence, localEnvelope);
+  if (qaErrors.length > 0) {
+    return decision(
+      SHADOW_RESULTS.CONTINUE,
+      'INDEPENDENT_QA',
+      qaErrors,
+    );
+  }
+
+  if (qaEvidence.result === 'FAIL') {
+    return decision(
+      SHADOW_RESULTS.CONTINUE,
+      'RECONCILE_QA_FINDINGS',
+      ['independent read-only QA returned unresolved findings for the exact candidate'],
+    );
   }
 
   return null;
@@ -139,7 +164,7 @@ export function decidePreClose({
   localEnvelope,
   recoveryDisposition = 'RESUME',
   qaStatus = QA_STATUSES.UNCLASSIFIED,
-  qaHead = null,
+  qaEvidence = null,
 } = {}) {
   if (!localEnvelope?.decision) throw new Error('localEnvelope decision is required');
 
@@ -171,8 +196,8 @@ export function decidePreClose({
 
   const qaBoundary = evaluateQaBoundary({
     qaStatus,
-    qaHead,
-    candidateHead: localEnvelope.candidate?.head ?? null,
+    qaEvidence,
+    localEnvelope,
   });
   if (qaBoundary) return qaBoundary;
 
@@ -189,25 +214,21 @@ export function decidePreClose({
     'REQUEST_EXTERNAL_WRITE_PERMISSION',
     [
       'exact candidate verification is current against latest main/current authority',
-      qaStatus === QA_STATUSES.PASS
+      qaStatus === QA_STATUSES.REQUIRED
         ? 'required independent QA passed for the exact candidate'
         : 'AGENTS.md classification found no independent QA requirement',
     ],
   );
 }
 
-function readManualEvidence(root, path) {
-  if (!path) return null;
-  return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
-}
-
-function integrationSummary(recovery, qaStatus, qaHead) {
+function integrationSummary(recovery, qaStatus, qaEvidence) {
   return {
     observedMain: recovery.receipt.observedMain,
     candidateHead: recovery.receipt.candidate.head,
     disposition: recovery.disposition,
     qaStatus,
-    qaHead,
+    qaResult: qaEvidence?.result ?? null,
+    qaEvidenceRef: qaEvidence?.evidenceRef ?? null,
     qaPolicySource: 'AGENTS.md',
     externalWriteAuthority: 'NONE',
     remoteWritesPerformed: false,
@@ -219,11 +240,12 @@ export function runPreCloseGate({
   workOrderPath,
   manualEvidencePath = null,
   qaStatus = QA_STATUSES.UNCLASSIFIED,
-  qaHead = null,
+  qaEvidencePath = null,
   noChangeEvidencePath = null,
 } = {}) {
   if (!workOrderPath) throw new Error('workOrderPath is required');
 
+  const qaEvidence = readJson(root, qaEvidencePath);
   const initial = runLocalLoopStep({
     root,
     workOrderPath,
@@ -238,14 +260,14 @@ export function runPreCloseGate({
       localEnvelope: initial.envelope,
       recoveryDisposition: recovery.disposition,
       qaStatus,
-      qaHead,
+      qaEvidence,
     });
     return {
       exitCode: preClose.result === SHADOW_RESULTS.COMPLETE ? 0 : 1,
       decision: preClose,
       envelope: initial.envelope,
       verification: null,
-      integration: integrationSummary(recovery, qaStatus, qaHead),
+      integration: integrationSummary(recovery, qaStatus, qaEvidence),
     };
   }
 
@@ -266,7 +288,7 @@ export function runPreCloseGate({
     head: initial.envelope.candidate.head,
     execute: true,
     writePlan: false,
-    manualEvidenceReceipt: readManualEvidence(root, manualEvidencePath),
+    manualEvidenceReceipt: readJson(root, manualEvidencePath),
   });
   const verificationDecision = mapM3VerificationResult(verification);
 
@@ -296,7 +318,7 @@ export function runPreCloseGate({
     localEnvelope: proven.envelope,
     recoveryDisposition: recovery.disposition,
     qaStatus,
-    qaHead,
+    qaEvidence,
   });
 
   return {
@@ -308,7 +330,7 @@ export function runPreCloseGate({
       coverage: verification.plan.coverage,
       testExitCode: verification.testExitCode,
     },
-    integration: integrationSummary(recovery, qaStatus, qaHead),
+    integration: integrationSummary(recovery, qaStatus, qaEvidence),
   };
 }
 
@@ -317,7 +339,7 @@ function parseArgs(args) {
     workOrderPath: null,
     manualEvidencePath: null,
     qaStatus: QA_STATUSES.UNCLASSIFIED,
-    qaHead: null,
+    qaEvidencePath: null,
     noChangeEvidencePath: null,
     json: false,
   };
@@ -325,13 +347,14 @@ function parseArgs(args) {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--work-order' || arg === '--manual-evidence'
-        || arg === '--qa-status' || arg === '--qa-head' || arg === '--no-change-evidence') {
+        || arg === '--qa-status' || arg === '--qa-evidence'
+        || arg === '--no-change-evidence') {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) throw new Error(`${arg} requires a value`);
       if (arg === '--work-order') options.workOrderPath = value;
       else if (arg === '--manual-evidence') options.manualEvidencePath = value;
       else if (arg === '--qa-status') options.qaStatus = value;
-      else if (arg === '--qa-head') options.qaHead = value;
+      else if (arg === '--qa-evidence') options.qaEvidencePath = value;
       else options.noChangeEvidencePath = value;
       index += 1;
     } else if (arg === '--json') {
@@ -351,7 +374,7 @@ function cli() {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    console.error('Usage: node scripts/checks/m6-preclose.mjs --work-order <path> [--manual-evidence <path>] --qa-status UNCLASSIFIED|NOT_REQUIRED|REQUIRED|PASS|FAIL [--qa-head <sha>] [--no-change-evidence <path>] [--json]');
+    console.error('Usage: node scripts/checks/m6-preclose.mjs --work-order <path> [--manual-evidence <path>] --qa-status UNCLASSIFIED|NOT_REQUIRED|REQUIRED [--qa-evidence <path>] [--no-change-evidence <path>] [--json]');
     process.exitCode = 2;
     return;
   }
@@ -362,7 +385,7 @@ function cli() {
       workOrderPath: options.workOrderPath,
       manualEvidencePath: options.manualEvidencePath,
       qaStatus: options.qaStatus,
-      qaHead: options.qaHead,
+      qaEvidencePath: options.qaEvidencePath,
       noChangeEvidencePath: options.noChangeEvidencePath,
     });
     if (options.json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -376,7 +399,8 @@ function cli() {
       if (result.integration) {
         console.log(`latest main: ${result.integration.observedMain}`);
         console.log(`candidate: ${result.integration.candidateHead}`);
-        console.log(`QA: ${result.integration.qaStatus}`);
+        console.log(`QA requirement: ${result.integration.qaStatus}`);
+        if (result.integration.qaResult) console.log(`QA result: ${result.integration.qaResult}`);
       }
       for (const reason of result.decision.reasons) console.log(`reason: ${reason}`);
       console.log('external-write authority: NONE');
