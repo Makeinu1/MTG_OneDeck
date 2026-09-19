@@ -32,10 +32,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`, `M6-0 — Closed Execution Loop Plan / Preconditions`, `M6-1 — Shadow Controller`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`, `M6-0 — Closed Execution Loop Plan / Preconditions`, `M6-1 — Shadow Controller`, `M6-1P — Shadow Pilot`
 - Active: `M6 — Closed Execution Loop`
-- Next gate: `M6-1P — Shadow Pilot`
-- Next work: Run the read-only M6 Shadow Controller against 5–10 real bounded root Work Orders and compare its CONTINUE/STOP decisions with the existing authority/evidence process. Record false-continuation, false-stop, human-intervention, repair-loop, and overhead observations. Do not begin M6-2 local execution automation until the pilot shows reduced low-level human intervention without false COMPLETE/unsafe continuation.
+- Next gate: `M6-2 — Local Outer Loop`
+- Next work: Implement the minimal local M6 Outer Loop protocol that connects a valid Shadow CONTINUE decision to the existing Coding Harness, then returns the exact candidate to M3/M6 for PROVE/RECONCILE. Do not create a generic Executor/Planner, durable M6 state registry, or remote-write automation.
 
 ## Coverage claim
 
@@ -52,7 +52,8 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - M4/M4.1 candidate/delegation validation detects bounded staleness and scope drift, permits planned input deletion, and preserves delegated authority/context boundaries, but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
   - CR-15 remains REQUIRED/UNKNOWN after R1-D: current primary Cockpit and compatibility GameStore automation surfaces are registered and confirmed execution fractures were repaired, but no exhaustive machine-enforced capability manifest yet proves that every production automation recognizer is mapped to reviewed semantic evidence.
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
-  - M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures; a real-work Shadow Pilot is still required before M6-2 local execution automation.
+  - M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures.
+  - M6-1P completed a five-root-Work-Order shadow pilot and repaired the post-M6/M7 false-stop coupling. M6-2 local execution/proof/reconcile wiring remains unimplemented.
 
 ## Capability state
 
@@ -147,7 +148,7 @@ None.
 - production gameplay semantic changes
 - R4b/R5 redesign
 - casual Product Requirements or UX Constitution changes
-- M6 execution or remote-write automation beyond the approved read-only M6-1 Shadow Controller
+- M6 remote-write, merge, deploy, or external-write automation
 - M7 product implementation
 
 ## Freshness
