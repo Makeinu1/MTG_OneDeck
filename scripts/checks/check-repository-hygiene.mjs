@@ -78,7 +78,7 @@ function workflowJobExists(content, job) {
 }
 
 function workflowPathRefs(content) {
-  return [...content.matchAll(/\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml/gu)]
+  return [...content.matchAll(/\.github\/(?:workflows\/[A-Za-z0-9._/-]+\.ya?ml|[A-Za-z0-9._/-]+\.(?:marker|patch))/gu)]
     .map((match) => match[0]);
 }
 
