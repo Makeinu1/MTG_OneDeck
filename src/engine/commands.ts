@@ -5830,116 +5830,9 @@ function applyMaximumHandSizeOverride(
   );
 }
 
-function applyAutoCommand(draft: Draft, cmd: GameCommand): void {
-  switch (cmd.type) {
-    case 'destroyPermanents': {
-      applyDestroyPermanents(draft, cmd.selector);
-      break;
-    }
-    case 'moveCard': {
-      applyMoveCardCommand(draft, cmd);
-      break;
-    }
-    case 'setTapped': {
-      const target = requireCard(draft, cmd.cardId);
-      if (target.tapped !== cmd.tapped) {
-        setCard(draft, { ...target, tapped: cmd.tapped });
-        pushLog(
-          draft,
-          `${nameOf(draft, cmd.cardId)}を${cmd.tapped ? 'タップ' : 'アンタップ'}しました。`,
-        );
-      }
-      break;
-    }
-    case 'addCounters': {
-      applyAddCounters(draft, cmd.cardId, cmd.counterType, cmd.delta);
-      break;
-    }
-    case 'dealDamage': {
-      applyDealDamage(draft, cmd);
-      break;
-    }
-    case 'draw': {
-      const playerId = cmd.playerId ?? draft.state.localPlayerId;
-      const drawn = drawCards(draft, Math.max(0, cmd.count), commandCause(cmd.type), playerId);
-      incrementDrawnThisTurn(draft, playerId, drawn);
-      pushLog(draft, `カードを${drawn}枚引きました。`);
-      if (drawn < cmd.count) {
-        draft.warnings.push('ライブラリが足りずすべて引けませんでした。');
-      }
-      break;
-    }
-    case 'mill': {
-      applyMill(draft, cmd.count, cmd.playerId ?? draft.state.localPlayerId);
-      break;
-    }
-    case 'shuffle': {
-      applyShuffle(draft, cmd.order, cmd.playerId ?? draft.state.localPlayerId);
-      break;
-    }
-    case 'adjustLife': {
-      applyLifeDeltaForPlayer(
-        draft,
-        cmd.playerId ?? draft.state.localPlayerId,
-        cmd.delta,
-        commandCause(cmd.type),
-      );
-      break;
-    }
-    case 'adjustPlayerCounter': {
-      applyPlayerCounterDelta(
-        draft,
-        cmd.playerId ?? draft.state.localPlayerId,
-        cmd.kind,
-        cmd.delta,
-      );
-      break;
-    }
-    case 'setMaximumHandSizeOverride': {
-      applyMaximumHandSizeOverride(draft, cmd.value, cmd.playerId);
-      break;
-    }
-    case 'applyPlayerEffect': {
-      applyPlayerEffect(draft, cmd);
-      break;
-    }
-    case 'addMana': {
-      const amount = Math.max(0, cmd.amount);
-      if (amount > 0) {
-        const playerId = cmd.playerId ?? draft.state.localPlayerId;
-        const pool = { ...manaPoolFor(draft, playerId) };
-        pool[cmd.color] += amount;
-        setManaPoolFor(draft, playerId, pool);
-        pushLog(draft, `${cmd.color}マナを${amount}点加えました。`);
-      }
-      break;
-    }
-    case 'createToken': {
-      applyCreateToken(
-        draft,
-        cmd.name,
-        cmd.typeLine,
-        cmd.power,
-        cmd.toughness,
-        cmd.quantity,
-        cmd.producedMana,
-        cmd.tokenKind,
-        { createdBy: cmd.createdBy },
-      );
-      break;
-    }
-    case 'createDefinedToken': {
-      applyCreateDefinedToken(draft, cmd);
-      break;
-    }
-    default:
-      break;
-  }
-}
-
 function applyAutoCommands(draft: Draft, commands: readonly GameCommand[]): void {
   for (const cmd of commands) {
-    applyAutoCommand(draft, cmd);
+    applyCommandToDraft(draft, cmd);
   }
 }
 
@@ -6873,13 +6766,7 @@ export function consumeLinkedExileForSource(
 // applyCommand
 // ---------------------------------------------------------------------------
 
-function applyCommandInternal(
-  state: GameState,
-  cmd: GameCommand,
-  stabilize: boolean,
-): ApplyResult {
-  const draft = makeDraft(state);
-
+function applyCommandToDraft(draft: Draft, cmd: GameCommand): void {
   switch (cmd.type) {
     case 'destroyPermanents': {
       applyDestroyPermanents(draft, cmd.selector);
@@ -7290,7 +7177,22 @@ function applyCommandInternal(
       );
       break;
     }
+    default: {
+      const unsupported: never = cmd;
+      throw new EngineError(
+        `未対応のGameCommandです: ${typeof (unsupported as unknown as { type?: unknown }).type === 'string' ? (unsupported as unknown as { type: string }).type : 'unknown'}`,
+      );
+    }
   }
+}
+
+function applyCommandInternal(
+  state: GameState,
+  cmd: GameCommand,
+  stabilize: boolean,
+): ApplyResult {
+  const draft = makeDraft(state);
+  applyCommandToDraft(draft, cmd);
 
   if (stabilize) {
     stabilizeBeforePriority(draft);
