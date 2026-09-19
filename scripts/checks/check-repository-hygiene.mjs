@@ -57,6 +57,10 @@ export function historicalAuthorizationNeedsMarker(content, phrases) {
   return phrases.some((phrase) => content.includes(phrase));
 }
 
+function hasExactLine(content, marker) {
+  return content.split(/\r?\n/u).some((line) => line.trim() === marker);
+}
+
 function exactSetErrors(label, actual, expected) {
   const actualSet = new Set(actual);
   const expectedSet = new Set(expected);
@@ -102,6 +106,38 @@ export function validateRepositoryHygiene({ root = DEFAULT_ROOT } = {}) {
     if (!entry.owner || !entry.purpose) errors.push('workflow ' + entry.path + ': owner/purpose required');
     for (const ref of workflowPathRefs(content)) {
       if (!existsSync(resolve(root, ref))) errors.push('workflow ' + entry.path + ': dangling workflow reference ' + ref);
+    }
+  }
+
+  for (const provenance of registry.retainedProvenance ?? []) {
+    if (!provenance.id || !provenance.reason) errors.push('retained provenance: id/reason required');
+    if (provenance.lifecycle !== 'HISTORICAL_PROVENANCE') {
+      errors.push('retained provenance ' + provenance.id + ': lifecycle must be HISTORICAL_PROVENANCE');
+    }
+    if (!Array.isArray(provenance.paths) || provenance.paths.length === 0) {
+      errors.push('retained provenance ' + provenance.id + ': paths required');
+      continue;
+    }
+    const retainedPaths = new Set(provenance.paths);
+    for (const path of provenance.paths) {
+      if (!existsSync(resolve(root, path))) errors.push('retained provenance ' + provenance.id + ': missing ' + path);
+    }
+    for (const [path, markers] of Object.entries(provenance.requiredMarkers ?? {})) {
+      if (!retainedPaths.has(path)) {
+        errors.push('retained provenance ' + provenance.id + ': marker path is not retained ' + path);
+        continue;
+      }
+      if (!Array.isArray(markers) || markers.length === 0) {
+        errors.push('retained provenance ' + provenance.id + ': requiredMarkers must be non-empty for ' + path);
+        continue;
+      }
+      if (!existsSync(resolve(root, path))) continue;
+      const content = fileText(root, path);
+      for (const marker of markers) {
+        if (!hasExactLine(content, marker)) {
+          errors.push('retained provenance ' + provenance.id + ': ' + path + ' lacks ' + marker);
+        }
+      }
     }
   }
 
