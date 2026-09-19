@@ -18,6 +18,7 @@ export const DEFAULT_ROOT = resolve(import.meta.dirname, '../..');
 const PROJECT_STATE_PATH = 'docs/project-state/index.json';
 
 export const SHADOW_RESULTS = Object.freeze({
+  COMPLETE: 'COMPLETE',
   CONTINUE: 'CONTINUE',
   NO_CHANGE_REQUIRED: 'NO_CHANGE_REQUIRED',
   MANUAL_EVIDENCE_REQUIRED: 'MANUAL_EVIDENCE_REQUIRED',
