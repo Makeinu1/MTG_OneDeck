@@ -175,16 +175,16 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 336: `export interface ApplyResult {`
 - line 811: `export function objectSnapshotForCard(state: GameState, cardId: string): ObjectSnapshot | null {`
 - line 3019: `export function performStateBasedActions(state: GameState): ApplyResult {`
-- line 4884: `export function activationTargetPromptsForSource(`
-- line 4924: `export function expandPlayerRecipientPrompt(`
-- line 4967: `export function guidedPlanForStackTop(`
-- line 5050: `export function activationPlanForSource(`
-- line 5286: `export function activatedManaAbilityPlanForSource(`
-- line 5579: `export function eligibleTargets(`
-- line 6833: `export function returnLinkedExileToBattlefield(state: GameState, linkId: string): ApplyResult {`
-- line 6840: `export function consumeLinkedExileForSource(`
-- line 7303: `export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {`
-- line 7308: `export function applyResolutionCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult {`
+- line 4883: `export function activationTargetPromptsForSource(`
+- line 4923: `export function expandPlayerRecipientPrompt(`
+- line 4966: `export function guidedPlanForStackTop(`
+- line 5049: `export function activationPlanForSource(`
+- line 5285: `export function activatedManaAbilityPlanForSource(`
+- line 5578: `export function eligibleTargets(`
+- line 6832: `export function returnLinkedExileToBattlefield(state: GameState, linkId: string): ApplyResult {`
+- line 6839: `export function consumeLinkedExileForSource(`
+- line 7302: `export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {`
+- line 7307: `export function applyResolutionCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult {`
 
 ## `src/engine/compatibility/soloCoreCompatibilityV1.ts`
 
@@ -1740,6 +1740,6 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 246: `export interface PendingCommanderResolution {`
 - line 257: `export function guidedControllerId(`
 - line 954: `export interface GameStore {`
-- line 1682: `export function freeMulliganBottomCount(mulliganCount: number): number {`
-- line 1686: `export const useGameStore = create<GameStore>((set, get) => {`
+- line 1672: `export function freeMulliganBottomCount(mulliganCount: number): number {`
+- line 1676: `export const useGameStore = create<GameStore>((set, get) => {`
 - line 5689: `export function disableSnapshotPersistenceForDevelopment(): void {`
