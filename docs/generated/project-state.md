@@ -153,7 +153,6 @@ Next: Judge the pinned CR, active turn contract, acceptance wording and runtime 
 - production gameplay semantic changes
 - R4b/R5 redesign
 - casual Product Requirements or UX Constitution changes
-- M5 implementation before an independently audited Owner-approved M5 plan
 - M6-M7 implementation
 
 ## Freshness
