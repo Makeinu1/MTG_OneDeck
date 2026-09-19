@@ -1615,16 +1615,6 @@ function untapToMainCommands(): GameCommand[] {
   return [{ type: 'nextPhase' }, { type: 'nextPhase' }, { type: 'nextPhase' }];
 }
 
-function openingUntapToMainCommands(state: GameState): GameCommand[] {
-  const startingTwoPlayerTurn =
-    state.turn === 1
-    && state.turnOrder.length === 2
-    && state.activePlayerId === state.turnOrder[0];
-  return startingTwoPlayerTurn
-    ? [{ type: 'nextPhase' }, { type: 'nextPhase' }]
-    : untapToMainCommands();
-}
-
 function withMoveReason(commands: readonly GameCommand[], reason: 'sacrifice'): GameCommand[] {
   return commands.map((cmd) =>
     cmd.type === 'moveCard' && cmd.to === 'graveyard' && cmd.reason === undefined
@@ -3046,7 +3036,17 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !get().autoAdvanceToMain) return;
 
       try {
-        const result = applyCommands(cur, openingUntapToMainCommands(cur));
+        let openingState = cur;
+        const openingWarnings: string[] = [];
+        for (let guard = 0; openingState.phase !== 'main1' && guard < 3; guard += 1) {
+          const step = applyCommand(openingState, { type: 'nextPhase' });
+          openingState = step.state;
+          openingWarnings.push(...step.warnings);
+        }
+        if (openingState.phase !== 'main1') {
+          throw new EngineError('開始ターンを戦闘前メイン・フェイズまで進められませんでした。');
+        }
+        const result: ApplyResult = { state: openingState, warnings: openingWarnings };
         internal.past = [];
         internal.future = [];
         clearPendingInteractionHistory();

@@ -3480,7 +3480,6 @@ function applyNextPhase(
       ordinaryNext === 'draw'
       && draft.state.turn === 1
       && draft.state.turnOrder.length === 2
-      && draft.state.activePlayerId === draft.state.turnOrder[0]
         ? 'main1'
         : ordinaryNext;
     enterPhase(draft, next, drawnHandled);
