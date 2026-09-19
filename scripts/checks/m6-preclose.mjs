@@ -31,13 +31,158 @@ function nonEmpty(items) {
   return Array.isArray(items) && items.length > 0;
 }
 
-function evaluateQaBoundary({ qaStatus, qaHead = null, candidateHead = null } = {}) {
+export function mapM3VerificationResult(result) {
+  const blockers = result?.plan?.blockers ?? {};
+
+  if (
+    result?.plan?.coverage === 'UNKNOWN_COVERAGE'
+    || nonEmpty(blockers.unknownCoverage)
+    || nonEmpty(blockers.unbound)
+    || nonEmpty(blockers.characterizationOnly)
+  ) {
+    return decision(
+      SHADOW_RESULTS.UNKNOWN_COVERAGE,
+      'STOP_UNKNOWN',
+      ['M3 could not establish bounded candidate coverage'],
+    );
+  }
+
+  if (nonEmpty(blockers.deferredScenarios) || nonEmpty(blockers.deferredSemantics)) {
+    return decision(
+      SHADOW_RESULTS.OWNER_DECISION_REQUIRED,
+      'REQUEST_OWNER_DECISION',
+      ['M3 reports deferred semantic/Acceptance obligations'],
+    );
+  }
+
+  if (nonEmpty(blockers.manualRequired) || nonEmpty(blockers.manualFailed)) {
+    return decision(
+      SHADOW_RESULTS.MANUAL_EVIDENCE_REQUIRED,
+      'REQUEST_MANUAL_EVIDENCE',
+      ['M3 requires exact candidate-bound manual evidence'],
+    );
+  }
+
+  if (result?.exitCode === 0 && result?.freshness === 'CURRENT_FOR_CANDIDATE') {
+    return decision(
+      SHADOW_RESULTS.CONTINUE,
+      'PRE_CLOSE_FRESHNESS',
+      ['M3 verification is CURRENT_FOR_CANDIDATE'],
+    );
+  }
+
+  if ((result?.testExitCode ?? 0) !== 0) {
+    return decision(
+      SHADOW_RESULTS.CONTINUE,
+      'CLASSIFY_VERIFICATION_FAILURE',
+      ['M3 selected test execution failed; failure class is not inferred automatically'],
+    );
+  }
+
+  return decision(
+    SHADOW_RESULTS.UNKNOWN_COVERAGE,
+    'STOP_UNKNOWN',
+    ['M3 verification did not establish current candidate freshness'],
+  );
+}
+
+export function evaluateQaBoundary({
+  qaStatus = QA_STATUSES.UNCLASSIFIED,
+  qaHead = null,
+  candidateHead = null,
+} = {}) {
+  if (!Object.values(QA_STATUSES).includes(qaStatus)) {
+    return decision(
+      SHADOW_RESULTS.UNKNOWN_COVERAGE,
+      'STOP_UNKNOWN',
+      [`unknown independent QA status: ${qaStatus}`],
+    );
+  }
+
+  if (qaStatus === QA_STATUSES.UNCLASSIFIED) {
+    return decision(
+      SHADOW_RESULTS.CONTINUE,
+      'CLASSIFY_QA_REQUIREMENT',
+      ['AGENTS.md independent-review applicability must be classified explicitly'],
+    );
+  }
+
+  if (qaStatus === QA_STATUSES.REQUIRED) {
+    return decision(
+      SHADOW_RESULTS.CONTINUE,
+      'INDEPENDENT_QA',
+      ['AGENTS.md high-risk boundary requires independent read-only QA'],
+    );
+  }
+
+  if (qaStatus === QA_STATUSES.PASS || qaStatus === QA_STATUSES.FAIL) {
+    if (!candidateHead || !qaHead || qaHead !== candidateHead) {
+      return decision(
+        SHADOW_RESULTS.CONTINUE,
+        'INDEPENDENT_QA',
+        ['independent QA result is not bound to the exact current candidate'],
+      );
+    }
+    if (qaStatus === QA_STATUSES.FAIL) {
+      return decision(
+        SHADOW_RESULTS.CONTINUE,
+        'RECONCILE_QA_FINDINGS',
+        ['independent read-only QA returned unresolved findings for the exact candidate'],
+      );
+    }
+  }
+
+  return null;
+}
+
+export function decidePreClose({
+  localEnvelope,
+  recoveryDisposition = 'RESUME',
+  qaStatus = QA_STATUSES.UNCLASSIFIED,
+  qaHead = null,
+} = {}) {
+  if (!localEnvelope?.decision) throw new Error('localEnvelope decision is required');
+
+  if (recoveryDisposition === 'REPLAN') {
+    return decision(
+      SHADOW_RESULTS.STALE_REPLAN_REQUIRED,
+      'REPLAN',
+      ['latest main/current authority changed after candidate verification'],
+    );
+  }
+
+  if (recoveryDisposition !== 'RESUME') {
+    return decision(
+      SHADOW_RESULTS.RECOVERY_REQUIRED,
+      'RECOVER',
+      [`pre-close recovery disposition is ${recoveryDisposition}`],
+    );
+  }
+
+  if (localEnvelope.decision.result !== SHADOW_RESULTS.CONTINUE
+      && localEnvelope.decision.result !== SHADOW_RESULTS.NO_CHANGE_REQUIRED) {
+    return localEnvelope.decision;
+  }
+
+  if (localEnvelope.decision.result === SHADOW_RESULTS.CONTINUE
+      && localEnvelope.action !== 'PRE_CLOSE_FRESHNESS') {
+    return localEnvelope.decision;
+  }
+
   const qaBoundary = evaluateQaBoundary({
     qaStatus,
     qaHead,
     candidateHead: localEnvelope.candidate?.head ?? null,
   });
   if (qaBoundary) return qaBoundary;
+
+  if (localEnvelope.decision.result === SHADOW_RESULTS.NO_CHANGE_REQUIRED) {
+    return decision(
+      SHADOW_RESULTS.COMPLETE,
+      'CLOSE_NO_CHANGE',
+      ['no-change outcome is current against latest repository reality'],
+    );
+  }
 
   return decision(
     SHADOW_RESULTS.COMPLETE,
@@ -54,6 +199,19 @@ function evaluateQaBoundary({ qaStatus, qaHead = null, candidateHead = null } = 
 function readManualEvidence(root, path) {
   if (!path) return null;
   return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+}
+
+function integrationSummary(recovery, qaStatus, qaHead) {
+  return {
+    observedMain: recovery.receipt.observedMain,
+    candidateHead: recovery.receipt.candidate.head,
+    disposition: recovery.disposition,
+    qaStatus,
+    qaHead,
+    qaPolicySource: 'AGENTS.md',
+    externalWriteAuthority: 'NONE',
+    remoteWritesPerformed: false,
+  };
 }
 
 export function runPreCloseGate({
@@ -87,15 +245,7 @@ export function runPreCloseGate({
       decision: preClose,
       envelope: initial.envelope,
       verification: null,
-      integration: {
-        observedMain: recovery.receipt.observedMain,
-        candidateHead: recovery.receipt.candidate.head,
-        disposition: recovery.disposition,
-        qaStatus,
-        qaPolicySource: 'AGENTS.md',
-        externalWriteAuthority: 'NONE',
-        remoteWritesPerformed: false,
-      },
+      integration: integrationSummary(recovery, qaStatus, qaHead),
     };
   }
 
@@ -110,14 +260,13 @@ export function runPreCloseGate({
     };
   }
 
-  const manualEvidenceReceipt = readManualEvidence(root, manualEvidencePath);
   const verification = runSemanticVerification({
     cwd: root,
     base: initial.envelope.candidate.planningBase,
     head: initial.envelope.candidate.head,
     execute: true,
     writePlan: false,
-    manualEvidenceReceipt,
+    manualEvidenceReceipt: readManualEvidence(root, manualEvidencePath),
   });
   const verificationDecision = mapM3VerificationResult(verification);
 
@@ -147,6 +296,7 @@ export function runPreCloseGate({
     localEnvelope: proven.envelope,
     recoveryDisposition: recovery.disposition,
     qaStatus,
+    qaHead,
   });
 
   return {
@@ -158,16 +308,7 @@ export function runPreCloseGate({
       coverage: verification.plan.coverage,
       testExitCode: verification.testExitCode,
     },
-    integration: {
-      observedMain: recovery.receipt.observedMain,
-      candidateHead: recovery.receipt.candidate.head,
-      disposition: recovery.disposition,
-      qaStatus,
-      qaHead,
-      qaPolicySource: 'AGENTS.md',
-      externalWriteAuthority: 'NONE',
-      remoteWritesPerformed: false,
-    },
+    integration: integrationSummary(recovery, qaStatus, qaHead),
   };
 }
 
@@ -183,7 +324,8 @@ function parseArgs(args) {
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === '--work-order' || arg === '--manual-evidence' || arg === '--qa-status' || arg === '--qa-head') {
+    if (arg === '--work-order' || arg === '--manual-evidence'
+        || arg === '--qa-status' || arg === '--qa-head') {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) throw new Error(`${arg} requires a value`);
       if (arg === '--work-order') options.workOrderPath = value;
