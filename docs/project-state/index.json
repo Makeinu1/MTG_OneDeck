@@ -44,11 +44,12 @@
       "M5 — Audit / Hygiene / Recovery",
       "M6-0 — Closed Execution Loop Plan / Preconditions",
       "M6-1 — Shadow Controller",
-      "M6-1P — Shadow Pilot"
+      "M6-1P — Shadow Pilot",
+      "M6-2 — Local Outer Loop"
     ],
     "activeMilestone": "M6 — Closed Execution Loop",
-    "nextGate": "M6-2 — Local Outer Loop",
-    "nextWork": "Implement the minimal local M6 Outer Loop protocol that connects a valid Shadow CONTINUE decision to the existing Coding Harness, then returns the exact candidate to M3/M6 for PROVE/RECONCILE. Do not create a generic Executor/Planner, durable M6 state registry, or remote-write automation.",
+    "nextGate": "M6-3 — Resume / Recovery",
+    "nextWork": "Prove fresh-session resume by reconstructing current M1/M4/M5/Git reality and returning to the same M6 LOCAL_ONLY action envelope without a new M6 recovery registry. Reuse M5 RESUME/REPLAN/BLOCKED/RESCUE dispositions; do not authorize rollback or remote writes.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",
@@ -78,7 +79,8 @@
       "CR-15 remains REQUIRED/UNKNOWN after R1-D: current primary Cockpit and compatibility GameStore automation surfaces are registered and confirmed execution fractures were repaired, but no exhaustive machine-enforced capability manifest yet proves that every production automation recognizer is mapped to reviewed semantic evidence.",
       "Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.",
       "M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures; a real-work Shadow Pilot is still required before M6-2 local execution automation.",
-      "M6-1P completed a five-root-Work-Order shadow pilot and repaired the post-M6/M7 false-stop coupling. M6-2 local execution/proof/reconcile wiring remains unimplemented."
+      "M6-1P completed a five-root-Work-Order shadow pilot and repaired the post-M6/M7 false-stop coupling. M6-2 local execution/proof/reconcile wiring remains unimplemented.",
+      "M6-2 exposes a stateless LOCAL_ONLY action envelope for the existing Coding Harness. Fresh-session recovery proof remains M6-3 work."
     ]
   },
   "capabilities": [
