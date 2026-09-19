@@ -185,6 +185,7 @@ This index is generated from TypeScript export declarations. Semantic meaning is
 - line 6732: `export function consumeLinkedExileForSource(`
 - line 7204: `export function applyCommand(state: GameState, cmd: GameCommand): ApplyResult {`
 - line 7209: `export function applyResolutionCommands(state: GameState, commands: readonly GameCommand[]): ApplyResult {`
+
 ## `src/engine/compatibility/soloCoreCompatibilityV1.ts`
 
 - line 17: `export const SOLO_CORE_COMPATIBILITY_SCHEMA_VERSION_V1 = 1 as const;`
