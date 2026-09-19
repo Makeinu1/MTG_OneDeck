@@ -107,6 +107,24 @@ That is intentional and visible:
 
 M6 completion means the **execution loop** is bounded. It does not fabricate completion of unresolved Product capabilities.
 
+## Final read-only audit finding
+
+The final cold read-only audit found one BLOCKER before certification:
+
+- `m6-preclose.mjs` was internally calling the local loop with `verificationStatus: PASS`, which meant M6 could manufacture the transition to pre-close freshness instead of consuming M3 evidence.
+
+Repair applied before certification:
+
+- pre-close now runs M3 `runSemanticVerification` on the exact planning base/head;
+- only `freshness = CURRENT_FOR_CANDIDATE` advances to pre-close freshness;
+- test failures route to `CLASSIFY_VERIFICATION_FAILURE`;
+- manual/deferred/unknown blockers preserve their fail-closed destinations;
+- only after actual M3 proof does the local envelope receive PASS.
+
+Regression coverage was added in `m6-preclose.test.mjs`.
+
+Post-repair final-audit status: **BLOCKER 0 / HIGH 0** within M6 scope.
+
 ## External-write boundary
 
 Even after `COMPLETE`:
