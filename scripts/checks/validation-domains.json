@@ -200,6 +200,17 @@
       "reason": "R5a-1のoccurrence identity/collector/lifecycle回帰をcurrent validation-domainへ移管し、R3.1/R4/R4b変更でも同じ回帰床を維持する。"
     },
     {
+      "id": "cockpit-projection",
+      "description": "Cockpit audience projection、recorded target LKI、hidden-information masking",
+      "sourcePatterns": ["src/online/cloudflare/cockpitMultiplayer.ts"],
+      "testPatterns": ["src/online/cloudflare/__tests__/cockpitProjection.test.ts", "src/online/cloudflare/__tests__/cockpitTargetLkiRegression.test.ts", "src/components/game/CockpitStackLki.test.ts"],
+      "testProject": "dom",
+      "relatedContractIds": ["CONTRACT-ENGINE-ZONES", "CONTRACT-UX-CONSTITUTION"],
+      "dependentDomains": [],
+      "escalationLevel": "full",
+      "reason": "Cloudflare Cockpit projectionは秘密情報境界とLKIを跨ぐためfull checkを維持しつつ、recorded target snapshotのconformance evidenceを明示的に所有する。"
+    },
+    {
       "id": "build-tooling",
       "description": "package/build/config、validation script、workflow、architecture gate",
       "sourcePatterns": ["package.json", "package-lock.json", "tsconfig*.json", "vite*.ts", "vitest*.ts", "vitest*.mjs", "eslint*.js", "scripts/**", ".github/workflows/**", "src/main.*", "src/test/setup.*", "src/test/architecture/**"],
