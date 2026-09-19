@@ -7,12 +7,15 @@ import {
 } from '../checks/m6-preclose.mjs';
 import { SHADOW_RESULTS } from '../checks/m6-shadow-controller.mjs';
 
+const CANDIDATE_HEAD = 'a'.repeat(40);
+
 function envelope({
   result = SHADOW_RESULTS.CONTINUE,
   action = 'PRE_CLOSE_FRESHNESS',
 } = {}) {
   return {
     action,
+    candidate: { head: CANDIDATE_HEAD },
     decision: {
       result,
       nextAction: action,
@@ -49,6 +52,7 @@ describe('M6 pre-close freshness and QA gate', () => {
       localEnvelope: envelope(),
       recoveryDisposition: 'RESUME',
       qaStatus: QA_STATUSES.FAIL,
+      qaHead: CANDIDATE_HEAD,
     });
 
     expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
@@ -95,10 +99,25 @@ describe('M6 pre-close freshness and QA gate', () => {
       localEnvelope: envelope(),
       recoveryDisposition: 'RESUME',
       qaStatus: QA_STATUSES.PASS,
+      qaHead: CANDIDATE_HEAD,
     });
 
     expect(result.result).toBe(SHADOW_RESULTS.COMPLETE);
     expect(result.nextAction).toBe('REQUEST_EXTERNAL_WRITE_PERMISSION');
+  });
+
+  test('rejects stale or unbound QA PASS instead of reusing it', () => {
+    for (const qaHead of [null, 'b'.repeat(40)]) {
+      const result = decidePreClose({
+        localEnvelope: envelope(),
+        recoveryDisposition: 'RESUME',
+        qaStatus: QA_STATUSES.PASS,
+        qaHead,
+      });
+
+      expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
+      expect(result.nextAction).toBe('INDEPENDENT_QA');
+    }
   });
 
   test('preserves an upstream stop instead of upgrading it', () => {
