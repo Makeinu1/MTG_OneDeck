@@ -360,6 +360,7 @@ function printHuman(result) {
   console.log(`base: ${result.base}`);
   console.log(`head: ${result.head}`);
   console.log(`project-state baseline: ${result.projectStateBaseline}`);
+  console.log(`current main relation: ${result.currentMain.status}${result.currentMain.sha ? ` (${result.currentMain.sha})` : ''}`);
   if (result.outcome === 'NOT_REQUIRED') {
     console.log('watched roots unchanged; M1 rebaseline is not required');
     return;
