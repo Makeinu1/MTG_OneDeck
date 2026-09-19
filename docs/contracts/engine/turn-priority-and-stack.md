@@ -7,7 +7,7 @@ The phase order is `untap`, `upkeep`, `draw`, `main1`, `combat`, `main2`, `end`,
 The shared stack is ordered with the last announced item on top. Priority and pending trigger placement are deterministic. APNAP ordering is represented by the current player order and does not depend on UI iteration order.
 
 <!-- clause: ENG-TURN-003 -->
-Turn entry performs the existing untap, per-turn reset, draw-step, cleanup, and mana-pool operations for the applicable player. The opening flow has its own setup path; this contract introduces no additional setup ruling.
+Turn entry performs untap, per-turn reset, draw-step, cleanup, and mana-pool operations for the applicable player. Opening-turn draw follows CR 103.8: in a two-player game the starting player skips the draw step of their first turn (CR 103.8a), while in other multiplayer games no player skips the draw step of their first turn (CR 103.8c). The opening flow otherwise keeps its own setup path.
 
 <!-- clause: ENG-TURN-004 -->
 Unresolved choices remain visible as pending state. The user must resolve or cancel the choice before a transition that would violate the stack or priority boundary.

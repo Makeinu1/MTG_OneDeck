@@ -206,14 +206,13 @@
       "status": "active",
       "sourcePath": "docs/contracts/engine/turn-priority-and-stack.md",
       "sourceMarker": "clause: ENG-TURN-003",
-      "verificationDisposition": "deferred-needs-decision",
-      "needsDecision": "CONFLICT-TURN-DRAW-001 must resolve the acceptance interpretation of turn-entry draw.",
+      "verificationDisposition": "automated",
       "evidenceBindings": [
         {
           "path": "src/engine/__tests__/commands.test.ts",
           "marker": "verifies: ENG-TURN-003",
           "kind": "automated",
-          "role": "characterization"
+          "role": "conformance"
         }
       ]
     },

@@ -58,24 +58,29 @@
     },
     {
       "id": "ACC-TURN-001",
-      "status": "deferred",
+      "status": "active",
       "risk": "R3",
       "tags": [
         "turn",
         "phase",
-        "draw",
-        "unresolved"
+        "draw"
       ],
       "preconditions": [
-        "The game is at a legal phase boundary with no unresolved stack item."
+        "The game is at a legal phase boundary with no unresolved stack item.",
+        "The starting player and current turn order are known."
       ],
       "steps": [
-        "Advance phases through the existing turn path.",
-        "Observe untap, draw, counters, and mana-pool boundaries."
+        "In a two-player game, advance the starting player's first turn from upkeep.",
+        "Confirm the draw step is skipped and the game enters precombat main without drawing.",
+        "In a game with more than two players, advance the starting player's first turn from upkeep.",
+        "Confirm the draw step occurs and exactly one card is drawn.",
+        "Confirm later draw steps still draw normally."
       ],
-      "oracle": "No acceptance pass/fail is claimed until CONFLICT-TURN-DRAW-001 receives an explicit ruling; preserve the existing turn path as evidence only.",
-      "automatedBy": [],
-      "manualOnly": true,
+      "oracle": "CR 103.8 is preserved: the starting player skips the first-turn draw step only in a two-player game; other multiplayer games keep it. Later applicable draw steps draw normally.",
+      "automatedBy": [
+        "src/engine/__tests__/commands.test.ts"
+      ],
+      "manualOnly": false,
       "verifies": [
         "ENG-TURN-003"
       ],

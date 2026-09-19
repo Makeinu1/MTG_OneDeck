@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyCommand, EngineError } from '../commands';
 import { initGame } from '../init';
-import type { GameState, ManaPool } from '../types';
+import { syncDerivedViews, type GameState, type ManaPool } from '../types';
 import { makeDef, makeDeck } from './helpers';
 
 function pool(p: Partial<ManaPool>): ManaPool {
@@ -512,6 +512,8 @@ describe('castCommander', () => {
   });
 });
 
+// verifies: ENG-TURN-003
+// scenario: ACC-TURN-001
 describe('nextPhase / nextTurn', () => {
   it('untaps all battlefield cards on untap entry', () => {
     const state = freshGame();
@@ -541,13 +543,35 @@ describe('nextPhase / nextTurn', () => {
     expect(s.zones.hand.length).toBe(handBefore + 1);
   });
 
-  it('draws on turn 1', () => {
+  it('skips the starting player draw step on turn 1 in a two-player game (CR 103.8a)', () => {
     const t1 = initGame(makeDeck(20), 1);
-    // force phase to untap of turn 1, then walk untap -> upkeep -> draw
-    const untapState = { ...t1, phase: 'untap' as const };
-    let walk = applyCommand(untapState, { type: 'nextPhase' }).state; // upkeep
+    let walk = applyCommand({ ...t1, phase: 'untap' }, { type: 'nextPhase' }).state;
     const handBefore = walk.zones.hand.length;
-    walk = applyCommand(walk, { type: 'nextPhase' }).state; // draw (turn 1)
+
+    walk = applyCommand(walk, { type: 'nextPhase' }).state;
+
+    expect(walk.turn).toBe(1);
+    expect(walk.phase).toBe('main1');
+    expect(walk.zones.hand.length).toBe(handBefore);
+  });
+
+  it('keeps the turn-1 draw step in a four-player game (CR 103.8c)', () => {
+    const base = initGame(makeDeck(20), 1);
+    const fourPlayer = syncDerivedViews({
+      ...base,
+      opponentLife: {
+        ...base.opponentLife,
+        '対戦相手B': 40,
+        '対戦相手C': 40,
+      },
+      phase: 'untap',
+    });
+    expect(fourPlayer.turnOrder).toHaveLength(4);
+
+    let walk = applyCommand(fourPlayer, { type: 'nextPhase' }).state;
+    const handBefore = walk.zones.hand.length;
+    walk = applyCommand(walk, { type: 'nextPhase' }).state;
+
     expect(walk.turn).toBe(1);
     expect(walk.phase).toBe('draw');
     expect(walk.zones.hand.length).toBe(handBefore + 1);
