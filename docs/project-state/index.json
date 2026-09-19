@@ -35,11 +35,12 @@
       "M4 — Work Protocol / SOW",
       "M4.1 — Work Protocol Hardening",
       "M5.0 — Asset Model / Derived Census Foundation",
-      "M5.1 — Lifecycle / Retention / Retirement"
+      "M5.1 — Lifecycle / Retention / Retirement",
+      "M5.2 — Repository Reconciliation / Cleanup"
     ],
     "activeMilestone": "M5 — Audit / Hygiene / Recovery",
-    "nextGate": "M5.2 — Repository Reconciliation / Cleanup",
-    "nextWork": "Execute bounded M5.2 cleanup waves under docs/repository-hygiene.md and scripts/evidence/registry.json: rehome required regression/evidence owners before retiring obsolete workflows or evidence, archive unique provenance before branch retirement, and keep compatibility/A3 production repair on their explicit separate preconditions. Do not delete branches, workflows, evidence, or compatibility surfaces merely because they are old or unused by runtime imports.",
+    "nextGate": "M5.3 — Drift / Hygiene Detection",
+    "nextWork": "Implement the M5.3 drift/hygiene guards from the approved M5 plan. Close P0 first: preserve changed-test self-selection and generated/judge overlay integrity, enforce historical authorization NON-REPLAYABLE semantics, validate workflow bundle references and write-capable workflow ownership, detect evidence consumers, and protect active shared substrates from filename/age-based retirement. Do not start M6.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",
