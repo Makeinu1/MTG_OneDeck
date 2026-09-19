@@ -1,5 +1,8 @@
 # O4P-09C-UI production Pregame cold-audit record
 
+> Lifecycle: **HISTORICAL / PROVENANCE / NON-CURRENT**  
+> External-write authority: **NON-REPLAYABLE**. Any past audit/repair/commit/push/deploy authorization recorded below is historical evidence only and does not authorize current execution or external writes.
+
 Date: 2026-08-26
 Milestone: `O4P-09C-UI`
 Risk: R3 / BROAD
