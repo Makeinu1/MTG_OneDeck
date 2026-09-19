@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -42,10 +43,31 @@ function decision(result, nextAction, reasons = []) {
   };
 }
 
+export function validateNoChangeEvidence(receipt, report) {
+  const errors = [];
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) {
+    return ['no-change evidence receipt must be an object'];
+  }
+  const keys = Object.keys(receipt).sort().join(',');
+  if (keys !== 'base,evidenceRef,head,schemaVersion') {
+    errors.push('no-change evidence allows only schemaVersion/base/head/evidenceRef');
+  }
+  if (receipt.schemaVersion !== 1) errors.push('no-change evidence schemaVersion must be 1');
+  if (receipt.base !== report?.planningBase) errors.push('no-change evidence base mismatch');
+  if (receipt.head !== report?.head) errors.push('no-change evidence head mismatch');
+  if (typeof receipt.evidenceRef !== 'string' || receipt.evidenceRef.trim() === '') {
+    errors.push('no-change evidence requires evidenceRef');
+  }
+  if ((report?.evidence?.changedFiles ?? []).length > 0) {
+    errors.push('no-change evidence cannot close a candidate with changed files');
+  }
+  return errors;
+}
+
 export function applyRuntimeSignal(report, {
   verificationStatus = VERIFICATION_STATUSES.NOT_RUN,
   failureClass = null,
-  noChangeEstablished = false,
+  noChangeEvidence = null,
 } = {}) {
   const baseline = report?.decision;
   if (!baseline) throw new Error('shadow report decision is required');
@@ -63,12 +85,19 @@ export function applyRuntimeSignal(report, {
     return baseline;
   }
 
-  const changedFiles = report?.evidence?.changedFiles ?? [];
-  if (noChangeEstablished && changedFiles.length === 0) {
+  if (noChangeEvidence) {
+    const errors = validateNoChangeEvidence(noChangeEvidence, report);
+    if (errors.length > 0) {
+      return decision(
+        SHADOW_RESULTS.UNKNOWN_COVERAGE,
+        'STOP_UNKNOWN',
+        errors,
+      );
+    }
     return decision(
       SHADOW_RESULTS.NO_CHANGE_REQUIRED,
       'CLOSE_NO_CHANGE',
-      ['external evidence established that the requested outcome is already satisfied'],
+      [`exact candidate-bound no-change evidence: ${noChangeEvidence.evidenceRef}`],
     );
   }
 
@@ -136,14 +165,14 @@ export function buildLocalExecutionEnvelope({
   workOrder,
   verificationStatus = VERIFICATION_STATUSES.NOT_RUN,
   failureClass = null,
-  noChangeEstablished = false,
+  noChangeEvidence = null,
 } = {}) {
   if (!report || !workOrder) throw new Error('report and workOrder are required');
 
   const loopDecision = applyRuntimeSignal(report, {
     verificationStatus,
     failureClass,
-    noChangeEstablished,
+    noChangeEvidence,
   });
 
   return {
@@ -168,6 +197,7 @@ export function buildLocalExecutionEnvelope({
       failureClass,
       coverage: report.evidence?.coverage ?? null,
       requiredTests: [...(report.evidence?.requiredTests ?? [])],
+      noChangeEvidenceRef: noChangeEvidence?.evidenceRef ?? null,
     },
     authority: {
       semanticVerdict: 'NOT_COMPUTED',
@@ -178,13 +208,18 @@ export function buildLocalExecutionEnvelope({
   };
 }
 
+function readNoChangeEvidence(root, path) {
+  if (!path) return null;
+  return JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+}
+
 export function runLocalLoopStep({
   root = DEFAULT_ROOT,
   workOrderPath,
   manualEvidencePath = null,
   verificationStatus = VERIFICATION_STATUSES.NOT_RUN,
   failureClass = null,
-  noChangeEstablished = false,
+  noChangeEvidencePath = null,
 } = {}) {
   if (!workOrderPath) throw new Error('workOrderPath is required');
 
@@ -199,7 +234,7 @@ export function runLocalLoopStep({
     workOrder,
     verificationStatus,
     failureClass,
-    noChangeEstablished,
+    noChangeEvidence: readNoChangeEvidence(root, noChangeEvidencePath),
   });
 
   return {
@@ -217,23 +252,23 @@ function parseArgs(args) {
     manualEvidencePath: null,
     verificationStatus: VERIFICATION_STATUSES.NOT_RUN,
     failureClass: null,
-    noChangeEstablished: false,
+    noChangeEvidencePath: null,
     json: false,
   };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--work-order' || arg === '--manual-evidence'
-      || arg === '--verification-status' || arg === '--failure-class') {
+      || arg === '--verification-status' || arg === '--failure-class'
+      || arg === '--no-change-evidence') {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) throw new Error(`${arg} requires a value`);
       if (arg === '--work-order') options.workOrderPath = value;
       else if (arg === '--manual-evidence') options.manualEvidencePath = value;
       else if (arg === '--verification-status') options.verificationStatus = value;
-      else options.failureClass = value;
+      else if (arg === '--failure-class') options.failureClass = value;
+      else options.noChangeEvidencePath = value;
       index += 1;
-    } else if (arg === '--no-change-established') {
-      options.noChangeEstablished = true;
     } else if (arg === '--json') {
       options.json = true;
     } else {
@@ -255,6 +290,9 @@ function printEnvelope(envelope) {
   if (envelope.verification.failureClass) {
     console.log(`failure class: ${envelope.verification.failureClass}`);
   }
+  if (envelope.verification.noChangeEvidenceRef) {
+    console.log(`no-change evidence: ${envelope.verification.noChangeEvidenceRef}`);
+  }
   for (const reason of envelope.decision.reasons) console.log(`reason: ${reason}`);
   console.log('remote writes: FORBIDDEN');
 }
@@ -265,7 +303,7 @@ function cli() {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    console.error('Usage: node scripts/checks/m6-local-loop.mjs --work-order <path> [--manual-evidence <path>] [--verification-status NOT_RUN|PASS|FAIL] [--failure-class <class>] [--no-change-established] [--json]');
+    console.error('Usage: node scripts/checks/m6-local-loop.mjs --work-order <path> [--manual-evidence <path>] [--verification-status NOT_RUN|PASS|FAIL] [--failure-class <class>] [--no-change-evidence <path>] [--json]');
     process.exitCode = 2;
     return;
   }
@@ -277,7 +315,7 @@ function cli() {
       manualEvidencePath: options.manualEvidencePath,
       verificationStatus: options.verificationStatus,
       failureClass: options.failureClass,
-      noChangeEstablished: options.noChangeEstablished,
+      noChangeEvidencePath: options.noChangeEvidencePath,
     });
     if (options.json) process.stdout.write(`${JSON.stringify(result.envelope, null, 2)}\n`);
     else printEnvelope(result.envelope);
