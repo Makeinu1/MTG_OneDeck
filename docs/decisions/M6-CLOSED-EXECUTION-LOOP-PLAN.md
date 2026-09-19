@@ -177,7 +177,19 @@ M6 may report, but does not canonically score:
 
 These are signals for M1/Owner reassessment, not candidate failure by themselves.
 
-## 9. M6 itself is not trusted
+## 9. Verification cadence
+
+M6 development uses candidate-relative targeted verification by default.
+
+- Ordinary M6 control-plane changes run through `check:fast`.
+- `check:fast` must fail closed to the full release gate for unknown paths, unrunnable changed tests, or validation domains explicitly marked `full`.
+- Browser evidence is run only when its owned runtime/evidence paths change.
+- Pages/full release verification is not triggered by docs/M6 control-plane-only main merges.
+- Full `check:release` is required at M6 final certification and at any earlier candidate that crosses a full-risk validation domain.
+
+This is a standing development policy, not a one-off optimization. The goal is to prevent verification amplification from turning the harness itself into the dominant delivery cost.
+
+## 10. M6 itself is not trusted
 
 M6 changes are harness changes and can regress previously successful work.
 
@@ -195,7 +207,7 @@ A fixed regression set must cover at least:
 
 Any new M6 gate, Skill, agent, registry, or state must be justified by a concrete failure that the simpler loop could not safely handle. Additions are compared against the fixed regression set and removed when they do not improve safety or utility.
 
-## 10. M6 milestones
+## 11. M6 milestones
 
 ### M6-0 — Preconditions
 
@@ -250,7 +262,7 @@ Benchmark M6 changes and remove non-load-bearing machinery.
 
 Run heterogeneous real Work Orders. Success is reduced low-level human intervention without false COMPLETE or increased systemic overhead.
 
-## 11. M6 success conditions
+## 12. M6 success conditions
 
 ### Safety
 
@@ -273,7 +285,7 @@ Compared with the pre-M6 baseline:
 - original Product outcome remains observable;
 - M6 metadata/mechanism does not grow faster than the work it coordinates.
 
-## 12. Simplification rule
+## 13. Simplification rule
 
 When M6 itself becomes the source of complexity, prefer:
 1. delete;

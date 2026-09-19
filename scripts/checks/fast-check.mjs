@@ -10,7 +10,7 @@ import { runSemanticVerification } from './verify-semantic.mjs';
 import { partitionVitestTestFiles } from './vitest-projects.mjs';
 
 function parseArgs(argv) {
-  const options = { head: 'HEAD', base: undefined, dryRun: false, json: false };
+  const options = { head: 'HEAD', base: undefined, buildBase: null, dryRun: false, json: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--base' || argument === '--head') {
@@ -18,6 +18,9 @@ function parseArgs(argv) {
       if (value === undefined || value.startsWith('--')) throw new Error(`${argument} requires a value`);
       options[argument.slice(2)] = value;
       index += 1;
+    } else if (argument.startsWith('--build-base=')) {
+      if (options.buildBase !== null || argument.length === '--build-base='.length) throw new Error('duplicate or empty --build-base');
+      options.buildBase = argument.slice('--build-base='.length);
     } else if (argument === '--dry-run') options.dryRun = true;
     else if (argument === '--json') options.json = true;
     else throw new Error(`unknown argument: ${argument}`);
@@ -87,6 +90,12 @@ function runStep(label, command, args) {
 
 function runTargeted(report) {
   let exitCode = 0;
+
+  const forbiddenArgs = ['scripts/checks/forbidden-files.mjs'];
+  if (report.base) forbiddenArgs.push('--diff', report.base);
+  const forbiddenCode = runStep('forbidden diff scan', process.execPath, forbiddenArgs);
+  if (forbiddenCode !== 0) exitCode = forbiddenCode;
+
   const ingressCode = runStep('Cockpit mutation ingress', process.execPath, ['scripts/checks/check-cockpit-mutation-ingress.mjs']);
   if (ingressCode !== 0) exitCode = ingressCode;
 
@@ -162,12 +171,13 @@ function run() {
     else printReport(report);
     if (options.dryRun || options.json) return;
     if (report.escalation === 'full') {
-      const fullCode = runStep('full release check', 'npm', ['run', 'check']);
-      if (fullCode !== 0) {
-        process.exitCode = fullCode;
-        return;
+      if (options.base) {
+        const releaseArgs = ['run', 'check:release', '--', '--base', options.base, '--head', options.head];
+        if (options.buildBase) releaseArgs.push(`--build-base=${options.buildBase}`);
+        process.exitCode = runStep('full release check', 'npm', releaseArgs);
+      } else {
+        process.exitCode = runStep('full repository check', 'npm', ['run', 'check']);
       }
-      process.exitCode = runSemanticGate(options);
       return;
     }
     const targetedCode = runTargeted(report);
