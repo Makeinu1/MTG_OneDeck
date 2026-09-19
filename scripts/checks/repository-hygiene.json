@@ -90,7 +90,12 @@
         "research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/README.md",
         "research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/stage2b-local-only-evidence.md"
       ],
-      "requiredMarkers": {},
+      "requiredMarkers": {
+        "research/archive/m5-provenance/fix-cockpit-turn-cleanup-stage2b-20260914/README.md": [
+          "AUTHORITY: NONE",
+          "EXECUTION AUTHORITY: NONE"
+        ]
+      },
       "reason": "Retained M5 provenance for branch-only turn/cleanup evidence after migration to current evidence paths."
     }
   ],
