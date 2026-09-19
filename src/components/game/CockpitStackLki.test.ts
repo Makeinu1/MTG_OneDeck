@@ -1,4 +1,5 @@
 // @vitest-environment node
+// verifies: ENG-ZONES-004
 import { expect, it } from 'vitest';
 import { applyTableOperation, createCockpitTable, tableActivationPayment } from '../../engine/cockpitTable';
 import { makeDeck } from '../../engine/__tests__/helpers';
