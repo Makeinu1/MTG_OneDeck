@@ -90,6 +90,12 @@ function runStep(label, command, args) {
 
 function runTargeted(report) {
   let exitCode = 0;
+
+  const forbiddenArgs = ['scripts/checks/forbidden-files.mjs'];
+  if (report.base) forbiddenArgs.push('--diff', report.base);
+  const forbiddenCode = runStep('forbidden diff scan', process.execPath, forbiddenArgs);
+  if (forbiddenCode !== 0) exitCode = forbiddenCode;
+
   const ingressCode = runStep('Cockpit mutation ingress', process.execPath, ['scripts/checks/check-cockpit-mutation-ingress.mjs']);
   if (ingressCode !== 0) exitCode = ingressCode;
 
