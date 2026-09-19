@@ -45,6 +45,10 @@ function fixture() {
   }));
   put(root, 'scripts/journeys/registry.json', JSON.stringify({ journeys: [] }));
   put(root, 'package.json', JSON.stringify({ scripts: {} }));
+  put(root, 'src/test/architecture/example.test.ts', 'export {};\n');
+  put(root, 'scripts/checks/validation-domains.json', JSON.stringify({
+    domains: [{ testPatterns: ['src/test/architecture/**/*.test.ts'] }],
+  }));
   put(root, 'docs/old.md', 'User authorization: historical only. NON-REPLAYABLE.\n');
   put(root, 'scripts/checks/repository-hygiene.json', JSON.stringify({
     schemaVersion: 1,
@@ -68,6 +72,11 @@ function fixture() {
       consumers: ['scripts/evidence/registry.json'],
       reason: 'fixture',
     }],
+    architectureGuard: {
+      root: 'src/test/architecture',
+      validationDomainPath: 'scripts/checks/validation-domains.json',
+      requiredPattern: 'src/test/architecture/**/*.test.ts',
+    },
   }));
   return root;
 }
