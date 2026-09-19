@@ -17,6 +17,18 @@ export const DEFAULT_ROOT = resolve(import.meta.dirname, '../..');
 
 const PROJECT_STATE_PATH = 'docs/project-state/index.json';
 
+const INDEPENDENT_QA_PATHS = Object.freeze([
+  /^\.github\/workflows\/(?:candidate-verification|deploy-[^/]+|[^/]*release[^/]*)\.ya?ml$/u,
+  /^wrangler(?:\.|\/)/u,
+  /^src\/online\/(?:cloudflare|protocol)\//u,
+  /^docs\/contracts\//u,
+  /(?:^|\/)(?:auth|security|persistence|migration|data-loss)(?:\/|[-_.])/iu,
+]);
+
+export function requiresIndependentQa({ changedFiles = [] } = {}) {
+  return changedFiles.some((path) => INDEPENDENT_QA_PATHS.some((pattern) => pattern.test(path)));
+}
+
 export const SHADOW_RESULTS = Object.freeze({
   CONTINUE: 'CONTINUE',
   NO_CHANGE_REQUIRED: 'NO_CHANGE_REQUIRED',
@@ -186,13 +198,15 @@ export function decideShadowResult({
     );
   }
 
-  if (verificationFailureClass === 'FLAKY_SUSPECTED' || verificationFailureClass === 'INFRA_FAILURE') {
+  if (['FLAKY_SUSPECTED', 'INFRA_FAILURE', 'STALE_TEST', 'STALE_FIXTURE'].includes(verificationFailureClass)) {
     return makeDecision(
       SHADOW_RESULTS.CONTINUE,
       'RECONCILE_WITHOUT_PRODUCTION_REPAIR',
       [verificationFailureClass === 'FLAKY_SUSPECTED'
         ? 'flaky failure suspected; production repair is not authorized by this signal'
-        : 'infrastructure failure identified; production repair is not authorized by this signal'],
+        : verificationFailureClass === 'INFRA_FAILURE'
+          ? 'infrastructure failure identified; production repair is not authorized by this signal'
+          : `${verificationFailureClass.toLowerCase()} identified; production repair is not authorized by this signal`],
     );
   }
 
@@ -288,6 +302,10 @@ export function inspectShadowController({
     };
   }
 
+  const independentAuditRequired = requiresIndependentQa({
+    changedFiles: candidate.drift.changedFiles,
+  });
+
   const decision = decideShadowResult({
     projectState,
     m5,
@@ -297,6 +315,8 @@ export function inspectShadowController({
     drift: candidate.drift,
     verificationPlan,
     manualEvidenceError,
+    independentAuditRequired,
+    independentAuditSatisfied: false,
   });
 
   return {
@@ -317,6 +337,7 @@ export function inspectShadowController({
       blockers: verificationPlan?.blockers ?? null,
       requiredTests: verificationPlan?.requiredTests ?? [],
       changedFiles: verificationPlan?.changedFiles ?? candidate.drift.changedFiles,
+      independentAuditRequired,
     },
     authority: {
       semanticVerdict: 'NOT_COMPUTED',
