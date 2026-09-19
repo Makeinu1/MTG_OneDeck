@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
-import { objectSnapshotForCard } from '../../engine/commands';
+import { applyResolutionCommands, objectSnapshotForCard } from '../../engine/commands';
 import { useGameStore } from '../gameStore';
 
 const store = () => useGameStore.getState();
@@ -159,6 +159,17 @@ describe('stack control compatibility', () => {
     expect(store().state).toBe(before);
     expect(store().state?.zones.stack).toEqual([manualId]);
     expect(store().warnings.at(-1)).toContain('手動処理を完了');
+  });
+
+  it('fails closed instead of silently succeeding for an unsupported automation command', () => {
+    store().newGame(makeDeck(10), 308);
+    const unsupported = {
+      type: 'unsupported-automation-command',
+    } as unknown as Parameters<typeof applyResolutionCommands>[1][number];
+
+    expect(() => applyResolutionCommands(store().state!, [unsupported])).toThrow(
+      /未対応のGameCommand/,
+    );
   });
 
   it('executes Fog automation through stack resolution and mutates the combat prevention shield', () => {
