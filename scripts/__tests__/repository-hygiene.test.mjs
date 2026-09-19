@@ -102,6 +102,30 @@ describe('repository hygiene fail-closed inventory', () => {
     expect(report.errors.join('\n')).toContain('workflow: unclassified .github/workflows/unowned.yml');
   });
 
+  it('rejects missing workflow marker and patch bundle references', () => {
+    const root = fixture();
+    put(root, '.github/workflows/a.yml', [
+      'name: A',
+      'on:',
+      '  push:',
+      '    paths: [.github/missing.marker]',
+      'permissions:',
+      '  contents: read',
+      'jobs:',
+      '  evidence:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - run: git apply .github/missing.patch',
+      '      - run: node scripts/online/sample-evidence.mjs',
+      '      - run: echo artifact',
+      '',
+    ].join('\n'));
+    const report = validateRepositoryHygiene({ root });
+    expect(report.ok).toBe(false);
+    expect(report.errors.join('\n')).toContain('dangling workflow reference .github/missing.marker');
+    expect(report.errors.join('\n')).toContain('dangling workflow reference .github/missing.patch');
+  });
+
   it('rejects replayable-looking historical authorization without the marker', () => {
     const root = fixture();
     put(root, 'research/old-plan.md', 'User authorization: publish this.\n');
