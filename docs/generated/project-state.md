@@ -51,7 +51,8 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - M4 Work Orders are bounded execution envelopes only: they do not create Product/contract truth, Project State NOW, semantic verdicts, verification freshness, or external-write permission.
   - M4/M4.1 candidate/delegation validation detects bounded staleness and scope drift, permits planned input deletion, and preserves delegated authority/context boundaries, but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
   - CR-15 remains REQUIRED/UNKNOWN after R1-D: current primary Cockpit and compatibility GameStore automation surfaces are registered and confirmed execution fractures were repaired, but no exhaustive machine-enforced capability manifest yet proves that every production automation recognizer is mapped to reviewed semantic evidence.
-  - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.\n  - M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures; a real-work Shadow Pilot is still required before M6-2 local execution automation.
+  - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
+  - M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures; a real-work Shadow Pilot is still required before M6-2 local execution automation.
 
 ## Capability state
 
