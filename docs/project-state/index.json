@@ -39,11 +39,13 @@
       "M5.2 — Repository Reconciliation / Cleanup",
       "M5.3 — Drift / Hygiene Detection",
       "M5.4 — Recovery / Reconciliation Protocol",
-      "M5.5 — Adversarial / Destructive Audit"
+      "M5.5 — Adversarial / Destructive Audit",
+      "M5.6 — Clean Baseline Certification",
+      "M5 — Audit / Hygiene / Recovery"
     ],
-    "activeMilestone": "M5 — Audit / Hygiene / Recovery",
-    "nextGate": "M5.6 — Clean Baseline Certification",
-    "nextWork": "Run the M5.6 derived recensus and certification against latest main/candidate. Require zero authority collisions, unclassified instruction/workflow/evidence assets, destructive-cleanup UNKNOWN, changed-test fail-open, execution orphans, broken dormant writers, and unresolved A3 rescue; verify generated freshness, evidence/browser ownership, provenance archives, compatibility retention preconditions, Project State/production-map freshness, semantic/release/recovery/adversarial gates, cold restart reconstruction, and absence of stored external-write authority. Do not start M6.",
+    "activeMilestone": "M6 — Closed Execution Loop",
+    "nextGate": "M6-PLAN — Closed Execution Loop",
+    "nextWork": "Start a separate M6 planning session. Re-read current Project State, M5 certification evidence, recovery/hygiene/adversarial gates, and the CR-15 automation boundary; independently design/audit M6 before any M6 implementation. This M5 certification does not authorize M6 implementation.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",
