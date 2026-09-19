@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `164aaf6a95922292ccaf9446835d874a80008f85` (main, 2026-09-19).
+Audited baseline: `86c4127039a66df5f2b79be3310914b5eef6ea58` (main, 2026-09-19).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -133,7 +133,14 @@ Next: Keep the gap explicit; choose a preservation design only in later product 
 
 ## Pending decisions
 
-None.
+### CONFLICT-TURN-DRAW-001 — PENDING_JUDGMENT
+
+Turn-entry draw acceptance remains explicitly deferred in the active traceability/acceptance registries.
+
+Traceability: `ENG-TURN-003`
+Acceptance: `ACC-TURN-001`
+
+Next: Judge the pinned CR, active turn contract, acceptance wording and runtime evidence first; escalate to the Owner only if an irreducible contract, architecture or value choice remains.
 
 ## Owner decisions
 
