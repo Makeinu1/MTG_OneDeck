@@ -109,17 +109,19 @@ M6 completion means the **execution loop** is bounded. It does not fabricate com
 
 ## Final read-only audit finding
 
-The final cold read-only audit found one BLOCKER before certification:
+The final cold read-only audit found two material findings before certification:
 
-- `m6-preclose.mjs` was internally calling the local loop with `verificationStatus: PASS`, which meant M6 could manufacture the transition to pre-close freshness instead of consuming M3 evidence.
+1. **BLOCKER** — `m6-preclose.mjs` was internally calling the local loop with `verificationStatus: PASS`, which meant M6 could manufacture the transition to pre-close freshness instead of consuming M3 evidence.
+2. **HIGH** — independent QA `PASS` / `FAIL` was not bound to an exact candidate HEAD, so stale QA evidence could theoretically be reused after candidate mutation.
 
-Repair applied before certification:
+Repairs applied before certification:
 
 - pre-close now runs M3 `runSemanticVerification` on the exact planning base/head;
 - only `freshness = CURRENT_FOR_CANDIDATE` advances to pre-close freshness;
 - test failures route to `CLASSIFY_VERIFICATION_FAILURE`;
 - manual/deferred/unknown blockers preserve their fail-closed destinations;
-- only after actual M3 proof does the local envelope receive PASS.
+- only after actual M3 proof does the local envelope receive PASS;
+- independent QA PASS/FAIL must carry the exact current candidate HEAD; missing or stale QA binding routes back to `INDEPENDENT_QA`.
 
 Regression coverage was added in `m6-preclose.test.mjs`.
 
