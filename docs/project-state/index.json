@@ -38,11 +38,12 @@
       "M5.1 — Lifecycle / Retention / Retirement",
       "M5.2 — Repository Reconciliation / Cleanup",
       "M5.3 — Drift / Hygiene Detection",
-      "M5.4 — Recovery / Reconciliation Protocol"
+      "M5.4 — Recovery / Reconciliation Protocol",
+      "M5.5 — Adversarial / Destructive Audit"
     ],
     "activeMilestone": "M5 — Audit / Hygiene / Recovery",
-    "nextGate": "M5.5 — Adversarial / Destructive Audit",
-    "nextWork": "Execute M5.5 only in isolated fixtures/temporary candidates. Inject the approved failure classes: unowned/deleted/renamed tests, stale overlay itemKey, generator drift, broken workflow bundle references, legacy write-capable workflow, hidden evidence consumers, retirement without provenance, historical authorization replay, stale Work Order planningBase, old-green evidence on a changed candidate, and compatibility retirement with live consumers. Every unsafe case must fail closed; do not damage main or production.",
+    "nextGate": "M5.6 — Clean Baseline Certification",
+    "nextWork": "Run the M5.6 derived recensus and certification against latest main/candidate. Require zero authority collisions, unclassified instruction/workflow/evidence assets, destructive-cleanup UNKNOWN, changed-test fail-open, execution orphans, broken dormant writers, and unresolved A3 rescue; verify generated freshness, evidence/browser ownership, provenance archives, compatibility retention preconditions, Project State/production-map freshness, semantic/release/recovery/adversarial gates, cold restart reconstruction, and absence of stored external-write authority. Do not start M6.",
     "prohibitedScope": [
       "R6 gameplay implementation",
       "production gameplay semantic changes",
