@@ -31,21 +31,25 @@ function repository() {
 }
 
 describe('R1-C release/integration topology', () => {
-  it('runs the full release gate on pull-request candidates before integration', () => {
+  it('uses fail-closed candidate-relative verification for pull requests', () => {
     const workflow = text('.github/workflows/candidate-verification.yml');
     expect(workflow).toMatch(/^\s*pull_request:\s*$/m);
     expect(workflow).not.toMatch(/^\s*push:\s*$/m);
     expect(workflow).toContain('ref: ${{ github.event.pull_request.head.sha }}');
     expect(workflow).toContain(
-      'npm run check:release -- --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}" --build-base=/MTG_OneDeck/',
+      'npm run check:fast -- --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}" --build-base=/MTG_OneDeck/',
     );
-    expect(workflow).not.toContain('check:fast');
+    expect(workflow).not.toContain('Full release candidate verification');
   });
 
   it('keeps manual Pages dispatch non-deploying and revalidates push-main cumulatively', () => {
     const workflow = text('.github/workflows/deploy-pages.yml');
     expect(workflow).toMatch(/^\s*push:\s*$/m);
     expect(workflow).toMatch(/^\s*workflow_dispatch:\s*$/m);
+    expect(workflow).toContain("      - 'src/**'");
+    expect(workflow).toContain("      - 'package-lock.json'");
+    expect(workflow).not.toContain("      - 'docs/**'");
+    expect(workflow).not.toContain("      - 'scripts/checks/m6-*.mjs'");
     expect(workflow).toContain("build:\n    if: github.event_name == 'push'");
     expect(workflow).toContain('actions: read');
     expect(workflow).toContain('node scripts/checks/resolve-diff-base.mjs --before');
