@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `843730c9c7f03b38fa8a23e33c9b5f5bfb130014` (main, 2026-09-19).
+Audited baseline: `74407d0a3f53d445308f26288267781beda778a5` (main, 2026-09-19).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
