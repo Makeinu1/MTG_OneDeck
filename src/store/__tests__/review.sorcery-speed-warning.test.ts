@@ -76,12 +76,11 @@ describe('Sorcery-speed activation warning (CR 602.5)', () => {
     const cardId = findInstanceId('sorcery-speed-artifact');
     store().moveCard(cardId, 'battlefield');
 
-    // Advance to main1
+    // Advance to main1. CR 103.8a skips the starting player's first-turn
+    // draw step in this default two-player game.
     store().nextPhase(); // untap -> upkeep
     store().dismissTriggerCandidates();
-    store().nextPhase(); // upkeep -> draw
-    store().dismissTriggerCandidates();
-    store().nextPhase(); // draw -> main1
+    store().nextPhase(); // upkeep -> main1
 
     const state = store().state!;
     expect(state.phase).toBe('main1');

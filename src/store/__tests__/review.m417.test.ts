@@ -44,7 +44,7 @@ describe('M4.17 beginFirstTurn runs the auto-advance after the mulligan decision
     useGameStore.getState().beginFirstTurn();
     const s = useGameStore.getState();
     expect(s.state!.phase).toBe('main1');
-    expect(s.state!.zones.hand.length).toBe(8); // 7 kept + turn-1 draw
+    expect(s.state!.zones.hand.length).toBe(7); // CR 103.8a: opening draw step is skipped
     expect(s.canUndo).toBe(false); // setup baseline, not an undoable step
     expect(s.mulliganDecisionPending).toBe(false);
   });

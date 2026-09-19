@@ -38,7 +38,7 @@ describe('newGame defers first-turn auto-advance to the mulligan keep (M4.11 #3,
     useGameStore.getState().beginFirstTurn();
     const s = useGameStore.getState().state!;
     expect(s.phase).toBe('main1');
-    expect(s.zones.hand.length).toBe(8);
+    expect(s.zones.hand.length).toBe(7);
   });
 
   it('stays at untap with hand 7 when autoAdvance is off', () => {
