@@ -32,37 +32,7 @@ jobs:
         name: Resolve cumulative release base
         env:
           GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          HEAD_SHA: ${{ github.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >/dev/null
-          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
-          const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
-          const [owner, repo] = process.env.REPOSITORY.split('/');
-          const endpoint =
-            `https://api.github.com/repos/${owner}/${repo}/actions/workflows/deploy-pages.yml/runs?branch=main&status=success&per_page=20`;
-          const response = await fetch(endpoint, {
-            headers: {
-              Accept: 'application/vnd.github+json',
-              Authorization: `Bearer ${process.env.GH_TOKEN}`,
-              'X-GitHub-Api-Version': '2022-11-28',
-            },
-          });
-          if (!response.ok) {
-            throw new Error(`cannot resolve last successful Pages run: HTTP ${response.status}`);
-          }
-          const payload = await response.json();
-          const prior = (payload.workflow_runs ?? []).find(
-            (run) => run.event === 'push' && run.head_sha !== process.env.HEAD_SHA,
-          );
-          const base = prior?.head_sha ?? EMPTY_TREE;
-          process.stdout.write(`base=${base}\n`);
-          process.stdout.write(
-            `reason=${prior ? 'last-successful-pages' : 'empty-tree'}\n`,
-          );
-          NODE
+        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >/dev/null && BASE="$(gh api "repos/${{ github.repository }}/actions/workflows/deploy-pages.yml/runs?branch=main&status=success&per_page=20" --jq '[.workflow_runs[] | select(.event == "push")][0].head_sha // ""')" && if [ -z "$BASE" ]; then BASE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"; fi && printf 'base=%s\n' "$BASE" >> "$GITHUB_OUTPUT"
       - run: npm run check:release -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/
       - uses: actions/configure-pages@v6
         with:
