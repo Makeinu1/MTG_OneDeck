@@ -4,7 +4,7 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "86c4127039a66df5f2b79be3310914b5eef6ea58",
+    "commit": "41fb548cd2274cd4f48dc19b81b54fce5d5d623a",
     "auditedDate": "2026-09-19",
     "watchedRoots": [
       "src",
@@ -137,20 +137,7 @@
       "path": "docs/project-state/capabilities/bounded-automation.json"
     }
   ],
-  "pendingDecisions": [
-    {
-      "id": "CONFLICT-TURN-DRAW-001",
-      "status": "PENDING_JUDGMENT",
-      "traceabilityRefs": [
-        "ENG-TURN-003"
-      ],
-      "acceptanceRefs": [
-        "ACC-TURN-001"
-      ],
-      "summary": "Turn-entry draw acceptance remains explicitly deferred in the active traceability/acceptance registries.",
-      "nextAction": "Judge the pinned CR, active turn contract, acceptance wording and runtime evidence first; escalate to the Owner only if an irreducible contract, architecture or value choice remains."
-    }
-  ],
+  "pendingDecisions": [],
   "ownerDecisions": [
     {
       "id": "OD-001",
