@@ -3036,7 +3036,17 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !get().autoAdvanceToMain) return;
 
       try {
-        const result = applyCommands(cur, untapToMainCommands());
+        let openingState = cur;
+        const openingWarnings: string[] = [];
+        for (let guard = 0; openingState.phase !== 'main1' && guard < 3; guard += 1) {
+          const step = applyCommand(openingState, { type: 'nextPhase' });
+          openingState = step.state;
+          openingWarnings.push(...step.warnings);
+        }
+        if (openingState.phase !== 'main1') {
+          throw new EngineError('開始ターンを戦闘前メイン・フェイズまで進められませんでした。');
+        }
+        const result: ApplyResult = { state: openingState, warnings: openingWarnings };
         internal.past = [];
         internal.future = [];
         clearPendingInteractionHistory();

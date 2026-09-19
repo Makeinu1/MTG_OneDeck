@@ -31,10 +31,26 @@ describe('GameStore', () => {
     expect(store().canUndo).toBe(false);
   });
 
-  it('beginFirstTurn auto-advances to main1 and draws (hand 8) after keep', () => {
+  it('beginFirstTurn auto-advances to main1 and skips the two-player opening draw', () => {
     store().newGame(makeDeck(30), 1);
     store().keepOpeningHand();
     store().beginFirstTurn();
+    const s = store().state!;
+    expect(s.phase).toBe('main1');
+    expect(s.zones.hand).toHaveLength(7);
+    expect(s.zones.library).toHaveLength(23);
+    expect(store().canUndo).toBe(false);
+  });
+
+  it('beginFirstTurn keeps the opening draw in a four-player game', () => {
+    store().newGame(makeDeck(30), 1);
+    store().addOpponent('対戦相手B');
+    store().addOpponent('対戦相手C');
+    expect(store().state?.turnOrder).toHaveLength(4);
+
+    store().keepOpeningHand();
+    store().beginFirstTurn();
+
     const s = store().state!;
     expect(s.phase).toBe('main1');
     expect(s.zones.hand).toHaveLength(8);

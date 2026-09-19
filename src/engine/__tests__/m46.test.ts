@@ -114,13 +114,16 @@ describe('M4.6 playLand', () => {
 });
 
 describe('M4.6 draw step', () => {
-  it('draws on turn 1', () => {
-    const untapState = { ...initGame([{ def: makeDef({ scryfallId: 'card-1' }), isCommander: false }], 1), phase: 'untap' as const };
+  it('skips the starting player draw step on turn 1 in the default two-player game', () => {
+    const untapState = {
+      ...initGame([{ def: makeDef({ scryfallId: 'card-1' }), isCommander: false }], 1),
+      phase: 'untap' as const,
+    };
     const upkeep = applyCommand(untapState, { type: 'nextPhase' }).state;
-    const draw = applyCommand(upkeep, { type: 'nextPhase' }).state;
-    expect(draw.turn).toBe(1);
-    expect(draw.phase).toBe('draw');
-    expect(draw.zones.hand).toHaveLength(1);
+    const main1 = applyCommand(upkeep, { type: 'nextPhase' }).state;
+    expect(main1.turn).toBe(1);
+    expect(main1.phase).toBe('main1');
+    expect(main1.zones.hand).toHaveLength(0);
   });
 });
 

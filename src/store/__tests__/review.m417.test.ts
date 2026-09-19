@@ -37,14 +37,14 @@ describe('M4.17 newGame does NOT auto-advance (mulligan decides on 7)', () => {
 });
 
 describe('M4.17 beginFirstTurn runs the auto-advance after the mulligan decision', () => {
-  it('autoAdvance ON: advances to main1 and draws one (hand 7 -> 8) on a clean baseline', () => {
+  it('autoAdvance ON: advances to main1 without the two-player opening draw', () => {
     useGameStore.setState({ autoAdvanceToMain: true });
     useGameStore.getState().newGame(deck(40), 2);
     useGameStore.getState().keepOpeningHand();
     useGameStore.getState().beginFirstTurn();
     const s = useGameStore.getState();
     expect(s.state!.phase).toBe('main1');
-    expect(s.state!.zones.hand.length).toBe(8); // 7 kept + turn-1 draw
+    expect(s.state!.zones.hand.length).toBe(7); // CR 103.8a: opening draw step is skipped
     expect(s.canUndo).toBe(false); // setup baseline, not an undoable step
     expect(s.mulliganDecisionPending).toBe(false);
   });

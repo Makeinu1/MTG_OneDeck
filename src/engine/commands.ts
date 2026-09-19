@@ -3475,7 +3475,13 @@ function applyNextPhase(
   } else if (idx === PHASE_ORDER.length - 1) {
     finishTurnAfterCleanup(draft, drawnHandled);
   } else {
-    const next = PHASE_ORDER[idx + 1];
+    const ordinaryNext = PHASE_ORDER[idx + 1];
+    const next =
+      ordinaryNext === 'draw'
+      && draft.state.turn === 1
+      && draft.state.turnOrder.length === 2
+        ? 'main1'
+        : ordinaryNext;
     enterPhase(draft, next, drawnHandled);
     pushLog(draft, `${PHASE_LABELS[next]}フェイズに移行しました。`);
   }

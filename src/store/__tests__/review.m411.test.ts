@@ -31,14 +31,14 @@ describe('newGame defers first-turn auto-advance to the mulligan keep (M4.11 #3,
     expect(useGameStore.getState().canUndo).toBe(false);
   });
 
-  it('after keep, beginFirstTurn reaches main1 with hand 8 when autoAdvance is on', () => {
+  it('after keep, beginFirstTurn reaches main1 without a two-player opening draw when autoAdvance is on', () => {
     useGameStore.setState({ autoAdvanceToMain: true });
     useGameStore.getState().newGame(deck(40), 1);
     useGameStore.getState().keepOpeningHand();
     useGameStore.getState().beginFirstTurn();
     const s = useGameStore.getState().state!;
     expect(s.phase).toBe('main1');
-    expect(s.zones.hand.length).toBe(8);
+    expect(s.zones.hand.length).toBe(7);
   });
 
   it('stays at untap with hand 7 when autoAdvance is off', () => {
