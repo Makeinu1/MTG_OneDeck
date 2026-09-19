@@ -4963,6 +4963,101 @@ function storedTargetSelectionFor(
   return selections.find((selection) => selection.slotId === targetSlotId(prompt, targetIndex));
 }
 
+function targetSelectionIsCurrentlyLegal(
+  state: GameState,
+  selection: TargetSelection,
+  prompt: EffectPrompt,
+  sourceId: string,
+  controllerId: PlayerId,
+): boolean {
+  const targetKind = prompt.targetKind ?? 'object';
+  if (selection.selection.kind === 'player') {
+    if (targetKind === 'object') return false;
+    return state.players[selection.selection.playerId] !== undefined;
+  }
+  if (targetKind === 'player') return false;
+  const current = state.cards[selection.selection.physicalCardId];
+  if (!current || objectIdOf(current) !== selection.selection.objectId) {
+    return false;
+  }
+  return eligibleTargets(
+    state,
+    prompt.filter ?? {},
+    { sourceId, controllerId },
+  ).includes(current.id);
+}
+
+type CheckedTargetResolutionStatus = 'none' | 'has-legal' | 'all-illegal' | 'unknown';
+
+function checkedTargetResolutionStatus(
+  state: GameState,
+  card: CardInstance,
+  effectLines: readonly ResolvableEffectLine[],
+): CheckedTargetResolutionStatus {
+  const storedSelections = (card.targetSelections ?? []).filter(
+    (selection) => !selection.slotId.startsWith('manual-target-'),
+  );
+  if (storedSelections.length === 0) {
+    return 'none';
+  }
+  if (storedSelections.some((selection) => selection.legalityMode !== 'checked')) {
+    return 'unknown';
+  }
+
+  const expectedSlots = new Set(storedSelections.map((selection) => selection.slotId));
+  const matchedSlots = new Set<string>();
+  let legalTargetCount = 0;
+  let targetIndex = 0;
+  const commanderColorIdentity = commanderColorIdentityForState(state);
+
+  for (const effectLine of effectLines) {
+    const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
+    const compiled = compileAbilityIR(ir, {
+      sourceId: effectLine.sourceId,
+      def: effectLine.def,
+      controllerId: card.controllerId,
+      commanderColorIdentity,
+      ...(card.announcedX === undefined ? {} : { announcedX: card.announcedX }),
+    });
+
+    const targetPrompts: EffectPrompt[] = [];
+    if (compiled.decision === 'guided') {
+      targetPrompts.push(...compiled.prompts.filter(
+        (prompt) => prompt.kind === 'target' && !prompt.recipients,
+      ));
+    } else if (compiled.decision === 'manual') {
+      const counterAssist = guidedCounterLeafForManualComposite(ir);
+      if (counterAssist?.prompt.kind === 'target') {
+        targetPrompts.push(counterAssist.prompt);
+      }
+    }
+
+    for (const prompt of targetPrompts) {
+      const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
+      const selection = storedTargetSelectionFor(card, normalizedPrompt, targetIndex);
+      targetIndex += 1;
+      if (!selection || selection.legalityMode !== 'checked') {
+        continue;
+      }
+      matchedSlots.add(selection.slotId);
+      if (targetSelectionIsCurrentlyLegal(
+        state,
+        selection,
+        normalizedPrompt,
+        effectLine.sourceId,
+        card.controllerId,
+      )) {
+        legalTargetCount += 1;
+      }
+    }
+  }
+
+  if ([...expectedSlots].some((slotId) => !matchedSlots.has(slotId))) {
+    return 'unknown';
+  }
+  return legalTargetCount > 0 ? 'has-legal' : 'all-illegal';
+}
+
 export function guidedPlanForStackTop(
   state: GameState,
 ): { sourceId: string; prompts: EffectPrompt[]; commands: GameCommand[]; warnings: string[] } | null {
@@ -4972,6 +5067,11 @@ export function guidedPlanForStackTop(
   }
   const card = state.cards[topId];
   if (!card) {
+    return null;
+  }
+
+  const effectLines = effectLinesForStackItemState(state, card);
+  if (checkedTargetResolutionStatus(state, card, effectLines) === 'all-illegal') {
     return null;
   }
 
@@ -4985,7 +5085,7 @@ export function guidedPlanForStackTop(
   let sourceId: string | null = null;
   let targetIndex = 0;
   const commanderColorIdentity = commanderColorIdentityForState(state);
-  for (const effectLine of effectLinesForStackItemState(state, card)) {
+  for (const effectLine of effectLines) {
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
@@ -5014,11 +5114,12 @@ export function guidedPlanForStackTop(
       continue;
     }
     sourceId = sourceId ?? effectLine.sourceId;
-    commands.push(
-      ...(lineHasSelfSacrifice(effectLine.line.text)
-        ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
-        : compiled.commands),
-    );
+    const lineCommands = lineHasSelfSacrifice(effectLine.line.text)
+      ? withSelfSacrificeReason(compiled.commands, effectLine.sourceId)
+      : compiled.commands;
+    let targetPromptCount = 0;
+    let unresolvedTargetPromptCount = 0;
+    let legalStoredTargetCount = 0;
     for (const [promptIndex, prompt] of compiled.prompts.entries()) {
       if (prompt.recipients) {
         const simultaneousGroupId = `guided-${topId}-${state.eventLog.length}-${promptIndex}`;
@@ -5032,18 +5133,38 @@ export function guidedPlanForStackTop(
         continue;
       }
       if (prompt.kind === 'target') {
+        targetPromptCount += 1;
         const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
-        if (!storedTargetSelectionFor(card, normalizedPrompt, targetIndex)) {
+        const storedSelection = storedTargetSelectionFor(card, normalizedPrompt, targetIndex);
+        if (!storedSelection) {
           prompts.push(normalizedPrompt);
+          unresolvedTargetPromptCount += 1;
+        } else if (targetSelectionIsCurrentlyLegal(
+          state,
+          storedSelection,
+          normalizedPrompt,
+          effectLine.sourceId,
+          card.controllerId,
+        )) {
+          legalStoredTargetCount += 1;
         }
         targetIndex += 1;
       } else {
         prompts.push(prompt);
       }
     }
+    const allStoredTargetsIllegal =
+      targetPromptCount > 0
+      && unresolvedTargetPromptCount === 0
+      && legalStoredTargetCount === 0;
+    if (!allStoredTargetsIllegal) {
+      commands.push(...lineCommands);
+    }
   }
 
-  return sourceId && prompts.length > 0 ? { sourceId, prompts, commands, warnings } : null;
+  return sourceId && (prompts.length > 0 || commands.length > 0)
+    ? { sourceId, prompts, commands, warnings }
+    : null;
 }
 
 export function activationPlanForSource(
@@ -5888,6 +6009,18 @@ function applyStoredTargetCommands(
       draft.warnings.push(`${stackNameOf(draft, card)}の保存済み対象は期待した領域にありません。`);
       continue;
     }
+    if (!targetSelectionIsCurrentlyLegal(
+      draft.state,
+      selection,
+      normalizedPrompt,
+      sourceId,
+      card.controllerId,
+    )) {
+      draft.warnings.push(
+        `${stackNameOf(draft, card)}の保存済み対象は解決時に適正な対象ではありません。`,
+      );
+      continue;
+    }
 
     const commands = buildGuidedCommands(
       normalizedPrompt,
@@ -5906,12 +6039,17 @@ function applyStoredTargetCommands(
           : { abilityLineIndex: card.abilityLineIndex }),
       },
     );
-    applyAutoCommands(
-      draft,
+    const executableCommands =
       normalizedPrompt.atom === 'effect.sacrifice'
         ? withMoveReason(commands, 'sacrifice')
-        : commands,
-    );
+        : commands;
+    if (executableCommands.length === 0) {
+      draft.warnings.push(
+        `${stackNameOf(draft, card)}の保存済み対象への効果を自動処理できませんでした。手動で処理してください。`,
+      );
+      continue;
+    }
+    applyAutoCommands(draft, executableCommands);
     applied = true;
   }
   return applied;
@@ -6212,11 +6350,16 @@ function applyResolveStackTop(
   const topId = stack[stack.length - 1];
   const card = requireCard(draft, topId);
   const effectLines = effectLinesForResolvedStackItem(draft, card);
+  const targetStatus = checkedTargetResolutionStatus(draft.state, card, effectLines);
 
   if (card.isAbility) {
     deleteCardFromState(draft, topId);
     if (card.triggerCondition && !triggerConditionSatisfied(draft.state, card.triggerCondition)) {
       pushLog(draft, `${stackNameOf(draft, card)}の能力は解決時の条件を満たさず効果を発生しなかった。`);
+      return;
+    }
+    if (targetStatus === 'all-illegal') {
+      pushLog(draft, `${stackNameOf(draft, card)}の能力はすべての対象が不適正なため解決されなかった。`);
       return;
     }
     // CR 310.11b: Siege defeated trigger — exile the battle, then the controller
@@ -6227,6 +6370,13 @@ function applyResolveStackTop(
     }
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
     applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder, guidedHandled);
+    return;
+  }
+
+  if (targetStatus === 'all-illegal') {
+    const name = stackNameOf(draft, card);
+    moveCardInternal(draft, topId, 'graveyard', 'bottom', false, 'resolve');
+    pushLog(draft, `${name}はすべての対象が不適正なため解決されなかった。`);
     return;
   }
 

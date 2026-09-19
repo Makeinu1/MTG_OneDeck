@@ -7,7 +7,7 @@
   "deliveryState": "UNPLANNED",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "74407d0a3f53d445308f26288267781beda778a5",
+  "auditedAtCommit": "c0db31342148897e67a3b48d8fa4dd21e54549b5",
   "authorityRefs": [
     {
       "path": "docs/contracts/ux-constitution.md",

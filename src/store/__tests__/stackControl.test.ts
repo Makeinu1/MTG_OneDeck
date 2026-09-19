@@ -281,4 +281,130 @@ describe('stack control compatibility', () => {
     expect(store().state?.cards[counterId].zone).toBe('graveyard');
   });
 
+
+  it('preserves deterministic commands when every guided target was already stored at cast time', () => {
+    const mixed = makeDef({
+      scryfallId: 'r1d-mixed-guided-stored-target',
+      typeLine: 'Instant',
+      faces: [{
+        name: 'R1-D Mixed Guided',
+        typeLine: 'Instant',
+        oracleText: 'Draw a card. Destroy target creature.',
+      }],
+    });
+    const target = makeDef({
+      scryfallId: 'r1d-mixed-guided-target',
+      typeLine: 'Creature',
+      faces: [{
+        name: 'R1-D Mixed Target',
+        typeLine: 'Creature',
+        power: '2',
+        toughness: '2',
+      }],
+    });
+    store().newGame([
+      { def: mixed, isCommander: false },
+      { def: target, isCommander: false },
+      ...makeDeck(12),
+    ], 309);
+    const mixedId = instanceId(mixed.scryfallId);
+    const targetId = instanceId(target.scryfallId);
+    store().moveCard(mixedId, 'hand');
+    store().moveCard(targetId, 'battlefield');
+
+    const snapshot = objectSnapshotForCard(store().state!, targetId);
+    expect(snapshot).toBeDefined();
+    store().dispatch({
+      type: 'castToStack',
+      cardId: mixedId,
+      payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+      forced: false,
+      targetSelections: [{
+        slotId: 'target-0',
+        raw: 'Destroy target creature.',
+        kind: 'object',
+        legalityMode: 'checked',
+        selection: {
+          kind: 'object',
+          physicalCardId: targetId,
+          objectId: snapshot!.objectId,
+          snapshot: snapshot!,
+        },
+      }],
+    });
+    expect(store().state?.cards[mixedId].targetSelections).toEqual([
+      expect.objectContaining({ slotId: 'target-0', legalityMode: 'checked' }),
+    ]);
+    const handBeforeResolution = store().state?.zones.hand.length ?? 0;
+
+    store().resolveTop();
+
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state?.zones.hand.length).toBe(handBeforeResolution + 1);
+    expect(store().state?.cards[targetId].zone).toBe('graveyard');
+    expect(store().state?.cards[mixedId].zone).toBe('graveyard');
+  });
+
+
+  it('does not execute deterministic mixed-guided commands when every stored target became illegal', () => {
+    const mixed = makeDef({
+      scryfallId: 'r1d-mixed-guided-illegal-target',
+      typeLine: 'Instant',
+      faces: [{
+        name: 'R1-D Mixed Illegal Target',
+        typeLine: 'Instant',
+        oracleText: 'Draw a card. Destroy target creature.',
+      }],
+    });
+    const target = makeDef({
+      scryfallId: 'r1d-mixed-guided-illegal-victim',
+      typeLine: 'Creature',
+      faces: [{
+        name: 'R1-D Mixed Illegal Victim',
+        typeLine: 'Creature',
+        power: '2',
+        toughness: '2',
+      }],
+    });
+    store().newGame([
+      { def: mixed, isCommander: false },
+      { def: target, isCommander: false },
+      ...makeDeck(12),
+    ], 310);
+    const mixedId = instanceId(mixed.scryfallId);
+    const targetId = instanceId(target.scryfallId);
+    store().moveCard(mixedId, 'hand');
+    store().moveCard(targetId, 'battlefield');
+
+    const snapshot = objectSnapshotForCard(store().state!, targetId);
+    expect(snapshot).toBeDefined();
+    store().dispatch({
+      type: 'castToStack',
+      cardId: mixedId,
+      payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+      forced: false,
+      targetSelections: [{
+        slotId: 'target-0',
+        raw: 'Destroy target creature.',
+        kind: 'object',
+        legalityMode: 'checked',
+        selection: {
+          kind: 'object',
+          physicalCardId: targetId,
+          objectId: snapshot!.objectId,
+          snapshot: snapshot!,
+        },
+      }],
+    });
+    store().moveCard(targetId, 'graveyard');
+    const handBeforeResolution = store().state?.zones.hand.length ?? 0;
+
+    store().resolveTop();
+
+    expect(store().pendingGuided).toBeNull();
+    expect(store().state?.zones.hand.length).toBe(handBeforeResolution);
+    expect(store().state?.cards[targetId].zone).toBe('graveyard');
+    expect(store().state?.cards[mixedId].zone).toBe('graveyard');
+  });
+
 });
