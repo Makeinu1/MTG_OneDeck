@@ -48,6 +48,8 @@ describe('R1-C release/integration topology', () => {
     expect(workflow).toMatch(/^\s*workflow_dispatch:\s*$/m);
     expect(workflow).toContain("      - 'src/**'");
     expect(workflow).toContain("      - 'package-lock.json'");
+    expect(workflow).toContain("      - 'wrangler.jsonc'");
+    expect(workflow).toContain("      - '.github/workflows/deploy-worker.yml'");
     expect(workflow).not.toContain("      - 'docs/**'");
     expect(workflow).not.toContain("      - 'scripts/checks/m6-*.mjs'");
     expect(workflow).toContain("build:\n    if: github.event_name == 'push'");
