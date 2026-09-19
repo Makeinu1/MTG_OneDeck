@@ -312,9 +312,29 @@ describe('stack control compatibility', () => {
     store().moveCard(mixedId, 'hand');
     store().moveCard(targetId, 'battlefield');
 
-    expect(store().castToStack(mixedId)).toBe('needs-choice');
-    store().answerPendingCastTarget(targetId);
-    store().confirmPendingCast();
+    const snapshot = objectSnapshotForCard(store().state!, targetId);
+    expect(snapshot).toBeDefined();
+    store().dispatch({
+      type: 'castToStack',
+      cardId: mixedId,
+      payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+      forced: false,
+      targetSelections: [{
+        slotId: 'target-0',
+        raw: 'Destroy target creature.',
+        kind: 'object',
+        legalityMode: 'checked',
+        selection: {
+          kind: 'object',
+          physicalCardId: targetId,
+          objectId: snapshot!.objectId,
+          snapshot: snapshot!,
+        },
+      }],
+    });
+    expect(store().state?.cards[mixedId].targetSelections).toEqual([
+      expect.objectContaining({ slotId: 'target-0', legalityMode: 'checked' }),
+    ]);
     const handBeforeResolution = store().state?.zones.hand.length ?? 0;
 
     store().resolveTop();
