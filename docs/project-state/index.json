@@ -4,7 +4,7 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "86c4127039a66df5f2b79be3310914b5eef6ea58",
+    "commit": "ae63671f6aa069f79f28a95e84c1c8c456c0bf05",
     "auditedDate": "2026-09-19",
     "watchedRoots": [
       "src",
