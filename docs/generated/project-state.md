@@ -32,10 +32,10 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
 
 ## Reconstruction program
 
-- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`, `M6-0 — Closed Execution Loop Plan / Preconditions`, `M6-1 — Shadow Controller`, `M6-1P — Shadow Pilot`
+- Completed: `M0 — Constitution / Truth`, `M1 — Canonical Project State`, `M1.1 — Canonical Project State Hardening`, `M2 — Contract Architecture`, `M3 — Verification Harness`, `M3.1 — Verification Harness Hardening`, `M4 — Work Protocol / SOW`, `M4.1 — Work Protocol Hardening`, `M5.0 — Asset Model / Derived Census Foundation`, `M5.1 — Lifecycle / Retention / Retirement`, `M5.2 — Repository Reconciliation / Cleanup`, `M5.3 — Drift / Hygiene Detection`, `M5.4 — Recovery / Reconciliation Protocol`, `M5.5 — Adversarial / Destructive Audit`, `M5.6 — Clean Baseline Certification`, `M5 — Audit / Hygiene / Recovery`, `M6-0 — Closed Execution Loop Plan / Preconditions`, `M6-1 — Shadow Controller`, `M6-1P — Shadow Pilot`, `M6-2 — Local Outer Loop`
 - Active: `M6 — Closed Execution Loop`
-- Next gate: `M6-2 — Local Outer Loop`
-- Next work: Implement the minimal local M6 Outer Loop protocol that connects a valid Shadow CONTINUE decision to the existing Coding Harness, then returns the exact candidate to M3/M6 for PROVE/RECONCILE. Do not create a generic Executor/Planner, durable M6 state registry, or remote-write automation.
+- Next gate: `M6-3 — Resume / Recovery`
+- Next work: Prove fresh-session resume by reconstructing current M1/M4/M5/Git reality and returning to the same M6 LOCAL_ONLY action envelope without a new M6 recovery registry. Reuse M5 RESUME/REPLAN/BLOCKED/RESCUE dispositions; do not authorize rollback or remote writes.
 
 ## Coverage claim
 
@@ -54,6 +54,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
   - M6-1 Shadow Controller is integrated as a read-only coordinator and covered by fixed regression fixtures; a real-work Shadow Pilot is still required before M6-2 local execution automation.
   - M6-1P completed a five-root-Work-Order shadow pilot and repaired the post-M6/M7 false-stop coupling. M6-2 local execution/proof/reconcile wiring remains unimplemented.
+  - M6-2 exposes a stateless LOCAL_ONLY action envelope for the existing Coding Harness. Fresh-session recovery proof remains M6-3 work.
 
 ## Capability state
 
