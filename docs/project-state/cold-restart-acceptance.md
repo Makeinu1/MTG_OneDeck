@@ -113,11 +113,11 @@ A passing answer must recover all of the following without past conversation.
 
 ### Current handoff
 
-55. M4/M4.1 completion means the repository can hand one bounded work item to a fresh execution context, validate its planning snapshot and exact candidate, and bound child delegation without relying on chat history or creating a second authority system.
-56. The next milestone is M5 Audit / Hygiene / Recovery.
-57. M5 owns repository-wide reassessment and cleanup of stale/dead/duplicate authority surfaces, orphan Acceptance/evidence/tests, legacy implementation/document drift, and interrupted-work recovery beyond M4's basic resume envelope.
-58. M5 must preserve M0 Product/UX Truth, M1 semantic verdict ownership, M2 semantic identity, M3/M3.1 verification semantics, and M4 external-write/delegation boundaries unless an explicit separately-authorized authority change is the work itself.
-59. No M5 implementation begins before an independently audited Owner-approved M5 plan.
+55. M5/M5.6 completion means repository-wide lifecycle cleanup, durable provenance protection, hygiene, recovery, and adversarial controls are established; this is completed process history, not current execution authority.
+56. The active milestone is M6 — Closed Execution Loop and the current gate is M6-PLAN — Closed Execution Loop. The handoff authorizes planning/review only.
+57. M6-PLAN must independently audit the CR-15 automation boundary before any M6 implementation; M5 certification does not freeze later Project State at the M6-PLAN boundary.
+58. M6 work must preserve M0 Product/UX Truth, M1 semantic verdict ownership, M2 semantic identity, M3/M3.1 verification semantics, M4 external-write/delegation boundaries, and M5 durable hygiene/recovery/provenance controls unless a separately authorized authority change is the work itself.
+59. No M6 implementation begins before an independently audited Owner-approved M6 plan.
 
 ### M4 Work Protocol / SOW
 
@@ -178,7 +178,7 @@ Cold Restart passes only when a repo-only reader can reconstruct:
 - the distinction between verification success and semantic MATCH;
 - active-manifest pin retirement and replacement protection;
 - M4 Work Order authority boundaries, planning-snapshot validation, candidate drift, monotonic delegation and external-write non-authority;
-- the M4/M5/M6 boundary, the M5-PLAN handoff, and the CR-15 gate before closed-loop orchestration;
+- the M4/M5/M6 boundary, the completed M5→M6-PLAN handoff, and the CR-15 gate before closed-loop orchestration;
 
 and the machine gates agree with that model for the checked-out repository.
 
@@ -198,4 +198,4 @@ and the machine gates agree with that model for the checked-out repository.
 85. `scripts/checks/m5-certification.mjs` derives M5 certification from Project State, repository hygiene, recovery freshness, provenance archives, current A3 evidence, and the M5.5 adversarial matrix; it does not create a second authority system.
 86. `scripts/__tests__/m5-certification.test.mjs` requires unresolved M5 lifecycle residue to be zero.
 87. `docs/project-state/evidence/m5-clean-baseline-certification.md` is certification evidence only; Project State remains canonical NOW.
-88. M5 certification does not authorize M6 implementation. After M5.6 PASS the next allowed repository-program action is a separately reviewed M6 planning session.
+88. M5 certification is durable completion evidence only. It neither authorizes M6 implementation nor freezes the current milestone/next gate; current repository-program action comes from Project State.
