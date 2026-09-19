@@ -22,7 +22,7 @@
       "path": ".github/workflows/deploy-pages.yml",
       "lifecycle": "ACTIVE",
       "owner": "release",
-      "purpose": "Cumulative release verification from the last successful Pages SHA and GitHub Pages deployment for main.",
+      "purpose": "Cumulative release verification from the last successful Pages main-push SHA and GitHub Pages deployment for main.",
       "writeCapable": true
     },
     {

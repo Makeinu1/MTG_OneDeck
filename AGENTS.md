@@ -82,7 +82,7 @@ exact HEAD（child なら明示的 parent packet も）で再検証する。小�
 - 開発中は関連する targeted tests のみを反復する。release candidate はPRで`main`へ送り、
   `.github/workflows/candidate-verification.yml`の`npm run check:release`をpre-mergeの
   full-strength gateとする。release目的のdirect push to `main`は使わない。merge後は
-  `.github/workflows/deploy-pages.yml`が直前の成功Pages SHAから新しい`main` SHAまでを
+  `.github/workflows/deploy-pages.yml`が直前の成功Pages main-push SHAから新しい`main` SHAまでを
   累積`check:release`し、greenの場合だけPagesをdeployする。Workerはその成功Pages SHAだけを
   受け取り、production workflowにmanual-dispatch bypassを置かない。CI failureはfail-closedで
   deployせず停止し、root cause修正後は無効になったtargeted evidenceだけを再確認して新candidateを

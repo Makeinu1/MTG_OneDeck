@@ -51,7 +51,7 @@ describe('R1-C release/integration topology', () => {
     expect(workflow).toContain(
       'actions/workflows/deploy-pages.yml/runs?branch=main&status=success&per_page=20',
     );
-    expect(workflow).toContain('run.head_sha !== process.env.HEAD_SHA');
+    expect(workflow).toContain("run.event === 'push' && run.head_sha !== process.env.HEAD_SHA");
     expect(workflow).toContain(EMPTY_TREE);
     expect(workflow).toContain(
       'npm run check:release -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/',

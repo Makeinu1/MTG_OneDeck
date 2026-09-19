@@ -25,7 +25,7 @@ the release tied to one exact commit.
    merge human-gated rather than treating a green branch as self-authorizing.
 3. **Merge and cumulative deployment gate** — After an authorized merge, the
    `main` push starts `.github/workflows/deploy-pages.yml`. It resolves the
-   latest successful Pages run SHA and reruns `check:release` over the cumulative
+   latest successful Pages main-push SHA and reruns `check:release` over the cumulative
    diff from that last-known-good release to the new `main` SHA; a previous
    failed `main` commit therefore remains inside the next release diff. Only a
    green cumulative gate may deploy Pages. The Worker workflow accepts only the
