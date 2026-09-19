@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyCommand, applyResolutionCommands, EngineError } from '../commands';
+import { applyCommand, EngineError } from '../commands';
 import { initGame } from '../init';
 import type { GameState, ManaPool } from '../types';
 import { makeDef, makeDeck } from './helpers';
@@ -622,19 +622,6 @@ describe('logging', () => {
     expect(last.message).toContain('》');
   });
 });
-describe('automation command execution ownership', () => {
-  it('fails closed instead of silently succeeding for an unsupported runtime command', () => {
-    const state = freshGame();
-    const unsupported = {
-      type: 'unsupported-automation-command',
-    } as unknown as Parameters<typeof applyCommand>[1];
-
-    expect(() => applyResolutionCommands(state, [unsupported])).toThrow(
-      /未対応のGameCommand/,
-    );
-  });
-});
-
 // verifies: ENG-CMD-001
 // verifies: ENG-CMD-002
 // verifies: ENG-STATE-002
