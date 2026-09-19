@@ -4,6 +4,7 @@ import {
   VERIFICATION_STATUSES,
   applyRuntimeSignal,
   buildLocalExecutionEnvelope,
+  validateNoChangeEvidence,
 } from '../checks/m6-local-loop.mjs';
 import { SHADOW_RESULTS } from '../checks/m6-shadow-controller.mjs';
 
@@ -101,12 +102,35 @@ describe('M6 local outer-loop runtime signals', () => {
     expect(decision.nextAction).toBe('REQUEST_MANUAL_EVIDENCE');
   });
 
-  test('supports evidence-backed no-change closure without code churn', () => {
-    const decision = applyRuntimeSignal(report(), {
-      noChangeEstablished: true,
+  test('supports exact candidate-bound no-change closure without code churn', () => {
+    const current = report();
+    const evidence = {
+      schemaVersion: 1,
+      base: current.planningBase,
+      head: current.head,
+      evidenceRef: 'analysis://already-conformant',
+    };
+    expect(validateNoChangeEvidence(evidence, current)).toEqual([]);
+
+    const decision = applyRuntimeSignal(current, {
+      noChangeEvidence: evidence,
     });
     expect(decision.result).toBe(SHADOW_RESULTS.NO_CHANGE_REQUIRED);
     expect(decision.nextAction).toBe('CLOSE_NO_CHANGE');
+  });
+
+  test('rejects stale no-change evidence instead of closing', () => {
+    const current = report();
+    const decision = applyRuntimeSignal(current, {
+      noChangeEvidence: {
+        schemaVersion: 1,
+        base: current.planningBase,
+        head: '3'.repeat(40),
+        evidenceRef: 'analysis://stale',
+      },
+    });
+    expect(decision.result).toBe(SHADOW_RESULTS.UNKNOWN_COVERAGE);
+    expect(decision.nextAction).toBe('STOP_UNKNOWN');
   });
 
   test('cannot override an upstream Shadow stop with a runtime PASS', () => {
