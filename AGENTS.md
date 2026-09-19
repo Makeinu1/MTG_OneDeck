@@ -79,13 +79,15 @@ exact HEAD（child なら明示的 parent packet も）で再検証する。小�
   新test frameworkやtest infrastructureを作らない。要求されていない境界をtestしない。
 - 追加前に「どのacceptanceを証明するか」「既存testが見逃すregressionか」「実装より単純か」
   を答える。test codeが実装より長い・複雑なら過剰設計として、より小さい証明を選ぶ。
-- 開発中は関連する targeted tests のみを反復する。exact candidate を現行CIへ送るreleaseでは
-  localの`npm run check`を実行せず、`.github/workflows/deploy-pages.yml`の
-  `npm run check:release`（`npm run check`、forbidden diff scan、buildを含む）を唯一の
-  full-strength gateとする。CI failureはfail-closedでdeployせず停止し、root cause修正後は
-  無効になったtargeted evidenceだけを再確認して新しいSHAをpushしCIを再実行する。外部writeの
-  自動retryはしない。local-only completion、CIを使わない変更、またはlocal full assuranceの
-  明示要求の場合だけ、localの`npm run check`を一度実行してよい。
+- 開発中は関連する targeted tests のみを反復する。release candidate はPRで`main`へ送り、
+  `.github/workflows/candidate-verification.yml`の`npm run check:release`をpre-mergeの
+  full-strength gateとする。release目的のdirect push to `main`は使わない。merge後は
+  `.github/workflows/deploy-pages.yml`が直前の成功Pages main-push SHAから新しい`main` SHAまでを
+  累積`check:release`し、greenの場合だけPagesをdeployする。Workerはその成功Pages SHAだけを
+  受け取り、production workflowにmanual-dispatch bypassを置かない。CI failureはfail-closedで
+  deployせず停止し、root cause修正後は無効になったtargeted evidenceだけを再確認して新candidateを
+  pushする。外部writeの自動retryはしない。local-only completion、CIを使わない変更、またはlocal
+  full assuranceの明示要求の場合だけ、localの`npm run check`を一度実行してよい。
 
 ## エンジンと CR
 

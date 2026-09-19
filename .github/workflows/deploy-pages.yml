@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -16,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -27,7 +29,10 @@ jobs:
           cache: npm
       - run: npm ci
       - id: diff-base
-        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        name: Resolve cumulative release base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >/dev/null && BASE="$(gh api "repos/${{ github.repository }}/actions/workflows/deploy-pages.yml/runs?branch=main&status=success&per_page=20" --jq '[.workflow_runs[] | select(.event == "push")][0].head_sha // ""')" && if [ -z "$BASE" ]; then BASE="4b825dc642cb6eb9a060e54bf8d69288fbee4904"; fi && printf 'base=%s\n' "$BASE" >> "$GITHUB_OUTPUT"
       - run: npm run check:release -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/
       - uses: actions/configure-pages@v6
         with:
