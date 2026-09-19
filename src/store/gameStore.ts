@@ -1615,6 +1615,16 @@ function untapToMainCommands(): GameCommand[] {
   return [{ type: 'nextPhase' }, { type: 'nextPhase' }, { type: 'nextPhase' }];
 }
 
+function openingUntapToMainCommands(state: GameState): GameCommand[] {
+  const startingTwoPlayerTurn =
+    state.turn === 1
+    && state.turnOrder.length === 2
+    && state.activePlayerId === state.turnOrder[0];
+  return startingTwoPlayerTurn
+    ? [{ type: 'nextPhase' }, { type: 'nextPhase' }]
+    : untapToMainCommands();
+}
+
 function withMoveReason(commands: readonly GameCommand[], reason: 'sacrifice'): GameCommand[] {
   return commands.map((cmd) =>
     cmd.type === 'moveCard' && cmd.to === 'graveyard' && cmd.reason === undefined
@@ -3036,7 +3046,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (!cur || !get().autoAdvanceToMain) return;
 
       try {
-        const result = applyCommands(cur, untapToMainCommands());
+        const result = applyCommands(cur, openingUntapToMainCommands(cur));
         internal.past = [];
         internal.future = [];
         clearPendingInteractionHistory();
