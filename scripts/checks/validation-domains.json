@@ -557,6 +557,23 @@
       "reason": "Cloudflare Cockpit projectionは秘密情報境界とLKIを跨ぐためfull checkを維持しつつ、recorded target snapshotのconformance evidenceを明示的に所有する。"
     },
     {
+      "id": "m6-control-plane",
+      "description": "M6 Closed Execution Loop control-plane scripts and fixed regression fixtures",
+      "sourcePatterns": [
+        "scripts/checks/m6-*.mjs",
+        "scripts/__tests__/m6-*.test.mjs",
+        "scripts/m6/**"
+      ],
+      "testPatterns": [
+        "scripts/__tests__/m6-*.test.mjs"
+      ],
+      "testProject": "dom",
+      "relatedContractIds": [],
+      "dependentDomains": [],
+      "escalationLevel": "targeted",
+      "reason": "M6 control-plane changes are read-only coordination machinery; validate their fixed regression fixtures and ordinary targeted integrity without forcing unrelated product/browser/release checks."
+    },
+    {
       "id": "build-tooling",
       "description": "package/build/config、validation script、workflow、architecture gate",
       "sourcePatterns": [
@@ -589,7 +606,12 @@
         "docs"
       ],
       "escalationLevel": "full",
-      "reason": "共有設定・検証基盤・workflowは限定testでは安全に評価できないためfull checkへ昇格する。"
+      "reason": "共有設定・検証基盤・workflowは限定testでは安全に評価できないためfull checkへ昇格する。",
+      "excludeSourcePatterns": [
+        "scripts/checks/m6-*.mjs",
+        "scripts/__tests__/m6-*.test.mjs",
+        "scripts/m6/**"
+      ]
     }
   ]
 }
