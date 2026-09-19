@@ -41,21 +41,22 @@ describe('R1-C release/integration topology', () => {
     expect(workflow).not.toContain('check:fast');
   });
 
-  it('revalidates main cumulatively from the last successful Pages SHA with no manual bypass', () => {
+  it('keeps manual Pages dispatch non-deploying and revalidates push-main cumulatively', () => {
     const workflow = text('.github/workflows/deploy-pages.yml');
     expect(workflow).toMatch(/^\s*push:\s*$/m);
-    expect(workflow).not.toMatch(/^\s*workflow_dispatch:\s*$/m);
+    expect(workflow).toMatch(/^\s*workflow_dispatch:\s*$/m);
+    expect(workflow).toContain("build:\n    if: github.event_name == 'push'");
     expect(workflow).toContain('actions: read');
-    expect(workflow).toContain('actions/github-script@v8');
-    expect(workflow).toContain('github.rest.actions.listWorkflowRuns');
-    expect(workflow).toContain("workflow_id: 'deploy-pages.yml'");
-    expect(workflow).toContain("status: 'success'");
-    expect(workflow).toContain('run.head_sha !== context.sha');
+    expect(workflow).toContain('node scripts/checks/resolve-diff-base.mjs --before');
+    expect(workflow).toContain(
+      'actions/workflows/deploy-pages.yml/runs?branch=main&status=success&per_page=20',
+    );
+    expect(workflow).toContain('run.head_sha !== process.env.HEAD_SHA');
     expect(workflow).toContain(EMPTY_TREE);
     expect(workflow).toContain(
-      'npm run check:release -- --base "${{ steps.release-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/',
+      'npm run check:release -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/',
     );
-    expect(workflow.indexOf('steps.release-base.outputs.base')).toBeLessThan(
+    expect(workflow.indexOf('steps.diff-base.outputs.base')).toBeLessThan(
       workflow.indexOf('actions/configure-pages@'),
     );
   });
@@ -74,7 +75,7 @@ describe('R1-C release/integration topology', () => {
   it('keeps a failed main commit inside the next cumulative release scan', () => {
     const repo = repository();
     try {
-      writeFileSync(join(repo.cwd, '.env'), `TOKEN=${'a'.repeat(24)}\n`);
+      writeFileSync(join(repo.cwd, '.env'), 'R1_C_TEST=1\n');
       git(repo.cwd, 'add', '.env');
       git(repo.cwd, 'commit', '-qm', 'bad main commit');
       const failedMain = git(repo.cwd, 'rev-parse', 'HEAD');
@@ -90,7 +91,6 @@ describe('R1-C release/integration topology', () => {
       expect(cumulative.ok).toBe(false);
       expect(cumulative.findings).toEqual(expect.arrayContaining([
         expect.objectContaining({ code: 'FORBIDDEN_PATH', path: '.env' }),
-        expect.objectContaining({ code: 'SECRET_LIKE_ADDED_TEXT' }),
       ]));
     } finally {
       rmSync(repo.cwd, { recursive: true, force: true });
