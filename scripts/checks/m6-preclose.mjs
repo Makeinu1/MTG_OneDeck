@@ -220,7 +220,7 @@ export function runPreCloseGate({
   manualEvidencePath = null,
   qaStatus = QA_STATUSES.UNCLASSIFIED,
   qaHead = null,
-  noChangeEstablished = false,
+  noChangeEvidencePath = null,
 } = {}) {
   if (!workOrderPath) throw new Error('workOrderPath is required');
 
@@ -229,7 +229,7 @@ export function runPreCloseGate({
     workOrderPath,
     manualEvidencePath,
     verificationStatus: VERIFICATION_STATUSES.NOT_RUN,
-    noChangeEstablished,
+    noChangeEvidencePath,
   });
 
   if (initial.envelope.decision.result === SHADOW_RESULTS.NO_CHANGE_REQUIRED) {
@@ -318,23 +318,22 @@ function parseArgs(args) {
     manualEvidencePath: null,
     qaStatus: QA_STATUSES.UNCLASSIFIED,
     qaHead: null,
-    noChangeEstablished: false,
+    noChangeEvidencePath: null,
     json: false,
   };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--work-order' || arg === '--manual-evidence'
-        || arg === '--qa-status' || arg === '--qa-head') {
+        || arg === '--qa-status' || arg === '--qa-head' || arg === '--no-change-evidence') {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) throw new Error(`${arg} requires a value`);
       if (arg === '--work-order') options.workOrderPath = value;
       else if (arg === '--manual-evidence') options.manualEvidencePath = value;
       else if (arg === '--qa-status') options.qaStatus = value;
-      else options.qaHead = value;
+      else if (arg === '--qa-head') options.qaHead = value;
+      else options.noChangeEvidencePath = value;
       index += 1;
-    } else if (arg === '--no-change-established') {
-      options.noChangeEstablished = true;
     } else if (arg === '--json') {
       options.json = true;
     } else {
@@ -352,7 +351,7 @@ function cli() {
     options = parseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    console.error('Usage: node scripts/checks/m6-preclose.mjs --work-order <path> [--manual-evidence <path>] --qa-status UNCLASSIFIED|NOT_REQUIRED|REQUIRED|PASS|FAIL [--qa-head <sha>] [--no-change-established] [--json]');
+    console.error('Usage: node scripts/checks/m6-preclose.mjs --work-order <path> [--manual-evidence <path>] --qa-status UNCLASSIFIED|NOT_REQUIRED|REQUIRED|PASS|FAIL [--qa-head <sha>] [--no-change-evidence <path>] [--json]');
     process.exitCode = 2;
     return;
   }
@@ -364,7 +363,7 @@ function cli() {
       manualEvidencePath: options.manualEvidencePath,
       qaStatus: options.qaStatus,
       qaHead: options.qaHead,
-      noChangeEstablished: options.noChangeEstablished,
+      noChangeEvidencePath: options.noChangeEvidencePath,
     });
     if (options.json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     else {
