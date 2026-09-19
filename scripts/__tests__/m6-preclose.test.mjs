@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   QA_STATUSES,
   decidePreClose,
+  mapM3VerificationResult,
 } from '../checks/m6-preclose.mjs';
 import { SHADOW_RESULTS } from '../checks/m6-shadow-controller.mjs';
 
@@ -126,5 +127,87 @@ describe('M6 pre-close freshness and QA gate', () => {
 
     expect(result.result).toBe(SHADOW_RESULTS.COMPLETE);
     expect(result.nextAction).toBe('CLOSE_NO_CHANGE');
+  });
+});
+
+
+describe('M6 pre-close consumes actual M3 evidence', () => {
+  function m3Result(overrides = {}) {
+    return {
+      exitCode: 0,
+      testExitCode: 0,
+      freshness: 'CURRENT_FOR_CANDIDATE',
+      plan: {
+        coverage: 'VERIFIED_WITHIN_DECLARED_COVERAGE',
+        blockers: {
+          manualRequired: [],
+          manualFailed: [],
+          deferredScenarios: [],
+          deferredSemantics: [],
+          unbound: [],
+          characterizationOnly: [],
+          unknownCoverage: [],
+        },
+      },
+      ...overrides,
+    };
+  }
+
+  test('only CURRENT_FOR_CANDIDATE M3 proof advances to pre-close freshness', () => {
+    const result = mapM3VerificationResult(m3Result());
+    expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
+    expect(result.nextAction).toBe('PRE_CLOSE_FRESHNESS');
+  });
+
+  test('test failure is classified before any repair or close', () => {
+    const result = mapM3VerificationResult(m3Result({
+      exitCode: 1,
+      testExitCode: 1,
+      freshness: 'NOT_ESTABLISHED',
+    }));
+    expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
+    expect(result.nextAction).toBe('CLASSIFY_VERIFICATION_FAILURE');
+  });
+
+  test('manual blocker cannot be upgraded by a green-looking status', () => {
+    const result = mapM3VerificationResult(m3Result({
+      exitCode: 1,
+      freshness: 'NOT_ESTABLISHED',
+      plan: {
+        coverage: 'PARTIAL',
+        blockers: {
+          manualRequired: ['ACC-MANUAL-001'],
+          manualFailed: [],
+          deferredScenarios: [],
+          deferredSemantics: [],
+          unbound: [],
+          characterizationOnly: [],
+          unknownCoverage: [],
+        },
+      },
+    }));
+    expect(result.result).toBe(SHADOW_RESULTS.MANUAL_EVIDENCE_REQUIRED);
+    expect(result.nextAction).toBe('REQUEST_MANUAL_EVIDENCE');
+  });
+
+  test('unknown M3 coverage remains fail-closed', () => {
+    const result = mapM3VerificationResult(m3Result({
+      exitCode: 1,
+      freshness: 'NOT_ESTABLISHED',
+      plan: {
+        coverage: 'UNKNOWN_COVERAGE',
+        blockers: {
+          manualRequired: [],
+          manualFailed: [],
+          deferredScenarios: [],
+          deferredSemantics: [],
+          unbound: [],
+          characterizationOnly: [],
+          unknownCoverage: ['src/new-automation.ts'],
+        },
+      },
+    }));
+    expect(result.result).toBe(SHADOW_RESULTS.UNKNOWN_COVERAGE);
+    expect(result.nextAction).toBe('STOP_UNKNOWN');
   });
 });
