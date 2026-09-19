@@ -87,8 +87,14 @@ export function testFilesForDomain({ root = DEFAULT_ROOT, domain }) {
   return files.sort();
 }
 
+function domainMatchesSource(file, domain) {
+  const included = domain.sourcePatterns.some((pattern) => matchesPattern(file, pattern));
+  const excluded = (domain.excludeSourcePatterns ?? []).some((pattern) => matchesPattern(file, pattern));
+  return included && !excluded;
+}
+
 function sourceMatches(files, domain) {
-  return files.filter((file) => domain.sourcePatterns.some((pattern) => matchesPattern(file, pattern)));
+  return files.filter((file) => domainMatchesSource(file, domain));
 }
 
 export function resolveDomainSelection({ root = DEFAULT_ROOT, files = [] } = {}) {
@@ -99,7 +105,7 @@ export function resolveDomainSelection({ root = DEFAULT_ROOT, files = [] } = {})
   const unknownFiles = [];
 
   for (const file of normalizedFiles) {
-    const matches = domains.filter((domain) => domain.sourcePatterns.some((pattern) => matchesPattern(file, pattern)));
+    const matches = domains.filter((domain) => domainMatchesSource(file, domain));
     if (matches.length === 0) {
       unknownFiles.push(file);
       continue;
