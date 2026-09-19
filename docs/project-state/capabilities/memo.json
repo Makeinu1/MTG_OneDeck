@@ -7,7 +7,7 @@
   "deliveryState": "UNKNOWN",
   "lifecycle": "ACTIVE",
   "requirementLevel": "OPTIONAL",
-  "auditedAtCommit": "86c4127039a66df5f2b79be3310914b5eef6ea58",
+  "auditedAtCommit": "ae63671f6aa069f79f28a95e84c1c8c456c0bf05",
   "authorityRefs": [
     {
       "path": "docs/contracts/ux-constitution.md",
