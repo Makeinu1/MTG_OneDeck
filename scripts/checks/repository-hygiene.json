@@ -8,7 +8,7 @@
       "path": ".github/workflows/candidate-verification.yml",
       "lifecycle": "ACTIVE",
       "owner": "verification",
-      "purpose": "Candidate-relative fast/full verification and build for PRs and main.",
+      "purpose": "Full release verification for pull-request candidates before integration to main.",
       "writeCapable": false
     },
     {
@@ -22,14 +22,14 @@
       "path": ".github/workflows/deploy-pages.yml",
       "lifecycle": "ACTIVE",
       "owner": "release",
-      "purpose": "Validated main release gate and GitHub Pages deployment.",
+      "purpose": "Cumulative release verification from the last successful Pages SHA and GitHub Pages deployment for main.",
       "writeCapable": true
     },
     {
       "path": ".github/workflows/deploy-worker.yml",
       "lifecycle": "ACTIVE",
       "owner": "release",
-      "purpose": "Cloudflare Worker deployment only after validated Pages/main SHA or explicit dispatch.",
+      "purpose": "Cloudflare Worker deployment only for the exact SHA of a successful Pages main push.",
       "writeCapable": true
     },
     {

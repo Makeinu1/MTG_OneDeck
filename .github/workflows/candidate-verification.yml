@@ -3,14 +3,12 @@ name: Candidate Verification
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: candidate-verification-${{ github.event.pull_request.number || github.ref }}
+  group: candidate-verification-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -28,24 +26,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - id: diff-base
-        if: github.event_name == 'push'
-        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
-      - name: Candidate-relative verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="origin/${{ github.base_ref }}"
-            HEAD="HEAD"
-          else
-            BASE="${{ steps.diff-base.outputs.base }}"
-            HEAD="${{ github.sha }}"
-          fi
-          if [ "$BASE" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
-            npm run check
-          else
-            npm run check:fast -- --base "$BASE" --head "$HEAD"
-          fi
-      - name: Candidate build
-        run: npm run build
+      - name: Full release candidate verification
+        run: npm run check:release -- --base "origin/${{ github.base_ref }}" --head HEAD --build-base=/MTG_OneDeck/

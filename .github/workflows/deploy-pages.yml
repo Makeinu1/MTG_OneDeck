@@ -3,9 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -26,9 +26,26 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - id: diff-base
-        run: node scripts/checks/resolve-diff-base.mjs --before "${{ github.event.before }}" --head "${{ github.sha }}" >> "$GITHUB_OUTPUT"
-      - run: npm run check:release -- --base "${{ steps.diff-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/
+      - id: release-base
+        name: Resolve last successful Pages SHA
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-pages.yml',
+              branch: 'main',
+              status: 'success',
+              per_page: 20,
+            });
+            const prior = data.workflow_runs.find((run) => run.head_sha !== context.sha);
+            const base = prior?.head_sha ?? EMPTY_TREE;
+            core.info(`release base ${base} (${prior ? 'last-successful-pages' : 'empty-tree'})`);
+            core.setOutput('base', base);
+      - name: Cumulative release verification
+        run: npm run check:release -- --base "${{ steps.release-base.outputs.base }}" --head "${{ github.sha }}" --build-base=/MTG_OneDeck/
       - uses: actions/configure-pages@v6
         with:
           enablement: true
