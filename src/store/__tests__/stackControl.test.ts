@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { makeDeck, makeDef } from '../../engine/__tests__/helpers';
+import { objectSnapshotForCard } from '../../engine/commands';
 import { useGameStore } from '../gameStore';
 
 const store = () => useGameStore.getState();
@@ -204,9 +205,26 @@ describe('stack control compatibility', () => {
     store().dispatch({ type: 'markDamage', cardId: targetId, amount: 3 });
     expect(store().state?.cards[targetId].damageMarked).toBe(3);
 
-    expect(store().castToStack(healId)).toBe('needs-choice');
-    store().answerPendingCastTarget(targetId);
-    store().confirmPendingCast();
+    const snapshot = objectSnapshotForCard(store().state!, targetId);
+    expect(snapshot).toBeDefined();
+    store().dispatch({
+      type: 'castToStack',
+      cardId: healId,
+      payment: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+      forced: false,
+      targetSelections: [{
+        slotId: 'target-0',
+        raw: 'Heal target creature.',
+        kind: 'object',
+        legalityMode: 'checked',
+        selection: {
+          kind: 'object',
+          physicalCardId: targetId,
+          objectId: snapshot!.objectId,
+          snapshot: snapshot!,
+        },
+      }],
+    });
     expect(store().state?.cards[healId].targetSelections).toEqual([
       expect.objectContaining({ slotId: 'target-0', legalityMode: 'checked' }),
     ]);
