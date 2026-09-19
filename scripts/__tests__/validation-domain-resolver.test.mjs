@@ -163,6 +163,13 @@ describe('validation domain resolver', () => {
     });
     expect(workflow.initialDomains).toContain('build-tooling');
     expect(workflow.escalation).toBe('full');
+
+    const finalCertification = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['docs/project-state/evidence/m6-final-certification.md'],
+    });
+    expect(finalCertification.initialDomains).toContain('m6-final-certification');
+    expect(finalCertification.escalation).toBe('full');
   });
 
   test('named domain selection rejects zero coverage and returns unique files', () => {
