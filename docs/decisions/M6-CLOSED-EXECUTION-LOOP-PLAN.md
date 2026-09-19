@@ -248,11 +248,11 @@ Fresh-session resume consumes M5 recovery pointers rather than creating an M6 re
 
 ### M6-4 — High-risk Independent QA
 
-Add read-only independent QA only for AGENTS.md high-risk categories.
+Independent QA remains policy-owned by `AGENTS.md`. M6 does not invent a second risk taxonomy. Before COMPLETE, the outer harness must explicitly classify whether independent review is required. Unclassified candidates cannot close; required candidates route to read-only QA; unresolved QA findings route back to reconciliation. QA status is run-local evidence and must bind to the exact candidate.
 
 ### M6-5 — Integration Gate
 
-Latest-main freshness and explicit external-write boundary.
+After exact candidate verification passes, M6 reconstructs M5 recovery against the current repository again. `RESUME` proves the candidate still contains latest main/current authority; `REPLAN`, `RESCUE`, and `BLOCKED` prevent COMPLETE. A fresh candidate that also satisfies the AGENTS review boundary may return `COMPLETE`, but M6 still reports external-write authority `NONE`; push/merge/deploy require separate execution-time permission.
 
 ### M6-6 — Harness Regression / Ablation
 
