@@ -78,17 +78,12 @@ function readJsonAtRef(cwd, ref, path) {
   }
 }
 
-function exactDiffFiles(cwd, base, head) {
-  const output = git(cwd, ['diff', '--name-only', '--diff-filter=ACDMRTUXB', `${base}...${head}`]);
-  return output === '' ? [] : [...new Set(output.split(/\r?\n/u).filter(Boolean))].sort();
-}
-
 function isWithin(path, root) {
   if (root.endsWith('/')) return path.startsWith(root);
   return path === root || path.startsWith(`${root}/`);
 }
 
-function isWatchedPath(path, watchedRoots) {
+export function isWatchedPath(path, watchedRoots) {
   return watchedRoots.some((root) => isWithin(path, root));
 }
 
