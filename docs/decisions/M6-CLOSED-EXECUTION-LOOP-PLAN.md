@@ -240,7 +240,7 @@ It does not edit production source, commit candidates, push, open/merge PRs, dep
 
 ### M6-2 — Local Outer Loop
 
-Only after M6-1 pilot demonstrates value. Add bounded local execution and candidate freeze. No remote-write automation.
+Only after M6-1 pilot demonstrates value. Connect the read-only controller to the existing Coding Harness through a stateless local-only step protocol. M6 does not spawn a generic Executor or Planner: it emits the current bounded action (`EXECUTE`, `PROVE`, `RECONCILE`, `PRE_CLOSE_FRESHNESS`, or a stop reason), the Work Order write/protection boundary, the exact candidate identity, and required M3 evidence. Runtime verification/failure signals are run-local inputs and are not persisted as truth. Verification requires an exact commit candidate; remote writes remain forbidden.
 
 ### M6-3 — Resume / Recovery
 
