@@ -7,7 +7,7 @@
   "deliveryState": "UNKNOWN",
   "lifecycle": "ACTIVE",
   "requirementLevel": "REQUIRED",
-  "auditedAtCommit": "4a91a1d16161347b4dcda25bffd14e0b4ba48556",
+  "auditedAtCommit": "74407d0a3f53d445308f26288267781beda778a5",
   "authorityRefs": [
     {
       "path": "docs/contracts/ux-constitution.md",
@@ -19,51 +19,11 @@
       "path": "src/engine/cockpitTriggers.ts"
     },
     {
-      "path": "src/engine/cockpitTriggersCore.ts"
-    },
-    {
-      "path": "src/engine/cockpitTriggerOccurrence.ts"
-    },
-    {
       "path": "src/engine/cockpitR31.ts"
-    },
-    {
-      "path": "src/engine/grammar/compile.ts"
-    },
-    {
-      "path": "src/engine/commands.ts"
-    },
-    {
-      "path": "src/store/gameStore.ts"
     }
   ],
-  "verificationRefs": [
-    {
-      "path": "src/engine/__tests__/cockpitTriggers.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/cockpitTriggerOccurrence.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/cockpitR31.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/cockpitR31Lifecycle.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/review.grammar-compile.test.ts"
-    },
-    {
-      "path": "src/engine/__tests__/review.grammar-guided.test.ts"
-    },
-    {
-      "path": "src/store/__tests__/review.feel-2-silent-skip-honesty.test.ts"
-    },
-    {
-      "path": "src/store/__tests__/stackControl.test.ts"
-    }
-  ],
-  "rationale": "R1-D reconstructed the current primary Cockpit and compatibility GameStore automation surfaces and closed the confirmed execution fractures in canonical command execution, mixed guided resolution, and stored-target success reporting. The registered paths are bounded and fail closed or fall back to manual handling for unsupported semantics, but there is still no exhaustive machine-enforced capability manifest proving that every production automation recognizer is mapped to reviewed semantic evidence; a global MATCH/GAP/CONFLICT verdict therefore remains unjustified.",
-  "nextAction": "Keep UNKNOWN until a later M6-bounded control-plane step establishes an exhaustive automation capability manifest with freshness enforcement. Treat the registered primary Cockpit and compatibility GameStore paths as the current audited surface; any new automation ingress must invalidate and re-audit CR-15.",
+  "verificationRefs": [],
+  "rationale": "Bounded detectors/materializers and manual fallback exist in subsystems, but complete current capability coverage has not been reconstructed well enough for a global MATCH/GAP/CONFLICT verdict.",
+  "nextAction": "Keep UNKNOWN. M3.1 hardens verification-coverage invalidation, manual evidence handling, and evidence-role classification, but it still does not prove exhaustive automation capability coverage or that every automation path is semantically known.",
   "ownerDecisionRefs": []
 }
