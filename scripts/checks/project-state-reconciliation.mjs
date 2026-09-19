@@ -9,7 +9,6 @@ import { DEFAULT_ROOT } from './validation-domain-resolver.mjs';
 
 const INDEX_PATH = 'docs/project-state/index.json';
 const GENERATED_PATH = 'docs/generated/project-state.md';
-const CAPABILITY_PREFIX = 'docs/project-state/capabilities/';
 const PRODUCT_PATH = 'docs/product-requirements.md';
 const AUTHORITY_ROOTS = ['docs/contracts', 'docs/acceptance', PRODUCT_PATH];
 const CLASSIFICATIONS = new Set(['PRESERVATION_CANDIDATE', 'REVIEW_REQUIRED', 'UNKNOWN']);
@@ -324,7 +323,7 @@ function printHuman(result) {
   console.log(`base: ${result.base}`);
   console.log(`head: ${result.head}`);
   console.log(`project-state baseline: ${result.projectStateBaseline}`);
-  if (!result.reconciliationRequired) {
+  if (result.outcome === 'NOT_REQUIRED') {
     console.log('watched roots unchanged; M1 rebaseline is not required');
     return;
   }
