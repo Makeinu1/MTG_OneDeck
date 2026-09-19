@@ -7174,7 +7174,7 @@ function applyCommandToDraft(draft: Draft, cmd: GameCommand): void {
     default: {
       const unsupported: never = cmd;
       throw new EngineError(
-        `未対応のGameCommandです: ${String((unsupported as unknown as { type?: unknown }).type ?? 'unknown')}`,
+        `未対応のGameCommandです: ${typeof (unsupported as unknown as { type?: unknown }).type === 'string' ? (unsupported as unknown as { type: string }).type : 'unknown'}`,
       );
     }
   }
