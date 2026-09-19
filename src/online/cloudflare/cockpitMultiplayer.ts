@@ -163,9 +163,6 @@ export function projectCockpit(
     const authorized = peek?.seatId === card.ownerId && peek.zone === card.zone;
     projected.cards[card.id] = present(card, authorized);
   }
-  const publicStackIds = new Set(projected.stack.map((entry) => entry.id));
-  const snapshotWasPublic = (snapshot: CardInstance) =>
-    !['hand', 'library'].includes(snapshot.zone);
   for (const entry of [
     ...projected.stack,
     ...(projected.resolution ? [projected.resolution] : []),
@@ -173,12 +170,7 @@ export function projectCockpit(
     entry.source = present(entry.source);
     if (entry.targetSnapshots)
       entry.targetSnapshots = Object.fromEntries(
-        Object.entries(entry.targetSnapshots)
-          .filter(
-            ([id, snapshot]) =>
-              visible.has(id) || publicStackIds.has(id) || snapshotWasPublic(snapshot),
-          )
-          .map(([id, snapshot]) => [id, present(snapshot)]),
+        Object.entries(entry.targetSnapshots).map(([id, snapshot]) => [id, present(snapshot)]),
       );
   }
   if (projected.triggers) {

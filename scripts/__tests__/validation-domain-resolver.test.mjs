@@ -109,6 +109,26 @@ describe('validation domain resolver', () => {
     expect(unclassifiedOnline.escalation).toBe('full');
   });
 
+  test('gives Stack presentation an explicit full domain without broad UI over-selection', () => {
+    const stackPresentation = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['src/components/game/stackWorkspaceModel.ts'],
+    });
+    expect(stackPresentation.initialDomains).toContain('cockpit-stack-presentation');
+    expect(stackPresentation.initialDomains).not.toContain('ui-interaction');
+    expect(stackPresentation.escalation).toBe('full');
+    expect(stackPresentation.testFiles).toEqual(expect.arrayContaining([
+      'src/components/game/stackWorkspaceModel.test.ts',
+      'src/components/game/CockpitStackLki.test.ts',
+    ]));
+
+    const ordinaryUi = resolveDomainSelection({
+      root: DEFAULT_ROOT,
+      files: ['src/components/game/CockpitTableSurface.tsx'],
+    });
+    expect(ordinaryUi.initialDomains).toContain('ui-interaction');
+  });
+
   test('escalates unknown and shared configuration paths', () => {
     const unknown = resolveDomainSelection({ root: DEFAULT_ROOT, files: ['vendor/new-tool.mjs'] });
     expect(unknown.unknownFiles).toEqual(['vendor/new-tool.mjs']);
