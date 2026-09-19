@@ -117,4 +117,30 @@ describe('repository hygiene fail-closed inventory', () => {
     expect(report.ok).toBe(false);
     expect(report.errors.join('\n')).toContain('consumer scripts/evidence/registry.json no longer references asset');
   });
+
+  it('rejects a package execution entry whose local script disappeared', () => {
+    const root = fixture();
+    put(root, 'package.json', JSON.stringify({ scripts: { broken: 'node scripts/missing-task.mjs' } }));
+    const report = validateRepositoryHygiene({ root });
+    expect(report.ok).toBe(false);
+    expect(report.errors.join('\n')).toContain('execution-orphan package script broken');
+  });
+
+  it('rejects duplicate workflow owner/purpose claims instead of guessing which gate owns the role', () => {
+    const root = fixture();
+    put(root, '.github/workflows/b.yml', 'name: B\n');
+    const path = join(root, 'scripts/checks/repository-hygiene.json');
+    const registry = JSON.parse(require('node:fs').readFileSync(path, 'utf8'));
+    registry.workflows.push({
+      path: '.github/workflows/b.yml',
+      lifecycle: 'ACTIVE',
+      owner: 'verification',
+      purpose: 'fixture',
+      writeCapable: false,
+    });
+    require('node:fs').writeFileSync(path, JSON.stringify(registry));
+    const report = validateRepositoryHygiene({ root });
+    expect(report.ok).toBe(false);
+    expect(report.errors.join('\n')).toContain('workflow duplicate-gate purpose');
+  });
 });
