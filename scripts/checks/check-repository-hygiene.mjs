@@ -105,6 +105,31 @@ export function validateRepositoryHygiene({ root = DEFAULT_ROOT } = {}) {
     }
   }
 
+  for (const guard of registry.inheritedGuards ?? []) {
+    if (!guard.id || !guard.owner || !guard.guarantee) errors.push('inherited guard: id/owner/guarantee required');
+    for (const path of guard.paths ?? []) {
+      if (!existsSync(resolve(root, path))) errors.push('inherited guard ' + guard.id + ': missing ' + path);
+    }
+  }
+
+  for (const surface of registry.compatibilitySurfaces ?? []) {
+    if (surface.lifecycle !== 'COMPATIBILITY') errors.push('compatibility ' + surface.id + ': lifecycle must remain COMPATIBILITY');
+    if (!surface.id || !surface.retirementPrecondition) errors.push('compatibility: id/retirementPrecondition required');
+    for (const path of surface.paths ?? []) {
+      if (!existsSync(resolve(root, path))) errors.push('compatibility ' + surface.id + ': missing retained path ' + path);
+    }
+  }
+
+  const architecture = registry.architectureGuard ?? {};
+  if (!architecture.root || !existsSync(resolve(root, architecture.root))) {
+    errors.push('architecture guard: root missing');
+  }
+  if (!architecture.validationDomainPath || !existsSync(resolve(root, architecture.validationDomainPath))) {
+    errors.push('architecture guard: validation domain file missing');
+  } else if (!fileText(root, architecture.validationDomainPath).includes(architecture.requiredPattern ?? '')) {
+    errors.push('architecture guard: validation-domain ownership pattern missing ' + architecture.requiredPattern);
+  }
+
   const auth = registry.historicalAuthorization ?? {};
   const marker = auth.requiredMarker ?? 'NON-REPLAYABLE';
   for (const path of auth.paths ?? []) {
