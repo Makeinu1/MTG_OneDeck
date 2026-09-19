@@ -143,6 +143,37 @@ describe('M1 candidate reconciliation', () => {
     expect(result.classifications[0].reasons).toContain('base-project-state-baseline-is-stale');
   });
 
+
+  test('reports stale base as UNKNOWN even when the candidate itself changes no watched root', () => {
+    const result = classifyCapabilities({
+      capabilities,
+      changedFiles: ['scripts/checks/tool.mjs'],
+      watchedRoots,
+      verificationPlan: plan(),
+      baselineFresh: false,
+    });
+
+    expect(result.outcome).toBe('UNKNOWN');
+    expect(result.reconciliationRequired).toBe(false);
+    expect(result.classifications.every((item) => item.classification === 'UNKNOWN')).toBe(true);
+  });
+
+  test('reports Project State self-modification as UNKNOWN even without a watched-root change', () => {
+    const result = classifyCapabilities({
+      capabilities,
+      changedFiles: ['docs/project-state/index.json'],
+      watchedRoots,
+      verificationPlan: plan(),
+      projectStateChanged: true,
+    });
+
+    expect(result.outcome).toBe('UNKNOWN');
+    expect(result.reconciliationRequired).toBe(false);
+    expect(result.classifications[0].reasons).toContain(
+      'candidate-modifies-project-state-control-plane-before-reconciliation',
+    );
+  });
+
   test('fails closed when the candidate edits Project State before reconciliation', () => {
     const result = classifyCapabilities({
       capabilities,
