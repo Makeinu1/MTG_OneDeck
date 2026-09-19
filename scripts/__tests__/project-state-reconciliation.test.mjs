@@ -154,6 +154,20 @@ describe('M1 candidate reconciliation', () => {
     expect(result.classifications[0].reasons).toContain('m3-unknown-coverage');
   });
 
+  test('fails closed when the exact candidate has not incorporated current main', () => {
+    const result = classifyCapabilities({
+      capabilities,
+      changedFiles: ['src/engine/manual.ts'],
+      watchedRoots,
+      verificationPlan: plan(),
+      mainFresh: false,
+    });
+
+    expect(result.outcome).toBe('UNKNOWN');
+    expect(result.classifications.every((item) => item.classification === 'UNKNOWN')).toBe(true);
+    expect(result.classifications[0].reasons).toContain('candidate-does-not-contain-current-main');
+  });
+
   test('fails closed if the base Project State is already stale', () => {
     const result = classifyCapabilities({
       capabilities,
