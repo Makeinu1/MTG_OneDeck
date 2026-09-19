@@ -42,6 +42,13 @@ describe('R1-C release/integration topology', () => {
     expect(workflow).not.toContain('Full release candidate verification');
   });
 
+  it('keeps forbidden/secret diff scanning in the targeted fast path', () => {
+    const fast = text('scripts/checks/fast-check.mjs');
+    expect(fast).toContain("runStep('forbidden diff scan'");
+    expect(fast).toContain("['scripts/checks/forbidden-files.mjs']");
+    expect(fast).toContain("forbiddenArgs.push('--diff', report.base)");
+  });
+
   it('keeps manual Pages dispatch non-deploying and revalidates push-main cumulatively', () => {
     const workflow = text('.github/workflows/deploy-pages.yml');
     expect(workflow).toMatch(/^\s*push:\s*$/m);
