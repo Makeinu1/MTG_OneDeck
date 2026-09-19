@@ -168,5 +168,82 @@
       "consumers": [],
       "reason": "Historical environment-bound production evidence tool; not current journey ownership."
     }
-  ]
+  ],
+  "inheritedGuards": [
+    {
+      "id": "changed-test-self-selection",
+      "owner": "scripts/checks/fast-check.mjs",
+      "paths": [
+        "scripts/checks/fast-check.mjs",
+        "scripts/checks/validation-domain-resolver.mjs",
+        "scripts/__tests__/validation-domain-resolver.test.mjs",
+        ".github/workflows/candidate-verification.yml"
+      ],
+      "guarantee": "Every changed runnable test is selected, escalated to full, or explicitly excluded; unknown implementation paths fail closed to full."
+    },
+    {
+      "id": "legacy-base-overlay-integrity",
+      "owner": "scripts/checks/check-docs.mjs",
+      "paths": [
+        "scripts/checks/check-docs.mjs",
+        "scripts/checks/generate-legacy-inventory.mjs",
+        "scripts/checks/legacy-inventory-policy.mjs",
+        "research/archive/document-reset-2026-08/legacy-contract-inventory.json",
+        "research/archive/document-reset-2026-08/legacy-contract-decisions.json"
+      ],
+      "guarantee": "Machine discovery cannot overwrite judge decisions; stale itemKey bindings fail closed and generated base exact-checks."
+    }
+  ],
+  "compatibilitySurfaces": [
+    {
+      "id": "public-online-recovery",
+      "lifecycle": "COMPATIBILITY",
+      "paths": [
+        "src/online/publicApp/recoveryV1.ts",
+        "src/online/publicApp/v2.ts",
+        "src/online/publicApp/v3.ts"
+      ],
+      "retirementPrecondition": "Close all current Public Online recovery consumers and define explicit migration/expiry for persisted recovery records before retirement."
+    },
+    {
+      "id": "game-snapshot-v1",
+      "lifecycle": "COMPATIBILITY",
+      "paths": [
+        "src/data/gameSnapshot.ts"
+      ],
+      "retirementPrecondition": "Remove resume/import consumers or provide an explicit migration/expiry policy for persisted GameSnapshot data."
+    },
+    {
+      "id": "cockpit-resume-checkpoint",
+      "lifecycle": "COMPATIBILITY",
+      "paths": [
+        "src/online/browser/cockpitClient.ts",
+        "src/online/cloudflare/cockpitSession.ts"
+      ],
+      "retirementPrecondition": "Close current reconnect/checkpoint consumers and cover still-live sessions/checkpoints before removing compatibility behavior."
+    },
+    {
+      "id": "cloudflare-journal-migration",
+      "lifecycle": "COMPATIBILITY",
+      "paths": [
+        "src/engine/core/closure/journalV1.ts",
+        "src/online/cloudflare/__tests__/journalMigrationV1.test.ts"
+      ],
+      "retirementPrecondition": "Prove dormant persisted journals/Durable Objects are migrated, reset, or expired before migration support is retired."
+    },
+    {
+      "id": "game-screen-compatibility-route",
+      "lifecycle": "COMPATIBILITY",
+      "paths": [
+        "src/App.tsx",
+        "src/components/game/GameScreen.tsx"
+      ],
+      "retirementPrecondition": "Prove persisted/local compatibility state no longer routes into GameScreen or provide an explicit migration/expiry boundary."
+    }
+  ],
+  "architectureGuard": {
+    "root": "src/test/architecture",
+    "validationDomainPath": "scripts/checks/validation-domains.json",
+    "requiredPattern": "src/test/architecture/**/*.test.ts"
+  }
 }
