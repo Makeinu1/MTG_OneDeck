@@ -4987,6 +4987,77 @@ function targetSelectionIsCurrentlyLegal(
   ).includes(current.id);
 }
 
+type CheckedTargetResolutionStatus = 'none' | 'has-legal' | 'all-illegal' | 'unknown';
+
+function checkedTargetResolutionStatus(
+  state: GameState,
+  card: CardInstance,
+  effectLines: readonly ResolvableEffectLine[],
+): CheckedTargetResolutionStatus {
+  const storedSelections = (card.targetSelections ?? []).filter(
+    (selection) => !selection.slotId.startsWith('manual-target-'),
+  );
+  if (storedSelections.length === 0) {
+    return 'none';
+  }
+  if (storedSelections.some((selection) => selection.legalityMode !== 'checked')) {
+    return 'unknown';
+  }
+
+  const expectedSlots = new Set(storedSelections.map((selection) => selection.slotId));
+  const matchedSlots = new Set<string>();
+  let legalTargetCount = 0;
+  let targetIndex = 0;
+  const commanderColorIdentity = commanderColorIdentityForState(state);
+
+  for (const effectLine of effectLines) {
+    const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
+    const compiled = compileAbilityIR(ir, {
+      sourceId: effectLine.sourceId,
+      def: effectLine.def,
+      controllerId: card.controllerId,
+      commanderColorIdentity,
+      ...(card.announcedX === undefined ? {} : { announcedX: card.announcedX }),
+    });
+
+    const targetPrompts: EffectPrompt[] = [];
+    if (compiled.decision === 'guided') {
+      targetPrompts.push(...compiled.prompts.filter(
+        (prompt) => prompt.kind === 'target' && !prompt.recipients,
+      ));
+    } else if (compiled.decision === 'manual') {
+      const counterAssist = guidedCounterLeafForManualComposite(ir);
+      if (counterAssist?.prompt.kind === 'target') {
+        targetPrompts.push(counterAssist.prompt);
+      }
+    }
+
+    for (const prompt of targetPrompts) {
+      const normalizedPrompt = { ...prompt, slotId: targetSlotId(prompt, targetIndex) };
+      const selection = storedTargetSelectionFor(card, normalizedPrompt, targetIndex);
+      targetIndex += 1;
+      if (!selection || selection.legalityMode !== 'checked') {
+        continue;
+      }
+      matchedSlots.add(selection.slotId);
+      if (targetSelectionIsCurrentlyLegal(
+        state,
+        selection,
+        normalizedPrompt,
+        effectLine.sourceId,
+        card.controllerId,
+      )) {
+        legalTargetCount += 1;
+      }
+    }
+  }
+
+  if ([...expectedSlots].some((slotId) => !matchedSlots.has(slotId))) {
+    return 'unknown';
+  }
+  return legalTargetCount > 0 ? 'has-legal' : 'all-illegal';
+}
+
 export function guidedPlanForStackTop(
   state: GameState,
 ): { sourceId: string; prompts: EffectPrompt[]; commands: GameCommand[]; warnings: string[] } | null {
@@ -4996,6 +5067,11 @@ export function guidedPlanForStackTop(
   }
   const card = state.cards[topId];
   if (!card) {
+    return null;
+  }
+
+  const effectLines = effectLinesForStackItemState(state, card);
+  if (checkedTargetResolutionStatus(state, card, effectLines) === 'all-illegal') {
     return null;
   }
 
@@ -5009,7 +5085,7 @@ export function guidedPlanForStackTop(
   let sourceId: string | null = null;
   let targetIndex = 0;
   const commanderColorIdentity = commanderColorIdentityForState(state);
-  for (const effectLine of effectLinesForStackItemState(state, card)) {
+  for (const effectLine of effectLines) {
     const ir = parseAbilityIR(effectLine.line.text, effectLine.typeLine);
     const compiled = compileAbilityIR(ir, {
       sourceId: effectLine.sourceId,
@@ -6274,11 +6350,16 @@ function applyResolveStackTop(
   const topId = stack[stack.length - 1];
   const card = requireCard(draft, topId);
   const effectLines = effectLinesForResolvedStackItem(draft, card);
+  const targetStatus = checkedTargetResolutionStatus(draft.state, card, effectLines);
 
   if (card.isAbility) {
     deleteCardFromState(draft, topId);
     if (card.triggerCondition && !triggerConditionSatisfied(draft.state, card.triggerCondition)) {
       pushLog(draft, `${stackNameOf(draft, card)}の能力は解決時の条件を満たさず効果を発生しなかった。`);
+      return;
+    }
+    if (targetStatus === 'all-illegal') {
+      pushLog(draft, `${stackNameOf(draft, card)}の能力はすべての対象が不適正なため解決されなかった。`);
       return;
     }
     // CR 310.11b: Siege defeated trigger — exile the battle, then the controller
@@ -6289,6 +6370,13 @@ function applyResolveStackTop(
     }
     pushLog(draft, `${stackNameOf(draft, card)}の能力を解決した。`);
     applyCompiledEffectsForStackItem(draft, card, effectLines, libraryShuffleOrder, guidedHandled);
+    return;
+  }
+
+  if (targetStatus === 'all-illegal') {
+    const name = stackNameOf(draft, card);
+    moveCardInternal(draft, topId, 'graveyard', 'bottom', false, 'resolve');
+    pushLog(draft, `${name}はすべての対象が不適正なため解決されなかった。`);
     return;
   }
 
