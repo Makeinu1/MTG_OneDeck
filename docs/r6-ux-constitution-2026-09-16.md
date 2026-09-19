@@ -2,6 +2,9 @@
 
 Updated: 2026-09-16
 Revision: v6.2
+Lifecycle: SUPPORTING / NON-CURRENT
+Authority: NONE
+Current authority: docs/contracts/ux-constitution.md
 Status: R6 design baseline. Documentation/design only. No R4b Gate/Correction implementation and no R5 Trigger Memory implementation are included here.
 Base audited: `3465e00cfb2c1bc76c22fc05b624b8a746b4061d`
 
