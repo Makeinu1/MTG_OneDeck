@@ -4,10 +4,12 @@ import {
   QA_STATUSES,
   decidePreClose,
   mapM3VerificationResult,
+  validateQaEvidence,
 } from '../checks/m6-preclose.mjs';
 import { SHADOW_RESULTS } from '../checks/m6-shadow-controller.mjs';
 
-const CANDIDATE_HEAD = 'a'.repeat(40);
+const BASE = '1'.repeat(40);
+const HEAD = 'a'.repeat(40);
 
 function envelope({
   result = SHADOW_RESULTS.CONTINUE,
@@ -15,12 +17,23 @@ function envelope({
 } = {}) {
   return {
     action,
-    candidate: { head: CANDIDATE_HEAD },
+    candidate: { planningBase: BASE, head: HEAD },
     decision: {
       result,
       nextAction: action,
       reasons: [],
     },
+  };
+}
+
+function qaReceipt(result = 'PASS', overrides = {}) {
+  return {
+    schemaVersion: 1,
+    base: BASE,
+    head: HEAD,
+    result,
+    evidenceRef: 'audit://independent-read-only-review',
+    ...overrides,
   };
 }
 
@@ -36,7 +49,7 @@ describe('M6 pre-close freshness and QA gate', () => {
     expect(result.nextAction).toBe('CLASSIFY_QA_REQUIREMENT');
   });
 
-  test('routes high-risk candidates to independent read-only QA', () => {
+  test('routes high-risk candidates to independent read-only QA without evidence', () => {
     const result = decidePreClose({
       localEnvelope: envelope(),
       recoveryDisposition: 'RESUME',
@@ -47,16 +60,46 @@ describe('M6 pre-close freshness and QA gate', () => {
     expect(result.nextAction).toBe('INDEPENDENT_QA');
   });
 
-  test('does not close candidates with unresolved QA findings', () => {
+  test('requires exact candidate-bound QA evidence', () => {
+    expect(validateQaEvidence(qaReceipt(), envelope())).toEqual([]);
+
+    for (const bad of [
+      qaReceipt('PASS', { head: 'b'.repeat(40) }),
+      qaReceipt('PASS', { base: 'c'.repeat(40) }),
+      qaReceipt('PASS', { evidenceRef: '' }),
+      qaReceipt('UNKNOWN'),
+    ]) {
+      expect(validateQaEvidence(bad, envelope()).length).toBeGreaterThan(0);
+    }
+  });
+
+  test('does not close candidates with independent QA findings', () => {
     const result = decidePreClose({
       localEnvelope: envelope(),
       recoveryDisposition: 'RESUME',
-      qaStatus: QA_STATUSES.FAIL,
-      qaHead: CANDIDATE_HEAD,
+      qaStatus: QA_STATUSES.REQUIRED,
+      qaEvidence: qaReceipt('FAIL'),
     });
 
     expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
     expect(result.nextAction).toBe('RECONCILE_QA_FINDINGS');
+  });
+
+  test('stale/unbound QA evidence routes back to independent QA', () => {
+    for (const qaEvidence of [
+      qaReceipt('PASS', { head: 'b'.repeat(40) }),
+      qaReceipt('PASS', { evidenceRef: '' }),
+    ]) {
+      const result = decidePreClose({
+        localEnvelope: envelope(),
+        recoveryDisposition: 'RESUME',
+        qaStatus: QA_STATUSES.REQUIRED,
+        qaEvidence,
+      });
+
+      expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
+      expect(result.nextAction).toBe('INDEPENDENT_QA');
+    }
   });
 
   test('stale main/current authority after proof forces replan', () => {
@@ -94,30 +137,16 @@ describe('M6 pre-close freshness and QA gate', () => {
     expect(result.nextAction).toBe('REQUEST_EXTERNAL_WRITE_PERMISSION');
   });
 
-  test('completes an exact fresh high-risk candidate only after QA passes', () => {
+  test('completes an exact fresh high-risk candidate only after QA receipt passes', () => {
     const result = decidePreClose({
       localEnvelope: envelope(),
       recoveryDisposition: 'RESUME',
-      qaStatus: QA_STATUSES.PASS,
-      qaHead: CANDIDATE_HEAD,
+      qaStatus: QA_STATUSES.REQUIRED,
+      qaEvidence: qaReceipt('PASS'),
     });
 
     expect(result.result).toBe(SHADOW_RESULTS.COMPLETE);
     expect(result.nextAction).toBe('REQUEST_EXTERNAL_WRITE_PERMISSION');
-  });
-
-  test('rejects stale or unbound QA PASS instead of reusing it', () => {
-    for (const qaHead of [null, 'b'.repeat(40)]) {
-      const result = decidePreClose({
-        localEnvelope: envelope(),
-        recoveryDisposition: 'RESUME',
-        qaStatus: QA_STATUSES.PASS,
-        qaHead,
-      });
-
-      expect(result.result).toBe(SHADOW_RESULTS.CONTINUE);
-      expect(result.nextAction).toBe('INDEPENDENT_QA');
-    }
   });
 
   test('preserves an upstream stop instead of upgrading it', () => {
@@ -148,7 +177,6 @@ describe('M6 pre-close freshness and QA gate', () => {
     expect(result.nextAction).toBe('CLOSE_NO_CHANGE');
   });
 });
-
 
 describe('M6 pre-close consumes actual M3 evidence', () => {
   function m3Result(overrides = {}) {
