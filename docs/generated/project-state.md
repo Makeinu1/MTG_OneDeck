@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `74407d0a3f53d445308f26288267781beda778a5` (main, 2026-09-19).
+Audited baseline: `c0db31342148897e67a3b48d8fa4dd21e54549b5` (main, 2026-09-19).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -50,7 +50,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - Impacted manual-only Acceptance can be satisfied only by an explicit exact-base/head manual evidence receipt; the receipt is verification evidence, not semantic truth, Project State, or durable external-write authority.
   - M4 Work Orders are bounded execution envelopes only: they do not create Product/contract truth, Project State NOW, semantic verdicts, verification freshness, or external-write permission.
   - M4/M4.1 candidate/delegation validation detects bounded staleness and scope drift, permits planned input deletion, and preserves delegated authority/context boundaries, but does not perform the repository-wide stale/dead/duplicate cleanup assigned to M5.
-  - CR-15 remains REQUIRED/UNKNOWN: M4 does not prove that every automation path is semantically known or exhaustively covered, and M6 requires a separately bounded automation audit.
+  - CR-15 remains REQUIRED/UNKNOWN after R1-D: current primary Cockpit and compatibility GameStore automation surfaces are registered and confirmed execution fractures were repaired, but no exhaustive machine-enforced capability manifest yet proves that every production automation recognizer is mapped to reviewed semantic evidence.
   - Q-02 confirmed elimination/end irreversibility remains a Product decision without a claimed UX refinement edge, and Information/Audience still lacks a suitable lower engine semantic clause; both remain intentional visible gaps.
 
 ## Capability state
