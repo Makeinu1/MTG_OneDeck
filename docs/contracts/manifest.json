@@ -6,6 +6,7 @@
   "activeAllowlist": [],
   "contracts": [
     {"id":"CONTRACT-UX-CONSTITUTION","status":"active","path":"docs/contracts/ux-constitution.md","authorityFor":["interaction-semantics","human-authority","automation-boundary","game-lifecycle","hold","undo-correction","room-administration"],"owner":"judge","dependsOn":[],"supersedes":[]},
+    {"id":"CONTRACT-BOUNDARY-LIFECYCLE","status":"active","path":"docs/contracts/boundary-lifecycle.md","authorityFor":["boundary-lifecycle","long-lived-operation-completeness"],"owner":"judge","dependsOn":["CONTRACT-UX-CONSTITUTION"],"supersedes":[]},
     {"id":"CONTRACT-ENGINE-STATE","status":"active","path":"docs/contracts/engine/state-and-invariants.md","authorityFor":["engine-state","immutability","state-invariants"],"owner":"judge","dependsOn":["CONTRACT-UX-CONSTITUTION"],"supersedes":["legacy:docs/engine-spec.md#1"]},
     {"id":"CONTRACT-ENGINE-COMMANDS","status":"active","path":"docs/contracts/engine/commands-and-transactions.md","authorityFor":["engine-commands","transactions","undo-boundary"],"owner":"judge","dependsOn":["CONTRACT-UX-CONSTITUTION","CONTRACT-ENGINE-STATE"],"supersedes":["legacy:docs/engine-spec.md#2"]},
     {"id":"CONTRACT-ENGINE-ZONES","status":"active","path":"docs/contracts/engine/zones-events-and-lki.md","authorityFor":["zones","events","lki","zone-change"],"owner":"judge","dependsOn":["CONTRACT-ENGINE-STATE","CONTRACT-ENGINE-COMMANDS"],"supersedes":["legacy:docs/engine-spec.md#zone-sections"]},
