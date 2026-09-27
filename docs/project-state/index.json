@@ -4,8 +4,8 @@
   "baseline": {
     "repository": "Makeinu1/MTG_OneDeck",
     "branch": "main",
-    "commit": "c0db31342148897e67a3b48d8fa4dd21e54549b5",
-    "auditedDate": "2026-09-19",
+    "commit": "5652365ede8c85402d1a10d2b25662a32045d54c",
+    "auditedDate": "2026-09-27",
     "watchedRoots": [
       "src",
       "docs/contracts",
@@ -86,7 +86,8 @@
       "M6-1P completed a five-root-Work-Order shadow pilot and repaired the post-M6/M7 false-stop coupling. M6-2 local execution/proof/reconcile wiring remains unimplemented.",
       "M6-2 exposes a stateless LOCAL_ONLY action envelope for the existing Coding Harness. Fresh-session recovery proof remains M6-3 work.",
       "M6-3 fresh-session resume consumes M5 recovery receipts and reconstructs the M6-2 LOCAL_ONLY envelope without a second recovery registry. High-risk QA routing and pre-close integration freshness remain for M6-4/5.",
-      "M6 Closed Execution Loop is certified complete. The outer loop remains a thin coordinator over M0-M5 authority/evidence, with no Planner/generic Executor/generic Auditor/persistent loop state and no remote-write authority."
+      "M6 Closed Execution Loop is certified complete. The outer loop remains a thin coordinator over M0-M5 authority/evidence, with no Planner/generic Executor/generic Auditor/persistent loop state and no remote-write authority.",
+      "Boundary Lifecycle clauses BOUNDARY-001..005 are active semantic authority but currently unbound in M3 traceability/acceptance evidence; this remains a verification gap and does not change CR-01..CR-15 semantic verdicts."
     ]
   },
   "capabilities": [

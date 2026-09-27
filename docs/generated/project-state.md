@@ -2,7 +2,7 @@
 # Current Project State
 
 Canonical source: `docs/project-state/index.json` + indexed capability files.
-Audited baseline: `c0db31342148897e67a3b48d8fa4dd21e54549b5` (main, 2026-09-19).
+Audited baseline: `5652365ede8c85402d1a10d2b25662a32045d54c` (main, 2026-09-27).
 Authority note: this generated view is committed project NOW only on `main`; on any non-main branch it is a candidate Project State until merged.
 
 ## Restart entry
@@ -57,6 +57,7 @@ Issues, pull requests and CI are evidence/work surfaces. They are not canonical 
   - M6-2 exposes a stateless LOCAL_ONLY action envelope for the existing Coding Harness. Fresh-session recovery proof remains M6-3 work.
   - M6-3 fresh-session resume consumes M5 recovery receipts and reconstructs the M6-2 LOCAL_ONLY envelope without a second recovery registry. High-risk QA routing and pre-close integration freshness remain for M6-4/5.
   - M6 Closed Execution Loop is certified complete. The outer loop remains a thin coordinator over M0-M5 authority/evidence, with no Planner/generic Executor/generic Auditor/persistent loop state and no remote-write authority.
+  - Boundary Lifecycle clauses BOUNDARY-001..005 are active semantic authority but currently unbound in M3 traceability/acceptance evidence; this remains a verification gap and does not change CR-01..CR-15 semantic verdicts.
 
 ## Capability state
 
