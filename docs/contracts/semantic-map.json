@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "edges": [
     {
       "from": "UX-CONST-MANUAL",
@@ -70,6 +70,47 @@
       "from": "ENG-MP-005",
       "type": "constrainedBy",
       "to": "UX-CONST-RECOVERY"
+    }
+  ],
+  "boundaryOperations": [
+    {
+      "operationId": "OP-participant-removal-recovery",
+      "label": "Participant removal and recovery",
+      "axes": {
+        "authority": {"state": "COVERED", "clauseRefs": ["UX-CONST-ELIMINATION", "UX-CONST-RECOVERY", "ENG-MP-005"]},
+        "identity": {"state": "MISSING"},
+        "commit": {"state": "MISSING"},
+        "invalidation": {"state": "MISSING"},
+        "persistence": {"state": "MISSING"},
+        "publication": {"state": "MISSING"},
+        "receiptReconciliation": {"state": "MISSING"}
+      }
+    },
+    {
+      "operationId": "OP-online-command-commit-reconcile",
+      "label": "Online command commit reconciliation",
+      "axes": {
+        "authority": {"state": "MISSING"},
+        "identity": {"state": "MISSING"},
+        "commit": {"state": "MISSING"},
+        "invalidation": {"state": "MISSING"},
+        "persistence": {"state": "MISSING"},
+        "publication": {"state": "MISSING"},
+        "receiptReconciliation": {"state": "MISSING"}
+      }
+    },
+    {
+      "operationId": "OP-online-deck-submission-head-reconciliation",
+      "label": "Online deck submission head reconciliation",
+      "axes": {
+        "authority": {"state": "MISSING"},
+        "identity": {"state": "MISSING"},
+        "commit": {"state": "MISSING"},
+        "invalidation": {"state": "MISSING"},
+        "persistence": {"state": "MISSING"},
+        "publication": {"state": "MISSING"},
+        "receiptReconciliation": {"state": "MISSING"}
+      }
     }
   ]
 }

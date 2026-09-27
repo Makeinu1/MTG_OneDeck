@@ -14,6 +14,7 @@ const traceabilityPath = join(root, 'docs/contracts/traceability.json');
 const traceabilityRelativePath = relative(root, traceabilityPath);
 const productRequirementsPath = join(root, 'docs/product-requirements.md');
 const semanticMapPath = join(root, 'docs/contracts/semantic-map.json');
+const projectStatePath = join(root, 'docs/project-state/index.json');
 const errors = [];
 
 function readJson(path) {
@@ -297,44 +298,309 @@ function discoverContractSemanticIds(manifest) {
   return owners;
 }
 
-function checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds) {
+const boundaryAxes = [
+  'authority',
+  'identity',
+  'commit',
+  'invalidation',
+  'persistence',
+  'publication',
+  'receiptReconciliation',
+];
+const boundaryAxisSet = new Set(boundaryAxes);
+const boundaryStates = new Set(['COVERED', 'NOT_APPLICABLE', 'MISSING', 'OWNER_DECISION_REQUIRED']);
+const boundaryOperationIdPattern = /^OP-[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+const boundaryDecisionRefPattern = /^OD-[0-9]{3}$/u;
+const boundaryNotApplicableReasons = new Map([
+  ['invalidation', 'NO_INVALIDATION_SOURCE'],
+  ['persistence', 'NO_PERSISTENCE_REQUIRED'],
+  ['publication', 'NO_PUBLICATION_REQUIRED'],
+  ['receiptReconciliation', 'NO_RECEIPT_PATH'],
+]);
+
+function uniqueStrings(values) {
+  return Array.isArray(values)
+    && values.every((value) => typeof value === 'string' && value.trim() !== '')
+    && new Set(values).size === values.length;
+}
+
+function unresolvedOwnerDecisionIds(projectState) {
+  const ids = new Set();
+  const pending = Array.isArray(projectState?.pendingDecisions) ? projectState.pendingDecisions : [];
+  const owner = Array.isArray(projectState?.ownerDecisions) ? projectState.ownerDecisions : [];
+  const linkedIds = new Set(pending
+    .filter((entry) => entry !== null && typeof entry === 'object' && !Array.isArray(entry)
+      && entry.status === 'OWNER_REQUIRED' && typeof entry.ownerDecisionRef === 'string')
+    .map((entry) => entry.ownerDecisionRef));
+  for (const entry of owner) {
+    if (entry !== null && typeof entry === 'object' && !Array.isArray(entry)
+      && typeof entry.id === 'string' && boundaryDecisionRefPattern.test(entry.id)
+      && entry.status === 'OPEN' && linkedIds.has(entry.id)) ids.add(entry.id);
+  }
+  return ids;
+}
+
+function deriveBoundaryStatus(axes) {
+  const states = boundaryAxes.map((axis) => axes[axis]?.state);
+  if (states.includes('OWNER_DECISION_REQUIRED')) return 'OWNER_DECISION_REQUIRED';
+  if (states.includes('MISSING')) return 'INCOMPLETE';
+  return 'COMPLETE';
+}
+
+function validateBoundaryOperationRows(
+  rows,
+  contractSemanticIds,
+  { labelPrefix = 'semantic map boundary operation', unresolvedDecisionIds = new Set() } = {},
+) {
+  const rowErrors = [];
+  const derivedStatuses = new Map();
+  if (!Array.isArray(rows)) {
+    rowErrors.push(`${labelPrefix}: boundaryOperations must be an array`);
+    return { errors: rowErrors, derivedStatuses };
+  }
+  const seenOperationIds = new Set();
+  for (const [position, row] of rows.entries()) {
+    const label = `${labelPrefix} #${position}`;
+    const rowErrorStart = rowErrors.length;
+    if (row === null || typeof row !== 'object' || Array.isArray(row)) {
+      rowErrors.push(`${label}: expected object`);
+      continue;
+    }
+    if (Object.keys(row).sort().join(',') !== 'axes,label,operationId') {
+      rowErrors.push(`${label}: only operationId/label/axes are allowed`);
+    }
+    if (typeof row.operationId !== 'string' || !boundaryOperationIdPattern.test(row.operationId)) {
+      rowErrors.push(`${label}: invalid stable operationId`);
+    } else if (seenOperationIds.has(row.operationId)) {
+      rowErrors.push(`${label}: duplicate operationId ${row.operationId}`);
+    } else {
+      seenOperationIds.add(row.operationId);
+    }
+    if (typeof row.label !== 'string' || row.label.trim() === '') rowErrors.push(`${label}: label is required`);
+    if (row.axes === null || typeof row.axes !== 'object' || Array.isArray(row.axes)) {
+      rowErrors.push(`${label}: axes must be an object`);
+      continue;
+    }
+    const axisKeys = Object.keys(row.axes).sort();
+    if (axisKeys.join(',') !== [...boundaryAxisSet].sort().join(',')) {
+      rowErrors.push(`${label}: axes must contain exactly the seven boundary axes`);
+      continue;
+    }
+    for (const axis of boundaryAxes) {
+      const value = row.axes[axis];
+      const axisLabel = `${label} ${axis}`;
+      if (value === null || typeof value !== 'object' || Array.isArray(value) || typeof value.state !== 'string') {
+        rowErrors.push(`${axisLabel}: malformed axis state`);
+        continue;
+      }
+      if (!boundaryStates.has(value.state)) {
+        rowErrors.push(`${axisLabel}: unknown axis state ${value.state}`);
+        continue;
+      }
+      if (value.state === 'COVERED') {
+        if (Object.keys(value).sort().join(',') !== 'clauseRefs,state') rowErrors.push(`${axisLabel}: COVERED allows only state and clauseRefs`);
+        if (!uniqueStrings(value.clauseRefs) || value.clauseRefs.length === 0) {
+          rowErrors.push(`${axisLabel}: COVERED requires non-empty unique clauseRefs`);
+        } else {
+          for (const ref of value.clauseRefs) {
+            if (!contractSemanticIds.has(ref)) rowErrors.push(`${axisLabel}: unresolved active clauseRef ${ref}`);
+          }
+        }
+      } else if (value.state === 'NOT_APPLICABLE') {
+        if (Object.keys(value).sort().join(',') !== 'reason,state') rowErrors.push(`${axisLabel}: NOT_APPLICABLE allows only state and reason`);
+        const expectedReason = boundaryNotApplicableReasons.get(axis);
+        if (expectedReason === undefined) {
+          rowErrors.push(`${axisLabel}: core axes must be COVERED, MISSING, or OWNER_DECISION_REQUIRED`);
+        } else if (value.reason !== expectedReason) {
+          rowErrors.push(`${axisLabel}: NOT_APPLICABLE requires ${expectedReason}`);
+        }
+      } else if (value.state === 'MISSING') {
+        if (Object.keys(value).sort().join(',') !== 'state') rowErrors.push(`${axisLabel}: MISSING carries no payload`);
+      } else {
+        if (Object.keys(value).sort().join(',') !== 'decisionRefs,state') rowErrors.push(`${axisLabel}: OWNER_DECISION_REQUIRED allows only state and decisionRefs`);
+        if (!uniqueStrings(value.decisionRefs) || value.decisionRefs.length === 0) {
+          rowErrors.push(`${axisLabel}: OWNER_DECISION_REQUIRED requires decisionRefs`);
+        } else {
+          for (const ref of value.decisionRefs) {
+            if (!boundaryDecisionRefPattern.test(ref)) rowErrors.push(`${axisLabel}: invalid decision reference ${ref}`);
+            else if (!unresolvedDecisionIds.has(ref)) rowErrors.push(`${axisLabel}: decision reference is not an unresolved current M1 owner decision ${ref}`);
+          }
+        }
+      }
+    }
+    if (rowErrors.length === rowErrorStart) {
+      derivedStatuses.set(row.operationId, deriveBoundaryStatus(row.axes));
+    }
+  }
+  return { errors: rowErrors, derivedStatuses };
+}
+
+function checkBoundaryCalibration() {
+  const fixtureClauseRefs = new Map([
+    ['authority', 'FIXTURE-BOUNDARY-AUTHORITY'],
+    ['identity', 'FIXTURE-BOUNDARY-IDENTITY'],
+    ['commit', 'FIXTURE-BOUNDARY-COMMIT'],
+    ['invalidation', 'FIXTURE-BOUNDARY-INVALIDATION'],
+    ['persistence', 'FIXTURE-BOUNDARY-PERSISTENCE'],
+    ['publication', 'FIXTURE-BOUNDARY-PUBLICATION'],
+    ['receiptReconciliation', 'FIXTURE-BOUNDARY-RECEIPT-RECONCILIATION'],
+  ]);
+  const fixtureSemanticIds = new Set(fixtureClauseRefs.values());
+  const completeAxes = () => Object.fromEntries(
+    boundaryAxes.map((axis) => [axis, { state: 'COVERED', clauseRefs: [fixtureClauseRefs.get(axis)] }]),
+  );
+  const fixture = () => ({
+    operationId: 'OP-non-authoritative-test-fixture',
+    label: 'NON_AUTHORITATIVE_TEST_FIXTURE',
+    axes: completeAxes(),
+  });
+  const validateFixture = (row, options = {}) => validateBoundaryOperationRows([row], fixtureSemanticIds, options);
+  const calibrationErrors = [];
+  const expectValidStatus = (name, row, expected) => {
+    const result = validateFixture(row, { labelPrefix: `calibration ${name}` });
+    if (result.errors.length > 0) calibrationErrors.push(`${name}: unexpected validation error ${result.errors.join('; ')}`);
+    if (result.derivedStatuses.get(row.operationId) !== expected) calibrationErrors.push(`${name}: expected ${expected}`);
+  };
+  const expectRejected = (name, row) => {
+    const result = validateFixture(row, { labelPrefix: `calibration ${name}` });
+    if (result.errors.length === 0) calibrationErrors.push(`${name}: malformed fixture was accepted`);
+  };
+  const complete = fixture();
+  expectValidStatus('complete', complete, 'COMPLETE');
+  const identityMissing = fixture();
+  identityMissing.axes.identity = { state: 'MISSING' };
+  expectValidStatus('identity-missing', identityMissing, 'INCOMPLETE');
+  const invalidationMissing = fixture();
+  invalidationMissing.axes.invalidation = { state: 'MISSING' };
+  expectValidStatus('invalidation-missing', invalidationMissing, 'INCOMPLETE');
+  const unreasonedNotApplicable = fixture();
+  unreasonedNotApplicable.axes.publication = { state: 'NOT_APPLICABLE' };
+  expectRejected('unreasoned-not-applicable', unreasonedNotApplicable);
+  const crossAxisNotApplicable = fixture();
+  crossAxisNotApplicable.axes.persistence = { state: 'NOT_APPLICABLE', reason: 'NO_PUBLICATION_REQUIRED' };
+  expectRejected('cross-axis-not-applicable', crossAxisNotApplicable);
+  const authorityNotApplicable = fixture();
+  authorityNotApplicable.axes.authority = { state: 'NOT_APPLICABLE', reason: 'NO_INVALIDATION_SOURCE' };
+  expectRejected('authority-not-applicable', authorityNotApplicable);
+  const identityNotApplicable = fixture();
+  identityNotApplicable.axes.identity = { state: 'NOT_APPLICABLE', reason: 'NO_PERSISTENCE_REQUIRED' };
+  expectRejected('identity-not-applicable', identityNotApplicable);
+  const commitNotApplicable = fixture();
+  commitNotApplicable.axes.commit = { state: 'NOT_APPLICABLE', reason: 'NO_PERSISTENCE_REQUIRED' };
+  expectRejected('commit-not-applicable', commitNotApplicable);
+  const validOptionalNotApplicable = fixture();
+  validOptionalNotApplicable.axes.persistence = { state: 'NOT_APPLICABLE', reason: 'NO_PERSISTENCE_REQUIRED' };
+  expectValidStatus('valid-persistence-not-applicable', validOptionalNotApplicable, 'COMPLETE');
+  const decisionExtraction = unresolvedOwnerDecisionIds({
+    pendingDecisions: [
+      { id: 'P-001', status: 'OWNER_REQUIRED', ownerDecisionRef: 'OD-900' },
+      { id: 'P-002', status: 'OWNER_REQUIRED', ownerDecisionRef: 'OD-901' },
+      { id: 'P-003', status: 'PENDING_JUDGMENT', ownerDecisionRef: 'OD-902' },
+      { id: 'OD-005', status: 'PENDING_JUDGMENT' },
+      { id: 'P-004', status: 'OWNER_REQUIRED', ownerDecisionRef: 'OD-9' },
+    ],
+    ownerDecisions: [
+      { id: 'OD-900', status: 'OPEN' },
+      { id: 'OD-901', status: 'RESOLVED' },
+      { id: 'OD-902', status: 'OPEN' },
+      { id: 'OD-903', status: 'OPEN' },
+      { id: 'OD-904', status: 'UNKNOWN' },
+      { id: 'OD-9', status: 'OPEN' },
+    ],
+  });
+  if ([...decisionExtraction].join(',') !== 'OD-900') {
+    calibrationErrors.push(`owner-decision-extraction: expected only linked OPEN OD-900, got ${[...decisionExtraction].join(',') || '(none)'}`);
+  }
+  const ownerDecision = fixture();
+  ownerDecision.axes.identity = { state: 'OWNER_DECISION_REQUIRED', decisionRefs: ['OD-900'] };
+  ownerDecision.axes.invalidation = { state: 'MISSING' };
+  const ownerDecisionResult = validateFixture(ownerDecision, {
+    labelPrefix: 'calibration owner-decision-precedence',
+    unresolvedDecisionIds: new Set(['OD-900']),
+  });
+  if (ownerDecisionResult.errors.length > 0) calibrationErrors.push(`owner-decision-precedence: unexpected validation error ${ownerDecisionResult.errors.join('; ')}`);
+  if (ownerDecisionResult.derivedStatuses.get(ownerDecision.operationId) !== 'OWNER_DECISION_REQUIRED') {
+    calibrationErrors.push('owner-decision-precedence: expected OWNER_DECISION_REQUIRED');
+  }
+  const sharedOwnerDecision = fixture();
+  sharedOwnerDecision.axes.identity = { state: 'OWNER_DECISION_REQUIRED', decisionRefs: ['OD-900'] };
+  sharedOwnerDecision.axes.invalidation = { state: 'OWNER_DECISION_REQUIRED', decisionRefs: ['OD-900'] };
+  const sharedOwnerDecisionResult = validateFixture(sharedOwnerDecision, {
+    labelPrefix: 'calibration shared-owner-decision',
+    unresolvedDecisionIds: new Set(['OD-900']),
+  });
+  if (sharedOwnerDecisionResult.errors.length > 0) calibrationErrors.push(`shared-owner-decision: unexpected validation error ${sharedOwnerDecisionResult.errors.join('; ')}`);
+  if (sharedOwnerDecisionResult.derivedStatuses.get(sharedOwnerDecision.operationId) !== 'OWNER_DECISION_REQUIRED') {
+    calibrationErrors.push('shared-owner-decision: expected OWNER_DECISION_REQUIRED');
+  }
+  const unknownOwnerDecision = fixture();
+  unknownOwnerDecision.axes.identity = { state: 'OWNER_DECISION_REQUIRED', decisionRefs: ['OD-901'] };
+  const unknownOwnerDecisionResult = validateFixture(unknownOwnerDecision, {
+    labelPrefix: 'calibration unknown-owner-decision',
+    unresolvedDecisionIds: new Set(['OD-900']),
+  });
+  if (unknownOwnerDecisionResult.errors.length === 0) calibrationErrors.push('unknown-owner-decision: malformed fixture was accepted');
+  const resolvedOwnerDecision = fixture();
+  resolvedOwnerDecision.axes.identity = { state: 'OWNER_DECISION_REQUIRED', decisionRefs: ['OD-001'] };
+  const resolvedOwnerDecisionResult = validateFixture(resolvedOwnerDecision, {
+    labelPrefix: 'calibration resolved-owner-decision',
+    unresolvedDecisionIds: new Set(['OD-900']),
+  });
+  if (resolvedOwnerDecisionResult.errors.length === 0) calibrationErrors.push('resolved-owner-decision: resolved M1 decision was accepted');
+  const manualStatus = fixture();
+  manualStatus.status = 'COMPLETE';
+  manualStatus.axes.identity = { state: 'MISSING' };
+  expectRejected('manual-status', manualStatus);
+  const redundantSummary = fixture();
+  redundantSummary.semanticRefs = ['FIXTURE-BOUNDARY-AUTHORITY'];
+  expectRejected('redundant-semantic-refs', redundantSummary);
+  const redundantOwnerRefs = fixture();
+  redundantOwnerRefs.ownerDecisionRefs = [];
+  expectRejected('redundant-owner-decision-refs', redundantOwnerRefs);
+  for (const message of calibrationErrors) errors.push(`boundary calibration: ${message}`);
+}
+
+function checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds, unresolvedDecisionIds) {
   if (semanticMap === null || typeof semanticMap !== 'object') {
     errors.push('semantic map: expected object');
     return;
   }
-  if (semanticMap.schemaVersion !== 1) errors.push('semantic map: schemaVersion must be 1');
-  if (!Array.isArray(semanticMap.edges)) {
-    errors.push('semantic map: edges must be an array');
-    return;
+  if (Object.keys(semanticMap).sort().join(',') !== 'boundaryOperations,edges,schemaVersion') {
+    errors.push('semantic map: only schemaVersion/edges/boundaryOperations are allowed');
   }
+  if (semanticMap.schemaVersion !== 2) errors.push('semantic map: schemaVersion must be 2');
   const allowedTypes = new Set(['refines', 'constrainedBy']);
   const seen = new Set();
   const adjacency = new Map();
   const semanticExists = (id) => contractSemanticIds.has(id) || productDefinitions.has(id);
-  for (const [position, edge] of semanticMap.edges.entries()) {
-    const label = `semantic map edge #${position}`;
-    if (edge === null || typeof edge !== 'object' || Array.isArray(edge)) {
-      errors.push(`${label}: expected object`);
-      continue;
-    }
-    const keys = Object.keys(edge).sort();
-    if (keys.join(',') !== 'from,to,type') errors.push(`${label}: only from/type/to are allowed (semantic prose is forbidden)`);
-    if (typeof edge.from !== 'string' || typeof edge.to !== 'string' || !allowedTypes.has(edge.type)) {
-      errors.push(`${label}: malformed edge`);
-      continue;
-    }
-    if (edge.from === edge.to) errors.push(`${label}: self edge is forbidden`);
-    const tuple = `${edge.from}\n${edge.type}\n${edge.to}`;
-    if (seen.has(tuple)) errors.push(`${label}: duplicate edge ${edge.from} ${edge.type} ${edge.to}`);
-    seen.add(tuple);
-    for (const endpoint of [edge.from, edge.to]) {
-      if (!semanticExists(endpoint)) errors.push(`${label}: unresolved semantic endpoint ${endpoint}`);
-      if (/^(?:P|Q)-\d{2}$/u.test(endpoint) && productDefinitions.get(endpoint) !== 1) {
-        errors.push(`${label}: product definition ${endpoint} must resolve exactly once`);
+  if (!Array.isArray(semanticMap.edges)) {
+    errors.push('semantic map: edges must be an array');
+  } else {
+    for (const [position, edge] of semanticMap.edges.entries()) {
+      const label = `semantic map edge #${position}`;
+      if (edge === null || typeof edge !== 'object' || Array.isArray(edge)) {
+        errors.push(`${label}: expected object`);
+        continue;
       }
+      const keys = Object.keys(edge).sort();
+      if (keys.join(',') !== 'from,to,type') errors.push(`${label}: only from/type/to are allowed (semantic prose is forbidden)`);
+      if (typeof edge.from !== 'string' || typeof edge.to !== 'string' || !allowedTypes.has(edge.type)) {
+        errors.push(`${label}: malformed edge`);
+        continue;
+      }
+      if (edge.from === edge.to) errors.push(`${label}: self edge is forbidden`);
+      const tuple = `${edge.from}\n${edge.type}\n${edge.to}`;
+      if (seen.has(tuple)) errors.push(`${label}: duplicate edge ${edge.from} ${edge.type} ${edge.to}`);
+      seen.add(tuple);
+      for (const endpoint of [edge.from, edge.to]) {
+        if (!semanticExists(endpoint)) errors.push(`${label}: unresolved semantic endpoint ${endpoint}`);
+        if (/^(?:P|Q)-\d{2}$/u.test(endpoint) && productDefinitions.get(endpoint) !== 1) {
+          errors.push(`${label}: product definition ${endpoint} must resolve exactly once`);
+        }
+      }
+      if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
+      adjacency.get(edge.from).push(edge.to);
     }
-    if (!adjacency.has(edge.from)) adjacency.set(edge.from, []);
-    adjacency.get(edge.from).push(edge.to);
   }
   const visiting = new Set();
   const visited = new Set();
@@ -350,6 +616,9 @@ function checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds) 
     visited.add(node);
   }
   for (const node of adjacency.keys()) visit(node, []);
+  const boundaryResult = validateBoundaryOperationRows(semanticMap.boundaryOperations, contractSemanticIds, { unresolvedDecisionIds });
+  for (const message of boundaryResult.errors) errors.push(message);
+  checkBoundaryCalibration();
 }
 
 function checkLastVerifiedCommits(manifest, traceability) {
@@ -565,6 +834,7 @@ function run() {
   requireFile(traceabilityPath, 'traceability registry');
   requireFile(productRequirementsPath, 'product requirements');
   requireFile(semanticMapPath, 'semantic map');
+  requireFile(projectStatePath, 'project state');
 
   const manifest = readJson(manifestPath);
   checkManifest(manifest);
@@ -580,12 +850,14 @@ function run() {
   const scenarios = readJson(scenarioPath);
   const traceability = readJson(traceabilityPath);
   const semanticMap = readJson(semanticMapPath);
+  const projectState = readJson(projectStatePath);
   const inventory = inventoryPath && existsSync(inventoryPath) ? readJson(inventoryPath) : null;
   const decisions = decisionsPath && existsSync(decisionsPath) ? readJson(decisionsPath) : null;
 
   const productDefinitions = discoverProductDefinitions();
   const contractSemanticIds = discoverContractSemanticIds(manifest);
-  checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds);
+  const unresolvedDecisionIds = unresolvedOwnerDecisionIds(projectState);
+  checkSemanticMap(semanticMap, productDefinitions, contractSemanticIds, unresolvedDecisionIds);
   const scenarioIds = new Set((scenarios?.scenarios ?? []).map((scenario) => scenario.id));
   const semanticTargets = new Set([...productDefinitions.keys(), ...contractSemanticIds.keys()]);
   const legacyValidTargets = new Set([...semanticTargets, ...scenarioIds]);
